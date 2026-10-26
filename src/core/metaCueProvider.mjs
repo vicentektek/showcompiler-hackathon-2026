@@ -141,7 +141,10 @@ export async function callMetaCueModel({
   if (!response || typeof response.ok !== 'boolean') throw new Error('Invalid Meta API response');
   if (!response.ok) {
     // Never include response body (may contain tokens, user content or other secrets).
-    throw new Error('Meta Model API failed with status ' + response.status);
+    const error = new Error('Meta Model API failed with status ' + response.status);
+    // Safe numeric status for local diagnostics. Never propagate upstream body.
+    error.metaStatus = Number.isInteger(response.status) ? response.status : null;
+    throw error;
   }
   const text = await response.text();
   if (text.length > 100_000) throw new Error('Meta Model API response exceeds limit');
