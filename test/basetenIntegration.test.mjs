@@ -192,3 +192,24 @@ test('hallucinated reference gets a separate safe classification', async (t) => 
   assert.equal(res.status, 422);
   assert.deepEqual(await res.json(), { code: 'BASETEN_BAD_REFERENCES' });
 });
+
+test('script-only show returns sound proposals without requesting audio library', async t => {
+  const project = createNewShow({ name:'Guion sin audio', scriptText:'ESCENA 1\n(Trueno a lo lejos)\nANA: ¡Cuidado!' });
+  let calls = 0;
+  const base = await server(t, {
+    getBasetenKey: () => 'LOCAL_TEST_ONLY',
+    basetenClient: async ({show:input}) => {
+      calls++;
+      assert.deepEqual(input.assets, []);
+      return {
+        provider: BASETEN_PROVIDER,
+        proposals: [{lineId:'L2',assetId:null,label:'Trueno',soundPrompt:'Distant low thunder'}],
+      };
+    },
+  });
+  const response = await post(base, project);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.deepEqual(body.proposals, [{lineId:'L2',assetId:null,label:'Trueno',soundPrompt:'Distant low thunder'}]);
+  assert.equal(calls, 1);
+});

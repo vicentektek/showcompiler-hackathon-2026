@@ -1,6 +1,6 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, nextAvailableId } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
@@ -37,10 +37,11 @@ function refreshAudioControls() {
   for (const label of document.querySelectorAll('[data-cue-state]')) {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
     if (!cue) continue;
-    const ready = cue.actions.every(action => player.hasAsset(action.assetId));
+    const unresolved = cue.actions.find(action => action.type === 'PLAN_AUDIO');
+    const ready = !unresolved && cue.actions.every(action => player.hasAsset(action.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
-    label.textContent = t(stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
+    label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
   for (const button of document.querySelectorAll('[data-cue-action]')) {
     const cue = show.cues.find(item => item.id === button.dataset.cueId);
@@ -111,6 +112,12 @@ function replaceOptions(select, entries, oldValue) {
   if (entries.some(([value]) => value === oldValue)) select.value = oldValue;
   select.disabled = entries.length === 0;
 }
+function describeCueActions(actions) {
+  return actions.map(action => action.type === 'PLAY'
+    ? 'PLAY → ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
+    : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') + ': ' + action.prompt
+  ).join(' | ');
+}
 function render() {
   const lines = parseScript(show.scriptText);
   $('showName').value = show.name;
@@ -139,9 +146,9 @@ function render() {
   }
 
   replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || t('status.emptyLine')}`]) : [], $('lineSelect').value);
-  replaceOptions($('assetSelect'), show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`]), $('assetSelect').value);
-  $('createProposalBtn').disabled = !show.scriptText || show.assets.length === 0;
-  $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim() || show.assets.length === 0;
+  replaceOptions($('assetSelect'), [['', t('soundPlan.defer')], ...show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`])], $('assetSelect').value);
+  $('createProposalBtn').disabled = !show.scriptText;
+  $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim();
   $('modelProviderSelect').disabled = metaInFlight;
 
   const proposalList = $('proposalList');
@@ -156,7 +163,7 @@ function render() {
     card.append(top);
     const line = getScriptLine(lines, proposal.sourceLineIds[0]);
     card.append(node('p', 'item-detail', `${proposal.sourceLineIds.join(', ')} · ${line?.text ?? t('status.noSourceLine')}`));
-    card.append(node('p', 'item-detail', `PLAY → ${proposal.actions.map(action => action.assetId).join(', ')}`));
+    card.append(node('p', 'item-detail', describeCueActions(proposal.actions)));
     if (proposal.status === 'PENDING') {
       const controls = node('div', 'item-actions');
       const approve = node('button', 'btn primary small', t('actions.approve'));
@@ -181,7 +188,36 @@ function render() {
     const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
-    card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', 'PLAY → ' + cue.actions.map(action => action.assetId).join(', ')));
+    card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', describeCueActions(cue.actions)));
+    const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
+    if (plan) {
+      const resolve = node('div', 'item-actions');
+      const deferred = node('button', 'btn subtle small', t('soundPlan.defer'));
+      deferred.type = 'button';
+      deferred.disabled = plan.resolution === 'DEFER';
+      deferred.addEventListener('click', () => safeOperation(
+        () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'
+      ));
+      const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
+      generate.type = 'button';
+      generate.disabled = plan.resolution === 'GENERATE';
+      generate.addEventListener('click', () => safeOperation(
+        () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'
+      ));
+      resolve.append(deferred, generate);
+      if (show.assets.length) {
+        const library = node('select', '', '');
+        library.setAttribute('aria-label', t('soundPlan.libraryLabel'));
+        replaceOptions(library, show.assets.map(asset => [asset.id, asset.name]));
+        const assign = node('button', 'btn primary small', t('soundPlan.assign'));
+        assign.type = 'button';
+        assign.addEventListener('click', () => safeOperation(
+          () => assignAudioToCue(show, cue.id, library.value), 'soundPlan.assignedFeedback'
+        ));
+        resolve.append(library, assign);
+      }
+      card.append(resolve);
+    }
     const controls = node('div', 'item-actions');
     const commands = [['go', t('actions.go'), 'btn primary small'], ['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
     for (const [action, title, style] of commands) {
@@ -381,6 +417,11 @@ const remoteErrors = Object.freeze({
   META_INVALID_PROJECT: 'errors.metaInvalidProject',
   META_TOO_LARGE: 'errors.metaTooLarge',
   META_SERVICE: 'errors.metaService',
+  META_OUTPUT_TRUNCATED: 'errors.metaOutputTruncated',
+  META_OUTPUT_NOT_JSON: 'errors.metaOutputNotJson',
+  META_OUTPUT_SCHEMA: 'errors.metaOutputSchema',
+  META_OUTPUT_EMPTY_OR_OVERSIZED: 'errors.metaOutputEmpty',
+  META_BAD_REFERENCES: 'errors.metaBadReferences',
   BASETEN_AUTH: 'errors.basetenAuth',
   BASETEN_RATE: 'errors.basetenRate',
   BASETEN_MODEL: 'errors.basetenModel',

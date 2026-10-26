@@ -64,7 +64,7 @@ test('parses valid structured proposals only on completed responses', () => {
   assert.deepEqual(parseMetaCueResponse(response([{ lineId: 'L2', assetId: 'asset-1', label: '  Lluvia  ' }])), [
     { lineId: 'L2', assetId: 'asset-1', label: 'Lluvia' },
   ]);
-  assert.throws(() => parseMetaCueResponse({ choices: [{ finish_reason: 'length', message: { content: '{}' } }] }), /interrupted/);
+  assert.throws(() => parseMetaCueResponse({ choices: [{ finish_reason: 'length', message: { content: '{}' } }] }), error => error.safeReason === 'TRUNCATED');
 });
 
 test('rejects malformed, oversized or command-shaped model output', () => {
@@ -103,7 +103,10 @@ test('remote error never leaks response body or secret', async () => {
   });
 });
 
-test('rejects empty script or no asset before model call', () => {
+test('rejects empty scripts but allows analysing a script without audio assets', () => {
   assert.throws(() => makeCueAnalysisRequest(createNewShow()));
-  assert.throws(() => makeCueAnalysisRequest(createNewShow({scriptText:'Hola'})), /referencia de audio/);
+  const request = makeCueAnalysisRequest(createNewShow({scriptText:'Hola'}));
+  const body = JSON.parse(request.messages[1].content);
+  assert.deepEqual(body.availableAudio, []);
+  assert.equal(body.scriptExcerpt[0].text, 'Hola');
 });

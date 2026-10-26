@@ -43,7 +43,7 @@ export function addMockProposal(project, { lineId, assetId, label } = {}) {
   const current = normalizeShowProject(project);
   const proposal = {
     id: nextAvailableId('proposal', current.proposals.map(p => p.id)),
-    label, sourceLineIds: [lineId], actions: [{ type: 'PLAY', assetId }], source: 'MANUAL_MOCK',
+    label, sourceLineIds: [lineId], actions: [assetId ? { type: 'PLAY', assetId } : { type: 'PLAN_AUDIO', prompt: label, resolution: 'DEFER' }], source: 'MANUAL_MOCK',
   };
   const verified = validateCueProposals([proposal], parseScript(current.scriptText), current.assets.map(a => a.id));
   if (!verified.valid) throw new TypeError(verified.errors.join('; '));
@@ -68,21 +68,65 @@ export function addModelProposals(project, suggestions, provider = 'META_MODEL_A
   const usedIds = current.proposals.map(p => p.id);
   for (const item of suggestions) {
     if (!item || typeof item !== 'object' || Array.isArray(item) ||
-        !permittedLines.has(item.lineId) || !permittedAssets.has(item.assetId) ||
-        typeof item.label !== 'string' || !item.label.trim()) {
+        !permittedLines.has(item.lineId) ||
+        (item.assetId != null && !permittedAssets.has(item.assetId)) ||
+        typeof item.label !== 'string' || !item.label.trim() ||
+        (item.soundPrompt !== undefined && (typeof item.soundPrompt !== 'string' || !item.soundPrompt.trim() || item.soundPrompt.length > 500))) {
       throw new TypeError('Meta suggestion does not match supplied script excerpt or audio list');
     }
     const id = nextAvailableId('proposal', usedIds);
     usedIds.push(id);
     proposed.push({
       id, label: item.label.trim(), sourceLineIds: [item.lineId],
-      actions: [{ type: 'PLAY', assetId: item.assetId }],
+      actions: [item.assetId == null
+        ? { type: 'PLAN_AUDIO', prompt: (item.soundPrompt || item.label).trim(), resolution: 'DEFER' }
+        : { type: 'PLAY', assetId: item.assetId }],
       source: provider,
     });
   }
   const validated = validateCueProposals(proposed, allLines, current.assets.map(asset => asset.id));
   if (!validated.valid) throw new TypeError('Meta suggestions failed validation: ' + validated.errors.join('; '));
   return normalizeShowProject({ ...current, proposals: [...current.proposals, ...validated.proposals] });
+}
+
+/** Resolve an approved-but-unbound cue by choosing an existing audio asset.
+ * The approved proposal and its cue change together to preserve source traceability.
+ * A missing decoded browser file still prevents GO until explicitly loaded.
+ */
+export function assignAudioToCue(project, cueId, assetId) {
+  const current = normalizeShowProject(project);
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || !cue.actions.some(action => action.type === 'PLAN_AUDIO')) {
+    throw new TypeError('Cue has no unresolved audio');
+  }
+  if (!current.assets.some(asset => asset.id === assetId)) throw new TypeError('Unknown audio asset');
+  if (cue.actions.length !== 1) throw new TypeError('Multi-action cue resolution is not supported yet');
+  const parent = current.proposals.find(proposal => proposal.id === cue.sourceProposalId);
+  if (!parent || parent.status !== 'APPROVED') throw new TypeError('Approved parent is missing');
+  const action = { type: 'PLAY', assetId };
+  return normalizeShowProject({
+    ...current,
+    proposals: current.proposals.map(item => item.id === parent.id ? { ...item, actions: [action] } : item),
+    cues: current.cues.map(item => item.id === cueId ? { ...item, actions: [action] } : item),
+  });
+}
+
+/** Mark an unresolved cue for later sound design or explicit generation.
+ * This records intent only. No provider is called and no credits are consumed.
+ */
+export function setCueSoundResolution(project, cueId, resolution) {
+  const current = normalizeShowProject(project);
+  if (!['DEFER', 'GENERATE'].includes(resolution)) throw new TypeError('Unsupported sound resolution');
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || cue.actions.length !== 1 || cue.actions[0].type !== 'PLAN_AUDIO') {
+    throw new TypeError('Cue is not waiting for sound design');
+  }
+  const action = { ...cue.actions[0], resolution };
+  return normalizeShowProject({
+    ...current,
+    proposals: current.proposals.map(item => item.id === cue.sourceProposalId ? { ...item, actions: [action] } : item),
+    cues: current.cues.map(item => item.id === cueId ? { ...item, actions: [action] } : item),
+  });
 }
 
 export function addMetaProposals(project, suggestions) {

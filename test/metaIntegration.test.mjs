@@ -199,3 +199,49 @@ test('invalid language hint is rejected before sending anything to Meta', async 
   assert.equal(data.code, 'META_INVALID_PROJECT');
   assert.equal(JSON.stringify(data).includes('SERVER_ONLY_TEST_KEY'), false);
 });
+
+test('Meta errors return safe distinct categories without revealing script or key', async t => {
+  const { MetaOutputError } = await import('../src/core/metaCueProvider.mjs');
+  for (const reason of ['TRUNCATED','NOT_JSON','SCHEMA','EMPTY_OR_OVERSIZED']) {
+    const base = await withServer(t, {
+      getKey: () => 'NO_LEAK_KEY',
+      modelClient: async () => { throw new MetaOutputError(reason); },
+    });
+    const response = await analysisRequest(base, { project: project() });
+    assert.equal(response.status, 422);
+    const body = await response.text();
+    assert.equal(JSON.parse(body).code, 'META_OUTPUT_' + reason);
+    assert.doesNotMatch(body, /NO_LEAK_KEY|ESCENA|Música/);
+  }
+});
+
+test('Meta request accepts a show with no audio and null assetId sound prompt', async t => {
+  const show = createNewShow({ name: 'La ciudad suena', scriptText: 'ESCENA\n(Trueno distante)\nANA: ¡Cuidado!' });
+  const base = await withServer(t, {
+    getKey: () => 'NO_LEAK_KEY',
+    modelClient: async ({ show: submitted }) => {
+      assert.equal(submitted.assets.length, 0);
+      return {
+        provider: 'META_MODEL_API',
+        proposals: [{ lineId:'L2', assetId:null, label:'Trueno lejano', soundPrompt:'Low rumbling distant thunder' }],
+      };
+    },
+  });
+  const response = await analysisRequest(base, {project: show, scriptLanguage:'es'});
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.deepEqual(data.proposals, [{lineId:'L2',assetId:null,label:'Trueno lejano',soundPrompt:'Low rumbling distant thunder'}]);
+});
+
+test('hallucinated Meta source line produces specific safe diagnostic', async t => {
+  const base = await withServer(t, {
+    getKey: () => 'NO_LEAK_KEY',
+    modelClient: async () => ({
+      provider: 'META_MODEL_API',
+      proposals: [{ lineId:'L999', assetId:null, label:'Inventado', soundPrompt:'Thunder' }],
+    }),
+  });
+  const response = await analysisRequest(base, {project: project()});
+  assert.equal(response.status, 422);
+  assert.deepEqual(await response.json(), {code:'META_BAD_REFERENCES'});
+});
