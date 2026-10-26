@@ -19,7 +19,7 @@ cargo run --manifest-path native-audio-spike/Cargo.toml -- --beep
 
 This plays a brief 440 Hz tone at low gain. It uses the device's default configuration and supports F32/I16/U16 for this diagnostic. Other sample formats return a clear error.
 
-**Status:** CPAL 0.18.2 source compiles and 1 Rust test passed on GitHub Actions Windows runner ([verified CI run](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40391218771)). Human verification with an actual audio output device remains **PENDING**. A subsequent workflow builds an EXE artifact for manual testing. It does not include ASIO bindings, ASIO SDK, external audio files, device-specific channel routing, output buses, cue scheduling or UI integration.
+**Status:** CPAL 0.18.2 source compiles and 1 Rust test passed on GitHub Actions Windows runner ([verified CI run](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40391218771)). Human verification with an actual audio output device remains **PENDING**. A subsequent Windows workflow **successfully built the release EXE** and published the artifact. [Verified Windows build and artifact](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40391592054). Physical audible output remains untested. It does not include ASIO bindings, ASIO SDK, external audio files, device-specific channel routing, output buses, cue scheduling or UI integration.
 
 ## Validation scope
 
@@ -31,7 +31,7 @@ Third-party dependency: `cpal` (Apache-2.0). Preserve dependency notices before 
 
 ## Download diagnostic without installing Rust
 
-When the latest [Native WASAPI feasibility workflow](https://github.com/vicentektek/showcompiler-hackathon-2026/actions) completes successfully, open its **Artifacts** section and download `showcompiler-wasapi-diagnostic-windows` (if available). Extract the EXE to a test folder, not the existing SHOWCOMPILER install.
+Open the [successful Windows CI run](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40391592054) → **Artifacts**, and download `showcompiler-wasapi-diagnostic-windows` (if available). Extract the EXE to a test folder, not the existing SHOWCOMPILER install.
 
 Normal double-click only enumerates devices in a terminal window which can close immediately; instead use PowerShell inside its folder:
 
