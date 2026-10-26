@@ -23,3 +23,14 @@ jobs:
           cargo --version
       - name: Compile and unit-test standalone CPAL WASAPI spike (no sound)
         run: cargo test --manifest-path native-audio-spike/Cargo.toml
+      - name: Build stand-alone diagnostic EXE (no automatic sound)
+        run: cargo build --release --manifest-path native-audio-spike/Cargo.toml
+      - name: Upload Windows diagnostic EXE and resolved dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcompiler-wasapi-diagnostic-windows
+          path: |
+            native-audio-spike/target/release/showcompiler-native-audio-spike.exe
+            native-audio-spike/Cargo.lock
+          if-no-files-found: error
+          retention-days: 7
