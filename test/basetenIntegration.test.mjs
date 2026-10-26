@@ -159,3 +159,36 @@ test('GET cannot generate suggestions and does not call partner API',async(t)=>{
   assert.equal(res.status,405);
   assert.equal(calls,0);
 });
+
+test('actual provider response error categories are safe, distinct and do not reveal raw text', async (t) => {
+  const { BasetenOutputError } = await import('../src/core/basetenCueProvider.mjs');
+  for (const [reason, expected] of [
+    ['NOT_JSON', 'BASETEN_OUTPUT_NOT_JSON'],
+    ['TRUNCATED', 'BASETEN_OUTPUT_TRUNCATED'],
+    ['SCHEMA', 'BASETEN_OUTPUT_SCHEMA'],
+    ['EMPTY_OR_OVERSIZED', 'BASETEN_OUTPUT_EMPTY_OR_OVERSIZED'],
+  ]) {
+    const base = await server(t, {
+      getBasetenKey: () => 'DO_NOT_LEAK_SECRET',
+      basetenClient: async () => { throw new BasetenOutputError(reason); },
+    });
+    const res = await post(base, show());
+    assert.equal(res.status, 422);
+    const reply = await res.text();
+    assert.equal(JSON.parse(reply).code, expected);
+    assert.doesNotMatch(reply, /DO_NOT_LEAK_SECRET|INTRO|Música/);
+  }
+});
+
+test('hallucinated reference gets a separate safe classification', async (t) => {
+  const base = await server(t, {
+    getBasetenKey: () => 'DO_NOT_LEAK_SECRET',
+    basetenClient: async () => ({
+      provider: BASETEN_PROVIDER,
+      proposals: [{ lineId: 'L999', assetId:'asset-1', label:'Invented cue' }],
+    }),
+  });
+  const res = await post(base, show());
+  assert.equal(res.status, 422);
+  assert.deepEqual(await res.json(), { code: 'BASETEN_BAD_REFERENCES' });
+});
