@@ -98,20 +98,28 @@ export function makeCueAnalysisRequest(show, model = DEFAULT_META_MODEL, scriptL
   };
 }
 
+export class MetaOutputError extends Error {
+  constructor(reason) {
+    super('Meta response validation failed');
+    this.name = 'MetaOutputError';
+    this.safeReason = reason;
+  }
+}
+
 export function parseMetaCueResponse(payload) {
   const content = payload?.choices?.[0]?.message?.content;
   const finish = payload?.choices?.[0]?.finish_reason;
-  if (finish !== 'stop') throw new Error('Meta response was interrupted; no suggestions accepted');
+  if (finish !== 'stop') throw new MetaOutputError('TRUNCATED');
   if (typeof content !== 'string' || content.length > 25_000) {
-    throw new Error('Meta returned an invalid or oversized response');
+    throw new MetaOutputError('EMPTY_OR_OVERSIZED');
   }
   let parsed;
   try { parsed = JSON.parse(content); }
-  catch { throw new Error('Meta did not return valid JSON'); }
+  catch { throw new MetaOutputError('NOT_JSON'); }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
       Object.keys(parsed).length !== 1 || !Array.isArray(parsed.proposals) ||
       parsed.proposals.length > MAX_SUGGESTIONS) {
-    throw new Error('Meta returned an unexpected suggestion schema');
+    throw new MetaOutputError('SCHEMA');
   }
   return parsed.proposals.map((item, i) => {
     if (!item || typeof item !== 'object' || Array.isArray(item) ||
@@ -120,7 +128,7 @@ export function parseMetaCueResponse(payload) {
         typeof item.lineId !== 'string' || !/^L[1-9]\d*$/.test(item.lineId) ||
         (item.assetId !== null && (typeof item.assetId !== 'string' || !item.assetId)) ||
         (item.soundPrompt !== undefined && (typeof item.soundPrompt !== 'string' || !item.soundPrompt.trim() || item.soundPrompt.length > 500))) {
-      throw new Error('Meta returned an invalid suggestion at index ' + i);
+      throw new MetaOutputError('SCHEMA');
     }
     return { lineId: item.lineId, assetId: item.assetId, label: item.label.trim(), ...(item.soundPrompt === undefined ? {} : { soundPrompt: item.soundPrompt.trim() }) };
   });
