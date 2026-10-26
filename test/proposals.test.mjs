@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { validateCueProposals } from '../src/core/proposals.mjs';
+const lines = [{ id: 'L1' }, { id: 'L2' }];
+const assets = ['intro.wav'];
+const good = () => ({ id: 'c1', label: 'Inicio', sourceLineIds: ['L2'], actions: [{ type: 'PLAY', assetId: 'intro.wav' }] });
+const check = p => validateCueProposals(p, lines, assets);
+test('accepts a valid proposal as pending only', () => { const result = check([good()]); assert.equal(result.valid, true); assert.equal(result.proposals[0].status, 'PENDING'); });
+test('rejects references not present in script', () => { const p=good(); p.sourceLineIds=['L99']; assert.equal(check([p]).valid,false); });
+test('rejects missing assets', () => { const p=good(); p.actions[0].assetId='missing.wav'; assert.equal(check([p]).valid,false); });
+test('rejects unsupported actions', () => { const p=good(); p.actions[0].type='EXECUTE_SHELL'; assert.equal(check([p]).valid,false); });
+test('rejects duplicate proposal ids', () => { assert.equal(check([good(),good()]).valid,false); });
+test('rejects malformed inputs and action limits', () => { assert.equal(check(null).valid,false); const p=good(); p.actions=Array.from({length:13},()=>({type:'PLAY',assetId:'intro.wav'})); assert.equal(check([p]).valid,false); });
+test('all-or-nothing: no partial accepted proposals', () => { const bad=good(); bad.id='c2'; bad.sourceLineIds=['L88']; const result=check([good(),bad]); assert.deepEqual(result.proposals,[]); });
+test('does not mutate original input', () => { const p=good(); const result=check([p]); result.proposals[0].actions[0].assetId='changed'; assert.equal(p.actions[0].assetId,'intro.wav'); });
