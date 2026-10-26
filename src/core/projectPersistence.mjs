@@ -59,6 +59,11 @@ function actions(value, knownAssets, where) {
   if (!Array.isArray(value) || value.length === 0 || value.length > 12) invalid(where + " must contain 1–12 actions");
   return value.map((action, index) => {
     const at = where + "[" + index + "]";
+    if (action?.type === 'PLAN_AUDIO') {
+      fields(action, ['type', 'prompt', 'resolution'], at);
+      if (!['DEFER', 'GENERATE'].includes(action.resolution)) invalid(at + " has invalid resolution");
+      return { type: 'PLAN_AUDIO', prompt: requiredString(action.prompt, 500, at + ".prompt"), resolution: action.resolution };
+    }
     fields(action, ['type', 'assetId'], at);
     if (action.type !== 'PLAY') invalid(at + " has an unsupported action type");
     const assetId = identifier(action.assetId, at + ".assetId");
@@ -67,7 +72,7 @@ function actions(value, knownAssets, where) {
   });
 }
 function matchesArray(a, b) { return a.length === b.length && a.every((value, i) => value === b[i]); }
-function matchesActions(a, b) { return a.length === b.length && a.every((value, i) => value.type === b[i].type && value.assetId === b[i].assetId); }
+function matchesActions(a, b) { return a.length === b.length && a.every((value, i) => value.type === b[i].type && (value.type === 'PLAY' ? value.assetId === b[i].assetId : value.prompt === b[i].prompt && value.resolution === b[i].resolution)); }
 
 /** Validate and create an entirely detached, canonical project object. */
 export function normalizeShowProject(input) {
