@@ -69,3 +69,11 @@ footer{padding:20px 34px;border-top:1px solid #263149;color:#73839f;text-align:c
 .preflight-report li{font-size:12px;line-height:1.45;color:#c8d4e9}
 .preflight-report li.preflight-blocker{color:#ffcad0}
 .preflight-report li.preflight-warning{color:#f2dfa1}
+
+/* Cue operator details use saved project metadata, never AI-proposed commands. */
+.cue-details-editor{border:1px solid #405677;background:#15233a;border-radius:9px;padding:11px;margin-top:12px}
+.cue-details-editor .field{margin:7px 0 11px}
+.cue-details-editor .field input,.cue-details-editor .field textarea{margin-top:7px;font-weight:400}
+.cue-details-editor textarea{display:block;width:100%;min-height:80px;resize:vertical;color:#eff5ff;background:#0f1829;border:1px solid #354660;border-radius:8px;padding:9px 11px;font:inherit}
+.cue-details-editor textarea:focus-visible{outline:2px solid #71adff;outline-offset:2px}
+.cue-technical-notes{white-space:pre-wrap}

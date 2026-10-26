@@ -1,6 +1,6 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -34,6 +34,7 @@ let audioInFlight = false;
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
+let editingCueId = null;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
@@ -264,6 +265,51 @@ function renderPreflight() {
   }
 }
 
+function cueDetailsEditor(cue) {
+  const form = node('form', 'cue-details-editor');
+  const labelCaption = node('label', 'field', t('cue.editorTitle'));
+  const labelInput = node('input', '', '');
+  labelInput.type = 'text';
+  labelInput.maxLength = 200;
+  labelInput.value = cue.label;
+  labelInput.required = true;
+  labelCaption.append(labelInput);
+  const triggerCaption = node('label', 'field', t('cue.trigger'));
+  const triggerInput = node('input', '', '');
+  triggerInput.type = 'text';
+  triggerInput.maxLength = 300;
+  triggerInput.value = cue.trigger ?? '';
+  triggerInput.placeholder = t('cue.triggerPlaceholder');
+  triggerCaption.append(triggerInput);
+  const notesCaption = node('label', 'field', t('cue.notes'));
+  const notesInput = node('textarea', 'cue-notes-input');
+  notesInput.maxLength = 1500;
+  notesInput.rows = 3;
+  notesInput.value = cue.notes ?? '';
+  notesCaption.append(notesInput);
+  const controls = node('div', 'item-actions');
+  const save = node('button', 'btn primary small', t('cue.saveDetails'));
+  save.type = 'submit';
+  const cancel = node('button', 'btn subtle small', t('cue.cancelDetails'));
+  cancel.type = 'button';
+  cancel.addEventListener('click', () => { editingCueId = null; render(); });
+  controls.append(save, cancel);
+  form.append(labelCaption, triggerCaption, notesCaption, controls);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    try {
+      show = updateCueOperatorDetails(show, cue.id, {
+        label: labelInput.value, trigger: triggerInput.value, notes: notesInput.value,
+      });
+      dirty = true;
+      editingCueId = null;
+      render();
+      feedback('status.cueDetailsSaved', { number: cue.number }, 'success');
+    } catch (error) { showError(error); }
+  });
+  return form;
+}
+
 function render() {
   const lines = parseScript(show.scriptText);
   $('showName').value = show.name;
@@ -360,7 +406,17 @@ function render() {
     card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', describeCueActions(cue.actions)));
     const sourceActions = node('div', 'item-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
+    const edit = node('button', 'btn subtle small', t('cue.editDetails'));
+    edit.type = 'button';
+    edit.addEventListener('click', () => {
+      editingCueId = editingCueId === cue.id ? null : cue.id;
+      render();
+    });
+    sourceActions.append(edit);
     card.append(sourceActions);
+    if (cue.trigger) card.append(node('p', 'item-detail', t('cue.trigger') + ': ' + cue.trigger));
+    if (cue.notes) card.append(node('p', 'item-detail cue-technical-notes', t('cue.notes') + ': ' + cue.notes));
+    if (editingCueId === cue.id) card.append(cueDetailsEditor(cue));
     const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
     if (plan) {
       const resolve = node('div', 'item-actions');
@@ -478,6 +534,7 @@ function setNewShow(project, statusKey, values = {}) {
   scriptFocusLineId = null;
   scriptMatchIndex = 0;
   preflightVisible = false;
+  editingCueId = null;
   $('scriptSearchInput').value = '';
   player.reset();
   show = project;

@@ -138,3 +138,12 @@ test('script search, source links and preflight expose safe, actual UI controls'
   assert.match(client, /findScriptMatches\(lines, \$\('scriptSearchInput'\)\.value\)/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
 });
+
+test('approved cue exposes safe editable operator details with no direct model execution', () => {
+  assert.match(client, /function cueDetailsEditor\(cue\)/);
+  assert.match(client, /updateCueOperatorDetails\(show, cue\.id/);
+  assert.match(client, /notesInput\.maxLength = 1500/);
+  assert.match(client, /triggerInput\.maxLength = 300/);
+  assert.match(client, /t\('cue\.editDetails'\)/);
+  assert.doesNotMatch(client, /\.innerHTML\s*=/);
+});

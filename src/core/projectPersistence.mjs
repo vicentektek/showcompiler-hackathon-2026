@@ -34,6 +34,12 @@ function requiredString(value, max, where) {
   if (typeof value !== 'string' || !value.trim() || value.length > max || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(value)) invalid(where + " must be nonempty text of at most " + max + " characters");
   return value;
 }
+function optionalText(value, max, where) {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || value.length > max ||
+      /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(value)) invalid(where + ' is invalid');
+  return value.trim() || undefined;
+}
 function identifier(value, where) {
   if (typeof value !== 'string' || !ID.test(value)) invalid(where + " must be a valid identifier");
   return value;
@@ -115,7 +121,7 @@ export function normalizeShowProject(input) {
 
   const cues = limitedArray(input.cues, MAX_CUES, 'cues').map((cue, index) => {
     const at = "cues[" + index + "]";
-    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status'], at);
+    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes'], at);
     const cueId = identifier(cue.id, at + ".id");
     if (!Number.isSafeInteger(cue.number) || cue.number < 1 || cue.number > MAX_CUE_NUMBER) invalid(at + ".number is invalid");
     if (cue.status !== 'DRAFT') invalid(at + ".status must be DRAFT");
@@ -129,6 +135,8 @@ export function normalizeShowProject(input) {
       id: cueId,
       number: cue.number,
       label: requiredString(cue.label, 200, at + ".label"),
+      ...(optionalText(cue.trigger, 300, at + '.trigger') === undefined ? {} : { trigger: optionalText(cue.trigger, 300, at + '.trigger') }),
+      ...(optionalText(cue.notes, 1500, at + '.notes') === undefined ? {} : { notes: optionalText(cue.notes, 1500, at + '.notes') }),
       sourceProposalId,
       sourceLineIds: refs,
       actions: cueActions,
