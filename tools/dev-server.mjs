@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { makeMetaRoute } from './metaRoutes.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const allowed = new Map([
@@ -18,22 +19,24 @@ const allowed = new Map([
   ['/src/core/browserAudio.mjs', ['src/core/browserAudio.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/audioBackend.mjs', ['src/core/audioBackend.mjs', 'text/javascript; charset=utf-8']],
 ]);
-export function createAppServer() {
+export function createAppServer(options = {}) {
+  const metaRoute = makeMetaRoute(options);
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
       'Referrer-Policy': 'no-referrer',
     };
+    let pathname;
+    try { pathname = new URL(request.url, 'http://127.0.0.1').pathname; }
+    catch { response.writeHead(400, headers); response.end(); return; }
+    if (await metaRoute(request, response, pathname, headers)) return;
     if (!['GET', 'HEAD'].includes(request.method)) {
       response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
       response.end();
       return;
     }
-    let pathname;
-    try { pathname = new URL(request.url, 'http://127.0.0.1').pathname; }
-    catch { response.writeHead(400, headers); response.end(); return; }
     const entry = allowed.get(pathname);
     if (!entry) { response.writeHead(404, headers); response.end(); return; }
     try {
@@ -60,7 +63,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     });
     server.listen(port, '127.0.0.1', () => {
       console.log(`ShowCompiler prototype at http://127.0.0.1:${port}`);
-      console.log('Ctrl+C to stop. Local audio playback enabled; cue proposals remain simulated (no Meta AI).');
+      console.log('Ctrl+C to stop. Local audio enabled; Meta AI requires MODEL_API_KEY and explicit permission.');
     });
   }
 }
