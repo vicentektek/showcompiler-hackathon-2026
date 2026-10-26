@@ -23,6 +23,11 @@ test('prototype labels mock AI, real local audio and incomplete JSON packaging',
   assert.match(css, /@media/);
 });
 
+test('frontend imports backend facade, never Web Audio engine directly', () => {
+  assert.match(client, /from '\.\.\/core\/audioBackend\.mjs'/);
+  assert.doesNotMatch(client, /from '\.\.\/core\/browserAudio\.mjs'/);
+});
+
 test('untrusted script and cue labels do not use innerHTML', () => {
   assert.doesNotMatch(client, /innerHTML\s*=/);
   assert.match(client, /textContent/);
@@ -47,6 +52,9 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const audioModule = await fetch(base + '/src/core/browserAudio.mjs');
   assert.equal(audioModule.status, 200);
   assert.match(await audioModule.text(), /class BrowserAudioEngine/);
+  const backendFacade = await fetch(base + '/src/core/audioBackend.mjs');
+  assert.equal(backendFacade.status, 200);
+  assert.match(await backendFacade.text(), /createBrowserAudioBackend/);
   const blocked = await fetch(base + '/tools/dev-server.mjs');
   assert.equal(blocked.status, 404);
   const post = await fetch(base + '/', { method: 'POST' });
