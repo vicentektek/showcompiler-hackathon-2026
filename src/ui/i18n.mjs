@@ -59,6 +59,14 @@ export function translateDocument(document, locale) {
 }
 
 const COMMON_ERRORS = Object.freeze([
+  [/^Selecciona WAV\/MP3\/OGG/i, 'errors.audioUnsupported'],
+  [/^Referencia de audio no válida/i, 'errors.audioUnsupported'],
+  [/^Solo se admiten audios mono/i, 'errors.audioChannels'],
+  [/^Cue inválido o sin todos sus audios cargados/i, 'errors.audioCueNotReady'],
+  [/^Este cue ya está reproduciéndose/i, 'errors.audioAlreadyPlaying'],
+  [/^(La carga se canceló|GO cancelado)/i, 'errors.audioCancelled'],
+  [/^El navegador ha bloqueado el audio/i, 'errors.audioBlocked'],
+  [/^Fundido inválido/i, 'errors.audioFadeInvalid'],
   [/^Invalid show project:/i, 'errors.metaInvalidProject'],
   [/^Cue not found/i, 'errors.cueMissing'],
   [/^Invalid script language/i, 'errors.languageHint'],
