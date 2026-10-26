@@ -101,7 +101,8 @@ export function makeMetaRoute({
       const accepted = addMetaProposals(project, result.proposals);
       const output = accepted.proposals.slice(project.proposals.length).map(proposal => ({
         lineId: proposal.sourceLineIds[0],
-        assetId: proposal.actions[0].assetId,
+        assetId: proposal.actions[0].type === 'PLAY' ? proposal.actions[0].assetId : null,
+        ...(proposal.actions[0].type === 'PLAN_AUDIO' ? { soundPrompt: proposal.actions[0].prompt } : {}),
         label: proposal.label,
       }));
       answer(response, 200, { provider: 'META_MODEL_API', model, proposals: output }, headers);
