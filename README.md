@@ -1,6 +1,6 @@
 # ShowCompiler — Meta Global AI Developer Hackathon 2026
 
-**Status: new, experimental browser prototype.** This repository tracks only work created during the event (26 October–4 November 2026). The intended entry is **Build for Your World**, applying Meta AI to stage and event sound-control workflows.
+**Status: new, experimental browser prototype with real local audio playback.** This repository tracks only work created during the event (26 October–4 November 2026). The intended entry is **Build for Your World**, applying Meta AI to stage and event sound-control workflows.
 
 ## Run locally (Node.js 20+)
 
@@ -9,22 +9,23 @@ npm test
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173** in Chrome or Edge and click **Ejemplo**.
+Open **http://127.0.0.1:5173** in Chrome or Edge, click **Ejemplo**, load a short WAV/MP3 and approve a mock cue to test **real audio playback**.
 
 Other commands: `npm run check:syntax` checks browser/server modules, and `npm run demo:core` launches the independent terminal walkthrough. No npm dependencies or installation steps are needed.
 
 ## Currently implemented
 
 - Local browser interface: import an UTF-8 TXT script and see stable line references.
-- Register **audio metadata only** (file name/ID; no audio files are imported).
+- Load **real local WAV/MP3** files into browser memory; attach them to their asset IDs (audio never leaves the browser).
 - Create a **SIMULATED** cue proposal, review it explicitly, then approve it as `DRAFT` or reject it.
-- Export and reimport validated versioned JSON project data.
+- Execute explicitly approved cues by manual **GO**, **STOP**, **FADE 1.5 s**, and **PARAR TODO** using the browser Web Audio engine.
+- Export and reimport validated versioned JSON project data (**the actual audio is not embedded**).
 - Unit and integration tests, plus syntax checks and GitHub Actions verification.
 - Local, allowlisted web server bound to 127.0.0.1 only.
 
-**Not implemented:** real Meta-model calls, generative cue analysis, audio playback, STOP/FADE engine, desktop installer, hardware interfaces, or complete portable project export with audio assets. No mock feature should be described as AI integration. Browser behavior still needs hands-on acceptance testing.
+**Not implemented:** real Meta-model calls, generative cue analysis, professional output routing/ASIO, persistent audio files, desktop installer, hardware interfaces, or complete portable project export with audio assets. No mock feature should be described as AI integration. Browser audio behavior still needs hands-on acceptance testing.
 
-Read the [UI walkthrough](docs/UI_PROTOTYPE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), [persistence limits](docs/PERSISTENCE.md), and [contribution log](docs/CONTRIBUTIONS.md).
+Read the [real audio GO/STOP walkthrough](docs/LOCAL_AUDIO_MVP.md), [UI walkthrough](docs/UI_PROTOTYPE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), [persistence limits](docs/PERSISTENCE.md), and [contribution log](docs/CONTRIBUTIONS.md).
 
 ## Planned competition path
 
