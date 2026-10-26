@@ -14,13 +14,14 @@ Only source and functionality created during the event window (26 October–4 No
 | 2026-10-26 | Local browser Web Audio engine: operator GO, STOP, 1.5s fade, panic STOP, local file decoding; UI wiring and smoke tests | 13 new mock-WebAudio tests, browser/HTTP checks, [GitHub Actions: 65/65 tests passed](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40381536145) | Actual audio code available; hardware/browser audible acceptance remains pending |
 | 2026-10-26 | Desktop-first WASAPI/ASIO architecture ADR and replaceable browser audio backend facade; UI no longer imports Web Audio engine directly | 5 additional tests; [GitHub Actions 70/70](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40387476270) | Boundary implemented; native backend not implemented |
 | 2026-10-26 | Optional official Meta Model API provider, loopback-only server proxy, opt-in UI, strict JSON schema, proposal provenance persisted in JSON | 17 additional tests; [GitHub Actions 87/87](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40391036859) | Implemented behind key; not yet exercised with a real Meta account, API quota or actual inference |
+| 2026-10-26 | International English-default/Spanish UI (142 translated strings per locale), persisted device-level UI choice, separate source-language hint to Meta without changing script text or JSON schema | 14 additional tests vs. previous 89; [GitHub Actions: 103/103](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40400786722) | Coded and automatically verified; manual browser switching and multilingual Meta quality remain pending |
 
 ### Verification evidence
-- Branch: `feat/hackathon-script-core`.
+- Branch: `feat/i18n-en-es-2026-10-26` (forked from `feat/meta-model-cue-proposals`; base script/audio branch remains unchanged).
 - Test command: `npm test` (Node.js 20+; no dependencies).
-- Total: **87/87 automated tests passed** in GitHub Actions with Node.js 22; module syntax checks passed. The new Meta API route has only been tested against mocked transport responses. Local speaker/headphone playback has not yet been confirmed manually.
+- Total: **103/103 automated tests passed** in GitHub Actions with Node.js 22; module syntax checks passed. The new Meta API route has only been tested against mocked transport responses. Local speaker/headphone playback has not yet been confirmed manually.
 - GitHub Actions: Core tests succeeded on the branch, [workflow run #40372369548](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40372369548); the checkout and Node test step completed successfully.
-- Pending: manual Chrome/Edge acceptance of actual audio GO, STOP, fade and panic; independent code review, actual live Meta API credentials/quota verification, Windows native WASAPI proof, and desktop installer. Web Audio is a local prototype backend, not certified for professional live shows. ASIO is a legally gated future option.
+- Pending: manual Chrome/Edge EN/ES switching and original script preservation, actual audio GO, STOP, fade and panic; independent code review, actual live Meta API credentials/quota verification, Windows native WASAPI proof, and desktop installer. Web Audio is a local prototype backend, not certified for professional live shows. ASIO is a legally gated future option.
 - JSON project format does **not** contain actual audio data; it is not a complete portable backup.
 - `main` remains unchanged.
 
