@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeMetaRoute } from './metaRoutes.mjs';
+import { makeBasetenRoute } from './basetenRoutes.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const allowed = new Map([
@@ -25,6 +26,10 @@ const allowed = new Map([
 ]);
 export function createAppServer(options = {}) {
   const metaRoute = makeMetaRoute(options);
+  const basetenRoute = makeBasetenRoute({
+    modelClient: options.basetenClient,
+    getKey: options.getBasetenKey,
+  });
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',
@@ -36,6 +41,7 @@ export function createAppServer(options = {}) {
     try { pathname = new URL(request.url, 'http://127.0.0.1').pathname; }
     catch { response.writeHead(400, headers); response.end(); return; }
     if (await metaRoute(request, response, pathname, headers)) return;
+    if (await basetenRoute(request, response, pathname, headers)) return;
     if (!['GET', 'HEAD'].includes(request.method)) {
       response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
       response.end();
