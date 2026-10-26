@@ -134,6 +134,7 @@ test('calls exact Meta endpoint with server-only bearer key and returns provenan
   };
   const result = await callMetaCueModel({
     show: show(), apiKey: 'TEST_SECRET', fetchImpl, requestId: 'meta-contract-test', now: () => 100,
+    analysisMode: 'SMOKE',
   });
   assert.deepEqual(result.proposals, [bound()]);
   assert.equal(result.provider, 'META_MODEL_API');
@@ -149,6 +150,66 @@ test('calls exact Meta endpoint with server-only bearer key and returns provenan
   assert.equal(request.init.headers.Authorization, 'Bearer TEST_SECRET');
   assert.equal(request.init.method, 'POST');
   assert.doesNotMatch(request.init.body, /TEST_SECRET/);
+});
+
+test('default call uses scene-aware V2 and returns transient coverage/details only', async () => {
+  let request;
+  const proposal = {
+    windowId: 'S1-W1',
+    sourceLineId: 'L2',
+    sourceEvidence: '(SONIDO DE LLUVIA)',
+    cueKind: 'AMBIENCE',
+    basis: 'EXPLICIT',
+    transport: 'PLAY',
+    label: 'Lluvia',
+    soundPrompt: 'Lluvia exterior fina, evolución suave, bucle sin costura, sin voces ni música.',
+    assetId: null,
+    trigger: 'ON_LINE',
+    durationSeconds: 60,
+    loop: true,
+    fadeInSeconds: 2,
+    fadeOutSeconds: 3,
+    confidence: 0.95,
+    reason: 'La acotación pide lluvia de forma explícita.',
+  };
+  const fetchImpl = async (url, init) => {
+    request = { url, init };
+    return { ok: true, status: 200, text: async () => JSON.stringify(response([proposal])) };
+  };
+  const result = await callMetaCueModel({
+    show: createNewShow({ scriptText: 'ESCENA 1\n(SONIDO DE LLUVIA)\nANA: Escucha' }),
+    apiKey: 'TEST_SECRET',
+    fetchImpl,
+    requestId: 'meta-theatre-test',
+  });
+  assert.deepEqual(result.proposals, [{
+    lineId: 'L2', assetId: null, label: 'Lluvia', soundPrompt: proposal.soundPrompt,
+  }]);
+  assert.equal(result.details[0].basis, 'EXPLICIT');
+  assert.equal(result.details[0].cueKind, 'AMBIENCE');
+  assert.deepEqual(result.observations, []);
+  assert.equal(result.duplicatesRemoved, 0);
+  assert.equal(result.coverage.complete, true);
+  assert.deepEqual(result.coverage.analyzedLineIds, ['L1', 'L2', 'L3']);
+  const sent = JSON.parse(request.init.body);
+  assert.equal(sent.response_format.json_schema.name, 'showcompiler_theatre_cue_suggestions_v2');
+  assert.match(sent.messages[0].content, /dialogue|mentioning/i);
+  assert.doesNotMatch(request.init.body, /TEST_SECRET/);
+});
+
+test('V2 semantic evidence failure has a local semantic diagnostic', async () => {
+  const bad = {
+    windowId: 'S1-W1', sourceLineId: 'L2', sourceEvidence: 'invented evidence',
+    cueKind: 'FX', basis: 'EXPLICIT', transport: 'PLAY', label: 'Rain',
+    soundPrompt: 'Rain', assetId: null, trigger: 'ON_LINE', durationSeconds: 2,
+    loop: false, fadeInSeconds: 0, fadeOutSeconds: 0, confidence: 0.9, reason: 'Explicit.',
+  };
+  await assert.rejects(callMetaCueModel({
+    show: createNewShow({ scriptText: 'SCENE 1\n(Rain starts)' }),
+    apiKey: 'TEST_SECRET',
+    requestId: 'meta-semantic-test',
+    fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify(response([bad])) }),
+  }), error => error.safeReason === 'SEMANTIC' && error.diagnostic.phase === 'LOCAL_SEMANTIC_VALIDATION');
 });
 
 test('without key it fails closed and never sends a request', async () => {

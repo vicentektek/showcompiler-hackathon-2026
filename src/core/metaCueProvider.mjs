@@ -6,6 +6,12 @@
 import { normalizeShowProject } from './projectPersistence.mjs';
 import { parseScript } from './script.mjs';
 import { normalizeScriptLanguageHint } from './scriptLanguage.mjs';
+import {
+  classifyTheatricalSuggestions,
+  parseTheatricalCueContent,
+  prepareTheatricalCueAnalysis,
+  TheatricalCueValidationError,
+} from './theatreCueAnalysis.mjs';
 
 const ENDPOINT = 'https://api.meta.ai/v1/chat/completions';
 const MODELS = new Set(['muse-spark-1.3', 'muse-spark-1.2', 'muse-spark-1.1']);
@@ -191,7 +197,8 @@ export class MetaOutputError extends MetaProviderError {
   constructor(reason, diagnostic = {}) {
     const phase = reason === 'TRUNCATED' || reason === 'REFUSED' || reason === 'FINISH_REASON'
       ? 'MODEL_FINISH'
-      : reason === 'ENVELOPE' ? 'UPSTREAM_ENVELOPE' : 'OUTPUT_SCHEMA';
+      : reason === 'ENVELOPE' ? 'UPSTREAM_ENVELOPE'
+        : reason === 'SEMANTIC' ? 'LOCAL_SEMANTIC_VALIDATION' : 'OUTPUT_SCHEMA';
     super(reason, { ...diagnostic, phase });
     this.message = 'Meta response validation failed';
     this.name = 'MetaOutputError';
@@ -199,7 +206,7 @@ export class MetaOutputError extends MetaProviderError {
   }
 }
 
-export function parseMetaCueResponse(payload, diagnostic = {}) {
+function extractCompletedMetaContent(payload, diagnostic = {}, maximumContent = 25_000) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
       !Array.isArray(payload.choices) || payload.choices.length !== 1 ||
       !payload.choices[0] || typeof payload.choices[0] !== 'object' ||
@@ -216,16 +223,21 @@ export function parseMetaCueResponse(payload, diagnostic = {}) {
     throw new MetaOutputError('REFUSED', withFinish);
   }
   if (finish !== 'stop') throw new MetaOutputError('FINISH_REASON', withFinish);
-  if (typeof content !== 'string' || !content.trim() || content.length > 25_000) {
+  if (typeof content !== 'string' || !content.trim() || content.length > maximumContent) {
     throw new MetaOutputError('EMPTY_OR_OVERSIZED', withFinish);
   }
+  return { content, diagnostic: withFinish };
+}
+
+export function parseMetaCueResponse(payload, diagnostic = {}) {
+  const completed = extractCompletedMetaContent(payload, diagnostic);
   let parsed;
-  try { parsed = JSON.parse(content); }
-  catch { throw new MetaOutputError('NOT_JSON', withFinish); }
+  try { parsed = JSON.parse(completed.content); }
+  catch { throw new MetaOutputError('NOT_JSON', completed.diagnostic); }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
       Object.keys(parsed).length !== 1 || !Array.isArray(parsed.proposals) ||
       parsed.proposals.length > MAX_SUGGESTIONS) {
-    throw new MetaOutputError('SCHEMA', withFinish);
+    throw new MetaOutputError('SCHEMA', completed.diagnostic);
   }
   return parsed.proposals.map((item, i) => {
     if (!item || typeof item !== 'object' || Array.isArray(item) ||
@@ -235,7 +247,7 @@ export function parseMetaCueResponse(payload, diagnostic = {}) {
         typeof item.lineId !== 'string' || !/^L[1-9]\d*$/.test(item.lineId) ||
         (item.assetId !== null && (typeof item.assetId !== 'string' || !item.assetId)) ||
         typeof item.soundPrompt !== 'string' || !item.soundPrompt.trim() || item.soundPrompt.length > 500) {
-      throw new MetaOutputError('SCHEMA', withFinish);
+      throw new MetaOutputError('SCHEMA', completed.diagnostic);
     }
     return {
       lineId: item.lineId,
@@ -274,6 +286,7 @@ export async function callMetaCueModel({
   show, apiKey, model = DEFAULT_META_MODEL, scriptLanguage = 'auto',
   fetchImpl = globalThis.fetch, timeoutMs = 45_000,
   requestId = createMetaRequestId(), now = () => Date.now(),
+  analysisMode = 'THEATRICAL', analysisWindowStart = 0,
 }) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new Error('Meta Model API key is not configured');
@@ -286,7 +299,18 @@ export async function callMetaCueModel({
     throw new TypeError('Invalid Meta request identifier');
   }
   if (typeof now !== 'function') throw new TypeError('Invalid Meta diagnostic clock');
-  const body = JSON.stringify(makeCueAnalysisRequest(show, model, scriptLanguage));
+  if (analysisMode !== 'THEATRICAL' && analysisMode !== 'SMOKE') {
+    throw new TypeError('Invalid Meta analysis mode');
+  }
+  const prepared = analysisMode === 'THEATRICAL'
+    ? prepareTheatricalCueAnalysis(show, {
+        model,
+        scriptLanguage,
+        windowStart: analysisWindowStart,
+      })
+    : null;
+  const requestBody = prepared?.request ?? makeCueAnalysisRequest(show, model, scriptLanguage);
+  const body = JSON.stringify(requestBody);
   const startedAt = now();
   let response;
   try {
@@ -358,9 +382,29 @@ export async function callMetaCueModel({
     finishReason: json?.choices?.[0]?.finish_reason,
     usage: json?.usage,
   };
-  const proposals = parseMetaCueResponse(json, diagnostics);
+  if (analysisMode === 'SMOKE') {
+    const proposals = parseMetaCueResponse(json, diagnostics);
+    return {
+      proposals,
+      model,
+      provider: 'META_MODEL_API',
+      diagnostics: sanitizeMetaDiagnostic(diagnostics),
+    };
+  }
+  const completed = extractCompletedMetaContent(json, diagnostics, 50_000);
+  let suggestions;
+  try {
+    suggestions = parseTheatricalCueContent(completed.content, prepared.scope);
+  } catch (error) {
+    if (error instanceof TheatricalCueValidationError) {
+      throw new MetaOutputError(error.safeReason, completed.diagnostic);
+    }
+    throw error;
+  }
+  const classified = classifyTheatricalSuggestions(suggestions);
   return {
-    proposals,
+    ...classified,
+    coverage: prepared.coverage,
     model,
     provider: 'META_MODEL_API',
     diagnostics: sanitizeMetaDiagnostic(diagnostics),

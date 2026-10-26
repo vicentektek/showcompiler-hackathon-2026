@@ -50,6 +50,7 @@ test('authorized smoke performs exactly one tiny zero-asset request and returns 
       calls += 1;
       assert.equal(request.model, 'muse-spark-1.3');
       assert.equal(request.scriptLanguage, 'en');
+      assert.equal(request.analysisMode, 'SMOKE');
       assert.equal(request.show.assets.length, 0);
       assert.equal(request.show.scriptText.split('\n').length, 3);
       return validResult;

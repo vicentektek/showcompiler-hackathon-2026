@@ -40,6 +40,7 @@ export async function runMetaSmoke({
     apiKey,
     model: DEFAULT_META_MODEL,
     scriptLanguage: 'en',
+    analysisMode: 'SMOKE',
   });
   const proposals = result?.proposals;
   const expected = Array.isArray(proposals) && proposals.some(proposal =>

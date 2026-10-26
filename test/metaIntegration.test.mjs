@@ -115,7 +115,7 @@ test('real API adapter response enters only as proposed pending cues', async (t)
 test('corrupt script line or resource response is rejected without partial approval', async (t) => {
   const base = await withServer(t, {
     getKey: () => 'SERVER_ONLY_KEY',
-    modelClient: async () => ({ proposals: [{ ...item, lineId: 'L120' }] }),
+    modelClient: async () => ({ provider: 'META_MODEL_API', proposals: [{ ...item, lineId: 'L120' }] }),
   });
   const res = await analysisRequest(base, { project: project() });
   assert.notEqual(res.status, 200);
@@ -274,6 +274,62 @@ test('Meta request accepts a show with no audio and null assetId sound prompt', 
   assert.equal(response.status, 200);
   const data = await response.json();
   assert.deepEqual(data.proposals, [{lineId:'L2',assetId:null,label:'Trueno lejano',soundPrompt:'Low rumbling distant thunder'}]);
+});
+
+test('scene window offset returns transient coverage, observations and proposal details', async t => {
+  const scriptText = Array.from({length:130}, (_, index) =>
+    index === 124 ? '(A bell rings in the final scene.)' : `Line ${index + 1}`).join('\n');
+  const later = createNewShow({id:'later-show',name:'Later scene',scriptText});
+  const proposal = {
+    lineId:'L125', assetId:null, label:'Final bell',
+    soundPrompt:'One distant bell strike with a long, quiet decay.',
+  };
+  const detail = {cueKind:'FX',basis:'EXPLICIT',transport:'PLAY',reason:'The direction explicitly calls for a bell.'};
+  let observedOffset;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_KEY',
+    modelClient: async ({analysisWindowStart}) => {
+      observedOffset = analysisWindowStart;
+      return {
+        provider:'META_MODEL_API',
+        proposals:[proposal],
+        details:[detail],
+        observations:[{cueKind:'MUSIC',basis:'EXPLICIT',transport:'STOP',reason:'Existing music ends.'}],
+        duplicatesRemoved:1,
+        coverage:{
+          totalLines:130,sceneCount:1,totalWindows:3,
+          batchStartWindow:2,batchEndWindowExclusive:3,
+          analyzedWindowIds:['S1-W3'],
+          analyzedLineIds:Array.from({length:10},(_,index)=>`L${121+index}`),
+          analyzedLines:10,nextWindowStart:null,complete:true,
+        },
+      };
+    },
+  });
+  const response = await analysisRequest(base, {project:later,scriptLanguage:'en',analysisWindowStart:2});
+  assert.equal(response.status, 200);
+  assert.equal(observedOffset, 2);
+  const data = await response.json();
+  assert.deepEqual(data.proposals, [proposal]);
+  assert.deepEqual(data.proposalDetails, [detail]);
+  assert.equal(data.observations[0].transport, 'STOP');
+  assert.equal(data.duplicatesRemoved, 1);
+  assert.equal(data.coverage.complete, true);
+  const imported = addMetaProposals(later, data.proposals);
+  const persisted = serializeShowProject(imported);
+  assert.doesNotMatch(persisted, /coverage|cueKind|basis|transport|reason/);
+});
+
+test('invalid scene window offset is rejected before an external call', async t => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_KEY',
+    modelClient: async () => { calls += 1; throw new Error('SHOULD_NOT_RUN'); },
+  });
+  const response = await analysisRequest(base, {project:project(),analysisWindowStart:-1});
+  assert.equal(response.status, 400);
+  assert.equal(calls, 0);
+  assert.equal((await response.json()).diagnostic.phase, 'LOCAL_VALIDATION');
 });
 
 test('hallucinated Meta source line produces specific safe diagnostic', async t => {

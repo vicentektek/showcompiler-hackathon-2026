@@ -42,6 +42,62 @@ async function readBoundedBody(request, maximum) {
   return Buffer.concat(buffers).toString('utf8');
 }
 
+const LINE_ID = /^L[1-9]\d*$/;
+const WINDOW_ID = /^S[1-9]\d*-W[1-9]\d*$/;
+const CUE_KINDS = new Set(['FX', 'AMBIENCE', 'MUSIC', 'VOICE', 'SILENCE', 'TRANSITION']);
+const BASES = new Set(['EXPLICIT', 'SUGGESTED']);
+const TRANSPORTS = new Set(['PLAY', 'CONTINUE', 'STOP', 'SILENCE']);
+
+function safeCoverage(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      !Number.isSafeInteger(value.totalLines) || value.totalLines < 1 ||
+      !Number.isSafeInteger(value.sceneCount) || value.sceneCount < 1 ||
+      !Number.isSafeInteger(value.totalWindows) || value.totalWindows < 1 ||
+      !Number.isSafeInteger(value.batchStartWindow) || value.batchStartWindow < 0 ||
+      !Number.isSafeInteger(value.batchEndWindowExclusive) ||
+      value.batchEndWindowExclusive <= value.batchStartWindow ||
+      value.batchEndWindowExclusive > value.totalWindows ||
+      !Array.isArray(value.analyzedWindowIds) || value.analyzedWindowIds.length > 2 ||
+      value.analyzedWindowIds.some(id => typeof id !== 'string' || !WINDOW_ID.test(id)) ||
+      new Set(value.analyzedWindowIds).size !== value.analyzedWindowIds.length ||
+      !Array.isArray(value.analyzedLineIds) || value.analyzedLineIds.length > 240 ||
+      value.analyzedLineIds.some(id => typeof id !== 'string' || !LINE_ID.test(id)) ||
+      new Set(value.analyzedLineIds).size !== value.analyzedLineIds.length ||
+      !Number.isSafeInteger(value.analyzedLines) || value.analyzedLines !== value.analyzedLineIds.length ||
+      !(value.nextWindowStart === null ||
+        (Number.isSafeInteger(value.nextWindowStart) && value.nextWindowStart === value.batchEndWindowExclusive)) ||
+      typeof value.complete !== 'boolean' || value.complete !== (value.nextWindowStart === null)) {
+    throw new TypeError('Invalid Meta scene coverage');
+  }
+  return {
+    totalLines: value.totalLines,
+    sceneCount: value.sceneCount,
+    totalWindows: value.totalWindows,
+    batchStartWindow: value.batchStartWindow,
+    batchEndWindowExclusive: value.batchEndWindowExclusive,
+    analyzedWindowIds: [...value.analyzedWindowIds],
+    analyzedLineIds: [...value.analyzedLineIds],
+    analyzedLines: value.analyzedLines,
+    nextWindowStart: value.nextWindowStart,
+    complete: value.complete,
+  };
+}
+
+function safeTheatricalDetail(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      !CUE_KINDS.has(value.cueKind) || !BASES.has(value.basis) ||
+      !TRANSPORTS.has(value.transport) || typeof value.reason !== 'string' ||
+      !value.reason.trim() || value.reason.length > 300) {
+    throw new TypeError('Invalid Meta theatrical detail');
+  }
+  return {
+    cueKind: value.cueKind,
+    basis: value.basis,
+    transport: value.transport,
+    reason: value.reason.trim(),
+  };
+}
+
 /** Returns a handler that sends only selected script lines + asset *names* to Meta. */
 export function makeMetaRoute({
   modelClient = callMetaCueModel,
@@ -108,16 +164,31 @@ export function makeMetaRoute({
       const raw = await readBoundedBody(request, MAX_PROJECT_JSON_BYTES);
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
-          Object.keys(parsed).some(key => key !== 'project' && key !== 'scriptLanguage') ||
+          Object.keys(parsed).some(key => !['project', 'scriptLanguage', 'analysisWindowStart'].includes(key)) ||
           typeof parsed.project !== 'object') {
         answer(response, 400, { error: 'Solicitud de proyecto no válida' }, headers);
         return true;
       }
       const project = deserializeShowProject(JSON.stringify(parsed.project));
       const scriptLanguage = normalizeScriptLanguageHint(parsed.scriptLanguage);
+      const analysisWindowStart = parsed.analysisWindowStart ?? 0;
+      if (!Number.isSafeInteger(analysisWindowStart) || analysisWindowStart < 0) {
+        throw new TypeError('Invalid Meta scene window start');
+      }
       const result = await modelClient({
         show: project, apiKey: getKey(), model, scriptLanguage, requestId,
+        analysisWindowStart,
       });
+      if (!result || result.provider !== 'META_MODEL_API' || !Array.isArray(result.proposals)) {
+        throw new TypeError('Invalid Meta provider result');
+      }
+      const coverage = result.coverage === undefined ? undefined : safeCoverage(result.coverage);
+      if (coverage) {
+        const permitted = new Set(coverage.analyzedLineIds);
+        if (result.proposals.some(proposal => !permitted.has(proposal?.lineId))) {
+          throw new TypeError('Meta suggestion does not match supplied script excerpt or audio list');
+        }
+      }
       // Revalidate everything on the server before returning anything to the UI.
       const accepted = addMetaProposals(project, result.proposals);
       const output = accepted.proposals.slice(project.proposals.length).map(proposal => ({
@@ -126,11 +197,25 @@ export function makeMetaRoute({
         ...(proposal.actions[0].type === 'PLAN_AUDIO' ? { soundPrompt: proposal.actions[0].prompt } : {}),
         label: proposal.label,
       }));
+      const proposalDetails = result.details === undefined ? undefined : result.details.map(safeTheatricalDetail);
+      const observations = result.observations === undefined ? undefined : result.observations.map(safeTheatricalDetail);
+      const duplicatesRemoved = result.duplicatesRemoved === undefined ? undefined : result.duplicatesRemoved;
+      if (proposalDetails && proposalDetails.length !== output.length) {
+        throw new TypeError('Invalid Meta theatrical detail count');
+      }
+      if (duplicatesRemoved !== undefined &&
+          (!Number.isSafeInteger(duplicatesRemoved) || duplicatesRemoved < 0 || duplicatesRemoved > 8)) {
+        throw new TypeError('Invalid Meta duplicate count');
+      }
       answer(response, 200, {
         provider: 'META_MODEL_API',
         model,
         proposals: output,
         diagnostic: sanitizeMetaDiagnostic(result.diagnostics ?? localDiagnostic('COMPLETE', 'OK')),
+        ...(coverage === undefined ? {} : { coverage }),
+        ...(proposalDetails === undefined ? {} : { proposalDetails }),
+        ...(observations === undefined ? {} : { observations }),
+        ...(duplicatesRemoved === undefined ? {} : { duplicatesRemoved }),
       }, headers);
     } catch (error) {
       // Expose only an enumerated, non-sensitive reason. Never return script/model text.

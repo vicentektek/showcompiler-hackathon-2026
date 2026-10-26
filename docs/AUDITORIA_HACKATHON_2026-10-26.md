@@ -1,82 +1,78 @@
-# Auditoría de SHOWCOMPILER — Hackathon Meta AI
-**Fecha:** 26 de octubre de 2026  
-**Revisión:** código GitHub, pruebas CI, guía oficial del participante, documentación Meta Model API y exploración del panel de facturación (sin acceso a credenciales ni verificación financiera).
+# SHOWCOMPILER hackathon audit
 
-## 1. Reglas que condicionan la entrega
+Date: 26 October 2026
+Scope: repository history, automated tests, public event guidance, and official provider documentation. This file intentionally contains no credentials, account identifiers, billing screenshots, balances, or private scripts.
 
-Fuente del organizador: https://cerebralvalley.ai/e/meta-ai-developer-hackathon/details (Participant Guide, sesión de participante).
+## Submission constraints
 
-- Solo se presentan como nuevas funciones construidas durante el hackathon. No incluir archivos anteriores ni atribuirlos al evento.
-- **Fecha de inicio ACLARADA en el FAQ oficial de Discord:** Kai (Cerebral Valley) publicó en [#faqs](https://discord.com/channels/1557169028080869426/1557169028626251802), el 26 de octubre: **«Correction: building period is officially after the kickoff session!»**. Esto corrige la ambigüedad del calendario «Oct 27–Nov 4»: se permite construir después de la sesión inaugural del 26 de octubre. **Evidencia temporal complementaria:** en una conversación sobre la retransmisión, el usuario avisó de que la emisión había terminado a las **16:24:17 UTC** del día 26 y preguntó cómo detener la grabación con Python; esta hora es testimonio en el historial de chat, no una marca oficial de fin de vídeo. Los primeros commits verificados en GitHub del repositorio nuevo son posteriores: planificación **17:33:59 UTC** y primer código **17:35:51 UTC**. Es decir, el primer código se subió **más de una hora después** de que el usuario indicara que había terminado la sesión inaugural. No hay fundamento para desechar ni rehacer el trabajo de este repositorio por la fecha; conservar historial y transparencia.
-- **Integrar un modelo Meta es un requisito de pase/fallo** en la primera ronda.
-- Repositorio accesible públicamente **en el momento de la entrega**.
-- **Vídeo de 3 minutos** mostrando funciones nuevas, además de código y producto funcional.
-- Fecha límite: miércoles **4 de noviembre, 21:00 EST** = jueves **5 de noviembre, 03:00** en España peninsular (CET).
-- Puntuaciones segunda ronda: impacto **30%**, uso de herramientas Meta **25%**, ejecución técnica **20%**, demo **25%**.
-- Itinerario **Indie Developer** permite presentar en solitario. La entrega se realiza en https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit.
-- No se deben presentar activos sin derechos, ni copiar trabajo de terceros.
+- Claim only work created during the hackathon; do not copy the earlier SHOWCOMPILER codebase.
+- Keep a dated, reviewable commit history in the new repository.
+- A Meta model integration is required for the intended competition entry.
+- The submitted repository must be accessible under the event rules at submission time.
+- The demonstration must show new functionality honestly; simulated fixtures are not model output.
+- Do not publish unlicensed media, private scripts, credentials, or account/billing information.
+- Recheck the organizer's current participant guide and deadline before submission; this dated audit is not the authority for changed rules.
 
-## 2. Estado de ramas y código
+## Repository boundary
 
-| Rama/PR | Qué existe | Pruebas verificadas | Qué NO demuestra |
-| --- | --- | --- | --- |
-| `main` | Documentación inicial del hackathon | No contiene la demo completa | No es candidato de entrega |
-| `feat/hackathon-script-core` | Lector TXT, trazabilidad de líneas, propuestas manuales, aprobación, JSON, UI y Web Audio | 70/70 GitHub Actions | Audio no comprobado físicamente en el equipo, sin Meta AI |
-| `feat/meta-model-cue-proposals` · [PR #3](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/3) | Meta Model API, esquema JSON, consentimiento, clave solo en Node, referencias validadas, trazabilidad de origen | 89/89 GitHub Actions | No hay petición con API key real ni credenciales verificadas |
-| `spike/native-wasapi-2026-10-26` · [PR #2](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/2) | Programa Rust/CPAL 0.18.2 para enumerar salidas y tono de prueba opcional | CI Windows compila, 1 Rust test y EXE release publicado | No es motor de cues; no ASIO, no hardware ni latencia medidos |
+- `main` remains outside the stacked experimental feature work.
+- Script/review, persistence/UI/audio, Meta, i18n, Baseten fallback, sound planning, theatrical evaluation, and reliability work were developed as isolated feature branches/draft PRs.
+- The current integration branch is `feat/meta-muse-reliable-cues`, based on `feat/meta-theatrical-prompt-evals`.
+- Do not merge automatically. Preserve any user-owned local changes and review the final diff.
 
-**Aislamiento:** ambos PR en borrador. No fusionar mientras fallen pruebas de aceptación.
+## Automatically verified behavior
 
-## 3. Auditoría funcional
+- stable script line IDs, source search, and original text roundtrips;
+- strict project JSON validation and safe rejection of malformed/unknown fields;
+- model suggestions never auto-approve or execute;
+- explicit approval creates a `DRAFT` cue;
+- asset-free `PLAN_AUDIO`, three resolution paths, and blocked unresolved GO;
+- Web Audio GO/STOP/fade/panic state through simulated AudioContext tests;
+- audio-backend facade truthfully excludes native/ASIO capabilities;
+- loopback/same-origin provider routes and server-only credentials;
+- strict Meta schema/response parsing, required sound brief, safe phased diagnostics, one-attempt timeout/transport behavior, and non-disclosure;
+- deterministic scene/window coverage, transient V2 validation, theatrical distinctions, and deduplication;
+- exact-line precision/recall/F1, forbidden triggers, duplicate, and hallucinated-reference evaluation;
+- EN/ES catalog parity and independent script-language hint.
 
-**Verificado automáticamente**
-- Líneas de guion y búsqueda, citas del guion, importación y validación JSON.
-- No se ejecuta un cue solo porque una IA haya propuesto una acción.
-- Audio en Web Audio: GO/STOP/FADE/PANIC probados con objetos simulados de AudioContext (no con altavoces reales).
-- Enlace UI/AudioBackend mediante fachada intercambiable que **no declara ASIO ni buses profesionales**.
-- Validación de respuesta de Meta por ambos lados del proxy local; URL de destino fija y secreto en variable de entorno.
-- La ruta Meta y el ciclo de aprobación preservan un campo de procedencia `source` en el JSON.
+## Not demonstrated by automated tests
 
-**Pendiente — criterio de aceptación humano**
-- [ ] `npm test` en el PC con la rama `feat/meta-model-cue-proposals`.
-- [ ] Audio WAV/MP3 real audible en Chrome/Edge y STOP/FADE/PANIC sobre varios cues.
-- [ ] Comprobar confirmación real de créditos/billing de Meta Model API. No introducir claves en el chat ni en Git.
-- [ ] Una petición real a Muse Spark que genere propuestas válidas para un guion de prueba.
-- [ ] Aprobar al menos dos propuestas, verificar el audio y reabrir JSON con procedencia Meta.
-- [ ] Evaluar calidad de sugerencias: aciertos sobre guion, falsos positivos, líneas correctas y recursos compatibles.
-- [ ] Probar caso sin red: los cues ya aprobados deben poder ejecutarse sin Meta.
-- [ ] Comprobar en Windows el EXE de enumeración WASAPI. La prueba audible `--beep` es voluntaria, con volumen bajo.
-- [ ] Vídeo de 3 minutos, README de jurado, capturas, repositorio público y entrega.
+- a successful live Meta or Baseten inference request;
+- account entitlement, credits, spending protection, or current provider pricing;
+- audible output, codec behavior, device latency, or safe gain on the user's hardware;
+- production-ready browser accessibility/responsive behavior;
+- native WASAPI/ASIO cue execution, multichannel routing, or installer;
+- paid audio generation or a portable show-media package.
 
-## 4. Dependencias y riesgos
+## Current critical path
 
-**Estado de cuentas revisado:** candidatura **APPROVED** (notificación del 20/10); formularios Baseten y Fireworks constan como enviados en pestañas con mensaje de confirmación, pero sin concesión de créditos verificada. La cuenta de Meta tiene abierta la pestaña Billing, que exige reconfirmar identidad y no muestra el saldo. No consta confirmación de envío del formulario de $150 de Meta. Modal muestra una pantalla de verificación de cuenta de pago, sin pago realizado/confirmado en la vista. No confundir cuentas creadas con fondos concedidos.
+1. Run `npm test` and `npm run check:syntax` on a clean checkout.
+2. Perform Chrome/Edge UI and low-volume local-audio acceptance with rights-clear media.
+3. Review active Meta account terms, quota, and cost outside the repository.
+4. With explicit authorization, run the one-request three-line smoke command once; do not retry automatically.
+5. Evaluate a locked rights-clear corpus, including negative dialogue mentions, continuation, silence, multilingual text, and a 91-line script.
+6. Verify approval, all three sound-resolution routes, JSON roundtrip, and network-offline playback.
+7. Prepare a truthful short demo and draft PR evidence; keep unsupported/native/generation claims out.
 
-**Crítico: acceso real a Meta AI.** Los organizadores ofrecen solicitar $150 en créditos de Meta Model API en https://docs.google.com/forms/d/e/1FAIpQLScam78z7tHsNYibiFyJQVFzEgr0coyBTiY568SxxNbsPa3jiw/viewform . La comunicación oficial indica que se debe **registrar una tarjeta** para emitir llamadas, y que los créditos se asignan por tandas. La alerta «Spend Limit» que menciona la guía no debe interpretarse automáticamente como un corte garantizado de gastos. El panel de billing pidió una nueva verificación de identidad; no se ha confirmado el saldo. La solicitud de créditos en un socio tercero NO concede automáticamente créditos de Meta Model API.
+## Risk register
 
-**Alto: débil diferenciación.** La generación de una lista corta de cues es una primera integración correcta, pero conviene que el jurado vea verificación de fuentes, justificación de la propuesta y reproducción audiovisual real. No presentar el mock como una generación del modelo.
+- **Live Meta access:** adapter correctness does not prove entitlement or billing readiness. The guarded smoke is still unrun.
+- **Model quality:** one successful response does not establish precision/recall. Use the reproducible corpus and human review.
+- **Cost:** each explicit analysis may be billable; a timeout may still consume tokens. There are zero automatic retries.
+- **Privacy:** Standard/Contributor and promotional-credit terms may differ. Never send confidential or third-party scripts without authorization.
+- **Audio portability:** JSON contains metadata, not media. A reopened project requires local files to be loaded again.
+- **Professional output:** browser audio and the separate WASAPI spike do not constitute certified native show control or ASIO support.
+- **Historical schema:** current v1 reads `PLAY` and `PLAN_AUDIO`, but old PLAY-only builds may reject later v1 documents.
 
-**Alto: sonido no completamente portable.** El JSON v1 incluye metadatos de sonidos, pero NO los audios. Un show exportado necesita recargar por nombre WAV/MP3 locales. No utilizar la demo en un directo profesional real.
+## Acceptance checklist
 
-**Alto: coherencia del trabajo nuevo.** El repositorio anterior `vicentektek/SHOWCOMPILER` sirve para investigación de requisitos, sin copiar código preexistente en esta entrega. Guardar historial de commits fechado y describir claramente las aportaciones posteriores al inicio.
+- [ ] Clean automated suite and syntax checks pass.
+- [ ] Draft PR diff contains no `.gitignore` user change, secret, account data, raw provider response, or private script.
+- [ ] Guarded live Meta smoke succeeds once and only safe metadata is recorded.
+- [ ] Human-reviewed corpus metrics are attached without representing synthetic fixtures as model results.
+- [ ] Every imported proposal is manually approved/rejected; unresolved cues cannot GO.
+- [ ] Local audio transport works with the network disabled.
+- [ ] EN/ES, JSON reopen, and coverage progression pass interactive checks.
+- [ ] Known limitations and unverified claims appear in README and PR.
 
-**Medio: API de Meta.** Documentación oficial confirma `muse-spark-1.3`, Chat Completions, `response_format: json_schema` y rol `developer`. El código se ajustó a razonamiento `low` para extracción. Quedan por medir latencia y coste por solicitud en cuenta real, sin asumir soporte no probado.
-
-**Medio: ASIO.** El spike usa WASAPI, no implementa ASIO ni añade SDK propietario. La capa de audio nativo requiere desarrollo nuevo de mezclador, instancias, buses y dispositivos; no desviar prioridad de la demo del jurado.
-
-## 5. Próximo orden recomendado
-
-1. **Hoy:** confirmar saldo Meta y acceso a la clave, ejecutar `git fetch` y cambiar a la rama Meta sin descartar archivos locales, probar 89 tests.
-2. **Primera prueba de usuario:** guion + WAV corto → propuesta manual → aprobación → audio GO, STOP y PANIC.
-3. **Primera inferencia real:** habilitar Meta solo tras revisar créditos y facturación; un único análisis de un guion original no confidencial, guardar resultado y captura.
-4. **Pulir demo:** mostrar referencia «Ver en guion», estado del sonido, procedencia real y resultados antes/después. Reproducir 2–3 cues seleccionados.
-5. **Semana:** entregar ejecutable o alternativa fácil de instalar si las pruebas lo justifican; probar repetidamente con Internet desactivado durante ejecución.
-6. **Antes de cierre:** documentación de jurado, 3 minutos de vídeo, repositorio público y envío formal.
-
-## 6. Límites de verificación
-
-- CI verde no significa audio audible ni permisos Meta activos.
-- No se ha verificado saldo bancario ni realizado cargos.
-- No hay autorización para publicar el repositorio o activar facturación por cuenta del usuario sin instrucción expresa.
-- No se han fusionado las ramas ni importado código anterior.
-- Confirmar siempre en el portal que reglas/fecha siguen siendo vigentes; la página pública de presentación no sustituye la guía autenticada.
+CI success is necessary but not proof of provider access, audible playback, latency, or production readiness.

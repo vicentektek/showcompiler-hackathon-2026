@@ -1,148 +1,122 @@
-# Investigación Meta Model API y especialización teatral — SHOWCOMPILER
-Fecha: 26 de octubre de 2026.
-**Tipo:** estudio para implementar. **No modifica runtime, no ejecuta inferencia real y no implica que se hayan comprobado credenciales de usuario.**
+# Meta Model API contract and theatrical evaluation research
 
-## Decisión
+Date: 26 October 2026
+Status: implementation record and acceptance plan. The guarded live smoke test has **not** been run; credentials, account entitlement, billing, and real inference remain unverified.
 
-Para el MVP del Meta AI Hackathon: Meta Model API / Chat Completions / `muse-spark-1.3` en **modo Standard**, clave solo en servidor Node, esquemas estructurados, inferencia **fuera del directo**, ejecución determinista de audio a voluntad del operador. Baseten Muse Spark Open es fallback; **no comparte contrato JSON garantizado** con Meta. No se hará fine-tuning para la entrega. Se especializará con reglas teatrales, ejemplos pocos-shot, evaluación gold y validación.
+## Decision
 
-Fuentes oficiales (verificadas el 26-oct-2026):
-- [Meta Chat Completions](https://dev.meta.ai/docs/protocols/chat-completions)
-- [Meta structured output](https://dev.meta.ai/docs/structured-output)
-- [Meta reasoning](https://dev.meta.ai/docs/reasoning)
-- [Meta error handling](https://dev.meta.ai/docs/cookbook/error-handling-retry)
-- [Meta pricing & privacy](https://dev.meta.ai/docs/pricing-rate-limits)
-- [Meta prompt caching](https://dev.meta.ai/docs/prompt-caching)
-- [Meta prompt engineering](https://dev.meta.ai/llama/docs/how-to-guides/prompting)
-- [Muse Spark Open fine-tuning](https://dev.meta.ai/docs/muse-spark-open/post-training)
+The hackathon MVP uses Meta Model API Chat Completions with Standard-mode `muse-spark-1.3`. The key exists only in the local Node process. Model inference is an opt-in rehearsal-preparation activity; local audio playback remains deterministic and network-free. Baseten-hosted Muse Spark Open is an optional fallback with a different, non-guaranteed JSON contract. Fine-tuning and paid sound-file generation are out of scope.
 
-## 1. Auditoría del adaptador actual
+Official references checked for this implementation:
 
-Archivos: `src/core/metaCueProvider.mjs`, `tools/metaRoutes.mjs`, `src/core/workspace.mjs`, `src/core/projectPersistence.mjs`.
+- [Chat Completions](https://dev.meta.ai/docs/protocols/chat-completions)
+- [Chat Completions schemas](https://dev.meta.ai/docs/api-reference/chat-completions/schemas)
+- [Structured output](https://dev.meta.ai/docs/structured-output)
+- [Error handling](https://dev.meta.ai/docs/error-handling)
+- [Error handling and retry patterns](https://dev.meta.ai/docs/cookbook/error-handling-retry)
+- [Reasoning](https://dev.meta.ai/docs/reasoning)
+- [Models and availability](https://dev.meta.ai/docs/models)
+- [Pricing and rate limits](https://dev.meta.ai/docs/pricing-rate-limits)
 
-**Correcto y conservar**:
-- `POST https://api.meta.ai/v1/chat/completions` con modelo `muse-spark-1.3`.
-- `MODEL_API_KEY` exclusivamente en proceso Node y `Authorization: Bearer`; API de frontend solo localhost.
-- Mensaje `developer` de alto nivel, `response_format.type=json_schema`, `json_schema.strict=true`; todos los objetos con `additionalProperties:false` y todos sus campos requeridos.
-- `reasoning_effort:low` como baseline de extracción, `stream:false`, límite de propuestas, verificación de IDs en servidor y cliente; humana `APPROVE` produce `DRAFT`, jamás GO.
-- Proyecto sin assets válido: `assetId:null`, `PLAN_AUDIO` no se reproduce.
+## Audited request contract
 
-**Riesgos identificados; no adjudicar como causa confirmada del error de usuario**:
-1. **Salida de 1200 tokens**: incluye tokens de razonamiento; `finish_reason=length` puede dejar contenido incompleto. Registrar finish reason/usage y comparar con 4096 tokens, quizá 8192 si 8 cues son largos. Medir coste y latencia.
-2. **Timeout 25 s**: posiblemente corto para 91 líneas y salida estructurada; registrar duración y decidir 45–60 s en ensayos, nunca durante GO.
-3. **Calidad del prompt**: pide simultáneamente no inventar sonidos y proponer sonidos aún no existentes; la instrucción resulta ambigua. Aclarar que `soundPrompt` describe un sonido *no disponible*, pero anclado a una indicación, escena o necesidad técnicamente justificable. No inventar hechos del guion ni referencias.
-4. **Primeras 120 líneas y 250 caracteres/línea**: silenciosa truncación de guiones largos y acotaciones; implementar selección/fragmentación por escena, contexto solapado, `sourceLineId` estable y cobertura visible.
-5. **Máximo 8 propuestas globales**: insuficiente para obras completas. Usarlo como máximo **por escena o fragmento**, después deduplicar y pasar a revisión.
-6. **Forma JSON estricta compatible**: verificar directamente la forma enviada, no improvisar migración a Responses API (que utiliza `text.format`). `assetId` debe poder ser `null`, `soundPrompt` requerido y acotado; nunca confiar en esquema como garantía semántica.
-7. **Error pobre**: antes se mezclaban 400 de esquema/validación local, 429 de cuota, 502 transport y 422 de modelo. Clasificar por fase con `requestId` no sensible, códigos estables, duración, `finish_reason`, tokens de uso; no registrar API keys ni guiones completos.
-8. **Modo privacidad**: Meta documenta Standard (prompts no usados para entrenar) y Contributor (permite usar contenido para entrenamiento). Los créditos gratis pueden añadir condiciones específicas y la pantalla de usuario avisa de uso para mejora; leer las condiciones del saldo antes de trabajar con obras de terceros. Mantener explícito modo Standard y consentimiento por envío.
-9. **No hacer autorreintentos de pago sin control**: Meta recomienda reintentos solo 429/5xx/timeout con backoff; para una tarea que puede cobrar, máximo configurable y advertir que una petición con timeout puede haber consumido tokens. Durante fase diagnóstico, 0 reintentos automáticos.
-10. **Fuentes**: la verificación actual confirma que línea y assetId existen, pero no que el texto justifique musicalmente el cue. Añadir validación semántica asistida y evaluación humana.
+The implementation sends one `POST` to `https://api.meta.ai/v1/chat/completions` with:
 
-## 2. Pipeline especializado del diseñador de sonido
+- `Authorization: Bearer <MODEL_API_KEY>` and `Content-Type: application/json`;
+- model `muse-spark-1.3` from a server-side allowlist;
+- one high-precedence `developer` instruction and one `user` data message;
+- Chat Completions `response_format.type: "json_schema"`, not the Responses API `text.format` shape;
+- `json_schema.strict: true`, every object using `additionalProperties: false`, and every property listed as required;
+- `reasoning_effort: "low"`, `max_completion_tokens: 4096`, `stream: false`, and explicit `store: false`;
+- no unsupported reasoning-model parameters and no client-controlled endpoint;
+- at most one fetch attempt and no automatic retry.
 
-```text
-TXT/guion intacto + configuración de producción
-        ↓  parseo determinista
-escenas, líneas, personajes, acotaciones, cambios de espacio y tiempo
-        ↓  IA: extracción por escena (no ejecución)
-necesidades de sonido con evidencia exacta L#, tipo, justificación
-        ↓  IA: diseño sonoro
-categoría, prompt acústico, duración orientativa, cue de entrada,
-loop, salida/fade y prioridad, relación con otros cues
-        ↓  validación determinista
-línea existe, sonido coherente, prioridad, IDs, limites, no comandos
-        ↓  revisión humana
-aprobar/rechazar/editar + 3 rutas: biblioteca | después | preparar generación
-        ↓  preflight
-asignar audio, verificar archivo, volumen, salida, fade y loop
-        ↓  GO MANUAL / MODO DIRECTO SIN IA
+The official response shape places generated text in `choices[0].message.content`, termination in `choices[0].finish_reason`, and token counts in `usage`. The adapter requires exactly one usable choice but does not over-require unrelated optional metadata.
+
+### Response and failure classification
+
+Only `finish_reason: "length"` is classified as truncation. Refusal or `content_filter`, an unexpected tool/function finish, malformed HTTP-200 JSON, an incompatible choice envelope, and invalid structured content have separate categories.
+
+Safe diagnostics distinguish:
+
+- `LOCAL_VALIDATION` — invalid local project, language, options, or configuration;
+- `UPSTREAM_HTTP` — provider HTTP failure with the original numeric status;
+- `SCHEMA_INCOMPATIBILITY` — a sanitized 400 tied to `response_format`/JSON Schema;
+- `UPSTREAM_TIMEOUT` — local abort timeout, never retried;
+- `UPSTREAM_TRANSPORT` — connection/fetch failure, never retried;
+- `UPSTREAM_ENVELOPE` — malformed or incompatible successful response envelope;
+- `MODEL_FINISH` — length, refusal/filter, or unexpected finish reason;
+- `OUTPUT_SCHEMA` — non-JSON or DTO shape mismatch;
+- `LOCAL_SEMANTIC_VALIDATION` — a line, evidence, asset, transport, or other semantic relationship fails local validation.
+
+The browser may receive a local correlation ID, phase, stable code, upstream status, duration, finish reason, token counts, and allowlisted upstream `type`, `param`, and `code`. It never receives or logs API keys, full scripts, raw model content, upstream `message`, raw provider bodies, or stack traces.
+
+## Scene-aware theatrical analysis
+
+The deterministic parser first creates stable source lines and conservative scene boundaries. A long scene is split into windows of 60 core lines with up to three preceding and following lines as read-only context. Every source line belongs to exactly one core window, so coverage is reproducible and context overlap cannot silently create a second authoritative location.
+
+One explicit UI confirmation authorizes **one** external Meta request containing at most two windows. A later batch requires another click and confirmation. The response limit is eight rich suggestions per request. Coverage is visible as submitted window IDs and exact line totals; coverage state is transient and resets when the project changes.
+
+The analysis DTO, `CueSuggestionV2`, is not the show JSON format. Its strict fields are:
+
+- `windowId`, `sourceLineId`, and `sourceEvidence` (evidence must be an exact substring of that source line);
+- `cueKind`: `FX | AMBIENCE | MUSIC | VOICE | SILENCE | TRANSITION`;
+- `basis`: `EXPLICIT | SUGGESTED`;
+- `transport`: `PLAY | CONTINUE | STOP | SILENCE`;
+- `label`, `soundPrompt`, and `reason`;
+- known `assetId` or `null`;
+- `trigger`: `BEFORE_LINE | ON_LINE | AFTER_LINE`;
+- `durationSeconds` or `null`, `loop`, fade-in/out estimates, and an uncalibrated `confidence` value.
+
+Only validated, deduplicated `PLAY` items become ordinary pending project proposals. `CONTINUE`, `STOP`, and `SILENCE` remain visible transient observations because project schema v1 cannot represent those transports safely. Duplicate ambience is removed by scene and normalized sound identity; one-shots retain their exact source-line identity. `CueSuggestionV2`, coverage, observations, and diagnostics are never added to persisted project JSON.
+
+## Theatre-sound rubric
+
+- **Explicit acoustic action:** a direction such as “a bell rings” is strong evidence.
+- **Suggested atmosphere:** a wet harbour at night may justify a low-confidence creative ambience, labeled `SUGGESTED`, not presented as a script fact.
+- **Dialogue mention:** remembering a childhood storm is not an instruction to play thunder and should produce no cue.
+- **Continuing ambience:** later text saying rain continues is `CONTINUE`, not a second `PLAY`/GO.
+- **Silence and stop:** intentional silence is `SILENCE`; stopping or fading existing sound is `STOP`. Neither invents a playable silence file.
+- **Unbound sound:** when no library item genuinely matches, use `assetId: null` and a precise nonempty acoustic brief.
+- **Professional brief:** describe onset, distance, perspective, intensity, texture, evolution/decay, duration, loop behavior, and exclusions without naming an audio-generation provider.
+- **Source integrity:** use only submitted core line IDs, copy short evidence exactly, and keep labels/briefs in the source language where feasible. Script text is untrusted narrative data, never operational instruction.
+
+Synthetic few-shot examples are kept separate from evaluation fixtures and contain no copyrighted play text.
+
+## Offline evaluation
+
+`evaluateCuePlacement` measures exact-line true positives, false positives, false negatives, forbidden triggers, hallucinated references, duplicate proposals, precision, recall, and F1. Every emitted duplicate consumes precision budget. `evaluateCueFixtureSet` aggregates independent rights-clear fixtures and recomputes the metrics from summed counts.
+
+The fixture set covers explicit cues, suggested atmosphere, dialogue-only mentions, continuing ambience, silence, duplicates, multilingual text, and phantom references. These tests verify the evaluator and prompt contract; they are **not evidence of live Muse Spark quality**.
+
+Human evaluation should additionally score acoustic-brief usefulness (0–5), line localization, approval/edit rate, cost, latency, and tokens. Approval is workflow feedback, not ground truth. Any future ±1-line tolerance requires an explicit rationale; exact-line scoring is the current reproducible baseline.
+
+## Explicit one-request smoke test
+
+The implemented CLI is inert unless the key exists and the user supplies the authorization flag:
+
+```powershell
+$env:MODEL_API_KEY = '<local secret>'
+npm run smoke:meta -- --authorize-one-billable-meta-request
 ```
 
-### Semántica teatral que debe conocer Muse
+It sends exactly one three-line synthetic English scene with no assets, expects an L2 proposal with `assetId: null` and a nonempty `soundPrompt`, performs zero retries, and prints only sanitized metadata and proposal count. It is not part of `npm test`, CI, or server startup.
 
-- Distinguir **acotaciones explícitas** (p.ej. «se oye un portazo») de **subtexto que puede sugerir atmósfera** (p.ej. «noche en el puerto»). El segundo debe ser sugestión creativa, no orden ni hecho del guion.
-- Distinguir entrada instantánea (`ONE_SHOT`), ambiente continuo (`LOOP`), música (`MUSIC`), voz grabada (`VOICE`), transición (`TRANSITION`) y silencios intencionales (`SILENCE`). Iluminación futura `LIGHT` solo opcional.
-- El `sourceLineId` es evidencia documental, no momento absoluto del GO: la acotación puede preceder una frase; el operador puede desplazar el cue.
-- `soundPrompt`: detallar plano sonoro, intensidad, distancia, textura, evolución, variaciones y restricciones (sin voz si no la hay, sin golpes en bucle, duración orientativa). Ejemplo: «Lluvia fina exterior, goteo irregular cercano, viento suave, 45 s, bucle sin costura, sin voces ni música».
-- Negativos: diálogos que mencionan un objeto no implican generar su sonido; no producir música porque aparece la palabra «música» en notas de producción; no sobrecargar con efectos permanentes; una escena explícitamente silenciosa no genera ambiente obligatorio.
-- Evitar falsos positivos y duplicados: mismo efecto sostenido a través de varias líneas = **un cue con duración**, no un nuevo cue por línea.
-- Modo montaje `minimal` o `full` **con criterios declarados**; no inferir cuántos recursos físicos tiene el operador.
-- No traducir el guion; sí permitir nombres y prompts en español o idioma solicitado; interfaz inglesa independiente.
+**It has not been executed.** Do not state that live inference works until an authorized run succeeds and a human verifies the result. A local or upstream timeout may still have consumed billable tokens.
 
-### Ejemplos expertos few-shot a crear y revisar
+## Privacy, cost, and limitations
 
-1. **Explícito**: L12 «(Suena una campana lejana)» → campana distante, one-shot, L12, evidencia directa.
-2. **Ambiente**: L22 «Exterior. Calle mojada de madrugada» → tráfico distante/agua sutil, sugerencia creativa etiquetada, no certeza.
-3. **No cue**: L31 «Recuerdo aquella tormenta de niño» → sin cue, solo recuerdo narrado.
-4. **Negativo**: L40 «(Silencio absoluto. Se apaga la música)» → STOP/fade de un cue anterior como propuesta técnica, pero **no orden ejecutable sin aprobación**.
-5. **Continuidad**: L50 «(La lluvia sigue mientras hablan)» → mantener ambiente, sin doble disparo.
+Standard `muse-spark-1.3` is selected rather than a Contributor model. Meta documents different data-use terms by mode; credit promotions or account terms may add conditions. Read the active terms before sending third-party or confidential scripts. Prices and rate limits can change, so check the official dashboard rather than treating a dated estimate as a spending cap.
 
-Separar ejemplos de entrenamiento/evaluación. No copiar contenido de obras con derechos.
+No audio bytes are sent for script analysis. No provider is contacted by import, approval, entering live mode, selecting “prepare generation,” or pressing GO. No paid audio generator, automatic retry, fine-tune, or background inference exists.
 
-## 3. Esquema del resultado: versión de análisis, NO JSON de show
+## Acceptance gates
 
-Diseñar un DTO `CueSuggestionV2` solo para el modelo; después la UI lo traduce a `proposal` y al `PLAN_AUDIO` provisional. No cambiar silenciosamente el esquema de proyecto v1.
+1. `npm test` and `npm run check:syntax` pass on a clean checkout.
+2. Contract tests cover strict schema, `assetId: null`, prompt bounds, malformed/truncated responses, refusal, HTTP status classes, timeout, transport, envelope, semantic references, one fetch attempt, and non-disclosure.
+3. An authorized smoke request succeeds without leaking content and records only safe usage/latency metadata.
+4. A rights-clear 91-line script completes its planned batches with visible 100% coverage and no phantom reference.
+5. A human reviews every imported proposal; unbound cues remain unable to GO.
+6. Local playback remains deterministic with the model server offline.
 
-Campos previstos (todavía NO implementados):
-- `sourceLineId`: referencia `L123` conocida.
-- `sourceEvidence`: fragmento corto de referencia (reverificar contra línea).
-- `cueKind`: enum `FX|AMBIENCE|MUSIC|VOICE|SILENCE|TRANSITION`.
-- `basis`: enum `EXPLICIT|SUGGESTED`.
-- `label`: título breve.
-- `soundPrompt`: descripción acústica.
-- `assetId`: string o null, null si no encaja archivo registrado.
-- `trigger`: enum `BEFORE_LINE|ON_LINE|AFTER_LINE`.
-- `durationSeconds`: número o null (estimación).
-- `loop`: boolean.
-- `fadeInSeconds`, `fadeOutSeconds`: número no negativo.
-- `confidence`: rango 0-1 estimado **no interpretar como probabilidad calibrada**.
-- `reason`: explicación escénica corta.
-
-Usar `required` para TODAS las propiedades y `additionalProperties:false` en todos los objetos; evitar `oneOf`/recursión; JSON Schema Meta limita profundidad. Mantener `null` explícito para opcionales. En la primera prueba de humo, usar **schema mínimo existente**, no este v2, para aislar el fallo.
-
-## 4. Experimento real mínimo (con créditos y consentimiento)
-
-- No hacer nuevas peticiones en la auditoría.
-- Fase A: comprobar credencial en local `MODEL_API_KEY` sin imprimirla. Un `ping` de una palabra a la API solo si el usuario confirma que quiere consumir una petición.
-- Fase B: mínimo strict JSON, guion sintético de 3 líneas, 1 salida, `assetId:null`. Registrar únicamente: HTTP, error.type/param (sanitizados), `finish_reason`, token usage y latencia; nunca respuesta de script real en log.
-- Fase C: subir a 15–20 líneas y luego a 91 sin aumentar variables simultáneamente; probar `low` con 4096 tokens, comparar `medium` solo si mejora acierto.
-- Fase D: probar cinco guiones originales de distintos estilos y un guion negativo («habla de sonidos sin producirlos»); guardar propuestas revisadas para corpus de evaluación.
-- Un botón de **diagnóstico con permiso**, no auto-run al arrancar, modelo fijo, presupuestos y cero auto-retries por defecto.
-- Comprobar que el error 400 del servidor Meta nunca se disfraza de `META_INVALID_PROJECT`: conservar fase y status original para decidir si falla input/schema/entitlement sin volcar contenido.
-
-## 5. Métricas para enseñar al jurado
-
-Crear gold set anotado por técnico de sonido. Definir tolerancia de línea ±1 cuando esté justificada, pero exigir evidencia original:
-- Validez técnica de propuestas: 100% (no IDs inventados).
-- Tasa de aciertos en necesidades explícitas (recall).
-- Precisión de propuestas, especialmente falsos sonidos cuando el texto es narrativo.
-- Precisión de localización al nivel de línea.
-- Duplicados por escena.
-- Idoneidad profesional del prompt acústico (rúbrica 0–5).
-- Duración y coste/100 líneas; consumo `usage.prompt_tokens`, `usage.completion_tokens` y reasoning tokens.
-- Tasa de aprobación y edición por el operador como feedback posterior, sin confundir aprobación con verdad ground truth.
-
-Ablation tests (no cambiar múltiples cosas a la vez): prompt básico vs especializado, 0/3/5 ejemplos, `low` vs `medium`, 120 líneas vs fragmentación, montaje reducido vs completo. Registrar versión exacta de prompt y modelo para reproducir resultados.
-
-## 6. Costes, privacidad y límites
-
-Meta Standard Muse Spark 1.3 según guía oficial: **$1.25 / millón tokens entrada**, **$0.15 / millón entrada caché**, **$4.25 / millón tokens salida**. Ejemplo meramente orientativo de 5k entrada + 4k salida: $0.02325 por análisis. 150 USD cubren muchos experimentos pequeños, pero no es gasto cero ni garantía de tope. El panel de usuario tiene tarjeta y umbral de facturación; usar límites y alertas, nunca asumir que los avisos cortan gasto.
-
-Por privacidad, la ficha general Standard especifica no usar el contenido para entrenar, Contributor sí; **el plan de créditos puede introducir condiciones adicionales**. La captura del usuario muestra una advertencia al usar los free credits; no enviar obras confidenciales hasta leer la modalidad activa.
-
-Prompt caching automático: instrucciones y ejemplos fijos primero, guion variable después; medir `usage.prompt_tokens_details.cached_tokens`.
-
-## 7. Orden concreto para Codex
-
-1. Abrir PR independiente `fix/meta-adapter-diagnostics-and-schema` desde `feat/audio-planning-unbound-cues`; no tocar `main` ni repo anterior.
-2. Tests aislados del HTTP real simulado (400 schema invalid, 401, 403, 404, 429, 500, timeout, truncado, schema inválido, `assetId:null`).
-3. Instrumentar diagnóstico seguro y fases `LOCAL_VALIDATION|UPSTREAM_HTTP|UPSTREAM_PARSE|MODEL_FINISH|SEMANTIC_VALIDATION` + `requestId`; no persistir secretos.
-4. Implementar smoke test minúsculo con aprobación explícita y API oficial, separado del análisis completo.
-5. Hacer configurable budget `max_completion_tokens`, `reasoning_effort` y timeout desde allowlist local; valores iniciales recomendados a **evaluar**: `low`, 4096, 45 s.
-6. Crear `CueSuggestionV2` y validadores independientes del proyecto persistido; no introducir campos JSON v2 sin migración.
-7. Implementar análisis por escenas con ventanas acotadas, contexto solapado, anti-duplicados y progreso visible; siempre fuera de GO.
-8. Crear gold set y pruebas automáticas de regresión comparables. Ejecutar con tokens reales solo después de revisar coste estimado y consentimiento.
-9. Mantener intactos el motor Web Audio, el spike WASAPI, la aprobación humana, la seguridad local y el aislamiento entre repos.
-
-**Criterio de finalización:** petición real produce propuesta válida para guion de 3 líneas; misma ruta analiza guion de 91 líneas sin referenciar activos inexistentes; JSON no se trunca; el técnico puede aprobar cue sin audio; `GO` nunca depende de internet ni del modelo; pruebas viejas y nuevas pasan y consumo queda visible.
+Until gate 3 succeeds, the honest status is: **adapter implemented and deterministically tested; live Meta inference unverified**.

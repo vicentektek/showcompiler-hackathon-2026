@@ -3,6 +3,7 @@ import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
+import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -12,6 +13,7 @@ const sampleTexts = {
 };
 const limitScriptBytes = 1_000_000;
 const maximumShownLines = 300;
+const metaWindowsPerRequest = 2;
 let uiStorage;
 try { uiStorage = window.localStorage; } catch { uiStorage = null; }
 let uiLocale = readPreferredUiLocale(uiStorage);
@@ -23,6 +25,8 @@ let dirty = false;
 let projectGeneration = 0;
 let metaAvailable = false;
 let metaInFlight = false;
+let metaCoverage = null;
+let metaProposalDetails = new Map();
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
@@ -78,8 +82,85 @@ function refreshMetaMessage() {
       : metaConnection.state === 'error'
         ? (baseten ? 'status.basetenOffline' : 'status.metaOffline')
         : (baseten ? 'status.basetenChecking' : 'proposals.metaChecking'));
-  $('analyzeMetaBtn').textContent = t(baseten ? 'proposals.basetenButton' : 'proposals.metaButton');
+  $('analyzeMetaBtn').textContent = t(baseten ? 'proposals.basetenButton'
+    : metaCoverage?.complete ? 'proposals.metaCompleteButton'
+      : metaCoverage?.nextWindowStart ? 'proposals.metaNextButton' : 'proposals.metaButton');
   $('modelProviderDisclaimer').textContent = t(baseten ? 'proposals.basetenDisclaimer' : 'proposals.metaDisclaimer');
+  $('metaCoverage').hidden = baseten;
+  if (!baseten) {
+    $('metaCoverage').textContent = !metaCoverage
+      ? t('proposals.coverageNone')
+      : t(metaCoverage.complete ? 'proposals.coverageComplete' : 'proposals.coverageProgress', {
+          lines: metaCoverage.lineIds.size,
+          totalLines: metaCoverage.totalLines,
+          windows: metaCoverage.windowIds.size,
+          totalWindows: metaCoverage.totalWindows,
+          scenes: metaCoverage.sceneCount,
+          observations: metaCoverage.observations,
+          duplicates: metaCoverage.duplicates,
+        });
+  }
+}
+
+function resetMetaAnalysis() {
+  metaCoverage = null;
+  metaProposalDetails = new Map();
+}
+
+function safeProposalDetail(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const allowed = {
+    cueKind: ['FX', 'AMBIENCE', 'MUSIC', 'VOICE', 'SILENCE', 'TRANSITION'],
+    basis: ['EXPLICIT', 'SUGGESTED'],
+    transport: ['PLAY', 'CONTINUE', 'STOP', 'SILENCE'],
+  };
+  if (!allowed.cueKind.includes(value.cueKind) || !allowed.basis.includes(value.basis) ||
+      !allowed.transport.includes(value.transport) || typeof value.reason !== 'string' ||
+      !value.reason.trim() || value.reason.length > 300) return null;
+  return {
+    cueKind: value.cueKind,
+    basis: value.basis,
+    transport: value.transport,
+    reason: value.reason.trim(),
+  };
+}
+
+function applyMetaCoverage(value, observations, duplicates) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      !Number.isSafeInteger(value.totalLines) || value.totalLines < 1 ||
+      !Number.isSafeInteger(value.sceneCount) || value.sceneCount < 1 ||
+      !Number.isSafeInteger(value.totalWindows) || value.totalWindows < 1 ||
+      !Number.isSafeInteger(value.batchStartWindow) || value.batchStartWindow < 0 ||
+      !Number.isSafeInteger(value.batchEndWindowExclusive) ||
+      value.batchEndWindowExclusive <= value.batchStartWindow ||
+      !Array.isArray(value.analyzedWindowIds) || !Array.isArray(value.analyzedLineIds) ||
+      value.analyzedWindowIds.some(id => typeof id !== 'string') ||
+      value.analyzedLineIds.some(id => typeof id !== 'string') ||
+      !(value.nextWindowStart === null || (Number.isSafeInteger(value.nextWindowStart) && value.nextWindowStart >= 0)) ||
+      typeof value.complete !== 'boolean') {
+    throw uiError('errors.metaResponse');
+  }
+  if (!metaCoverage || value.batchStartWindow === 0) {
+    metaCoverage = {
+      totalLines: value.totalLines,
+      sceneCount: value.sceneCount,
+      totalWindows: value.totalWindows,
+      windowIds: new Set(),
+      lineIds: new Set(),
+      nextWindowStart: 0,
+      complete: false,
+      observations: 0,
+      duplicates: 0,
+    };
+  }
+  if (metaCoverage.totalLines !== value.totalLines || metaCoverage.totalWindows !== value.totalWindows ||
+      value.batchStartWindow !== metaCoverage.nextWindowStart) throw uiError('errors.metaResponse');
+  for (const id of value.analyzedWindowIds) metaCoverage.windowIds.add(id);
+  for (const id of value.analyzedLineIds) metaCoverage.lineIds.add(id);
+  metaCoverage.nextWindowStart = value.nextWindowStart;
+  metaCoverage.complete = value.complete;
+  metaCoverage.observations += observations;
+  metaCoverage.duplicates += duplicates;
 }
 function switchUiLocale(locale) {
   const nameFieldValue = $('showName').value; // Never discard an unsaved edit.
@@ -148,7 +229,8 @@ function render() {
   replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || t('status.emptyLine')}`]) : [], $('lineSelect').value);
   replaceOptions($('assetSelect'), [['', t('soundPlan.defer')], ...show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`])], $('assetSelect').value);
   $('createProposalBtn').disabled = !show.scriptText;
-  $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim();
+  $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim() ||
+    (selectedModelProvider() === 'meta' && metaCoverage?.complete === true);
   $('modelProviderSelect').disabled = metaInFlight;
 
   const proposalList = $('proposalList');
@@ -164,6 +246,13 @@ function render() {
     const line = getScriptLine(lines, proposal.sourceLineIds[0]);
     card.append(node('p', 'item-detail', `${proposal.sourceLineIds.join(', ')} · ${line?.text ?? t('status.noSourceLine')}`));
     card.append(node('p', 'item-detail', describeCueActions(proposal.actions)));
+    const modelDetail = metaProposalDetails.get(proposal.id);
+    if (modelDetail) card.append(node('p', 'item-detail', t('proposals.analysisDetail', {
+      kind: modelDetail.cueKind,
+      basis: modelDetail.basis,
+      transport: modelDetail.transport,
+      reason: modelDetail.reason,
+    })));
     if (proposal.status === 'PENDING') {
       const controls = node('div', 'item-actions');
       const approve = node('button', 'btn primary small', t('actions.approve'));
@@ -247,6 +336,7 @@ function render() {
     card.append(controls);
     cueList.append(card);
   }
+  refreshMetaMessage();
   refreshAudioControls();
 }
 function userAllowsReplacement() {
@@ -299,6 +389,7 @@ function setNewShow(project, statusKey, values = {}) {
   projectGeneration += 1;
   player.reset();
   show = project;
+  resetMetaAnalysis();
   dirty = true;
   resetScriptLanguageHint();
   render();
@@ -417,10 +508,21 @@ const remoteErrors = Object.freeze({
   META_INVALID_PROJECT: 'errors.metaInvalidProject',
   META_TOO_LARGE: 'errors.metaTooLarge',
   META_SERVICE: 'errors.metaService',
+  META_SCHEMA_INCOMPATIBLE: 'errors.metaSchemaIncompatible',
+  META_TIMEOUT: 'errors.metaTimeout',
+  META_TRANSPORT: 'errors.metaTransport',
+  META_UPSTREAM_ENVELOPE: 'errors.metaUpstreamEnvelope',
+  META_BILLING: 'errors.metaBilling',
+  META_MODEL_NOT_FOUND: 'errors.metaModelNotFound',
+  META_UPSTREAM_TIMEOUT: 'errors.metaUpstreamTimeout',
+  META_UPSTREAM_HTTP: 'errors.metaUpstreamHttp',
   META_OUTPUT_TRUNCATED: 'errors.metaOutputTruncated',
   META_OUTPUT_NOT_JSON: 'errors.metaOutputNotJson',
   META_OUTPUT_SCHEMA: 'errors.metaOutputSchema',
   META_OUTPUT_EMPTY_OR_OVERSIZED: 'errors.metaOutputEmpty',
+  META_OUTPUT_REFUSED: 'errors.metaOutputRefused',
+  META_OUTPUT_FINISH_REASON: 'errors.metaOutputFinish',
+  META_OUTPUT_SEMANTIC: 'errors.metaOutputSemantic',
   META_BAD_REFERENCES: 'errors.metaBadReferences',
   BASETEN_AUTH: 'errors.basetenAuth',
   BASETEN_RATE: 'errors.basetenRate',
@@ -448,7 +550,21 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
     scriptLanguage = currentScriptLanguageHint();
   } catch (error) { showError(error); return; }
   const provider = selectedModelProvider();
-  if (!window.confirm(t(provider === 'baseten' ? 'status.confirmBaseten' : 'status.confirmMeta'))) return;
+  let analysisWindowStart;
+  if (provider === 'meta') {
+    const plan = planScriptAnalysis(show.scriptText);
+    analysisWindowStart = metaCoverage?.nextWindowStart ?? 0;
+    const batch = plan.windows.slice(analysisWindowStart, analysisWindowStart + metaWindowsPerRequest);
+    if (!batch.length) { showError(uiError('errors.metaResponse')); return; }
+    const lineCount = batch.reduce((sum, window) => sum + window.coreLines.length, 0);
+    if (!window.confirm(t('status.confirmMeta', {
+      windowCount: batch.length,
+      lineCount,
+      startWindow: analysisWindowStart + 1,
+      endWindow: analysisWindowStart + batch.length,
+      totalWindows: plan.windows.length,
+    }))) return;
+  } else if (!window.confirm(t('status.confirmBaseten'))) return;
   const generation = projectGeneration;
   metaInFlight = true;
   render();
@@ -457,7 +573,11 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
     const response = await fetch('/api/' + provider + '/proposals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project: JSON.parse(snapshot), scriptLanguage }),
+      body: JSON.stringify({
+        project: JSON.parse(snapshot),
+        scriptLanguage,
+        ...(provider === 'meta' ? { analysisWindowStart } : {}),
+      }),
     });
     const result = await response.json();
     if (!response.ok) throw uiError(remoteErrors[result.code] ?? 'errors.metaService');
@@ -468,7 +588,25 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
       throw uiError('errors.metaResponse');
     }
     const count = result.proposals.length;
-    show = addModelProposals(show, result.proposals, result.provider);
+    const previousProposalCount = show.proposals.length;
+    const nextShow = addModelProposals(show, result.proposals, result.provider);
+    if (provider === 'meta') {
+      const details = result.proposalDetails === undefined ? [] : result.proposalDetails;
+      const observations = result.observations === undefined ? [] : result.observations;
+      const duplicates = result.duplicatesRemoved === undefined ? 0 : result.duplicatesRemoved;
+      if (!Array.isArray(details) || (details.length && details.length !== count) ||
+          !Array.isArray(observations) || !Number.isSafeInteger(duplicates) || duplicates < 0) {
+        throw uiError('errors.metaResponse');
+      }
+      const created = nextShow.proposals.slice(previousProposalCount);
+      const normalizedDetails = details.map(safeProposalDetail);
+      if (normalizedDetails.some(detail => !detail)) throw uiError('errors.metaResponse');
+      applyMetaCoverage(result.coverage, observations.length, duplicates);
+      created.forEach((proposal, index) => {
+        if (normalizedDetails[index]) metaProposalDetails.set(proposal.id, normalizedDetails[index]);
+      });
+    }
+    show = nextShow;
     dirty = true;
     render();
     feedback(provider === 'baseten' ? 'status.basetenImported' : 'status.metaImported', { count }, 'success');
