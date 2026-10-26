@@ -134,3 +134,35 @@ test('large body is rejected before calling API', async (t) => {
   assert.equal(result.status, 413);
   assert.equal(calls, 0);
 });
+
+test('safe HTTP diagnostic distinguishes invalid credentials without leaking provider body', async (t) => {
+  const base = await withServer(t, {
+    getKey: () => 'FAKE_SERVER_KEY',
+    modelClient: async () => {
+      const error = new Error('UPSTREAM PRIVATE ERROR AND SCRIPT');
+      error.metaStatus = 401;
+      throw error;
+    },
+  });
+  const response = await analysisRequest(base, { project: project() });
+  assert.equal(response.status, 502);
+  const data = await response.text();
+  assert.match(data, /Meta rechaza la clave/);
+  assert.doesNotMatch(data, /FAKE_SERVER_KEY|UPSTREAM PRIVATE|ESCENA/);
+});
+
+test('safe HTTP diagnostic distinguishes model rate limits', async (t) => {
+  const base = await withServer(t, {
+    getKey: () => 'FAKE_SERVER_KEY',
+    modelClient: async () => {
+      const error = new Error('upstream rate limit with secret');
+      error.metaStatus = 429;
+      throw error;
+    },
+  });
+  const response = await analysisRequest(base, { project: project() });
+  assert.equal(response.status, 502);
+  const data = await response.text();
+  assert.match(data, /límite de solicitudes/);
+  assert.doesNotMatch(data, /FAKE_SERVER_KEY|secret/);
+});
