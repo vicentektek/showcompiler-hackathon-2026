@@ -65,7 +65,7 @@ export function makeCueAnalysisRequest(show, model = DEFAULT_META_MODEL) {
     model,
     messages: [
       {
-        role: 'system',
+        role: 'developer',
         content: [
           'You are a professional theatre sound designer assisting a human operator.',
           'Suggest no more than 8 useful sound cue placements based on the actual source lines.',
@@ -82,6 +82,9 @@ export function makeCueAnalysisRequest(show, model = DEFAULT_META_MODEL) {
       },
     ],
     response_format: responseFormat,
+    // Muse Spark reasons by default. Low reasoning is appropriate for cue extraction
+    // and avoids unnecessary output-token spend during the hackathon.
+    reasoning_effort: 'low',
     max_completion_tokens: 1200,
     stream: false,
   };
