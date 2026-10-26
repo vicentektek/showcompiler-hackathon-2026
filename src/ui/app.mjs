@@ -112,7 +112,7 @@ function render() {
   const preview = $('scriptPreview');
   preview.replaceChildren();
   if (!show.scriptText) {
-    preview.append(node('p', 'empty', 'Todavía no hay un guion cargado.'));
+    preview.append(node('p', 'empty', t('status.scriptEmpty')));
   } else {
     for (const line of lines.slice(0, maximumShownLines)) {
       const row = node('div', 'script-line');
@@ -120,41 +120,41 @@ function render() {
       preview.append(row);
     }
   }
-  $('scriptLimitNote').textContent = lines.length > maximumShownLines ? `Mostrando ${maximumShownLines} de ${lines.length}` : '';
+  $('scriptLimitNote').textContent = lines.length > maximumShownLines ? t('status.showingLines', { shown: maximumShownLines, total: lines.length }) : '';
 
   const list = $('assetList');
   list.replaceChildren();
-  if (show.assets.length === 0) list.append(node('span', 'caption', 'Sin referencias registradas.'));
+  if (show.assets.length === 0) list.append(node('span', 'caption', t('status.noAssets')));
   for (const asset of show.assets) {
-    const state = player.hasAsset(asset.id) ? 'CARGADO' : 'SIN ARCHIVO';
+    const state = t(player.hasAsset(asset.id) ? 'status.loaded' : 'status.missingAsset');
     list.append(node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state));
   }
 
-  replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || '(línea vacía)'}`]) : [], $('lineSelect').value);
+  replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || t('status.emptyLine')}`]) : [], $('lineSelect').value);
   replaceOptions($('assetSelect'), show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`]), $('assetSelect').value);
   $('createProposalBtn').disabled = !show.scriptText || show.assets.length === 0;
   $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim() || show.assets.length === 0;
 
   const proposalList = $('proposalList');
   proposalList.replaceChildren();
-  if (!show.proposals.length) proposalList.append(node('p', 'empty', 'Todavía no hay propuestas.'));
+  if (!show.proposals.length) proposalList.append(node('p', 'empty', t('status.noProposals')));
   for (const proposal of show.proposals) {
     const card = node('article', 'item');
     const top = node('div', 'item-head');
-    top.append(node('strong', '', proposal.label), node('span', 'state', proposal.status));
-    top.append(node('span', 'state', proposal.source === 'META_MODEL_API' ? 'META AI' : 'MANUAL / IMPORTADO'));
+    top.append(node('strong', '', proposal.label), node('span', 'state', t('status.' + proposal.status.toLowerCase())));
+    top.append(node('span', 'state', t(proposal.source === 'META_MODEL_API' ? 'status.sourceMeta' : 'status.sourceManual')));
     card.append(top);
     const line = getScriptLine(lines, proposal.sourceLineIds[0]);
-    card.append(node('p', 'item-detail', `${proposal.sourceLineIds.join(', ')} · ${line?.text ?? 'Sin línea'}`));
+    card.append(node('p', 'item-detail', `${proposal.sourceLineIds.join(', ')} · ${line?.text ?? t('status.noSourceLine')}`));
     card.append(node('p', 'item-detail', `PLAY → ${proposal.actions.map(action => action.assetId).join(', ')}`));
     if (proposal.status === 'PENDING') {
       const controls = node('div', 'item-actions');
-      const approve = node('button', 'btn primary small', 'Aprobar');
+      const approve = node('button', 'btn primary small', t('actions.approve'));
       approve.type = 'button';
-      approve.addEventListener('click', () => safeOperation(() => decideProposal(show, proposal.id, 'APPROVE'), `Propuesta ${proposal.id} aprobada. Cue creado en DRAFT.`));
-      const reject = node('button', 'btn subtle small', 'Rechazar');
+      approve.addEventListener('click', () => safeOperation(() => decideProposal(show, proposal.id, 'APPROVE'), 'status.proposalApproved', { id: proposal.id }));
+      const reject = node('button', 'btn subtle small', t('actions.reject'));
       reject.type = 'button';
-      reject.addEventListener('click', () => safeOperation(() => decideProposal(show, proposal.id, 'REJECT'), `Propuesta ${proposal.id} rechazada.`));
+      reject.addEventListener('click', () => safeOperation(() => decideProposal(show, proposal.id, 'REJECT'), 'status.proposalRejected', { id: proposal.id }));
       controls.append(approve, reject);
       card.append(controls);
     }
@@ -163,17 +163,17 @@ function render() {
 
   const cueList = $('cueList');
   cueList.replaceChildren();
-  if (show.cues.length === 0) cueList.append(node('p', 'empty', 'Aprueba una propuesta para crear el primer cue.'));
+  if (show.cues.length === 0) cueList.append(node('p', 'empty', t('status.noCues')));
   for (const cue of show.cues) {
     const card = node('article', 'item cue-item');
     const top = node('div', 'item-head');
-    top.append(node('strong', '', `${cue.number}. ${cue.label}`), node('span', 'state', cue.status));
-    const runtime = node('span', 'state', 'FALTA AUDIO');
+    top.append(node('strong', '', `${cue.number}. ${cue.label}`), node('span', 'state', t('status.draft')));
+    const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
-    card.append(top, node('p', 'item-detail', 'Guion: ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', 'PLAY → ' + cue.actions.map(action => action.assetId).join(', ')));
+    card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', 'PLAY → ' + cue.actions.map(action => action.assetId).join(', ')));
     const controls = node('div', 'item-actions');
-    const commands = [['go', 'GO', 'btn primary small'], ['stop', 'STOP', 'btn subtle small'], ['fade', 'FADE 1,5 s', 'btn subtle small']];
+    const commands = [['go', t('actions.go'), 'btn primary small'], ['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
     for (const [action, title, style] of commands) {
       const button = node('button', style, title);
       button.type = 'button';
@@ -184,17 +184,17 @@ function render() {
           if (action === 'go') {
             const checked = normalizeShowProject(show);
             const currentCue = checked.cues.find(item => item.id === cue.id);
-            if (!currentCue) throw new Error('Cue no encontrado.');
+            if (!currentCue) throw new Error('Cue not found');
             await player.go(currentCue);
-            feedback('GO ' + currentCue.number + ': reproduciendo audio real en este navegador.', 'success');
+            feedback('status.goStarted', { number: currentCue.number }, 'success');
           } else if (action === 'stop') {
             player.stopCue(cue.id);
-            feedback('STOP ' + cue.number + ': audio detenido.', 'success');
+            feedback('status.audioStopped', { number: cue.number }, 'success');
           } else {
             player.stopCue(cue.id, 1500);
-            feedback('FADE ' + cue.number + ': fundido de salida de 1,5 segundos.', 'success');
+            feedback('status.audioFaded', { number: cue.number }, 'success');
           }
-        } catch (error) { feedback(error?.message ?? 'Error de reproducción', 'error'); }
+        } catch (error) { showError(error, 'errors.invalidAudio'); }
       });
       controls.append(button);
     }
@@ -205,7 +205,7 @@ function render() {
 }
 function userAllowsReplacement() {
   if (!dirty && !show.scriptText && !show.proposals.length && !show.assets.length) return true;
-  return window.confirm('El espectáculo actual se sustituirá. ¿Has guardado el JSON si deseas conservarlo?');
+  return window.confirm(t('status.replaceConfirm'));
 }
 function saveProject() {
   const name = $('showName').value.trim();
@@ -221,14 +221,14 @@ function saveProject() {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   dirty = false;
   render();
-  feedback('Archivo JSON preparado para descarga. Recuerda que no incluye los audios.', 'success');
+  feedback('status.saveDone', {}, 'success');
 }
 async function readTextFile(file, maxBytes) {
   if (!file) return null;
-  if (file.size > maxBytes) throw new Error(`Archivo demasiado grande (límite ${maxBytes} bytes).`);
+  if (file.size > maxBytes) throw new Error(t('errors.fileTooLarge', { limit: maxBytes }));
   const buffer = await file.arrayBuffer();
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buffer); }
-  catch { throw new Error('El archivo debe utilizar codificación UTF-8 válida.'); }
+  catch { throw new Error(t('errors.invalidUtf8')); }
 }
 function setNewShow(project, message) {
   projectGeneration += 1;
