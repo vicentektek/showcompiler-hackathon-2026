@@ -1,0 +1,19 @@
+name: Native WASAPI feasibility
+on:
+  push:
+    branches:
+      - spike/native-wasapi-2026-10-26
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-native:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain available
+        run: |
+          rustc --version
+          cargo --version
+      - name: Compile and unit-test standalone CPAL WASAPI spike (no sound)
+        run: cargo test --manifest-path native-audio-spike/Cargo.toml
