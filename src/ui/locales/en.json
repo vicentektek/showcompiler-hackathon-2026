@@ -133,5 +133,12 @@
   "errors.metaInvalidProject": "Invalid project or model response.",
   "errors.metaTooLarge": "Request too large.",
   "errors.metaService": "Meta analysis could not be completed.",
-  "errors.languageHint": "Use auto or a valid language code (e.g. es, en, ja, zh-Hans)."
+  "errors.languageHint": "Use auto or a valid language code (e.g. es, en, ja, zh-Hans).",
+  "errors.audioUnsupported": "Select a supported WAV, MP3, OGG, M4A, AAC or FLAC file (up to 20 MB).",
+  "errors.audioChannels": "Use mono or stereo audio no longer than 10 minutes.",
+  "errors.audioCueNotReady": "This cue is invalid or some audio files have not been loaded.",
+  "errors.audioAlreadyPlaying": "This cue is already playing.",
+  "errors.audioCancelled": "The audio operation was cancelled when the show changed or STOP ALL was pressed.",
+  "errors.audioBlocked": "The browser blocked audio playback. Check device permissions.",
+  "errors.audioFadeInvalid": "Invalid fade duration (0–10 seconds)."
 }
