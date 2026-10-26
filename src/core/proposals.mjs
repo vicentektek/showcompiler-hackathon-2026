@@ -20,7 +20,16 @@ export function validateCueProposals(proposals, scriptLines, assetIds, options =
     if (!Array.isArray(p.actions) || p.actions.length === 0 || p.actions.length > 12) { errors.push(`${where}: invalid action count`); continue; }
     const badAction = p.actions.some(action => !action || typeof action !== 'object' || Array.isArray(action) || action.type !== 'PLAY' || typeof action.assetId !== 'string' || !knownAssets.has(action.assetId));
     if (badAction) { errors.push(`${where}: unsupported action or missing audio asset`); continue; }
-    accepted.push({ id: p.id, label: p.label, sourceLineIds: [...p.sourceLineIds], actions: p.actions.map(a => ({ type: 'PLAY', assetId: a.assetId })), status: 'PENDING' });
+    if (p.source !== undefined && !['MANUAL_MOCK', 'META_MODEL_API'].includes(p.source)) {
+      errors.push(`${where}: invalid suggestion source`);
+      continue;
+    }
+    accepted.push({
+      id: p.id, label: p.label, sourceLineIds: [...p.sourceLineIds],
+      actions: p.actions.map(a => ({ type: 'PLAY', assetId: a.assetId })),
+      status: 'PENDING',
+      ...(p.source === undefined ? {} : { source: p.source }),
+    });
   }
   return { valid: errors.length === 0, proposals: errors.length ? [] : accepted, errors };
 }
