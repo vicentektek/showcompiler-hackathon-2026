@@ -43,11 +43,43 @@ export function addMockProposal(project, { lineId, assetId, label } = {}) {
   const current = normalizeShowProject(project);
   const proposal = {
     id: nextAvailableId('proposal', current.proposals.map(p => p.id)),
-    label, sourceLineIds: [lineId], actions: [{ type: 'PLAY', assetId }],
+    label, sourceLineIds: [lineId], actions: [{ type: 'PLAY', assetId }], source: 'MANUAL_MOCK',
   };
   const verified = validateCueProposals([proposal], parseScript(current.scriptText), current.assets.map(a => a.id));
   if (!verified.valid) throw new TypeError(verified.errors.join('; '));
   return normalizeShowProject({ ...current, proposals: [...current.proposals, verified.proposals[0]] });
+}
+
+/**
+ * Integrate server-verified Meta text proposals without auto-approving or executing.
+ * The browser revalidates raw response data against the current project.
+ */
+export function addMetaProposals(project, suggestions) {
+  const current = normalizeShowProject(project);
+  if (!Array.isArray(suggestions) || suggestions.length > 8) throw new TypeError('Meta returned too many suggestions');
+  if (current.proposals.length + suggestions.length > 100) throw new RangeError('Proposal limit reached');
+  const allLines = parseScript(current.scriptText);
+  const permittedLines = new Set(allLines.slice(0, 120).map(line => line.id));
+  const permittedAssets = new Set(current.assets.slice(0, 80).map(asset => asset.id));
+  const proposed = [];
+  const usedIds = current.proposals.map(p => p.id);
+  for (const item of suggestions) {
+    if (!item || typeof item !== 'object' || Array.isArray(item) ||
+        !permittedLines.has(item.lineId) || !permittedAssets.has(item.assetId) ||
+        typeof item.label !== 'string' || !item.label.trim()) {
+      throw new TypeError('Meta suggestion does not match supplied script excerpt or audio list');
+    }
+    const id = nextAvailableId('proposal', usedIds);
+    usedIds.push(id);
+    proposed.push({
+      id, label: item.label.trim(), sourceLineIds: [item.lineId],
+      actions: [{ type: 'PLAY', assetId: item.assetId }],
+      source: 'META_MODEL_API',
+    });
+  }
+  const validated = validateCueProposals(proposed, allLines, current.assets.map(asset => asset.id));
+  if (!validated.valid) throw new TypeError('Meta suggestions failed validation: ' + validated.errors.join('; '));
+  return normalizeShowProject({ ...current, proposals: [...current.proposals, ...validated.proposals] });
 }
 
 export function decideProposal(project, proposalId, decision) {
