@@ -15,6 +15,7 @@ const allowed = new Map([
   ['/src/core/proposals.mjs', ['src/core/proposals.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/review.mjs', ['src/core/review.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/projectPersistence.mjs', ['src/core/projectPersistence.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/browserAudio.mjs', ['src/core/browserAudio.mjs', 'text/javascript; charset=utf-8']],
 ]);
 export function createAppServer() {
   return createServer(async (request, response) => {
@@ -58,7 +59,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     });
     server.listen(port, '127.0.0.1', () => {
       console.log(`ShowCompiler prototype at http://127.0.0.1:${port}`);
-      console.log('Ctrl+C to stop. Local simulation only; no Meta AI or audio playback.');
+      console.log('Ctrl+C to stop. Local audio playback enabled; cue proposals remain simulated (no Meta AI).');
     });
   }
 }
