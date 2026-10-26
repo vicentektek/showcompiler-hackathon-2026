@@ -1,0 +1,152 @@
+/**
+ * Versioned, dependency-free project document codec for the hackathon prototype.
+ * Stores ONLY script text, cue/proposal definitions, and audio asset metadata.
+ * Audio file contents, AI secrets, and live transport state are deliberately excluded.
+ */
+import { parseScript } from './script.mjs';
+import { validateCueProposals } from './proposals.mjs';
+
+export const PROJECT_SCHEMA_VERSION = 1;
+export const MAX_PROJECT_JSON_BYTES = 2_000_000;
+const MAX_SCRIPT_CHARS = 500_000;
+const MAX_ASSETS = 500;
+const MAX_PROPOSALS = 100;
+const MAX_CUES = 2_000;
+const MAX_CUE_NUMBER = 10_000;
+const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/;
+const STATES = new Set(['PENDING', 'APPROVED', 'REJECTED']);
+const encoder = new TextEncoder();
+
+function invalid(message) {
+  const error = new TypeError("Invalid show project: " + message);
+  error.code = 'INVALID_SHOW_PROJECT';
+  throw error;
+}
+function record(value, where) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) invalid(where + " must be an object");
+  return value;
+}
+function fields(value, names, where) {
+  record(value, where);
+  for (const name of Object.keys(value)) if (!names.includes(name)) invalid(where + " contains unsupported field " + name);
+}
+function requiredString(value, max, where) {
+  if (typeof value !== 'string' || !value.trim() || value.length > max || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(value)) invalid(where + " must be nonempty text of at most " + max + " characters");
+  return value;
+}
+function identifier(value, where) {
+  if (typeof value !== 'string' || !ID.test(value)) invalid(where + " must be a valid identifier");
+  return value;
+}
+function limitedArray(value, max, where) {
+  if (!Array.isArray(value) || value.length > max) invalid(where + " must be an array (max " + max + ")");
+  return value;
+}
+function uniqueId(items, where) {
+  const set = new Set();
+  for (const entry of items) {
+    if (set.has(entry.id)) invalid(where + " contains duplicate id " + entry.id);
+    set.add(entry.id);
+  }
+}
+function lineRefs(refs, known, where) {
+  if (!Array.isArray(refs) || refs.length === 0 || refs.length > 50) invalid(where + " must contain 1–50 source references");
+  if (refs.some(id => typeof id !== 'string' || !known.has(id))) invalid(where + " contains a missing script reference");
+  if (new Set(refs).size !== refs.length) invalid(where + " contains duplicate script references");
+  return [...refs];
+}
+function actions(value, knownAssets, where) {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 12) invalid(where + " must contain 1–12 actions");
+  return value.map((action, index) => {
+    const at = where + "[" + index + "]";
+    fields(action, ['type', 'assetId'], at);
+    if (action.type !== 'PLAY') invalid(at + " has an unsupported action type");
+    const assetId = identifier(action.assetId, at + ".assetId");
+    if (!knownAssets.has(assetId)) invalid(at + " references a missing asset");
+    return { type: 'PLAY', assetId };
+  });
+}
+function matchesArray(a, b) { return a.length === b.length && a.every((value, i) => value === b[i]); }
+function matchesActions(a, b) { return a.length === b.length && a.every((value, i) => value.type === b[i].type && value.assetId === b[i].assetId); }
+
+/** Validate and create an entirely detached, canonical project object. */
+export function normalizeShowProject(input) {
+  fields(input, ['schemaVersion', 'id', 'name', 'scriptText', 'assets', 'proposals', 'cues'], 'project');
+  if (input.schemaVersion !== PROJECT_SCHEMA_VERSION) invalid('unsupported schemaVersion');
+  const id = identifier(input.id, 'project.id');
+  const name = requiredString(input.name, 120, 'project.name');
+  const scriptText = input.scriptText;
+  if (typeof scriptText !== 'string' || scriptText.length > MAX_SCRIPT_CHARS || scriptText.includes('\0')) invalid('scriptText is invalid or too long');
+  const sourceLines = new Set(parseScript(scriptText).map(line => line.id));
+
+  const assets = limitedArray(input.assets, MAX_ASSETS, 'assets').map((asset, index) => {
+    fields(asset, ['id', 'name'], "assets[" + index + "]");
+    return { id: identifier(asset.id, "assets[" + index + "].id"), name: requiredString(asset.name, 200, "assets[" + index + "].name") };
+  });
+  uniqueId(assets, 'assets');
+  const knownAssets = new Set(assets.map(asset => asset.id));
+
+  const proposals = limitedArray(input.proposals, MAX_PROPOSALS, 'proposals').map((proposal, index) => {
+    const at = "proposals[" + index + "]";
+    fields(proposal, ['id', 'label', 'sourceLineIds', 'actions', 'status'], at);
+    const proposalId = identifier(proposal.id, at + ".id");
+    if (!STATES.has(proposal.status)) invalid(at + ".status is invalid");
+    return {
+      id: proposalId,
+      label: requiredString(proposal.label, 200, at + ".label"),
+      sourceLineIds: lineRefs(proposal.sourceLineIds, sourceLines, at + ".sourceLineIds"),
+      actions: actions(proposal.actions, knownAssets, at + ".actions"),
+      status: proposal.status,
+    };
+  });
+  uniqueId(proposals, 'proposals');
+  const verification = validateCueProposals(proposals, parseScript(scriptText), [...knownAssets]);
+  if (!verification.valid) invalid('proposals failed cue proposal validation');
+  const proposalIndex = new Map(proposals.map(p => [p.id, p]));
+
+  const cues = limitedArray(input.cues, MAX_CUES, 'cues').map((cue, index) => {
+    const at = "cues[" + index + "]";
+    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status'], at);
+    const cueId = identifier(cue.id, at + ".id");
+    if (!Number.isSafeInteger(cue.number) || cue.number < 1 || cue.number > MAX_CUE_NUMBER) invalid(at + ".number is invalid");
+    if (cue.status !== 'DRAFT') invalid(at + ".status must be DRAFT");
+    const refs = lineRefs(cue.sourceLineIds, sourceLines, at + ".sourceLineIds");
+    const cueActions = actions(cue.actions, knownAssets, at + ".actions");
+    const sourceProposalId = identifier(cue.sourceProposalId, at + ".sourceProposalId");
+    const parent = proposalIndex.get(sourceProposalId);
+    if (!parent || parent.status !== 'APPROVED') invalid(at + " must reference an approved proposal");
+    if (!matchesArray(refs, parent.sourceLineIds) || !matchesActions(cueActions, parent.actions)) invalid(at + " diverges from its approved proposal");
+    return {
+      id: cueId,
+      number: cue.number,
+      label: requiredString(cue.label, 200, at + ".label"),
+      sourceProposalId,
+      sourceLineIds: refs,
+      actions: cueActions,
+      status: 'DRAFT',
+    };
+  });
+  uniqueId(cues, 'cues');
+  if (new Set(cues.map(c => c.number)).size !== cues.length) invalid('cues contain duplicate numbers');
+  if (new Set(cues.map(c => c.sourceProposalId)).size !== cues.length) invalid('approved proposals are used by more than one cue');
+
+  return { schemaVersion: PROJECT_SCHEMA_VERSION, id, name, scriptText, assets, proposals, cues };
+}
+
+/** Return a stable JSON string. No filesystem interaction and no audio binaries. */
+export function serializeShowProject(project) {
+  const canonical = normalizeShowProject(project);
+  const text = JSON.stringify(canonical, null, 2);
+  if (encoder.encode(text).byteLength > MAX_PROJECT_JSON_BYTES) invalid('serialized document exceeds size limit');
+  return text;
+}
+
+/** Load JSON; reject corrupt, oversized and future-version documents. */
+export function deserializeShowProject(json) {
+  if (typeof json !== 'string') invalid('JSON input must be a string');
+  if (encoder.encode(json).byteLength > MAX_PROJECT_JSON_BYTES) invalid('JSON input exceeds size limit');
+  let parsed;
+  try { parsed = JSON.parse(json); }
+  catch { invalid('malformed JSON'); }
+  return normalizeShowProject(parsed);
+}
