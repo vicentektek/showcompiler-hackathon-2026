@@ -103,7 +103,10 @@ test('remote error never leaks response body or secret', async () => {
   });
 });
 
-test('rejects empty script or no asset before model call', () => {
+test('rejects empty scripts but allows analysing a script without audio assets', () => {
   assert.throws(() => makeCueAnalysisRequest(createNewShow()));
-  assert.throws(() => makeCueAnalysisRequest(createNewShow({scriptText:'Hola'})), /referencia de audio/);
+  const request = makeCueAnalysisRequest(createNewShow({scriptText:'Hola'}));
+  const body = JSON.parse(request.messages[1].content);
+  assert.deepEqual(body.availableAudio, []);
+  assert.equal(body.scriptExcerpt[0].text, 'Hola');
 });
