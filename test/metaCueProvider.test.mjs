@@ -20,7 +20,7 @@ test('builds bounded structured Meta API request without audio file content', ()
   assert.equal(req.response_format.json_schema.strict, true);
   assert.equal(req.messages[0].role, 'developer');
   assert.equal(req.reasoning_effort, 'low');
-  assert.equal(req.max_completion_tokens, 1200);
+  assert.equal(req.max_completion_tokens, 4096);
   const body = JSON.parse(req.messages[1].content);
   assert.equal(body.scriptExcerpt[1].lineId, 'L2');
   assert.deepEqual(body.availableAudio, [{ assetId: 'asset-1', title: 'lluvia.wav' }]);
@@ -109,4 +109,16 @@ test('rejects empty scripts but allows analysing a script without audio assets',
   const body = JSON.parse(request.messages[1].content);
   assert.deepEqual(body.availableAudio, []);
   assert.equal(body.scriptExcerpt[0].text, 'Hola');
+});
+
+test('theatrical prompt guards against false sound triggers and unsafe overproduction', () => {
+  const req = makeCueAnalysisRequest(show());
+  const developer = req.messages[0].content;
+  assert.match(developer, /merely mentioning an object/);
+  assert.match(developer, /remember a thunderstorm/);
+  assert.match(developer, /continuing ambience/);
+  assert.match(developer, /seamless loop/);
+  assert.match(developer, /assetId to null/);
+  assert.match(developer, /cannot represent STOP/);
+  assert.equal(req.max_completion_tokens, 4096);
 });

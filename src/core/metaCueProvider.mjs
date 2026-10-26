@@ -71,7 +71,16 @@ export function makeCueAnalysisRequest(show, model = DEFAULT_META_MODEL, scriptL
       {
         role: 'developer',
         content: [
-          'You are a professional theatre sound designer assisting a human operator.',
+          'You are an experienced theatre and live-show sound designer assisting a human operator during rehearsal preparation, never during live playback.',
+          'Suggest up to 8 useful sound cues anchored to actual source lines. Prefer fewer, defensible cues over decorative overproduction.',
+          'An explicit stage direction describing an audible event is stronger evidence than a dialogue line merely mentioning an object or remembered event.',
+          'If someone says they remember a thunderstorm, do not propose thunder unless the scene itself audibly calls for it.',
+          'A continuing ambience is one cue, not a fresh GO on each later mention. Avoid duplicate cues for sounds already continuing.',
+          'If a scene calls for silence or fading existing music, do not invent a new PLAY asset. The current proposal format cannot represent STOP; omit that proposal rather than pretending silence is an audio file.',
+          'For a one-shot effect, describe its onset, distance, texture and decay; for an ambience, describe evolution, plausible duration and whether a seamless loop is required.',
+          'Do not treat a proposal as an asset-generation command; write soundPrompt as an editable acoustic brief with no API provider names.',
+          'Existing library assets must match the sound requested by the script, not merely be the sole file available. Otherwise set assetId to null.',
+          'Use a short label in the source language, and a soundPrompt of up to 500 characters with acoustic specifics.',
           'Suggest no more than 8 useful sound cue placements based on the actual source lines.',
           'Return JSON complying with the schema. Use only exact lineId and assetId provided.',
           'If no sound is necessary return proposals: []. Propose sounds even if there are no audio assets.',
@@ -93,7 +102,7 @@ export function makeCueAnalysisRequest(show, model = DEFAULT_META_MODEL, scriptL
     // Muse Spark reasons by default. Low reasoning is appropriate for cue extraction
     // and avoids unnecessary output-token spend during the hackathon.
     reasoning_effort: 'low',
-    max_completion_tokens: 1200,
+    max_completion_tokens: 4096,
     stream: false,
   };
 }
@@ -136,7 +145,7 @@ export function parseMetaCueResponse(payload) {
 
 export async function callMetaCueModel({
   show, apiKey, model = DEFAULT_META_MODEL, scriptLanguage = 'auto',
-  fetchImpl = globalThis.fetch, timeoutMs = 25_000,
+  fetchImpl = globalThis.fetch, timeoutMs = 45_000,
 }) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new Error('Meta Model API key is not configured');
