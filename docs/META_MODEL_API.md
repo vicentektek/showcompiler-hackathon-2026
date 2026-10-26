@@ -1,6 +1,6 @@
 # Meta Model API integration
 
-Status: implemented and deterministically tested with mocked transports. The live smoke command has **not** been run; live credentials, entitlement, quota, billing, and inference remain unverified. Audio GO is manual and independent of this integration.
+Status: implemented and deterministically tested. The user completed a live Muse Spark 1.3 smoke on 27 October 2026 (1 validated bell cue, 3.968 s, 1,170 tokens: 708 prompt / 462 completion, including 379 reasoning). A browser proposal anchored to line L2 was approved to DRAFT. Longer-script reliability and billing/quota behavior remain to be verified. Audio GO is manual and independent of this integration.
 
 ## Official contract
 
@@ -95,7 +95,7 @@ $env:MODEL_API_KEY = '<local secret>'
 npm run smoke:meta -- --authorize-one-billable-meta-request
 ```
 
-The explicit flag is mandatory. Output is restricted to safe model/request metadata and proposal count. **This command has not been run in this branch, and the repository must not claim live inference success.**
+The explicit flag is mandatory. Output is restricted to safe model/request metadata and proposal count. **This guarded command was run successfully once by the user after fixing a malformed environment variable.** It should not run during routine tests or be treated as production validation.
 
 ## Manual acceptance checklist
 
