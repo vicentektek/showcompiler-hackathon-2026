@@ -43,7 +43,7 @@ export function addMockProposal(project, { lineId, assetId, label } = {}) {
   const current = normalizeShowProject(project);
   const proposal = {
     id: nextAvailableId('proposal', current.proposals.map(p => p.id)),
-    label, sourceLineIds: [lineId], actions: [{ type: 'PLAY', assetId }], source: 'MANUAL_MOCK',
+    label, sourceLineIds: [lineId], actions: [assetId ? { type: 'PLAY', assetId } : { type: 'PLAN_AUDIO', prompt: label, resolution: 'DEFER' }], source: 'MANUAL_MOCK',
   };
   const verified = validateCueProposals([proposal], parseScript(current.scriptText), current.assets.map(a => a.id));
   if (!verified.valid) throw new TypeError(verified.errors.join('; '));
