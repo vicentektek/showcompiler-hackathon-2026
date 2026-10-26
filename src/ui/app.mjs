@@ -252,4 +252,45 @@ $('projectFileInput').addEventListener('change', async (event) => {
     dirty = false;
   } catch (error) { feedback(error.message, 'error'); }
 });
+$('stopAllBtn').addEventListener('click', () => {
+  player.stopAll();
+  feedback('PARAR TODO: todos los audios locales se han silenciado.', 'success');
+});
+$('loadAudioBtn').addEventListener('click', () => $('audioFileInput').click());
+$('audioFileInput').addEventListener('change', async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  const generation = projectGeneration;
+  const button = $('loadAudioBtn');
+  button.disabled = true;
+  try {
+    if (file.name.length > 200) throw new Error('El nombre del audio excede 200 caracteres.');
+    const existing = show.assets.filter(asset => asset.name === file.name);
+    if (existing.length > 1) throw new Error('Hay referencias duplicadas con ese nombre. Utiliza archivos únicos.');
+    const assetId = existing.length
+      ? existing[0].id
+      : nextAvailableId('asset', show.assets.map(asset => asset.id));
+    feedback('Decodificando audio en este navegador; no se sube a ningún servidor...');
+    const info = await player.loadFile(file, assetId);
+    if (generation !== projectGeneration) throw new Error('El proyecto cambió durante la carga.');
+    if (!existing.length) {
+      const updated = addAudioReference(show, file.name);
+      if (updated.assets.at(-1)?.id !== assetId) {
+        player.reset();
+        throw new Error('La lista de archivos cambió durante la carga. Vuelve a intentarlo.');
+      }
+      show = updated;
+    }
+    dirty = true;
+    render();
+    feedback('Audio REAL "' + file.name + '" cargado (' + info.durationSeconds.toFixed(1) +
+      ' s, ' + info.channels + ' canal/es). Ya puedes preparar un cue.', 'success');
+  } catch (error) {
+    feedback(error?.message ?? 'No se ha podido cargar este audio.', 'error');
+  } finally {
+    button.disabled = false;
+  }
+});
+
 render();
