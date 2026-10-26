@@ -1,6 +1,6 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addMetaProposals, decideProposal, nextAvailableId } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, nextAvailableId } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
@@ -23,6 +23,8 @@ let dirty = false;
 let projectGeneration = 0;
 let metaAvailable = false;
 let metaInFlight = false;
+const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
+const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
 function refreshAudioControls() {
   const status = $('transportStatus');
@@ -66,10 +68,17 @@ function showError(error, key) {
   feedback(key ?? resolveErrorKey(error), error?.uiValues ?? {}, 'error');
 }
 function refreshMetaMessage() {
+  const provider = selectedModelProvider();
+  const baseten = provider === 'baseten';
   $('metaStatus').textContent = metaConnection.state === 'configured'
-    ? t('status.metaConfigured', { model: metaConnection.model })
-    : t(metaConnection.state === 'unavailable' ? 'status.metaUnavailable'
-      : metaConnection.state === 'error' ? 'status.metaOffline' : 'proposals.metaChecking');
+    ? t(baseten ? 'status.basetenConfigured' : 'status.metaConfigured', { model: metaConnection.model })
+    : t(metaConnection.state === 'unavailable'
+      ? (baseten ? 'status.basetenUnavailable' : 'status.metaUnavailable')
+      : metaConnection.state === 'error'
+        ? (baseten ? 'status.basetenOffline' : 'status.metaOffline')
+        : (baseten ? 'status.basetenChecking' : 'proposals.metaChecking'));
+  $('analyzeMetaBtn').textContent = t(baseten ? 'proposals.basetenButton' : 'proposals.metaButton');
+  $('modelProviderDisclaimer').textContent = t(baseten ? 'proposals.basetenDisclaimer' : 'proposals.metaDisclaimer');
 }
 function switchUiLocale(locale) {
   const nameFieldValue = $('showName').value; // Never discard an unsaved edit.
@@ -133,6 +142,7 @@ function render() {
   replaceOptions($('assetSelect'), show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`]), $('assetSelect').value);
   $('createProposalBtn').disabled = !show.scriptText || show.assets.length === 0;
   $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim() || show.assets.length === 0;
+  $('modelProviderSelect').disabled = metaInFlight;
 
   const proposalList = $('proposalList');
   proposalList.replaceChildren();
@@ -141,7 +151,8 @@ function render() {
     const card = node('article', 'item');
     const top = node('div', 'item-head');
     top.append(node('strong', '', proposal.label), node('span', 'state', t('status.' + proposal.status.toLowerCase())));
-    top.append(node('span', 'state', t(proposal.source === 'META_MODEL_API' ? 'status.sourceMeta' : 'status.sourceManual')));
+    top.append(node('span', 'state', t(proposal.source === 'META_MODEL_API' ? 'status.sourceMeta' :
+      proposal.source === 'BASETEN_MUSE_SPARK_OPEN' ? 'status.sourceBaseten' : 'status.sourceManual')));
     card.append(top);
     const line = getScriptLine(lines, proposal.sourceLineIds[0]);
     card.append(node('p', 'item-detail', `${proposal.sourceLineIds.join(', ')} · ${line?.text ?? t('status.noSourceLine')}`));
@@ -334,21 +345,30 @@ $('projectFileInput').addEventListener('change', async event => {
 });
 
 async function refreshMetaStatus() {
+  const provider = selectedModelProvider();
+  metaAvailable = false;
+  metaConnection = { state: 'checking', model: '' };
+  refreshMetaMessage();
+  render();
   try {
-    const response = await fetch('/api/meta/status', { cache: 'no-store' });
+    const response = await fetch('/api/' + provider + '/status', { cache: 'no-store' });
     if (!response.ok) throw uiError('errors.metaService');
     const status = await response.json();
-    metaAvailable = status.provider === 'META_MODEL_API' && status.configured === true;
+    if (selectedModelProvider() !== provider) return; // Discard stale status.
+    metaAvailable = status.provider === expectedProviderId(provider) && status.configured === true;
     metaConnection = {
       state: metaAvailable ? 'configured' : 'unavailable',
       model: typeof status.model === 'string' ? status.model : '',
     };
   } catch {
+    if (selectedModelProvider() !== provider) return;
     metaAvailable = false;
     metaConnection = { state: 'error', model: '' };
   } finally {
-    refreshMetaMessage();
-    render();
+    if (selectedModelProvider() === provider) {
+      refreshMetaMessage();
+      render();
+    }
   }
 }
 
@@ -361,6 +381,17 @@ const remoteErrors = Object.freeze({
   META_INVALID_PROJECT: 'errors.metaInvalidProject',
   META_TOO_LARGE: 'errors.metaTooLarge',
   META_SERVICE: 'errors.metaService',
+  BASETEN_AUTH: 'errors.basetenAuth',
+  BASETEN_RATE: 'errors.basetenRate',
+  BASETEN_MODEL: 'errors.basetenModel',
+  BASETEN_UNCONFIGURED: 'errors.basetenUnconfigured',
+  BASETEN_BUSY: 'errors.basetenBusy',
+  BASETEN_INVALID: 'errors.basetenInvalid',
+  BASETEN_TOO_LARGE: 'errors.basetenTooLarge',
+  BASETEN_SERVICE: 'errors.basetenService',
+});
+$('modelProviderSelect').addEventListener('change', () => {
+  refreshMetaStatus();
 });
 $('analyzeMetaBtn').addEventListener('click', async () => {
   if (metaInFlight || !metaAvailable) return;
@@ -370,30 +401,31 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
     snapshot = serializeShowProject(show);
     scriptLanguage = currentScriptLanguageHint();
   } catch (error) { showError(error); return; }
-  if (!window.confirm(t('status.confirmMeta'))) return;
+  const provider = selectedModelProvider();
+  if (!window.confirm(t(provider === 'baseten' ? 'status.confirmBaseten' : 'status.confirmMeta'))) return;
   const generation = projectGeneration;
   metaInFlight = true;
   render();
-  feedback('status.metaInProgress');
+  feedback(provider === 'baseten' ? 'status.basetenInProgress' : 'status.metaInProgress');
   try {
-    const response = await fetch('/api/meta/proposals', {
+    const response = await fetch('/api/' + provider + '/proposals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ project: JSON.parse(snapshot), scriptLanguage }),
     });
     const result = await response.json();
     if (!response.ok) throw uiError(remoteErrors[result.code] ?? 'errors.metaService');
-    if (generation !== projectGeneration || serializeShowProject(show) !== snapshot) {
+    if (selectedModelProvider() !== provider || generation !== projectGeneration || serializeShowProject(show) !== snapshot) {
       throw uiError('errors.projectChanged');
     }
-    if (result.provider !== 'META_MODEL_API' || !Array.isArray(result.proposals)) {
+    if (result.provider !== expectedProviderId(provider) || !Array.isArray(result.proposals)) {
       throw uiError('errors.metaResponse');
     }
     const count = result.proposals.length;
-    show = addMetaProposals(show, result.proposals);
+    show = addModelProposals(show, result.proposals, result.provider);
     dirty = true;
     render();
-    feedback('status.metaImported', { count }, 'success');
+    feedback(provider === 'baseten' ? 'status.basetenImported' : 'status.metaImported', { count }, 'success');
   } catch (error) {
     showError(error);
   } finally {
