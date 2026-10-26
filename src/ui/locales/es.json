@@ -147,7 +147,7 @@
   "proposals.basetenButton": "Generar con Muse Spark Open",
   "proposals.basetenDisclaimer": "Solo tras confirmarlo, se enviarán a Baseten las primeras 120 líneas del guion (250 caracteres por línea) y hasta 80 nombres/IDs de audio para ejecutar un modelo abierto de Meta. No se envían WAV/MP3. Las peticiones pueden consumir créditos. Muse Spark Open en Baseten no garantiza JSON estructurado; rechazaremos las respuestas inválidas.",
   "status.basetenChecking": "Comprobando conexión local con Baseten...",
-  "status.basetenConfigured": "Baseten configurado ({model}). Cada petición requiere aprobación expresa.",
+  "status.basetenConfigured": "Clave Baseten detectada para {model}. Aún no se ha verificado la conexión ni el saldo. Cada petición requiere confirmación.",
   "status.basetenUnavailable": "Baseten no está configurado. Establece BASETEN_API_KEY en la terminal que inicia el servidor.",
   "status.basetenOffline": "El servicio local de Baseten no está disponible.",
   "status.basetenInProgress": "Consultando Baseten (Meta Muse Spark Open)… No se ejecutará audio automáticamente.",
