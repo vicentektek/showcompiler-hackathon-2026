@@ -16,6 +16,7 @@ const allowed = new Map([
   ['/src/core/review.mjs', ['src/core/review.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/projectPersistence.mjs', ['src/core/projectPersistence.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/browserAudio.mjs', ['src/core/browserAudio.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/audioBackend.mjs', ['src/core/audioBackend.mjs', 'text/javascript; charset=utf-8']],
 ]);
 export function createAppServer() {
   return createServer(async (request, response) => {
