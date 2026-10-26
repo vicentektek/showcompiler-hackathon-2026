@@ -5,7 +5,7 @@
 import { deserializeShowProject, MAX_PROJECT_JSON_BYTES } from '../src/core/projectPersistence.mjs';
 import { addModelProposals } from '../src/core/workspace.mjs';
 import { normalizeScriptLanguageHint } from '../src/core/scriptLanguage.mjs';
-import { callBasetenCueModel, BASETEN_MODEL, BASETEN_PROVIDER } from '../src/core/basetenCueProvider.mjs';
+import { callBasetenCueModel, BASETEN_MODEL, BASETEN_PROVIDER, BasetenOutputError } from '../src/core/basetenCueProvider.mjs';
 
 function reply(res, status, object, headers) {
   res.writeHead(status, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
@@ -102,6 +102,17 @@ export function makeBasetenRoute({
       const status = error?.httpStatus === 413 ? 413 :
         error instanceof SyntaxError || error instanceof TypeError ||
         error instanceof RangeError || error?.code === 'INVALID_SHOW_PROJECT' ? 400 : 502;
+      // Preserve only a small, fixed classification; never expose the model text.
+      if (error instanceof BasetenOutputError) {
+        reply(res, 422, { code: 'BASETEN_OUTPUT_' + error.safeReason }, headers);
+        return true;
+      }
+      // Safe category for hallucinated source line/audio IDs.
+      if (error instanceof TypeError &&
+          /suggestion does not match supplied script excerpt or audio list|suggestions failed validation/i.test(error.message)) {
+        reply(res, 422, { code: 'BASETEN_BAD_REFERENCES' }, headers);
+        return true;
+      }
       // No secret, full prompt, provider response body or stack trace to browser.
       const remoteStatus = Number.isInteger(error?.basetenStatus) ? error.basetenStatus : 0;
       const code = remoteStatus === 401 || remoteStatus === 403 ? 'BASETEN_AUTH' :
