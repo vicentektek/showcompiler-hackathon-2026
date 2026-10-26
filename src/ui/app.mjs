@@ -2,12 +2,23 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addMetaProposals, decideProposal, nextAvailableId } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
+import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
+import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, translateError } from './i18n.mjs';
 
 const $ = (id) => document.getElementById(id);
-const sampleText = 'ESCENA 1. COMIENZA EL ENSAYO\n(Ambiente musical de apertura.)\nANA: ¿Está todo listo?\nLUIS: Preparados.\n(Suena una campana a lo lejos.)\nANA: ¡Adelante!\n';
+const sampleTexts = {
+  en: 'SCENE 1. THE REHEARSAL BEGINS\n(Opening background music.)\nANNA: Is everything ready?\nLUKE: We are ready.\n(A bell rings in the distance.)\nANNA: Go ahead!\n',
+  es: 'ESCENA 1. COMIENZA EL ENSAYO\n(Ambiente musical de apertura.)\nANA: ¿Está todo listo?\nLUIS: Preparados.\n(Suena una campana a lo lejos.)\nANA: ¡Adelante!\n',
+};
 const limitScriptBytes = 1_000_000;
 const maximumShownLines = 300;
-let show = createNewShow();
+let uiStorage;
+try { uiStorage = window.localStorage; } catch { uiStorage = null; }
+let uiLocale = readPreferredUiLocale(uiStorage);
+const t = (key, values) => translate(uiLocale, key, values);
+let statusState = { key: 'status.initial', values: {}, tone: 'info' };
+let metaConnection = { state: 'checking', model: '' };
+let show = createNewShow({ name: t('script.showNamePlaceholder') });
 let dirty = false;
 let projectGeneration = 0;
 let metaAvailable = false;
@@ -18,8 +29,8 @@ function refreshAudioControls() {
   if (!status) return;
   const { activeCueCount: active, pendingGoCount: pending } = player.getStatus();
   status.textContent = active || pending
-    ? 'Transporte local: ' + active + ' cues activos' + (pending ? ', ' + pending + ' GO pendientes' : '')
-    : 'Transporte detenido. Audio local al 50 % de ganancia inicial.';
+    ? t('status.transportRunning', { count: active, pending: pending ? t('status.transportPending', { count: pending }) : '' })
+    : t('status.transportStopped');
   $('stopAllBtn').disabled = active === 0 && pending === 0;
   for (const label of document.querySelectorAll('[data-cue-state]')) {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
@@ -27,7 +38,7 @@ function refreshAudioControls() {
     const ready = cue.actions.every(action => player.hasAsset(action.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
-    label.textContent = stopping ? 'FADE / STOP' : playing ? 'SONANDO' : ready ? 'LISTO' : 'FALTA AUDIO';
+    label.textContent = t(stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
   for (const button of document.querySelectorAll('[data-cue-action]')) {
     const cue = show.cues.find(item => item.id === button.dataset.cueId);
@@ -45,20 +56,41 @@ function node(tag, className, value) {
   if (value !== undefined) element.textContent = String(value);
   return element;
 }
-function feedback(message, tone = 'info') {
+function feedback(key, values = {}, tone = 'info') {
+  statusState = { key, values, tone };
   const target = $('statusMessage');
-  target.textContent = message;
+  target.textContent = t(key, values);
   target.dataset.tone = tone;
 }
-function safeOperation(operation, successMessage) {
+function showError(error, key) {
+  const translatedKey = key ?? 'errors.generic';
+  feedback(translatedKey, {}, 'error');
+}
+function refreshMetaMessage() {
+  $('metaStatus').textContent = metaConnection.state === 'configured'
+    ? t('status.metaConfigured', { model: metaConnection.model })
+    : t(metaConnection.state === 'unavailable' ? 'status.metaUnavailable'
+      : metaConnection.state === 'error' ? 'status.metaOffline' : 'proposals.metaChecking');
+}
+function switchUiLocale(locale) {
+  const nameFieldValue = $('showName').value; // Never discard an unsaved edit.
+  uiLocale = savePreferredUiLocale(uiStorage, locale);
+  $('uiLocaleSelect').value = uiLocale;
+  translateDocument(document, uiLocale);
+  render();
+  $('showName').value = nameFieldValue;
+  refreshMetaMessage();
+  feedback(statusState.key, statusState.values, statusState.tone);
+}
+function safeOperation(operation, successKey, values = {}) {
   try {
     const next = operation();
     if (next) show = next;
     dirty = true;
     render();
-    feedback(successMessage, 'success');
+    feedback(successKey, values, 'success');
   } catch (error) {
-    feedback(error instanceof Error ? error.message : 'Operación no válida', 'error');
+    showError(error);
   }
 }
 function replaceOptions(select, entries, oldValue) {
