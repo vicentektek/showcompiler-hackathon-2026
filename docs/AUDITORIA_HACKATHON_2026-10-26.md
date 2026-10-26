@@ -7,6 +7,7 @@
 Fuente del organizador: https://cerebralvalley.ai/e/meta-ai-developer-hackathon/details (Participant Guide, sesión de participante).
 
 - Solo se presentan como nuevas funciones construidas durante el hackathon. No incluir archivos anteriores ni atribuirlos al evento.
+- **Observación temporal importante:** la guía llama «Building period: Oct 27 – Nov 4», mientras el hackathon y kickoff se sitúan en Oct 26. El primer commit de planificación del repositorio nuevo fue el **26/10 a las 17:33:59 UTC** y el primer archivo de código el **26/10 a las 17:35:51 UTC** (posteriores al inicio del kickoff). Esto respalda la procedencia del trabajo, pero **conviene preguntar a la organización** si la fecha 26 después del kickoff cuenta expresamente como parte de la ventana de construcción.
 - **Integrar un modelo Meta es un requisito de pase/fallo** en la primera ronda.
 - Repositorio accesible públicamente **en el momento de la entrega**.
 - **Vídeo de 3 minutos** mostrando funciones nuevas, además de código y producto funcional.
@@ -48,6 +49,8 @@ Fuente del organizador: https://cerebralvalley.ai/e/meta-ai-developer-hackathon/
 - [ ] Vídeo de 3 minutos, README de jurado, capturas, repositorio público y entrega.
 
 ## 4. Dependencias y riesgos
+
+**Estado de cuentas revisado:** candidatura **APPROVED** (notificación del 20/10); formularios Baseten y Fireworks constan como enviados en pestañas con mensaje de confirmación, pero sin concesión de créditos verificada. La cuenta de Meta tiene abierta la pestaña Billing, que exige reconfirmar identidad y no muestra el saldo. No consta confirmación de envío del formulario de $150 de Meta. Modal muestra una pantalla de verificación de cuenta de pago, sin pago realizado/confirmado en la vista. No confundir cuentas creadas con fondos concedidos.
 
 **Crítico: acceso real a Meta AI.** Los organizadores ofrecen solicitar $150 en créditos de Meta Model API en https://docs.google.com/forms/d/e/1FAIpQLScam78z7tHsNYibiFyJQVFzEgr0coyBTiY568SxxNbsPa3jiw/viewform . La comunicación oficial indica que se debe **registrar una tarjeta** para emitir llamadas, y que los créditos se asignan por tandas. La alerta «Spend Limit» que menciona la guía no debe interpretarse automáticamente como un corte garantizado de gastos. El panel de billing pidió una nueva verificación de identidad; no se ha confirmado el saldo. La solicitud de créditos en un socio tercero NO concede automáticamente créditos de Meta Model API.
 
