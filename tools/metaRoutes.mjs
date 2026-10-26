@@ -5,7 +5,7 @@
 import { deserializeShowProject, MAX_PROJECT_JSON_BYTES } from '../src/core/projectPersistence.mjs';
 import { addMetaProposals } from '../src/core/workspace.mjs';
 import { normalizeScriptLanguageHint } from '../src/core/scriptLanguage.mjs';
-import { callMetaCueModel, DEFAULT_META_MODEL, validateMetaModelId } from '../src/core/metaCueProvider.mjs';
+import { callMetaCueModel, DEFAULT_META_MODEL, validateMetaModelId, MetaOutputError } from '../src/core/metaCueProvider.mjs';
 
 function answer(response, code, data, headers) {
   response.writeHead(code, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
@@ -107,6 +107,16 @@ export function makeMetaRoute({
       }));
       answer(response, 200, { provider: 'META_MODEL_API', model, proposals: output }, headers);
     } catch (error) {
+      // Expose only an enumerated, non-sensitive reason. Never return script/model text.
+      if (error instanceof MetaOutputError) {
+        answer(response, 422, { code: 'META_OUTPUT_' + error.safeReason }, headers);
+        return true;
+      }
+      if (error instanceof TypeError &&
+          /suggestion does not match supplied script excerpt or audio list|suggestions failed validation/i.test(error.message)) {
+        answer(response, 422, { code: 'META_BAD_REFERENCES' }, headers);
+        return true;
+      }
       // Never reflect provider bodies, stack traces, secrets or untrusted scripts.
       const code = error?.status === 413 ? 413 :
         error instanceof SyntaxError || error?.code === 'INVALID_SHOW_PROJECT' ||
