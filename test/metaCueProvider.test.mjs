@@ -35,6 +35,25 @@ test('caps large scripts to 120 lines and truncates each supplied line', () => {
   assert.equal(body.scriptExcerpt[0].text.length, 250);
 });
 
+test('model infers script language by default, independent from English UI', () => {
+  const text = 'シーン 1\n(雨の音)\n声: 始めよう';
+  const req = makeCueAnalysisRequest(show(text));
+  const body = JSON.parse(req.messages[1].content);
+  assert.equal(body.scriptLanguageHint, 'auto');
+  assert.equal(body.scriptExcerpt[1].text, '(雨の音)');
+  assert.match(req.messages[0].content, /do not translate/i);
+});
+
+test('explicit BCP47 hint guides cue labels without modifying original source', () => {
+  const text = 'SCÈNE UNE\n(On entend la pluie)';
+  const before = show(text);
+  const req = makeCueAnalysisRequest(before, 'muse-spark-1.3', 'fr-FR');
+  const body = JSON.parse(req.messages[1].content);
+  assert.equal(body.scriptLanguageHint, 'fr-FR');
+  assert.equal(before.scriptText, text);
+  assert.throws(() => makeCueAnalysisRequest(before, 'muse-spark-1.3', '<ignore>'), TypeError);
+});
+
 test('model names are an explicit allowlist, not client-controlled URLs', () => {
   assert.equal(validateMetaModelId('muse-spark-1.3'), 'muse-spark-1.3');
   assert.throws(() => validateMetaModelId('https://evil.example'));

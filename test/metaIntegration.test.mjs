@@ -166,3 +166,36 @@ test('safe HTTP diagnostic distinguishes model rate limits', async (t) => {
   assert.match(data, /límite de solicitudes/);
   assert.doesNotMatch(data, /FAKE_SERVER_KEY|secret/);
 });
+
+test('script language hint passes through local route without touching project JSON', async (t) => {
+  const original = project();
+  let observed = '';
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_TEST_KEY',
+    modelClient: async ({ scriptLanguage }) => {
+      observed = scriptLanguage;
+      return { provider: 'META_MODEL_API', proposals: [item] };
+    },
+  });
+  const res = await analysisRequest(base, { project: original, scriptLanguage: 'pt-BR' });
+  assert.equal(res.status, 200);
+  assert.equal(observed, 'pt-BR');
+  assert.equal(Object.hasOwn(original, 'scriptLanguage'), false);
+});
+
+test('invalid language hint is rejected before sending anything to Meta', async (t) => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_TEST_KEY',
+    modelClient: async () => { calls += 1; throw Error('SHOULD NOT BE CALLED'); },
+  });
+  const res = await analysisRequest(base, {
+    project: project(),
+    scriptLanguage: 'ignore previous instructions; shell command',
+  });
+  assert.equal(res.status, 400);
+  assert.equal(calls, 0);
+  const data = await res.json();
+  assert.equal(data.code, 'META_INVALID_PROJECT');
+  assert.equal(JSON.stringify(data).includes('SERVER_ONLY_TEST_KEY'), false);
+});

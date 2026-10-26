@@ -4,6 +4,7 @@
  */
 import { deserializeShowProject, MAX_PROJECT_JSON_BYTES } from '../src/core/projectPersistence.mjs';
 import { addMetaProposals } from '../src/core/workspace.mjs';
+import { normalizeScriptLanguageHint } from '../src/core/scriptLanguage.mjs';
 import { callMetaCueModel, DEFAULT_META_MODEL, validateMetaModelId } from '../src/core/metaCueProvider.mjs';
 
 function answer(response, code, data, headers) {
@@ -73,11 +74,11 @@ export function makeMetaRoute({
       return true;
     }
     if (!available || getModel() !== model) {
-      answer(response, 503, { error: 'Meta API no configurada: MODEL_API_KEY' }, headers);
+      answer(response, 503, { code: 'META_NOT_CONFIGURED', error: 'Meta API no configurada: MODEL_API_KEY' }, headers);
       return true;
     }
     if (busy) {
-      answer(response, 429, { error: 'Ya existe un análisis en curso' }, headers);
+      answer(response, 429, { code: 'META_BUSY', error: 'Ya existe un análisis en curso' }, headers);
       return true;
     }
     busy = true;
@@ -86,13 +87,15 @@ export function makeMetaRoute({
       const raw = await readBoundedBody(request, MAX_PROJECT_JSON_BYTES);
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
-          Object.keys(parsed).length !== 1 || typeof parsed.project !== 'object') {
+          Object.keys(parsed).some(key => key !== 'project' && key !== 'scriptLanguage') ||
+          typeof parsed.project !== 'object') {
         answer(response, 400, { error: 'Solicitud de proyecto no válida' }, headers);
         return true;
       }
       const project = deserializeShowProject(JSON.stringify(parsed.project));
+      const scriptLanguage = normalizeScriptLanguageHint(parsed.scriptLanguage);
       const result = await modelClient({
-        show: project, apiKey: getKey(), model,
+        show: project, apiKey: getKey(), model, scriptLanguage,
       });
       // Revalidate everything on the server before returning anything to the UI.
       const accepted = addMetaProposals(project, result.proposals);
@@ -118,7 +121,13 @@ export function makeMetaRoute({
               : code === 413 ? 'Solicitud demasiado grande'
                 : code === 400 ? 'Proyecto o respuesta no válida'
                   : 'No se ha podido completar el análisis de Meta';
-      answer(response, code, { error: safeMessage }, headers);
+      const errorCode =
+        upstreamCode === 401 || upstreamCode === 403 ? 'META_AUTH'
+          : upstreamCode === 429 ? 'META_RATE'
+            : upstreamCode === 400 ? 'META_BAD_REQUEST'
+              : code === 413 ? 'META_TOO_LARGE'
+                : code === 400 ? 'META_INVALID_PROJECT' : 'META_SERVICE';
+      answer(response, code, { code: errorCode, error: safeMessage }, headers);
     } finally {
       busy = false;
     }
