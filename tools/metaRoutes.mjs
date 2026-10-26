@@ -74,11 +74,11 @@ export function makeMetaRoute({
       return true;
     }
     if (!available || getModel() !== model) {
-      answer(response, 503, { error: 'Meta API no configurada: MODEL_API_KEY' }, headers);
+      answer(response, 503, { code: 'META_NOT_CONFIGURED', error: 'Meta API no configurada: MODEL_API_KEY' }, headers);
       return true;
     }
     if (busy) {
-      answer(response, 429, { error: 'Ya existe un análisis en curso' }, headers);
+      answer(response, 429, { code: 'META_BUSY', error: 'Ya existe un análisis en curso' }, headers);
       return true;
     }
     busy = true;
@@ -121,7 +121,13 @@ export function makeMetaRoute({
               : code === 413 ? 'Solicitud demasiado grande'
                 : code === 400 ? 'Proyecto o respuesta no válida'
                   : 'No se ha podido completar el análisis de Meta';
-      answer(response, code, { error: safeMessage }, headers);
+      const errorCode =
+        upstreamCode === 401 || upstreamCode === 403 ? 'META_AUTH'
+          : upstreamCode === 429 ? 'META_RATE'
+            : upstreamCode === 400 ? 'META_BAD_REQUEST'
+              : code === 413 ? 'META_TOO_LARGE'
+                : code === 400 ? 'META_INVALID_PROJECT' : 'META_SERVICE';
+      answer(response, code, { code: errorCode, error: safeMessage }, headers);
     } finally {
       busy = false;
     }
