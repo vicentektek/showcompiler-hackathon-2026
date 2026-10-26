@@ -12,11 +12,11 @@
   <div class="shell">
     <header class="topbar">
       <div class="brand"><span class="brand-icon" aria-hidden="true">◫</span><div><strong>SHOWCOMPILER</strong><span>HACKATHON 2026 · PROTOTIPO</span></div></div>
-      <div class="top-actions"><span class="pill">IA SIMULADA · AUDIO LOCAL REAL</span><button id="stopAllBtn" class="btn danger" type="button" aria-label="Parar inmediatamente todo el audio">PARAR TODO</button><button id="newShowBtn" class="btn subtle" type="button">Nuevo</button><button id="openProjectBtn" class="btn subtle" type="button">Abrir JSON</button><button id="saveProjectBtn" class="btn primary" type="button">Guardar JSON</button></div>
+      <div class="top-actions"><span class="pill">META AI OPCIONAL · AUDIO LOCAL REAL</span><button id="stopAllBtn" class="btn danger" type="button" aria-label="Parar inmediatamente todo el audio">PARAR TODO</button><button id="newShowBtn" class="btn subtle" type="button">Nuevo</button><button id="openProjectBtn" class="btn subtle" type="button">Abrir JSON</button><button id="saveProjectBtn" class="btn primary" type="button">Guardar JSON</button></div>
     </header>
     <main>
       <section class="intro">
-        <div><p class="eyebrow">Build for Your World / Ensayos y espectáculos</p><h1>Del guion al cue aprobado</h1><p>Una primera interfaz para explorar el guion, aprobar cues y reproducir archivos de audio locales mediante GO manual. Las propuestas siguen siendo simuladas: no hay IA real.</p></div>
+        <div><p class="eyebrow">Build for Your World / Ensayos y espectáculos</p><h1>Del guion al cue aprobado</h1><p>Una primera interfaz para explorar el guion, aprobar cues y reproducir archivos de audio locales mediante GO manual. Las propuestas pueden ser simuladas o generadas por Meta AI cuando configures la API y autorices explícitamente enviar el fragmento del guion.</p></div>
         <div class="countbox"><div><strong id="linesCount">0</strong><span>Líneas</span></div><div><strong id="proposalsCount">0</strong><span>Propuestas</span></div><div><strong id="cuesCount">0</strong><span>Cues</span></div></div>
       </section>
       <div id="statusMessage" class="status" role="status" aria-live="polite">Carga el ejemplo o importa un guion TXT para comenzar.</div>
@@ -33,15 +33,15 @@
           <div class="line-actions"><button id="loadAudioBtn" class="btn accent" type="button">Cargar WAV/MP3 real</button><span class="caption">Hasta 20 MB · 10 min · mono/estéreo. Tras abrir JSON, vuelve a cargar los audios.</span></div><div id="assetList" class="tags" aria-label="Referencias de audio registradas"></div>
         </section>
         <section class="panel" aria-labelledby="proposalsHeading">
-          <div class="panel-head"><div><span class="step">02</span><h2 id="proposalsHeading">Propuestas</h2></div><span class="label-mock">SIMULADAS</span></div>
-          <p class="help">Crea una propuesta de prueba seleccionando una línea y una referencia de audio. Este formulario <strong>no utiliza IA</strong>.</p>
+          <div class="panel-head"><div><span class="step">02</span><h2 id="proposalsHeading">Propuestas</h2></div><span class="label-mock">ORIGEN IDENTIFICADO</span></div>
+          <p class="help">Puedes generar propuestas manuales de prueba o usar Meta AI real si has configurado una clave. Nada llega a GO sin aprobación humana.</p>
           <form id="proposalForm" class="vertical-form">
             <label class="field" for="proposalLabel">Descripción del cue</label><input id="proposalLabel" type="text" maxlength="200" placeholder="Ej.: entrada de ambiente" required>
             <label class="field" for="lineSelect">Línea del guion</label><select id="lineSelect" required></select>
             <label class="field" for="assetSelect">Referencia de audio</label><select id="assetSelect" required></select>
             <button id="createProposalBtn" type="submit" class="btn accent block">Crear propuesta simulada</button>
           </form>
-          <div class="separator"></div><div class="subheading">Revisión por el operador</div><div id="proposalList" class="item-list"></div>
+          <div class="meta-panel"><div class="subheading">Análisis de guion con Meta AI</div><button id="analyzeMetaBtn" type="button" class="btn primary block" disabled>Generar propuestas con Meta AI</button><p id="metaStatus" class="caption" role="status" aria-live="polite">Comprobando conexión local de Meta AI...</p><p class="caption">Solo si lo confirmas, se enviarán a Meta las primeras 120 líneas del guion (máximo 250 caracteres por línea) y hasta 80 nombres de audios. No se envían WAV/MP3. La API puede generar consumo facturable.</p></div><div class="separator"></div><div class="subheading">Revisión por el operador</div><div id="proposalList" class="item-list"></div>
         </section>
         <section class="panel" aria-labelledby="cuesHeading">
           <div class="panel-head"><div><span class="step">03</span><h2 id="cuesHeading">Lista de cues</h2></div><span class="label-draft">GO MANUAL</span></div>
@@ -51,7 +51,7 @@
         </section>
       </div>
     </main>
-    <footer>Versión experimental del hackathon · Datos conservados en memoria hasta guardar JSON · Sin servicios externos</footer>
+    <footer>Versión experimental del hackathon · Audio local · Meta AI usa servicio externo solo con consentimiento · Guarda JSON para conservar cambios</footer>
   </div>
   <input id="scriptFileInput" type="file" accept=".txt,text/plain" hidden>
   <input id="projectFileInput" type="file" accept=".json,application/json" hidden>

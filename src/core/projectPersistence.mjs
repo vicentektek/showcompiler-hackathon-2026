@@ -88,15 +88,19 @@ export function normalizeShowProject(input) {
 
   const proposals = limitedArray(input.proposals, MAX_PROPOSALS, 'proposals').map((proposal, index) => {
     const at = "proposals[" + index + "]";
-    fields(proposal, ['id', 'label', 'sourceLineIds', 'actions', 'status'], at);
+    fields(proposal, ['id', 'label', 'sourceLineIds', 'actions', 'status', 'source'], at);
     const proposalId = identifier(proposal.id, at + ".id");
     if (!STATES.has(proposal.status)) invalid(at + ".status is invalid");
+    if (proposal.source !== undefined && !['MANUAL_MOCK', 'META_MODEL_API'].includes(proposal.source)) {
+      invalid(at + ".source is invalid");
+    }
     return {
       id: proposalId,
       label: requiredString(proposal.label, 200, at + ".label"),
       sourceLineIds: lineRefs(proposal.sourceLineIds, sourceLines, at + ".sourceLineIds"),
       actions: actions(proposal.actions, knownAssets, at + ".actions"),
       status: proposal.status,
+      ...(proposal.source === undefined ? {} : { source: proposal.source }),
     };
   });
   uniqueId(proposals, 'proposals');

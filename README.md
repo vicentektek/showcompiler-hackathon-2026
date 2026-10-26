@@ -1,6 +1,6 @@
 # ShowCompiler — Meta Global AI Developer Hackathon 2026
 
-**Status: new, experimental browser prototype with real local audio playback.** This repository tracks only work created during the event (26 October–4 November 2026). The intended entry is **Build for Your World**, applying Meta AI to stage and event sound-control workflows.
+**Status: new experimental browser prototype with real local audio playback and opt-in Meta Model API cue proposals (live account testing pending).** This repository tracks only work created during the event (26 October–4 November 2026). The intended entry is **Build for Your World**, applying Meta AI to stage and event sound-control workflows.
 
 ## Run locally (Node.js 20+)
 
@@ -17,16 +17,16 @@ Other commands: `npm run check:syntax` checks browser/server modules, and `npm r
 
 - Local browser interface: import an UTF-8 TXT script and see stable line references.
 - Load **real local WAV/MP3** files into browser memory; attach them to their asset IDs (audio never leaves the browser).
-- Create a **SIMULATED** cue proposal, review it explicitly, then approve it as `DRAFT` or reject it.
+- Create either a **SIMULATED** cue proposal or, with `MODEL_API_KEY` set on the local Node server, request proposals from the **real Meta Model API**. Each request requires explicit user confirmation; no automatic GO. Provenance (manual vs Meta) is retained in JSON.
 - Execute explicitly approved cues by manual **GO**, **STOP**, **FADE 1.5 s**, and **PARAR TODO** using the browser Web Audio engine.
 - UI now uses an explicit [audio backend boundary](src/core/audioBackend.mjs) with truthful capabilities. **Native Rust/WASAPI/ASIO are planned, not implemented.**
 - Export and reimport validated versioned JSON project data (**the actual audio is not embedded**).
 - Unit and integration tests, plus syntax checks and GitHub Actions verification.
 - Local, allowlisted web server bound to 127.0.0.1 only.
 
-**Not implemented:** real Meta-model calls, generative cue analysis, professional output routing/ASIO, persistent audio files, desktop installer, hardware interfaces, or complete portable project export with audio assets. No mock feature should be described as AI integration. Browser audio behavior still needs hands-on acceptance testing.
+**Not implemented or unverified:** Live Meta API access has **not yet been tested with an actual key/quota**; the wired adapter uses the official hosted endpoint but account permissions and actual results require testing. Professional WASAPI/ASIO output routing, persistent audio files, desktop installer, hardware interfaces and full portable projects are not implemented. Browser audio still needs manual audible acceptance. No mock feature is described as real inference.
 
-Read the [desktop audio architecture decision](docs/ADR-0001_MOTOR_AUDIO_NATIVO_2026-10-26.md), [real audio GO/STOP walkthrough](docs/LOCAL_AUDIO_MVP.md), [UI walkthrough](docs/UI_PROTOTYPE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), [persistence limits](docs/PERSISTENCE.md), and [contribution log](docs/CONTRIBUTIONS.md).
+Read the [Meta Model API local setup](docs/META_MODEL_API.md), [desktop audio architecture decision](docs/ADR-0001_MOTOR_AUDIO_NATIVO_2026-10-26.md), [real audio GO/STOP walkthrough](docs/LOCAL_AUDIO_MVP.md), [UI walkthrough](docs/UI_PROTOTYPE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), [persistence limits](docs/PERSISTENCE.md), and [contribution log](docs/CONTRIBUTIONS.md).
 
 ## Planned competition path
 

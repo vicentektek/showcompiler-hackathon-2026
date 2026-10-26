@@ -15,8 +15,9 @@ test('browser wiring references only actual HTML element IDs', () => {
 });
 
 test('prototype labels mock AI, real local audio and incomplete JSON packaging', () => {
-  assert.match(html, /IA SIMULADA · AUDIO LOCAL REAL/);
-  assert.match(html, /SIMULADAS/);
+  assert.match(html, /META AI OPCIONAL · AUDIO LOCAL REAL/);
+  assert.match(html, /ORIGEN IDENTIFICADO/);
+  assert.match(html, /id="analyzeMetaBtn"/);
   assert.match(html, /no quedan dentro del JSON/);
   assert.match(html, /id="stopAllBtn"/);
   assert.match(html, /id="audioFileInput"/);
@@ -44,7 +45,7 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const home = await fetch(base + '/');
   assert.equal(home.status, 200);
   assert.match(await home.text(), /SHOWCOMPILER/);
-  assert.match(home.headers.get('content-security-policy'), /connect-src 'none'/);
+  assert.match(home.headers.get('content-security-policy'), /connect-src 'self'/);
   assert.equal(home.headers.get('access-control-allow-origin'), null);
   const module = await fetch(base + '/src/core/workspace.mjs');
   assert.equal(module.status, 200);
