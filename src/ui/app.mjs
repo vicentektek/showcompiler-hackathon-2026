@@ -244,6 +244,7 @@ function resetScriptLanguageHint() {
 
 function currentScriptLanguageHint() {
   const choice = $('scriptLanguageSelect').value;
+  if (choice === 'other' && !$('scriptLanguageCustom').value.trim()) throw uiError('errors.languageHint');
   return normalizeScriptLanguageHint(choice === 'other' ? $('scriptLanguageCustom').value : choice);
 }
 
