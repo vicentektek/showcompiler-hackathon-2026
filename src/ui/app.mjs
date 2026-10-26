@@ -1,7 +1,7 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, decideProposal, nextAvailableId } from '../core/workspace.mjs';
-import { BrowserAudioEngine } from '../core/browserAudio.mjs';
+import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 
 const $ = (id) => document.getElementById(id);
 const sampleText = 'ESCENA 1. COMIENZA EL ENSAYO\n(Ambiente musical de apertura.)\nANA: ¿Está todo listo?\nLUIS: Preparados.\n(Suena una campana a lo lejos.)\nANA: ¡Adelante!\n';
@@ -10,12 +10,11 @@ const maximumShownLines = 300;
 let show = createNewShow();
 let dirty = false;
 let projectGeneration = 0;
-const player = new BrowserAudioEngine({ onStateChange: () => refreshAudioControls() });
+const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
 function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
-  const active = player.activeCueCount();
-  const pending = player.pending.size;
+  const { activeCueCount: active, pendingGoCount: pending } = player.getStatus();
   status.textContent = active || pending
     ? 'Transporte local: ' + active + ' cues activos' + (pending ? ', ' + pending + ' GO pendientes' : '')
     : 'Transporte detenido. Audio local al 50 % de ganancia inicial.';
