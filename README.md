@@ -2,7 +2,7 @@
 
 ShowCompiler is a new, hackathon-only browser prototype for turning theatre scripts into human-reviewed sound-cue plans. It combines opt-in Meta Muse Spark analysis with deterministic local audio playback. No code was copied from the earlier SHOWCOMPILER repository.
 
-**Current truth:** the Meta and Baseten adapters, strict validation, review workflow, and browser audio engine are implemented and covered by mocked-transport tests. The guarded live Meta smoke test has **not** been run, so live inference remains unverified. No paid audio-generation service is implemented.
+**Current truth:** the Meta and Baseten adapters, strict validation, review workflow, and browser audio engine are implemented. The user successfully completed one guarded live Meta Muse Spark 1.3 smoke test (1 valid bell cue, 3.968 s, 1,170 tokens), and manually confirmed AI proposal and approval into DRAFT in the browser. Baseten live inference and paid audio generation remain unverified/unimplemented.
 
 ## Run locally
 
@@ -25,6 +25,7 @@ Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface
 - Keep every AI result `PENDING` until the operator approves or rejects it. Approval creates a `DRAFT`; it never executes audio.
 - Resolve approved sound needs in three ways: choose an existing library asset, decide later, or prepare future AI generation. The third choice records intent only—no generation request or charge occurs.
 - Block **GO** for unresolved `PLAN_AUDIO` cues and for missing decoded files. The browser audio engine independently enforces this rule.
+- Load a supported local file directly from an approved cue, automatically register/link the audio, or replace its file while retaining cue number, approval and source references. No network call is made for audio attachment.
 - Run approved `PLAY` cues using local Web Audio with manual **GO**, **STOP**, **FADE 1.5 s**, and **STOP ALL**. Playback performs no AI or network call.
 - Export and reopen strict versioned project JSON. Audio bytes, UI locale, analysis coverage, provider diagnostics, and transient `CueSuggestionV2` fields are deliberately excluded.
 - Use either the first-party Meta Model API or the Baseten-hosted Muse Spark Open fallback. Keys stay in the local Node process; WAV/MP3 bytes are never sent.
@@ -39,7 +40,7 @@ $env:MODEL_API_KEY = '<set locally; never commit>'
 npm run smoke:meta -- --authorize-one-billable-meta-request
 ```
 
-Do not run it merely to execute the test suite. A timeout may still have consumed provider tokens. This repository does **not** claim live Meta inference works until this explicitly authorized command succeeds and its result is manually reviewed.
+Do not run it merely to execute the test suite. A timeout may still have consumed provider tokens. The user has run this guarded command successfully once. Do not rerun it routinely: every invocation may consume Meta credits. Direct audio attachment still requires manual listening acceptance.
 
 ## Safety and scope limits
 
@@ -48,7 +49,7 @@ Do not run it merely to execute the test suite. A timeout may still have consume
 - No inference request is automatic and no request is automatically retried.
 - Project JSON remains schema v1. It supports both executable `PLAY` and unresolved `PLAN_AUDIO`; older builds may reject v1 files containing the later action.
 - Browser audio is a local prototype, not certified professional show control. Native WASAPI/ASIO, portable media packages, hardware routing, desktop installation, and paid sound generation remain future work.
-- Neither first-party Meta nor Baseten live inference has been verified with a real account in this branch. Browser audio still needs manual audible acceptance.
+- First-party Meta smoke and one browser analysis/approval were verified by the user. Baseten live inference and direct audio-link/replacement still need manual verification; browser audio also needs audible acceptance. There is no independent preview bus or bundled media package.
 
 ## Documentation
 
