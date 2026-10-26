@@ -177,5 +177,10 @@
   "soundPlan.deferredFeedback": "Sound deferred. GO stays disabled until audio is assigned and loaded.",
   "soundPlan.generationFeedback": "Sound-generation intent prepared. No provider was contacted or charged. GO remains disabled.",
   "soundPlan.assignedFeedback": "Audio reference assigned. Load its file if necessary before GO.",
-  "soundPlan.silenceExplanation": "A planned sound is not playable until linked to a decoded audio file."
+  "soundPlan.silenceExplanation": "A planned sound is not playable until linked to a decoded audio file.",
+  "errors.metaOutputTruncated": "Meta stopped before completing the structured cue response. Nothing was imported.",
+  "errors.metaOutputNotJson": "Meta returned content that could not be parsed as JSON. No cues were imported.",
+  "errors.metaOutputSchema": "Meta returned an unexpected cue schema. No cues were imported.",
+  "errors.metaOutputEmpty": "Meta returned empty or oversized content. No cues were imported.",
+  "errors.metaBadReferences": "Meta proposed a script line or asset that failed validation. All suggestions were rejected safely."
 }
