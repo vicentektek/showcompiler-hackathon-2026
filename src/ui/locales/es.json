@@ -133,5 +133,12 @@
   "errors.metaInvalidProject": "Proyecto o respuesta no válida.",
   "errors.metaTooLarge": "Solicitud demasiado grande.",
   "errors.metaService": "No se ha podido completar el análisis de Meta.",
-  "errors.languageHint": "Introduce auto o un código de idioma válido (ej.: es, en, ja, zh-Hans)."
+  "errors.languageHint": "Introduce auto o un código de idioma válido (ej.: es, en, ja, zh-Hans).",
+  "errors.audioUnsupported": "Selecciona WAV, MP3, OGG, M4A, AAC o FLAC compatible (hasta 20 MB).",
+  "errors.audioChannels": "Utiliza audios mono o estéreo de hasta 10 minutos.",
+  "errors.audioCueNotReady": "El cue no es válido o faltan archivos de audio por cargar.",
+  "errors.audioAlreadyPlaying": "Este cue ya está reproduciéndose.",
+  "errors.audioCancelled": "Operación de audio cancelada al cambiar de espectáculo o pulsar PARAR TODO.",
+  "errors.audioBlocked": "El navegador ha bloqueado el audio. Comprueba los permisos del dispositivo.",
+  "errors.audioFadeInvalid": "Duración de fundido inválida (0–10 segundos)."
 }
