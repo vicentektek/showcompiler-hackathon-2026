@@ -9,13 +9,15 @@ Only source and functionality created during the event window (26 October–4 No
 | 2026-10-26 | Independent untrusted proposal validator (PLAY only) | 8 Node tests pass in isolated local copy | Library only; no Meta API |
 | 2026-10-26 | Explicit proposal review, rejection and conversion to DRAFT cue | 9 additional Node tests pass in isolated local copy | Library only; not wired to UI |
 | 2026-10-26 | Integration test, rights-clear original script fixture, and operator-controlled terminal mock demo | 3 additional tests pass; GitHub Actions successful | Terminal simulation only, not a product UI |
+| 2026-10-26 | Versioned JSON serialization/deserialization of script, assets metadata, proposals and DRAFT cues | 13 additional Node tests; [GitHub Actions success](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40374044921) | Library only; no file picker or embedded audio |
 
 ### Verification evidence
 - Branch: `feat/hackathon-script-core`.
 - Test command: `npm test` (Node.js 20+; no dependencies).
-- Total: 25/25 passed in isolated copy of branch source and tests, Node.js 22.16.0.
+- Total: 38/38 tests (25 prior + 13 persistence tests) successful in GitHub Actions; 13 persistence tests also passed locally on Node.js 22.16.0.
 - GitHub Actions: Core tests succeeded on the branch, [workflow run #40372369548](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40372369548); the checkout and Node test step completed successfully.
 - Pending: independent code review, actual application build, real Meta API integration, audio engine and UI. Do not claim these are implemented.
+- JSON project format does **not** contain actual audio data; it is not a complete portable backup.
 - `main` remains unchanged.
 
 ### Submission truthfulness
