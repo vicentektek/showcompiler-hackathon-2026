@@ -19,13 +19,14 @@ Other commands: `npm run check:syntax` checks browser/server modules, and `npm r
 - Load **real local WAV/MP3** files into browser memory; attach them to their asset IDs (audio never leaves the browser).
 - Create a **SIMULATED** cue proposal, review it explicitly, then approve it as `DRAFT` or reject it.
 - Execute explicitly approved cues by manual **GO**, **STOP**, **FADE 1.5 s**, and **PARAR TODO** using the browser Web Audio engine.
+- UI now uses an explicit [audio backend boundary](src/core/audioBackend.mjs) with truthful capabilities. **Native Rust/WASAPI/ASIO are planned, not implemented.**
 - Export and reimport validated versioned JSON project data (**the actual audio is not embedded**).
 - Unit and integration tests, plus syntax checks and GitHub Actions verification.
 - Local, allowlisted web server bound to 127.0.0.1 only.
 
 **Not implemented:** real Meta-model calls, generative cue analysis, professional output routing/ASIO, persistent audio files, desktop installer, hardware interfaces, or complete portable project export with audio assets. No mock feature should be described as AI integration. Browser audio behavior still needs hands-on acceptance testing.
 
-Read the [real audio GO/STOP walkthrough](docs/LOCAL_AUDIO_MVP.md), [UI walkthrough](docs/UI_PROTOTYPE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), [persistence limits](docs/PERSISTENCE.md), and [contribution log](docs/CONTRIBUTIONS.md).
+Read the [desktop audio architecture decision](docs/ADR-0001_MOTOR_AUDIO_NATIVO_2026-10-26.md), [real audio GO/STOP walkthrough](docs/LOCAL_AUDIO_MVP.md), [UI walkthrough](docs/UI_PROTOTYPE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), [persistence limits](docs/PERSISTENCE.md), and [contribution log](docs/CONTRIBUTIONS.md).
 
 ## Planned competition path
 
