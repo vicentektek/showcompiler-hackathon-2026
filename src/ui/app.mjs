@@ -212,6 +212,7 @@ function cueAudioPicker(cueId, translationKey) {
   const button = node('button', 'btn accent small', t(translationKey));
   button.type = 'button';
   button.disabled = audioInFlight;
+  button.dataset.cueAudioPick = cueId;
   button.addEventListener('click', () => pickAudioFile(cueId));
   return button;
 }
@@ -698,6 +699,7 @@ $('audioFileInput').addEventListener('change', async event => {
   } finally {
     audioInFlight = false;
     button.disabled = false;
+    for (const picker of document.querySelectorAll('[data-cue-audio-pick]')) picker.disabled = false;
   }
 });
 
