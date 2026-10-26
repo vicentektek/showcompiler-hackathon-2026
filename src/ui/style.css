@@ -39,3 +39,11 @@ footer{padding:20px 34px;border-top:1px solid #263149;color:#73839f;text-align:c
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:1180px){.layout{grid-template-columns:repeat(2,minmax(0,1fr))}.panel:last-child{grid-column:span 2}}
 @media(max-width:740px){.topbar,.intro{flex-direction:column;align-items:stretch}.topbar{padding:16px}.top-actions{flex-wrap:wrap}.top-actions .pill{width:100%;text-align:center}main{padding:16px}.layout{grid-template-columns:1fr}.panel:last-child{grid-column:auto}.countbox{justify-content:space-around}footer{padding:18px}}
+
+/* Actual audio transport controls — never infer state from simulated AI proposals. */
+.btn.danger{background:#742533;border-color:#c84b5e;color:#fff;font-weight:800}
+.btn.danger:hover:not(:disabled){background:#ac2f44}
+.item-actions{flex-wrap:wrap}
+.item-actions .btn.primary{min-width:58px}
+#transportStatus{margin-top:16px;padding:12px 10px;border-top:1px solid #344564;color:#a4d3db}
+@media(max-width:740px){.top-actions .btn.danger{flex:1 1 auto}}
