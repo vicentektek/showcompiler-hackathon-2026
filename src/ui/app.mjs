@@ -55,7 +55,7 @@ function refreshAudioControls() {
     const ready = cue.actions.every(action => player.hasAsset(action.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
-    button.disabled = button.dataset.cueAction === 'go' ? !ready || playing : !playing || stopping;
+    button.disabled = button.dataset.cueAction === 'go' ? audioInFlight || !ready || playing : !playing || stopping;
   }
 }
 
@@ -652,6 +652,7 @@ $('audioFileInput').addEventListener('change', async event => {
   event.target.value = '';
   if (!file || audioInFlight) return;
   audioInFlight = true;
+  refreshAudioControls();
   const generation = projectGeneration;
   const before = show;
   const button = $('loadAudioBtn');
@@ -700,6 +701,7 @@ $('audioFileInput').addEventListener('change', async event => {
     audioInFlight = false;
     button.disabled = false;
     for (const picker of document.querySelectorAll('[data-cue-audio-pick]')) picker.disabled = false;
+    refreshAudioControls();
   }
 });
 
