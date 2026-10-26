@@ -94,7 +94,8 @@ export function makeBasetenRoute({
       const checked = reviewed.proposals.slice(show.proposals.length);
       const proposals = checked.map(item => ({
         lineId: item.sourceLineIds[0],
-        assetId: item.actions[0].assetId,
+        assetId: item.actions[0].type === 'PLAY' ? item.actions[0].assetId : null,
+        ...(item.actions[0].type === 'PLAN_AUDIO' ? { soundPrompt: item.actions[0].prompt } : {}),
         label: item.label,
       }));
       reply(res, 200, { provider: BASETEN_PROVIDER, model: BASETEN_MODEL, proposals }, headers);
