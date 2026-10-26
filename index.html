@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,47 +11,128 @@
 <body>
   <div class="shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon" aria-hidden="true">◫</span><div><strong>SHOWCOMPILER</strong><span>HACKATHON 2026 · PROTOTIPO</span></div></div>
-      <div class="top-actions"><span class="pill">META AI OPCIONAL · AUDIO LOCAL REAL</span><button id="stopAllBtn" class="btn danger" type="button" aria-label="Parar inmediatamente todo el audio">PARAR TODO</button><button id="newShowBtn" class="btn subtle" type="button">Nuevo</button><button id="openProjectBtn" class="btn subtle" type="button">Abrir JSON</button><button id="saveProjectBtn" class="btn primary" type="button">Guardar JSON</button></div>
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">◫</span>
+        <div><strong>SHOWCOMPILER</strong><span data-i18n="brand.prototype">HACKATHON 2026 · PROTOTYPE</span></div>
+      </div>
+      <div class="top-actions">
+        <label class="sr-only" for="uiLocaleSelect" data-i18n="top.languageAria">Interface language</label>
+        <select id="uiLocaleSelect" class="locale-select" data-i18n-aria="top.languageAria" aria-label="Interface language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+        <span class="pill" data-i18n="top.badge">OPTIONAL META AI · REAL LOCAL AUDIO</span>
+        <button id="stopAllBtn" class="btn danger" type="button" data-i18n="top.panic" data-i18n-aria="top.panicAria" aria-label="Stop all audio immediately">STOP ALL</button>
+        <button id="newShowBtn" class="btn subtle" type="button" data-i18n="top.new">New</button>
+        <button id="openProjectBtn" class="btn subtle" type="button" data-i18n="top.open">Open JSON</button>
+        <button id="saveProjectBtn" class="btn primary" type="button" data-i18n="top.save">Save JSON</button>
+      </div>
     </header>
+
     <main>
       <section class="intro">
-        <div><p class="eyebrow">Build for Your World / Ensayos y espectáculos</p><h1>Del guion al cue aprobado</h1><p>Una primera interfaz para explorar el guion, aprobar cues y reproducir archivos de audio locales mediante GO manual. Las propuestas pueden ser simuladas o generadas por Meta AI cuando configures la API y autorices explícitamente enviar el fragmento del guion.</p></div>
-        <div class="countbox"><div><strong id="linesCount">0</strong><span>Líneas</span></div><div><strong id="proposalsCount">0</strong><span>Propuestas</span></div><div><strong id="cuesCount">0</strong><span>Cues</span></div></div>
+        <div>
+          <p class="eyebrow" data-i18n="intro.eyebrow">Build for Your World / Theatre and live events</p>
+          <h1 data-i18n="intro.title">From script to approved cue</h1>
+          <p data-i18n="intro.description">Import a script, approve cues and play local audio with manual GO. Suggestions can be simulated or generated with Meta AI only after you configure the API and explicitly authorize sending an excerpt.</p>
+        </div>
+        <div class="countbox">
+          <div><strong id="linesCount">0</strong><span data-i18n="stats.lines">Lines</span></div>
+          <div><strong id="proposalsCount">0</strong><span data-i18n="stats.proposals">Proposals</span></div>
+          <div><strong id="cuesCount">0</strong><span data-i18n="stats.cues">Cues</span></div>
+        </div>
       </section>
-      <div id="statusMessage" class="status" role="status" aria-live="polite">Carga el ejemplo o importa un guion TXT para comenzar.</div>
+
+      <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
       <div class="layout">
         <section class="panel" aria-labelledby="scriptHeading">
-          <div class="panel-head"><div><span class="step">01</span><h2 id="scriptHeading">Guion</h2></div><button id="exampleBtn" type="button" class="btn subtle small">Ejemplo</button></div>
-          <label class="field" for="showName">Nombre del espectáculo</label><input id="showName" type="text" maxlength="120" placeholder="Nuevo espectáculo" value="Nuevo espectáculo">
-          <div class="line-actions"><button id="importScriptBtn" type="button" class="btn accent">Importar .txt</button><span class="caption">TXT UTF-8, hasta 1 MB</span></div>
-          <div class="subheading"><span>Texto original y referencias</span><span id="scriptLimitNote" class="caption"></span></div>
-          <div id="scriptPreview" class="script-view" aria-label="Líneas del guion"></div>
+          <div class="panel-head">
+            <div><span class="step">01</span><h2 id="scriptHeading" data-i18n="script.heading">Script</h2></div>
+            <button id="exampleBtn" type="button" class="btn subtle small" data-i18n="script.example">Example</button>
+          </div>
+          <label class="field" for="showName" data-i18n="script.showName">Show name</label>
+          <input id="showName" type="text" maxlength="120" data-i18n-placeholder="script.showNamePlaceholder" placeholder="New show" value="New show">
+          <div class="line-actions">
+            <button id="importScriptBtn" type="button" class="btn accent" data-i18n="script.import">Import .txt</button>
+            <span class="caption" data-i18n="script.importHint">UTF-8 TXT, up to 1 MB</span>
+          </div>
+          <div class="subheading">
+            <span data-i18n="script.sourceHeading">Original text and source references</span>
+            <span id="scriptLimitNote" class="caption"></span>
+          </div>
+          <div id="scriptPreview" class="script-view" data-i18n-aria="script.linesAria" aria-label="Script lines"></div>
           <div class="separator"></div>
-          <div class="subheading"><span>Archivos de audio</span><span class="caption">Audio local, no se sube</span></div>
-          <form id="assetForm" class="asset-form"><label for="assetName" class="sr-only">Nombre de referencia de audio</label><input id="assetName" type="text" maxlength="200" placeholder="Ej.: apertura.wav" required><button class="btn subtle" type="submit">Añadir</button></form>
-          <div class="line-actions"><button id="loadAudioBtn" class="btn accent" type="button">Cargar WAV/MP3 real</button><span class="caption">Hasta 20 MB · 10 min · mono/estéreo. Tras abrir JSON, vuelve a cargar los audios.</span></div><div id="assetList" class="tags" aria-label="Referencias de audio registradas"></div>
-        </section>
-        <section class="panel" aria-labelledby="proposalsHeading">
-          <div class="panel-head"><div><span class="step">02</span><h2 id="proposalsHeading">Propuestas</h2></div><span class="label-mock">ORIGEN IDENTIFICADO</span></div>
-          <p class="help">Puedes generar propuestas manuales de prueba o usar Meta AI real si has configurado una clave. Nada llega a GO sin aprobación humana.</p>
-          <form id="proposalForm" class="vertical-form">
-            <label class="field" for="proposalLabel">Descripción del cue</label><input id="proposalLabel" type="text" maxlength="200" placeholder="Ej.: entrada de ambiente" required>
-            <label class="field" for="lineSelect">Línea del guion</label><select id="lineSelect" required></select>
-            <label class="field" for="assetSelect">Referencia de audio</label><select id="assetSelect" required></select>
-            <button id="createProposalBtn" type="submit" class="btn accent block">Crear propuesta simulada</button>
+          <div class="subheading">
+            <span data-i18n="script.audioHeading">Audio files</span>
+            <span class="caption" data-i18n="script.audioCaption">Local only · never uploaded</span>
+          </div>
+          <form id="assetForm" class="asset-form">
+            <label class="sr-only" for="assetName" data-i18n="script.assetAria">Audio reference name</label>
+            <input id="assetName" type="text" maxlength="200" data-i18n-placeholder="script.assetPlaceholder" placeholder="e.g. opening.wav" required>
+            <button class="btn subtle" type="submit" data-i18n="script.addAsset">Add</button>
           </form>
-          <div class="meta-panel"><div class="subheading">Análisis de guion con Meta AI</div><button id="analyzeMetaBtn" type="button" class="btn primary block" disabled>Generar propuestas con Meta AI</button><p id="metaStatus" class="caption" role="status" aria-live="polite">Comprobando conexión local de Meta AI...</p><p class="caption">Solo si lo confirmas, se enviarán a Meta las primeras 120 líneas del guion (máximo 250 caracteres por línea) y hasta 80 nombres de audios. No se envían WAV/MP3. La API puede generar consumo facturable.</p></div><div class="separator"></div><div class="subheading">Revisión por el operador</div><div id="proposalList" class="item-list"></div>
+          <div class="line-actions">
+            <button id="loadAudioBtn" class="btn accent" type="button" data-i18n="script.loadAudio">Load real WAV/MP3</button>
+            <span class="caption" data-i18n="script.audioHint">Up to 20 MB · 10 min · mono/stereo. Reload audio after opening JSON.</span>
+          </div>
+          <div id="assetList" class="tags" data-i18n-aria="script.assetsAria" aria-label="Registered audio references"></div>
         </section>
+
+        <section class="panel" aria-labelledby="proposalsHeading">
+          <div class="panel-head">
+            <div><span class="step">02</span><h2 id="proposalsHeading" data-i18n="proposals.heading">Proposals</h2></div>
+            <span class="label-mock" data-i18n="proposals.origin">SOURCE TRACKED</span>
+          </div>
+          <p class="help" data-i18n="proposals.help">Create a manual test suggestion or use Meta AI if an API key is configured. Nothing starts playback without human approval.</p>
+          <form id="proposalForm" class="vertical-form">
+            <label class="field" for="proposalLabel" data-i18n="proposals.label">Cue description</label>
+            <input id="proposalLabel" type="text" maxlength="200" data-i18n-placeholder="proposals.labelPlaceholder" placeholder="e.g. opening ambience" required>
+            <label class="field" for="lineSelect" data-i18n="proposals.line">Script line</label>
+            <select id="lineSelect" required></select>
+            <label class="field" for="assetSelect" data-i18n="proposals.asset">Audio reference</label>
+            <select id="assetSelect" required></select>
+            <button id="createProposalBtn" type="submit" class="btn accent block" data-i18n="proposals.create">Create simulated proposal</button>
+          </form>
+          <div class="meta-panel">
+            <div class="subheading" data-i18n="proposals.metaHeading">Meta AI script analysis</div>
+            <label class="field" for="scriptLanguageSelect" data-i18n="scriptLanguage.label">Script language for AI</label>
+            <select id="scriptLanguageSelect">
+              <option value="auto" data-i18n="scriptLanguage.auto">Detect automatically</option>
+              <option value="en" data-i18n="scriptLanguage.en">English</option>
+              <option value="es" data-i18n="scriptLanguage.es">Spanish</option>
+              <option value="fr" data-i18n="scriptLanguage.fr">French</option>
+              <option value="de" data-i18n="scriptLanguage.de">German</option>
+              <option value="pt" data-i18n="scriptLanguage.pt">Portuguese</option>
+              <option value="other" data-i18n="scriptLanguage.other">Other (language code)</option>
+            </select>
+            <label class="sr-only" for="scriptLanguageCustom" data-i18n="scriptLanguage.customAria">Script language code</label>
+            <input id="scriptLanguageCustom" type="text" maxlength="35" data-i18n-placeholder="scriptLanguage.customPlaceholder" placeholder="e.g. ja, ar, zh-Hans" hidden>
+            <p class="caption" data-i18n="scriptLanguage.help">Independent of interface language. Keeps the original script unchanged.</p>
+            <button id="analyzeMetaBtn" type="button" class="btn primary block" disabled data-i18n="proposals.metaButton">Generate proposals with Meta AI</button>
+            <p id="metaStatus" class="caption" role="status" aria-live="polite" data-i18n="proposals.metaChecking">Checking local Meta AI connection...</p>
+            <p class="caption" data-i18n="proposals.metaDisclaimer">Only after confirmation, up to 120 script lines (250 characters per line) and 80 audio filenames are sent to Meta. No WAV/MP3 files are sent. API usage may incur charges.</p>
+          </div>
+          <div class="separator"></div>
+          <div class="subheading" data-i18n="proposals.reviewHeading">Operator review</div>
+          <div id="proposalList" class="item-list"></div>
+        </section>
+
         <section class="panel" aria-labelledby="cuesHeading">
-          <div class="panel-head"><div><span class="step">03</span><h2 id="cuesHeading">Lista de cues</h2></div><span class="label-draft">GO MANUAL</span></div>
-          <p class="help">Solo aparecen propuestas aprobadas expresamente. Pulsa <strong>GO</strong> para reproducir el archivo cargado; STOP y FADE 1,5 s permiten detenerlo. Todo se controla manualmente.</p>
-          <div id="cueList" class="item-list"></div><div id="transportStatus" class="caption" role="status" aria-live="polite">Transporte detenido.</div>
-          <div class="info"><strong>Alcance de esta versión</strong><p>Importación TXT, revisión humana, reproducción local de audio con GO, STOP, FADE, PARAR TODO y exportación/importación JSON. Los audios cargados se pierden al cerrar o recargar esta página: no quedan dentro del JSON.</p></div>
+          <div class="panel-head">
+            <div><span class="step">03</span><h2 id="cuesHeading" data-i18n="cues.heading">Cue list</h2></div>
+            <span class="label-draft" data-i18n="cues.manual">MANUAL GO</span>
+          </div>
+          <p class="help" data-i18n="cues.help">Only expressly approved suggestions appear here. GO plays the loaded audio; STOP and FADE 1.5 s stop playback. The operator remains in control.</p>
+          <div id="cueList" class="item-list"></div>
+          <div id="transportStatus" class="caption" role="status" aria-live="polite" data-i18n="cues.transportInitial">Transport stopped.</div>
+          <div class="info">
+            <strong data-i18n="cues.scopeHeading">Prototype scope</strong>
+            <p data-i18n="cues.scopeBody">TXT import, human review, local GO/STOP/FADE/STOP ALL and JSON export/import. Reload your audio files after closing or refreshing the page: audio is not embedded in JSON.</p>
+          </div>
         </section>
       </div>
     </main>
-    <footer>Versión experimental del hackathon · Audio local · Meta AI usa servicio externo solo con consentimiento · Guarda JSON para conservar cambios</footer>
+    <footer data-i18n="footer">Hackathon prototype · Local audio · Meta AI uses an external service only with consent · Save JSON to keep your changes</footer>
   </div>
   <input id="scriptFileInput" type="file" accept=".txt,text/plain" hidden>
   <input id="projectFileInput" type="file" accept=".json,application/json" hidden>
