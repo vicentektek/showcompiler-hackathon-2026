@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Hackathon-only, dependency-free domain prototype; no UI or runtime yet",
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "demo:core": "node tools/review-demo.mjs"
   },
   "engines": {
     "node": ">=20"
