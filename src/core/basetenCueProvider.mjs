@@ -53,12 +53,20 @@ export function makeBasetenCueRequest(show, scriptLanguage = 'auto') {
   };
 }
 
+export class BasetenOutputError extends Error {
+  constructor(reason) {
+    super('Baseten response validation failed');
+    this.name = 'BasetenOutputError';
+    this.safeReason = reason;
+  }
+}
+
 export function parseBasetenCueResponse(envelope) {
   const choice = envelope?.choices?.[0];
-  if (choice?.finish_reason !== 'stop') throw new Error('Model response was interrupted');
+  if (choice?.finish_reason !== 'stop') throw new BasetenOutputError('TRUNCATED');
   const raw = choice?.message?.content;
   if (typeof raw !== 'string' || raw.length > 25_000) {
-    throw new TypeError('Expected a short text response');
+    throw new BasetenOutputError('EMPTY_OR_OVERSIZED');
   }
   let source = raw.trim();
   // Support a *single* complete JSON fenced block only, without extra prose.
@@ -66,11 +74,11 @@ export function parseBasetenCueResponse(envelope) {
   if (fence) source = fence[1].trim();
   let parsed;
   try { parsed = JSON.parse(source); }
-  catch { throw new Error('Model did not return a valid JSON object'); }
+  catch { throw new BasetenOutputError('NOT_JSON'); }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
       Object.keys(parsed).length !== 1 || !Array.isArray(parsed.proposals) ||
       parsed.proposals.length > MAX_SUGGESTIONS) {
-    throw new TypeError('Unexpected proposal schema');
+    throw new BasetenOutputError('SCHEMA');
   }
   return parsed.proposals.map((item, index) => {
     if (!item || typeof item !== 'object' || Array.isArray(item) ||
@@ -79,7 +87,7 @@ export function parseBasetenCueResponse(envelope) {
         typeof item.assetId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(item.assetId) ||
         typeof item.label !== 'string' || !item.label.trim() ||
         item.label.length > 200) {
-      throw new TypeError('Invalid suggestion at index ' + index);
+      throw new BasetenOutputError('SCHEMA');
     }
     return { lineId: item.lineId, assetId: item.assetId, label: item.label.trim() };
   });
