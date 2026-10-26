@@ -18,6 +18,9 @@ test('builds bounded structured Meta API request without audio file content', ()
   assert.equal(req.model, 'muse-spark-1.3');
   assert.equal(req.response_format.type, 'json_schema');
   assert.equal(req.response_format.json_schema.strict, true);
+  assert.equal(req.messages[0].role, 'developer');
+  assert.equal(req.reasoning_effort, 'low');
+  assert.equal(req.max_completion_tokens, 1200);
   const body = JSON.parse(req.messages[1].content);
   assert.equal(body.scriptExcerpt[1].lineId, 'L2');
   assert.deepEqual(body.availableAudio, [{ assetId: 'asset-1', title: 'lluvia.wav' }]);
