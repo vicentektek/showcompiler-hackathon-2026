@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Hackathon-only, dependency-free domain prototype; no UI or runtime yet",
+  "description": "Hackathon-only local browser prototype; simulated cue review with no AI or audio playback",
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "demo:core": "node tools/review-demo.mjs",
