@@ -91,7 +91,7 @@ export function normalizeShowProject(input) {
     fields(proposal, ['id', 'label', 'sourceLineIds', 'actions', 'status', 'source'], at);
     const proposalId = identifier(proposal.id, at + ".id");
     if (!STATES.has(proposal.status)) invalid(at + ".status is invalid");
-    if (proposal.source !== undefined && !['MANUAL_MOCK', 'META_MODEL_API'].includes(proposal.source)) {
+    if (proposal.source !== undefined && !['MANUAL_MOCK', 'META_MODEL_API', 'BASETEN_MUSE_SPARK_OPEN'].includes(proposal.source)) {
       invalid(at + ".source is invalid");
     }
     return {
