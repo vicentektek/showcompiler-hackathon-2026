@@ -6,7 +6,9 @@
   "description": "Hackathon-only, dependency-free domain prototype; no UI or runtime yet",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "demo:core": "node tools/review-demo.mjs"
+    "demo:core": "node tools/review-demo.mjs",
+    "dev": "node tools/dev-server.mjs",
+    "check:syntax": "node --check src/ui/app.mjs && node --check src/core/workspace.mjs && node --check tools/dev-server.mjs"
   },
   "engines": {
     "node": ">=20"
