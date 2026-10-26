@@ -161,6 +161,28 @@ export function replaceCueAudioAsset(project, cueId, assetId) {
   });
 }
 
+/** Operator-owned metadata; AI proposal evidence and PLAY mapping stay unchanged. */
+export function updateCueOperatorDetails(project, cueId, { label, trigger = '', notes = '' } = {}) {
+  const current = normalizeShowProject(project);
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || cue.status !== 'DRAFT') throw new TypeError('Cue is not editable');
+  if (typeof label !== 'string' || !label.trim() || label.length > 200 ||
+      typeof trigger !== 'string' || trigger.length > 300 ||
+      typeof notes !== 'string' || notes.length > 1500) {
+    throw new TypeError('Invalid operator cue details');
+  }
+  const { trigger: previousTrigger, notes: previousNotes, ...rest } = cue;
+  const updated = {
+    ...rest, label: label.trim(),
+    ...(trigger.trim() ? { trigger: trigger.trim() } : {}),
+    ...(notes.trim() ? { notes: notes.trim() } : {}),
+  };
+  return normalizeShowProject({
+    ...current,
+    cues: current.cues.map(item => item.id === cueId ? updated : item),
+  });
+}
+
 /** Mark an unresolved cue for later sound design or explicit generation.
  * This records intent only. No provider is called and no credits are consumed.
  */
