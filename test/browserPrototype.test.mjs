@@ -14,10 +14,12 @@ test('browser wiring references only actual HTML element IDs', () => {
   for (const id of used) assert.ok(declared.has(id), `Missing HTML id: ${id}`);
 });
 
-test('prototype labels simulated AI and absent audio functionality', () => {
-  assert.match(html, /SIN IA REAL · SIN AUDIO/);
+test('prototype labels mock AI, real local audio and incomplete JSON packaging', () => {
+  assert.match(html, /IA SIMULADA · AUDIO LOCAL REAL/);
   assert.match(html, /SIMULADAS/);
-  assert.match(html, /Los archivos de audio no quedan incluidos/);
+  assert.match(html, /no quedan dentro del JSON/);
+  assert.match(html, /id="stopAllBtn"/);
+  assert.match(html, /id="audioFileInput"/);
   assert.match(css, /@media/);
 });
 
@@ -42,6 +44,9 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const module = await fetch(base + '/src/core/workspace.mjs');
   assert.equal(module.status, 200);
   assert.match(module.headers.get('content-type'), /javascript/);
+  const audioModule = await fetch(base + '/src/core/browserAudio.mjs');
+  assert.equal(audioModule.status, 200);
+  assert.match(await audioModule.text(), /class BrowserAudioEngine/);
   const blocked = await fetch(base + '/tools/dev-server.mjs');
   assert.equal(blocked.status, 404);
   const post = await fetch(base + '/', { method: 'POST' });
