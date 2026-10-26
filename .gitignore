@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Standalone Rust WASAPI spike: never commit build outputs
+native-audio-spike/target/
