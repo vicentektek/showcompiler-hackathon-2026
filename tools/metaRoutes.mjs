@@ -13,15 +13,22 @@ function answer(response, code, data, headers) {
 
 async function readBoundedBody(request, maximum) {
   let size = 0;
+  let tooLarge = false;
   const buffers = [];
   for await (const part of request) {
     size += part.length;
     if (size > maximum) {
-      const err = new Error('Project request too large');
-      err.status = 413;
-      throw err;
+      // Drain incoming bytes without retaining them. Respond after request
+      // completion so HTTP clients cannot hang on an unread upload body.
+      tooLarge = true;
+      continue;
     }
     buffers.push(part);
+  }
+  if (tooLarge) {
+    const err = new Error('Project request too large');
+    err.status = 413;
+    throw err;
   }
   return Buffer.concat(buffers).toString('utf8');
 }
