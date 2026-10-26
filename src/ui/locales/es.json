@@ -161,5 +161,10 @@
   "errors.basetenBusy": "Ya hay un análisis con IA en curso a través de Baseten.",
   "errors.basetenInvalid": "Proyecto o respuesta del modelo no válidos.",
   "errors.basetenTooLarge": "La petición del proyecto es demasiado grande.",
-  "errors.basetenService": "La inferencia de Baseten ha fallado. No se han importado propuestas."
+  "errors.basetenService": "La inferencia de Baseten ha fallado. No se han importado propuestas.",
+  "errors.basetenOutputTruncated": "Muse Spark se interrumpió antes de finalizar la respuesta. No se importó ningún cue.",
+  "errors.basetenOutputNotJson": "Muse Spark devolvió texto en lugar de propuestas JSON válidas. No se importó ningún cue.",
+  "errors.basetenOutputSchema": "Muse Spark devolvió propuestas con un formato no compatible. No se importó ningún cue.",
+  "errors.basetenOutputEmpty": "Muse Spark devolvió contenido vacío o demasiado largo. No se importó ningún cue.",
+  "errors.basetenBadReferences": "Muse Spark citó una línea o un audio inexistente en el proyecto. Se rechazaron las propuestas por seguridad."
 }
