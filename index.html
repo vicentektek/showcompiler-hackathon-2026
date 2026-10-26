@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>ShowCompiler · Hackathon 2026</title>
+  <link rel="stylesheet" href="/src/ui/style.css">
+  <script src="/src/ui/app.mjs" type="module"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon" aria-hidden="true">◫</span><div><strong>SHOWCOMPILER</strong><span>HACKATHON 2026 · PROTOTIPO</span></div></div>
+      <div class="top-actions"><span class="pill">SIN IA REAL · SIN AUDIO</span><button id="newShowBtn" class="btn subtle" type="button">Nuevo</button><button id="openProjectBtn" class="btn subtle" type="button">Abrir JSON</button><button id="saveProjectBtn" class="btn primary" type="button">Guardar JSON</button></div>
+    </header>
+    <main>
+      <section class="intro">
+        <div><p class="eyebrow">Build for Your World / Ensayos y espectáculos</p><h1>Del guion al cue aprobado</h1><p>Una primera interfaz para explorar el guion, revisar propuestas de prueba y preparar cues. No reproduce audio ni realiza llamadas a modelos.</p></div>
+        <div class="countbox"><div><strong id="linesCount">0</strong><span>Líneas</span></div><div><strong id="proposalsCount">0</strong><span>Propuestas</span></div><div><strong id="cuesCount">0</strong><span>Cues</span></div></div>
+      </section>
+      <div id="statusMessage" class="status" role="status" aria-live="polite">Carga el ejemplo o importa un guion TXT para comenzar.</div>
+      <div class="layout">
+        <section class="panel" aria-labelledby="scriptHeading">
+          <div class="panel-head"><div><span class="step">01</span><h2 id="scriptHeading">Guion</h2></div><button id="exampleBtn" type="button" class="btn subtle small">Ejemplo</button></div>
+          <label class="field" for="showName">Nombre del espectáculo</label><input id="showName" type="text" maxlength="120" placeholder="Nuevo espectáculo" value="Nuevo espectáculo">
+          <div class="line-actions"><button id="importScriptBtn" type="button" class="btn accent">Importar .txt</button><span class="caption">TXT UTF-8, hasta 1 MB</span></div>
+          <div class="subheading"><span>Texto original y referencias</span><span id="scriptLimitNote" class="caption"></span></div>
+          <div id="scriptPreview" class="script-view" aria-label="Líneas del guion"></div>
+          <div class="separator"></div>
+          <div class="subheading"><span>Referencias de audio</span><span class="caption">Solo metadatos</span></div>
+          <form id="assetForm" class="asset-form"><label for="assetName" class="sr-only">Nombre de referencia de audio</label><input id="assetName" type="text" maxlength="200" placeholder="Ej.: apertura.wav" required><button class="btn subtle" type="submit">Añadir</button></form>
+          <div id="assetList" class="tags" aria-label="Referencias de audio registradas"></div>
+        </section>
+        <section class="panel" aria-labelledby="proposalsHeading">
+          <div class="panel-head"><div><span class="step">02</span><h2 id="proposalsHeading">Propuestas</h2></div><span class="label-mock">SIMULADAS</span></div>
+          <p class="help">Crea una propuesta de prueba seleccionando una línea y una referencia de audio. Este formulario <strong>no utiliza IA</strong>.</p>
+          <form id="proposalForm" class="vertical-form">
+            <label class="field" for="proposalLabel">Descripción del cue</label><input id="proposalLabel" type="text" maxlength="200" placeholder="Ej.: entrada de ambiente" required>
+            <label class="field" for="lineSelect">Línea del guion</label><select id="lineSelect" required></select>
+            <label class="field" for="assetSelect">Referencia de audio</label><select id="assetSelect" required></select>
+            <button id="createProposalBtn" type="submit" class="btn accent block">Crear propuesta simulada</button>
+          </form>
+          <div class="separator"></div><div class="subheading">Revisión por el operador</div><div id="proposalList" class="item-list"></div>
+        </section>
+        <section class="panel" aria-labelledby="cuesHeading">
+          <div class="panel-head"><div><span class="step">03</span><h2 id="cuesHeading">Lista de cues</h2></div><span class="label-draft">BORRADOR</span></div>
+          <p class="help">Solo aparecen propuestas aprobadas expresamente. Los cues se guardan como <code>DRAFT</code> y no pueden reproducirse en esta versión.</p>
+          <div id="cueList" class="item-list"></div>
+          <div class="info"><strong>Alcance de esta versión</strong><p>Importación TXT, referencias a líneas, simulación de propuestas, aprobación humana y exportación/importación JSON. Los archivos de audio no quedan incluidos en el JSON.</p></div>
+        </section>
+      </div>
+    </main>
+    <footer>Versión experimental del hackathon · Datos conservados en memoria hasta guardar JSON · Sin servicios externos</footer>
+  </div>
+  <input id="scriptFileInput" type="file" accept=".txt,text/plain" hidden>
+  <input id="projectFileInput" type="file" accept=".json,application/json" hidden>
+</body>
+</html>
