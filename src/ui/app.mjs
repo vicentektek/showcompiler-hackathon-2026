@@ -3,7 +3,7 @@ import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX
 import { createNewShow, addAudioReference, addMockProposal, addMetaProposals, decideProposal, nextAvailableId } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
-import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, translateError } from './i18n.mjs';
+import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 
 const $ = (id) => document.getElementById(id);
 const sampleTexts = {
@@ -63,8 +63,7 @@ function feedback(key, values = {}, tone = 'info') {
   target.dataset.tone = tone;
 }
 function showError(error, key) {
-  const translatedKey = key ?? 'errors.generic';
-  feedback(translatedKey, {}, 'error');
+  feedback(key ?? resolveErrorKey(error), error?.uiValues ?? {}, 'error');
 }
 function refreshMetaMessage() {
   $('metaStatus').textContent = metaConnection.state === 'configured'
@@ -225,119 +224,177 @@ function saveProject() {
 }
 async function readTextFile(file, maxBytes) {
   if (!file) return null;
-  if (file.size > maxBytes) throw new Error(t('errors.fileTooLarge', { limit: maxBytes }));
+  if (file.size > maxBytes) throw uiError('errors.fileTooLarge', { limit: maxBytes });
   const buffer = await file.arrayBuffer();
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buffer); }
-  catch { throw new Error(t('errors.invalidUtf8')); }
+  catch { throw uiError('errors.invalidUtf8'); }
 }
-function setNewShow(project, message) {
+function uiError(key, values = {}) {
+  const error = new Error(key);
+  error.uiKey = key;
+  error.uiValues = values;
+  return error;
+}
+
+function resetScriptLanguageHint() {
+  $('scriptLanguageSelect').value = 'auto';
+  $('scriptLanguageCustom').value = '';
+  $('scriptLanguageCustom').hidden = true;
+}
+
+function currentScriptLanguageHint() {
+  const choice = $('scriptLanguageSelect').value;
+  return normalizeScriptLanguageHint(choice === 'other' ? $('scriptLanguageCustom').value : choice);
+}
+
+function setNewShow(project, statusKey, values = {}) {
   projectGeneration += 1;
   player.reset();
   show = project;
   dirty = true;
+  resetScriptLanguageHint();
   render();
-  feedback(message, 'success');
+  feedback(statusKey, values, 'success');
 }
+
+$('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
+$('scriptLanguageSelect').addEventListener('change', event => {
+  const custom = event.target.value === 'other';
+  $('scriptLanguageCustom').hidden = !custom;
+  if (custom) $('scriptLanguageCustom').focus();
+});
+
 $('exampleBtn').addEventListener('click', () => {
   if (!userAllowsReplacement()) return;
-  setNewShow(createNewShow({ name: 'Escena de prueba', scriptText: sampleText }), 'Guion de ejemplo cargado. Ahora carga un WAV o MP3 real.');
+  setNewShow(
+    createNewShow({
+      name: uiLocale === 'es' ? 'Escena de prueba' : 'Sample scene',
+      scriptText: sampleTexts[uiLocale],
+    }),
+    'status.exampleLoaded'
+  );
 });
+
 $('newShowBtn').addEventListener('click', () => {
   if (!userAllowsReplacement()) return;
-  setNewShow(createNewShow(), 'Espectáculo nuevo. No se ha borrado ningún archivo del ordenador.');
+  setNewShow(createNewShow({ name: t('script.showNamePlaceholder') }), 'status.newShow');
   dirty = false;
 });
 $('importScriptBtn').addEventListener('click', () => $('scriptFileInput').click());
-$('scriptFileInput').addEventListener('change', async (event) => {
+$('scriptFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   event.target.value = '';
   if (!file || !userAllowsReplacement()) return;
   try {
-    if (!file.name.toLowerCase().endsWith('.txt')) throw new Error('Selecciona un archivo .txt');
+    if (!file.name.toLowerCase().endsWith('.txt')) throw uiError('errors.onlyTxt');
     const text = await readTextFile(file, limitScriptBytes);
-    const title = file.name.replace(/\.txt$/i, '').slice(0, 120).trim() || 'Nuevo espectáculo';
-    setNewShow(createNewShow({ name: title, scriptText: text }), `Guion ${file.name} importado. Los cues antiguos no se han mezclado.`);
-  } catch (error) { feedback(error.message, 'error'); }
+    const name = file.name.replace(/\.txt$/i, '').slice(0, 120).trim() || t('script.showNamePlaceholder');
+    setNewShow(createNewShow({ name, scriptText: text }), 'status.scriptImported', { name: file.name });
+  } catch (error) { showError(error); }
 });
-$('assetForm').addEventListener('submit', (event) => {
+$('assetForm').addEventListener('submit', event => {
   event.preventDefault();
   const input = $('assetName');
   const name = input.value;
-  safeOperation(() => addAudioReference(show, name), 'Referencia de audio añadida (solo metadatos).');
-  if (show.assets.some(a => a.name === name.trim())) input.value = '';
+  safeOperation(() => addAudioReference(show, name), 'status.assetAdded');
+  if (show.assets.some(asset => asset.name === name.trim())) input.value = '';
 });
-$('proposalForm').addEventListener('submit', (event) => {
+$('proposalForm').addEventListener('submit', event => {
   event.preventDefault();
   const label = $('proposalLabel').value;
-  safeOperation(() => addMockProposal(show, { label, lineId: $('lineSelect').value, assetId: $('assetSelect').value }), 'Propuesta SIMULADA creada. Requiere revisión humana.');
-  if (show.proposals.some(p => p.label === label)) $('proposalLabel').value = '';
+  safeOperation(
+    () => addMockProposal(show, {
+      label, lineId: $('lineSelect').value, assetId: $('assetSelect').value,
+    }),
+    'status.mockAdded'
+  );
+  if (show.proposals.some(proposal => proposal.label === label)) $('proposalLabel').value = '';
 });
-$('showName').addEventListener('change', () => safeOperation(() => normalizeShowProject({ ...show, name: $('showName').value.trim() }), 'Nombre del espectáculo actualizado.'));
-$('saveProjectBtn').addEventListener('click', () => { try { saveProject(); } catch (error) { feedback(error.message, 'error'); } });
+$('showName').addEventListener('change', () => safeOperation(
+  () => normalizeShowProject({ ...show, name: $('showName').value.trim() }),
+  'status.nameChanged'
+));
+$('saveProjectBtn').addEventListener('click', () => {
+  try { saveProject(); }
+  catch (error) { showError(error); }
+});
 $('openProjectBtn').addEventListener('click', () => $('projectFileInput').click());
-$('projectFileInput').addEventListener('change', async (event) => {
+$('projectFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   event.target.value = '';
   if (!file || !userAllowsReplacement()) return;
   try {
-    if (!file.name.toLowerCase().endsWith('.json')) throw new Error('Selecciona un archivo .json');
+    if (!file.name.toLowerCase().endsWith('.json')) throw uiError('errors.onlyJson');
     const text = await readTextFile(file, MAX_PROJECT_JSON_BYTES);
     const restored = deserializeShowProject(text);
-    setNewShow(restored, 'Proyecto ' + restored.name + ' recuperado. Vuelve a cargar los WAV/MP3 por su nombre.');
+    setNewShow(restored, 'status.projectOpened', { name: restored.name });
     dirty = false;
-  } catch (error) { feedback(error.message, 'error'); }
+  } catch (error) { showError(error); }
 });
+
 async function refreshMetaStatus() {
   try {
     const response = await fetch('/api/meta/status', { cache: 'no-store' });
-    if (!response.ok) throw new Error('El servidor local no está disponible');
+    if (!response.ok) throw uiError('errors.metaService');
     const status = await response.json();
     metaAvailable = status.provider === 'META_MODEL_API' && status.configured === true;
-    $('metaStatus').textContent = metaAvailable
-      ? 'Meta Model API configurada (' + status.model + '). Cada análisis requiere confirmación.'
-      : 'Meta AI no configurada: establece MODEL_API_KEY en la terminal que inicia npm run dev.';
+    metaConnection = {
+      state: metaAvailable ? 'configured' : 'unavailable',
+      model: typeof status.model === 'string' ? status.model : '',
+    };
   } catch {
     metaAvailable = false;
-    $('metaStatus').textContent = 'El servicio de Meta AI no responde en el servidor local.';
+    metaConnection = { state: 'error', model: '' };
   } finally {
+    refreshMetaMessage();
     render();
   }
 }
 
+const remoteErrors = Object.freeze({
+  META_AUTH: 'errors.metaAuth',
+  META_RATE: 'errors.metaRate',
+  META_BAD_REQUEST: 'errors.metaBadRequest',
+  META_NOT_CONFIGURED: 'errors.metaUnconfigured',
+  META_BUSY: 'errors.metaBusy',
+  META_INVALID_PROJECT: 'errors.metaInvalidProject',
+  META_TOO_LARGE: 'errors.metaTooLarge',
+  META_SERVICE: 'errors.metaService',
+});
 $('analyzeMetaBtn').addEventListener('click', async () => {
   if (metaInFlight || !metaAvailable) return;
   let snapshot;
-  try { snapshot = serializeShowProject(show); }
-  catch (error) { feedback(error.message, 'error'); return; }
-  const confirmed = window.confirm(
-    '¿Autorizar análisis externo con Meta AI?\n\nSe enviarán las primeras 120 líneas del guion (hasta 250 caracteres por línea) y los nombres de hasta 80 audios registrados. No se envían WAV/MP3. Podría consumir créditos de la API.\n\nNo se ejecutará ningún cue automáticamente.'
-  );
-  if (!confirmed) return;
+  let scriptLanguage;
+  try {
+    snapshot = serializeShowProject(show);
+    scriptLanguage = currentScriptLanguageHint();
+  } catch (error) { showError(error); return; }
+  if (!window.confirm(t('status.confirmMeta'))) return;
   const generation = projectGeneration;
   metaInFlight = true;
   render();
-  feedback('Consultando Meta Model API... No se reproducirá ningún audio automáticamente.');
+  feedback('status.metaInProgress');
   try {
     const response = await fetch('/api/meta/proposals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project: JSON.parse(snapshot) }),
+      body: JSON.stringify({ project: JSON.parse(snapshot), scriptLanguage }),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error ?? 'Error al analizar el guion');
+    if (!response.ok) throw uiError(remoteErrors[result.code] ?? 'errors.metaService');
     if (generation !== projectGeneration || serializeShowProject(show) !== snapshot) {
-      throw new Error('El proyecto cambió durante el análisis. No se han importado resultados antiguos.');
+      throw uiError('errors.projectChanged');
     }
     if (result.provider !== 'META_MODEL_API' || !Array.isArray(result.proposals)) {
-      throw new Error('La respuesta de Meta es inválida.');
+      throw uiError('errors.metaResponse');
     }
-    const proposedCount = result.proposals.length;
+    const count = result.proposals.length;
     show = addMetaProposals(show, result.proposals);
     dirty = true;
     render();
-    feedback('Meta AI devolvió ' + proposedCount + ' propuestas reales. Revísalas antes de aprobar. Ningún cue ha ejecutado GO.', 'success');
+    feedback('status.metaImported', { count }, 'success');
   } catch (error) {
-    feedback(error?.message ?? 'No se pudo generar propuestas', 'error');
+    showError(error);
   } finally {
     metaInFlight = false;
     render();
@@ -346,10 +403,10 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
 
 $('stopAllBtn').addEventListener('click', () => {
   player.stopAll();
-  feedback('PARAR TODO: todos los audios locales se han silenciado.', 'success');
+  feedback('status.panic', {}, 'success');
 });
 $('loadAudioBtn').addEventListener('click', () => $('audioFileInput').click());
-$('audioFileInput').addEventListener('change', async (event) => {
+$('audioFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   event.target.value = '';
   if (!file) return;
@@ -357,33 +414,41 @@ $('audioFileInput').addEventListener('change', async (event) => {
   const button = $('loadAudioBtn');
   button.disabled = true;
   try {
-    if (file.name.length > 200) throw new Error('El nombre del audio excede 200 caracteres.');
+    if (file.name.length > 200) throw uiError('errors.audioFilenameLong');
     const existing = show.assets.filter(asset => asset.name === file.name);
-    if (existing.length > 1) throw new Error('Hay referencias duplicadas con ese nombre. Utiliza archivos únicos.');
+    if (existing.length > 1) throw uiError('errors.duplicateAudioName');
     const assetId = existing.length
       ? existing[0].id
       : nextAvailableId('asset', show.assets.map(asset => asset.id));
-    feedback('Decodificando audio en este navegador; no se sube a ningún servidor...');
+    feedback('status.decoding');
     const info = await player.loadFile(file, assetId);
-    if (generation !== projectGeneration) throw new Error('El proyecto cambió durante la carga.');
+    if (generation !== projectGeneration) throw uiError('errors.projectChanged');
     if (!existing.length) {
       const updated = addAudioReference(show, file.name);
       if (updated.assets.at(-1)?.id !== assetId) {
         player.reset();
-        throw new Error('La lista de archivos cambió durante la carga. Vuelve a intentarlo.');
+        throw uiError('errors.staleAudioList');
       }
       show = updated;
     }
     dirty = true;
     render();
-    feedback('Audio REAL "' + file.name + '" cargado (' + info.durationSeconds.toFixed(1) +
-      ' s, ' + info.channels + ' canal/es). Ya puedes preparar un cue.', 'success');
+    feedback('status.audioLoaded', {
+      name: file.name,
+      duration: info.durationSeconds.toFixed(1),
+      channels: info.channels,
+    }, 'success');
   } catch (error) {
-    feedback(error?.message ?? 'No se ha podido cargar este audio.', 'error');
+    showError(error);
   } finally {
     button.disabled = false;
   }
 });
 
+$('uiLocaleSelect').value = uiLocale;
+translateDocument(document, uiLocale);
+resetScriptLanguageHint();
 render();
+refreshMetaMessage();
+feedback(statusState.key, statusState.values, statusState.tone);
 refreshMetaStatus();
