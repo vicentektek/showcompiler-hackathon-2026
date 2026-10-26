@@ -98,8 +98,8 @@
             <div class="subheading" data-i18n="proposals.metaHeading">Meta AI script analysis</div>
             <label class="field" for="modelProviderSelect" data-i18n="proposals.providerLabel">AI provider</label>
             <select id="modelProviderSelect">
+              <option value="meta" data-i18n="proposals.providerMeta" selected>Meta Model API · Muse Spark</option>
               <option value="baseten" data-i18n="proposals.providerBaseten">Baseten · Meta Muse Spark Open</option>
-              <option value="meta" data-i18n="proposals.providerMeta">Meta Model API · Muse Spark</option>
             </select>
             <label class="field" for="scriptLanguageSelect" data-i18n="scriptLanguage.label">Script language for AI</label>
             <select id="scriptLanguageSelect">
@@ -116,7 +116,8 @@
             <p class="caption" data-i18n="scriptLanguage.help">Independent of interface language. Keeps the original script unchanged.</p>
             <button id="analyzeMetaBtn" type="button" class="btn primary block" disabled data-i18n="proposals.metaButton">Generate proposals with Meta AI</button>
             <p id="metaStatus" class="caption" role="status" aria-live="polite" data-i18n="proposals.metaChecking">Checking local Meta AI connection...</p>
-            <p id="modelProviderDisclaimer" class="caption" data-i18n="proposals.basetenDisclaimer">Only after confirmation, up to 120 script lines and 80 audio filenames/IDs are sent to Baseten to run Meta Muse Spark Open. No audio binaries are uploaded.</p>
+            <p id="metaCoverage" class="caption" role="status" aria-live="polite" data-i18n="proposals.coverageNone">No scene-analysis coverage yet.</p>
+            <p id="modelProviderDisclaimer" class="caption" data-i18n="proposals.metaDisclaimer">Each confirmation sends one bounded scene batch and up to 80 audio filenames to Meta. No audio binaries are uploaded.</p>
           </div>
           <div class="separator"></div>
           <div class="subheading" data-i18n="proposals.reviewHeading">Operator review</div>

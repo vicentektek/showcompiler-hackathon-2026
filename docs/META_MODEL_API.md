@@ -1,71 +1,118 @@
-# Meta AI integration — new hackathon work (26 October 2026)
+# Meta Model API integration
 
-**Status:** implemented behind an isolated draft PR. Tested with mocked HTTP responses and no secrets, but **not yet confirmed against a live account or quota**. Audio GO remains entirely manual.
+Status: implemented and deterministically tested with mocked transports. The live smoke command has **not** been run; live credentials, entitlement, quota, billing, and inference remain unverified. Audio GO is manual and independent of this integration.
 
-## Provider
+## Official contract
 
-The official [Meta Model API](https://dev.meta.ai/docs/overview) supports `POST https://api.meta.ai/v1/chat/completions`, a model such as `muse-spark-1.3`, Bearer authentication and [JSON Schema structured outputs](https://dev.meta.ai/docs/structured-output).
+ShowCompiler uses the official Meta Model API Chat Completions surface:
 
-The local Node server reads `MODEL_API_KEY` from its environment. No API key may be written to the code, browser, README, JSON project or issue/PR. No model key is ever returned in a health status or error response.
+- `POST https://api.meta.ai/v1/chat/completions`
+- `Authorization: Bearer` using server-only `MODEL_API_KEY`
+- Standard model `muse-spark-1.3`
+- `developer` and `user` messages
+- `response_format: { type: "json_schema", json_schema: { strict: true, … } }`
+- `reasoning_effort: "low"`
+- `max_completion_tokens: 4096`
+- `stream: false` and explicit `store: false`
 
-## Run on Windows
+See Meta's [Chat Completions guide](https://dev.meta.ai/docs/protocols/chat-completions), [schema reference](https://dev.meta.ai/docs/api-reference/chat-completions/schemas), [structured output guide](https://dev.meta.ai/docs/structured-output), and [error handling](https://dev.meta.ai/docs/error-handling).
 
-In PowerShell, inside `showcompiler-hackathon-2026`:
+The Responses API uses a different `text.format` parameter. Do not substitute that shape into this Chat Completions request.
+
+## Local setup
+
+In PowerShell, from this repository:
 
 ```powershell
-git fetch origin
-git switch --track origin/feat/meta-model-cue-proposals
-$keySecure = Read-Host "Clave de Meta Model API (no se muestra en pantalla)" -AsSecureString
-$keyPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($keySecure)
-try {
-  $env:MODEL_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPtr)
-} finally {
-  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPtr)
-  Remove-Variable keySecure, keyPtr
-}
+$env:MODEL_API_KEY = '<set locally; never commit>'
 npm test
+npm run check:syntax
 npm run dev
 ```
 
-If the branch already exists, switch without `--track` and run `git pull --ff-only`.
-
-Open **http://127.0.0.1:5173**. Import a nonconfidential TXT example, then register or load at least one audio. Click **Generar propuestas con Meta AI** and read the disclosure carefully. A confirmation dialog is required for **every analysis**. The model returns up to 8 suggestions pointing only to known lines/audio IDs; results appear **PENDING**, never executed. You may approve/reject them and then explicitly click GO for playback.
-
-Do **not** paste credentials into a GitHub issue, screen recording, chat or source file. To remove the key from the current PowerShell process after stopping the server, use:
+Open `http://127.0.0.1:5173`, import a nonconfidential UTF-8 script (an audio library is optional), select Meta Model API, and review the disclosure. Each click authorizes exactly one external request and is followed by no automatic retry. Stop the server and remove the key from that shell when finished:
 
 ```powershell
 Remove-Item Env:MODEL_API_KEY
 ```
 
-## Privacy and network boundary
+Never paste the key into code, project JSON, a GitHub issue, PR, screenshot, recording, provider response fixture, or chat.
 
-Only after a user confirms sending data, the Node server sends to Meta:
-- the **first 120 script lines**, each truncated at 250 characters;
-- the **first 80 audio resource IDs and names**;
-- strict model instructions, JSON schema and a request for up to 8 suggestions.
+## Scene/window request boundary
 
-**No binary WAV/MP3, local file paths, JSON project snapshots, cue playback state or API secrets are sent to Meta.** The local UI does send its JSON project to its own loopback Node server, which validates it and reduces content to that excerpt before the external request.
+The deterministic planner divides the unchanged script into scenes and 60-line core windows, with up to three read-only context lines before and after. One confirmed request contains at most two windows and asks for at most eight `CueSuggestionV2` records. A later batch requires another click and confirmation.
 
-The local server uses `127.0.0.1` and accepts the analysis POST only with `Content-Type: application/json` and a matching browser `Origin`/Host. Request bodies have a 2 MB cap; model calls are serialized per server. No external model API calls happen from the frontend; its CSP only allows same-origin HTTP requests.
+The external request contains:
 
-Never send unpublished, licensed or confidential show scripts without authorization. The real provider may consume paid API quota. Do not automatically poll or call models on application startup.
+- stable source line IDs and original-language text for the selected windows (individual transmitted line text is bounded and marked if truncated);
+- scene/window identity and target-versus-context roles;
+- at most 80 audio metadata IDs/names;
+- expert theatrical instructions and a strict dynamic schema.
 
-## Validation contract
+It does **not** contain WAV/MP3 bytes, decoded buffers, local file paths, the API key, transport state, or unrelated project data. The browser sends the validated project to its own loopback server; only the bounded analysis document leaves the machine.
 
-- All model outputs are strictly parsed; no fuzzy markdown or code executes.
-- Meta text suggestions are revalidated against real project lines/audio metadata both server-side and browser-side.
-- Invalid proposal batches are rejected wholly.
-- Provenance `source: 'META_MODEL_API'` is saved in project JSON; manual mock items use `source: 'MANUAL_MOCK'`.
-- Approval still produces only `DRAFT` and does not trigger GO.
-- Live performance must work offline and without Meta Model API.
+Coverage shows exact submitted line/window counts and the next batch, but it is in-memory UI state. It is not added to project JSON.
 
-## Boundaries and remaining work
+## Output and validation
 
-- **Not yet verified with live Meta API credentials**; a real account may need entitlement, billing, or model availability.
-- The server returns up to eight proposals; no audio is generated and no new sound asset can be hallucinated.
-- Only the first 120 lines are analysed per request. Scene selection / chunking / cost controls and retry UI are future work.
-- `MAX_COMPLETION_TOKENS`, budget limits and robustness should be evaluated using real API responses before live demo.
-- This is a hackathon prototype, not a production multi-user server or a deployable Internet API.
-- Native Rust/WASAPI/ASIO execution is tracked independently in the [audio ADR](ADR-0001_MOTOR_AUDIO_NATIVO_2026-10-26.md).
+`CueSuggestionV2` records exact window/line evidence, cue kind, explicit/suggested basis, `PLAY`/`CONTINUE`/`STOP`/`SILENCE` intent, label, acoustic brief, asset choice, trigger, duration/loop/fade estimates, confidence, and reason.
 
-Reference implementation: `src/core/metaCueProvider.mjs`, `tools/metaRoutes.mjs`, `src/core/workspace.mjs`, `src/ui/app.mjs`.
+Validation is all-or-nothing:
+
+- strict keys, types, bounds, and enums;
+- source line must belong to that window's core lines;
+- evidence must be an exact substring of the original source line;
+- asset must be known or `null`;
+- `assetId: null` requires a nonempty bounded `soundPrompt`;
+- transport/cue-kind combinations must be coherent;
+- non-PLAY observations cannot pretend to bind an asset;
+- server and browser revalidate before creating project proposals;
+- deterministic deduplication removes repeated sound proposals.
+
+Only deduplicated `PLAY` records become ordinary `PENDING` proposals with `source: "META_MODEL_API"`. Continuing ambience, stop, and silence remain transient observations. Every project proposal still needs human approval; approval creates `DRAFT`, never GO.
+
+Rich V2 details, coverage, observations, and diagnostics are deliberately transient. The persistent show JSON format is unchanged.
+
+## Safe diagnostics
+
+Failures are separated into local validation, upstream HTTP, schema incompatibility, local timeout, transport, response envelope, model finish/refusal, output schema, and local semantic validation. The local response may include:
+
+- a non-sensitive request ID;
+- stable phase/code;
+- upstream status;
+- elapsed milliseconds;
+- finish reason and token counts;
+- sanitized provider `type`, `param`, and `code`.
+
+The implementation discards provider `message`, raw bodies, raw generated text, scripts, keys, and stack traces. It performs one fetch attempt. A timeout is not proof that the provider did no work or incurred no charge.
+
+## Guarded one-request smoke
+
+The smoke tool is separate from tests and startup. It sends one tiny, rights-clear three-line script with no assets, performs zero retries, and expects a valid L2 `assetId: null` proposal.
+
+```powershell
+$env:MODEL_API_KEY = '<local secret>'
+npm run smoke:meta -- --authorize-one-billable-meta-request
+```
+
+The explicit flag is mandatory. Output is restricted to safe model/request metadata and proposal count. **This command has not been run in this branch, and the repository must not claim live inference success.**
+
+## Manual acceptance checklist
+
+1. Confirm the status endpoint reveals configuration/model only, never the key.
+2. Use a three-line synthetic script with zero assets and run the guarded smoke once after reviewing cost/account terms.
+3. Verify one fetch attempt, a completed strict response, `assetId: null`, a useful brief, exact L2 evidence, latency, finish reason, and usage.
+4. Try a rights-clear multilingual script while the UI is English; verify source text and IDs remain unchanged.
+5. Exercise a script over 60 and over 120 lines; verify window progress and explicit confirmation for each later request.
+6. Review explicit, suggested, dialogue-memory, continuing-rain, silence, and stop cases.
+7. Approve an unbound cue; verify all three resolution paths and blocked GO.
+8. Disconnect the network and verify already-loaded GO/STOP/fade/STOP ALL remain deterministic.
+
+## Boundaries
+
+- No model request occurs on startup, import, approval, audio-resolution choice, project open, or GO.
+- No provider retry, polling loop, audio upload, fine-tune, or paid audio generation exists.
+- The loopback server is a single-user development boundary, not an Internet-facing production service.
+- Standard-mode data terms and current pricing/rate limits must be checked in the user's active Meta account before submitting third-party material.
+
+Implementation: `src/core/metaCueProvider.mjs`, `src/core/theatreCueAnalysis.mjs`, `src/core/sceneAnalysis.mjs`, `tools/metaRoutes.mjs`, `src/core/workspace.mjs`, and `src/ui/app.mjs`.

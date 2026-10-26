@@ -1,41 +1,98 @@
-# Theatre sound-design evaluation — offline baseline
+# Theatre sound-design evaluation
 
-Status: experimental, no model calls or billing. **The example gold cases below are synthetic fixtures, not demonstrated Muse Spark results.**
+Status: reproducible offline baseline using synthetic, rights-clear fixtures. It makes no model request and spends no API credit. Results from these fixtures test the scorer and contract; they are **not measured Muse Spark quality**.
 
-## Baseline design rubric
+## Evaluation rubric
 
-The model must distinguish:
-- **Explicit acoustic action:** stage directions such as “(Suena una campana)” are high-confidence cue opportunities.
-- **Narrative mentions:** a character saying “recuerdo aquella tormenta” is not a request to sound thunder.
-- **Continuous sound:** existing rain/ambience stays running; do not propose another GO merely because later dialogue says it continues.
-- **Silence and stop:** these require transport intent; until the model output includes an approved STOP/FADE action, **do not invent a PLAY audio file** to represent silence.
-- **Unbound audio:** if no asset matches the scene, provide `assetId:null` and precise `soundPrompt`; do not pick the only available audio blindly.
+- **Explicit acoustic action:** a stage direction such as “a bell rings” is a strong cue opportunity (`EXPLICIT`, normally `PLAY`).
+- **Suggested atmosphere:** a location/time description may support a restrained creative ambience (`SUGGESTED`) but must not be reported as a script fact.
+- **Narrative or dialogue mention:** remembering a storm, naming a radio, or discussing music is not evidence that the sound happens now.
+- **Continuing ambience:** rain that continues is `CONTINUE`, not another PLAY/GO.
+- **Silence and stop:** intentional silence is `SILENCE`; ending existing music is `STOP`. Neither creates a fake playable silence asset.
+- **Unbound audio:** if no library item genuinely matches, use `assetId: null` and a precise nonempty `soundPrompt`.
+- **Source fidelity:** line references must exist, evidence must come from that line, and the original language/text is authoritative.
+- **Economy:** prefer fewer defensible cues; repeated ambience and decorative overproduction count against quality.
 
-The current adapter adds these instructions but **has not yet been tested against live Meta inference**.
+## Exact-line scorer
 
-## Offline evaluator
+`src/core/cueEvaluation.mjs` exports:
 
-`src/core/cueEvaluation.mjs` exports `evaluateCuePlacement({ scriptText, expectedLineIds, forbiddenLineIds, proposedLineIds })` for human-reviewed gold comparisons.
+```js
+evaluateCuePlacement({
+  scriptText,
+  expectedLineIds,
+  forbiddenLineIds,
+  proposedLineIds,
+})
+```
 
-Calculates exact-line true positives, false positives, false negatives, specifically forbidden triggers, precision, recall and F1. Validates unique source references, rejects phantom lines and contradictions. Exact-line scoring is a deliberately strict baseline; a future `±1` location tolerance should **not** be adopted without explicit justification. The function does not infer which cues are objectively correct.
+Gold expected/forbidden references must be unique and present in the script. Proposed IDs must use valid `L#` syntax, but an ID outside the source is measured rather than causing the evaluator to abort.
 
-Run `npm test` for the six new synthetic cases. They test the scorer and rubric fixture definitions, **not model quality**.
+Metrics:
 
-## Runtime changes in this branch
+- `truePositives`: expected lines proposed at least once;
+- `falseNegatives`: expected lines not proposed;
+- `falsePositives`: every emitted proposal that is not the first creditable match, including duplicates and phantom references;
+- `forbiddenTriggers`: proposal occurrences on annotated negative lines;
+- `hallucinatedReferences`: proposal occurrences whose `L#` is absent from the script;
+- `duplicateProposals`: repeated proposal occurrences;
+- `precision = TP / emitted proposals` (or 1 for an empty prediction against empty gold);
+- `recall = TP / expected cues` (or 1 when gold has no expected cues);
+- harmonic-mean `f1`.
 
-- Increase Meta `max_completion_tokens` from 1200 to 4096; Meta reasoning tokens may count against this output budget. This may increase the **maximum possible bill** for an inference, though consumption depends on actual output. Measure before broad evaluation.
-- Increase Meta default abort timeout from 25s to 45s. A timed-out request may have been processed and billed remotely, so do not retry automatically.
-- Keep model ID `muse-spark-1.3`, JSON schema, prompt source boundaries, single-user confirmation and zero automatic retries unchanged.
-- Keep Browser Audio, manual GO and existing v1 project JSON unchanged.
+Every duplicate consumes precision budget. This intentionally penalizes firing the same continuing ambience twice.
 
-## Next acceptance gate
+`evaluateCueFixtureSet(fixtures)` sums TP/FP/FN, forbidden, hallucinated, and duplicate counts across independent fixtures, then recomputes precision, recall, and F1 from the totals.
 
-1. Run regression suite and syntax checks (CI).
-2. With human authorization for an explicitly paid request, use a 3-line synthetic source and no audio assets. If a provider error occurs, classify HTTP and schema error separately; **no raw model content or API secrets in logs**.
-3. Only after the minimal contract succeeds, compare the two prompt variants on the same locked test inputs. Record usage tokens, latency, model ID and exact match metrics. Do not choose based on a single anecdote.
-4. Build a real, human-reviewed gold set from *La ciudad suena*, *Protocolo Aurora* and other original scripts: annotated line, sound kind, evidence, false-positive traps and ambiguity notes.
-5. Integrate source-aware prompt quality and operator-edit feedback into the UI only after measured improvements.
+## Synthetic coverage
 
-## Safety and rights
+Automated fixtures include:
 
-Evaluation scripts are synthetic and freely authored for testing. No existing copyrighted play text was copied. No API credentials are stored. This PR does not generate WAV/MP3 audio and does not modify ASIO/WASAPI.
+- Spanish explicit bell versus a remembered storm in dialogue;
+- one rain start versus a later continuation;
+- intentional silence with no invented asset;
+- an explicit one-shot door slam;
+- English suggested station atmosphere;
+- French continuing ambience and a duplicate prediction;
+- German silence;
+- Portuguese phantom source reference.
+
+They are original test text and contain no copied play. Run them with the complete suite:
+
+```sh
+npm test
+```
+
+## Scene/window coverage
+
+`planScriptAnalysis` deterministically detects conservative multilingual headings, splits long scenes into 60-line core windows, and supplies up to three context lines on either side. Every line is a core member exactly once. Tests verify stable IDs, multilingual text, blank lines, long scenes, nonmutation, exact coverage, and detached output.
+
+The live-analysis UI displays submitted line/window coverage. This metadata is transient and must not be mistaken for human validation of model quality.
+
+## Human-reviewed model evaluation
+
+After the one-request contract smoke succeeds, lock a rights-clear corpus and annotate:
+
+- expected and forbidden exact lines;
+- cue kind, explicit/suggested basis, and transport intent;
+- exact evidence and ambiguity note;
+- whether continuing sound should suppress a new cue;
+- expected asset binding or required acoustic brief;
+- prompt-quality rubric (0–5).
+
+For each fixed model/prompt version record precision, recall, F1, forbidden triggers, hallucinations, duplicates, acoustic-brief score, latency, sanitized token usage, and operator approve/edit/reject rate. Approval is workflow feedback, not objective truth.
+
+Use controlled ablations: change only one of prompt examples, reasoning effort, windowing, or design density at a time. Do not adopt ±1-line matching without a documented theatrical rationale; exact-line scoring is the current baseline.
+
+## Acceptance threshold and honest status
+
+Before a live demo claim:
+
+- 100% technically valid DTOs and source/asset references;
+- zero hallucinated source IDs after local validation;
+- zero executable proposals for `CONTINUE`, `STOP`, or `SILENCE`;
+- no unresolved cue able to GO;
+- documented precision/recall on a locked human-reviewed corpus;
+- a successful explicitly authorized Meta smoke request.
+
+The final item is still pending. Current status is “offline evaluator and adapter tests pass,” not “Muse Spark quality proven.”

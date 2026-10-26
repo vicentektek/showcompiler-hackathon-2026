@@ -62,7 +62,10 @@ export function addModelProposals(project, suggestions, provider = 'META_MODEL_A
   if (!Array.isArray(suggestions) || suggestions.length > 8) throw new TypeError('Meta returned too many suggestions');
   if (current.proposals.length + suggestions.length > 100) throw new RangeError('Proposal limit reached');
   const allLines = parseScript(current.scriptText);
-  const permittedLines = new Set(allLines.slice(0, 120).map(line => line.id));
+  // First-party Meta requests can explicitly advance through later scene
+  // windows. Baseten's separate fallback contract still sends only line 1–120.
+  const permittedLines = new Set((provider === 'META_MODEL_API' ? allLines : allLines.slice(0, 120))
+    .map(line => line.id));
   const permittedAssets = new Set(current.assets.slice(0, 80).map(asset => asset.id));
   const proposed = [];
   const usedIds = current.proposals.map(p => p.id);
@@ -71,6 +74,7 @@ export function addModelProposals(project, suggestions, provider = 'META_MODEL_A
         !permittedLines.has(item.lineId) ||
         (item.assetId != null && !permittedAssets.has(item.assetId)) ||
         typeof item.label !== 'string' || !item.label.trim() ||
+        (item.assetId == null && (typeof item.soundPrompt !== 'string' || !item.soundPrompt.trim())) ||
         (item.soundPrompt !== undefined && (typeof item.soundPrompt !== 'string' || !item.soundPrompt.trim() || item.soundPrompt.length > 500))) {
       throw new TypeError('Meta suggestion does not match supplied script excerpt or audio list');
     }
@@ -79,7 +83,7 @@ export function addModelProposals(project, suggestions, provider = 'META_MODEL_A
     proposed.push({
       id, label: item.label.trim(), sourceLineIds: [item.lineId],
       actions: [item.assetId == null
-        ? { type: 'PLAN_AUDIO', prompt: (item.soundPrompt || item.label).trim(), resolution: 'DEFER' }
+        ? { type: 'PLAN_AUDIO', prompt: item.soundPrompt.trim(), resolution: 'DEFER' }
         : { type: 'PLAY', assetId: item.assetId }],
       source: provider,
     });

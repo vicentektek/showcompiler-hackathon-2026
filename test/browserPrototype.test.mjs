@@ -19,8 +19,10 @@ test('prototype labels mock AI, real local audio and incomplete JSON packaging',
   assert.match(html, /SOURCE TRACKED/);
   assert.match(html, /id="analyzeMetaBtn"/);
   assert.match(html, /id="modelProviderSelect"/);
+  assert.match(html, /<option value="meta"[^>]*selected/);
   assert.match(html, /value="baseten"/);
   assert.match(html, /value="meta"/);
+  assert.match(html, /id="metaCoverage"[^>]*aria-live="polite"/);
   assert.match(html, /id="uiLocaleSelect"/);
   assert.match(html, /id="scriptLanguageSelect"/);
   assert.match(html, /audio is not embedded in JSON/);
@@ -31,7 +33,15 @@ test('prototype labels mock AI, real local audio and incomplete JSON packaging',
 
 test('frontend imports backend facade, never Web Audio engine directly', () => {
   assert.match(client, /from '\.\.\/core\/audioBackend\.mjs'/);
+  assert.match(client, /from '\.\.\/core\/sceneAnalysis\.mjs'/);
   assert.doesNotMatch(client, /from '\.\.\/core\/browserAudio\.mjs'/);
+});
+
+test('scene coverage is transient and each Meta batch remains explicitly authorized', () => {
+  assert.match(client, /metaWindowsPerRequest\s*=\s*2/);
+  assert.match(client, /analysisWindowStart/);
+  assert.match(client, /window\.confirm\(t\('status\.confirmMeta'/);
+  assert.doesNotMatch(client, /show\s*=\s*\{[^}]*metaCoverage/s);
 });
 
 test('untrusted script and cue labels do not use innerHTML', () => {
@@ -69,6 +79,9 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   assert.equal(i18nModule.status, 200);
   const scriptLanguageModule = await fetch(base + '/src/core/scriptLanguage.mjs');
   assert.equal(scriptLanguageModule.status, 200);
+  const sceneAnalysisModule = await fetch(base + '/src/core/sceneAnalysis.mjs');
+  assert.equal(sceneAnalysisModule.status, 200);
+  assert.match(await sceneAnalysisModule.text(), /planScriptAnalysis/);
   const backendFacade = await fetch(base + '/src/core/audioBackend.mjs');
   assert.equal(backendFacade.status, 200);
   assert.match(await backendFacade.text(), /createBrowserAudioBackend/);

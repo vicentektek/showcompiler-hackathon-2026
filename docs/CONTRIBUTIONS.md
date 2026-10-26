@@ -1,34 +1,52 @@
-# Contributions developed during Meta Global AI Developer Hackathon 2026
+# Hackathon contribution log
 
-Only source and functionality created during the event window (26 October–4 November 2026) may be described as hackathon contributions. This log tracks the new implementation separately from prior research.
+Only work created in this repository during the Meta Global AI Developer Hackathon window (26 October–4 November 2026) is counted. No source was copied from the earlier SHOWCOMPILER repository.
 
-| Date | New contribution | Verification | Demonstrable in product? |
-|---|---|---|---|
-| 2026-10-26 | Hackathon-specific implementation plan and compliance log | GitHub commits in new repository | Documentation only |
-| 2026-10-26 | Independent script parser, stable line IDs, accent-insensitive search | 5 Node tests pass in isolated local copy | Library only; no user interface |
-| 2026-10-26 | Independent untrusted proposal validator (PLAY only) | 8 Node tests pass in isolated local copy | Library only; no Meta API |
-| 2026-10-26 | Explicit proposal review, rejection and conversion to DRAFT cue | 9 additional Node tests pass in isolated local copy | Library only; not wired to UI |
-| 2026-10-26 | Integration test, rights-clear original script fixture, and operator-controlled terminal mock demo | 3 additional tests pass; GitHub Actions successful | Terminal simulation only, not a product UI |
-| 2026-10-26 | Versioned JSON serialization/deserialization of script, assets metadata, proposals and DRAFT cues | 13 additional Node tests; [GitHub Actions success](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40374044921) | Library only; no file picker or embedded audio |
-| 2026-10-26 | Independent domain workflow and local browser UI with mock-only proposal creation, explicit review, JSON file picker, and restricted loopback server | 14 additional tests; Node syntax + [GitHub Actions success](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40377108460) | Browser prototype coded; visual/manual browser acceptance pending |
-| 2026-10-26 | Local browser Web Audio engine: operator GO, STOP, 1.5s fade, panic STOP, local file decoding; UI wiring and smoke tests | 13 new mock-WebAudio tests, browser/HTTP checks, [GitHub Actions: 65/65 tests passed](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40381536145) | Actual audio code available; hardware/browser audible acceptance remains pending |
-| 2026-10-26 | Desktop-first WASAPI/ASIO architecture ADR and replaceable browser audio backend facade; UI no longer imports Web Audio engine directly | 5 additional tests; [GitHub Actions 70/70](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40387476270) | Boundary implemented; native backend not implemented |
-| 2026-10-26 | Optional official Meta Model API provider, loopback-only server proxy, opt-in UI, strict JSON schema, proposal provenance persisted in JSON | 17 additional tests; [GitHub Actions 87/87](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40391036859) | Implemented behind key; not yet exercised with a real Meta account, API quota or actual inference |
-| 2026-10-26 | International English-default/Spanish UI (142 translated strings per locale), persisted device-level UI choice, separate source-language hint to Meta without changing script text or JSON schema | 14 additional tests vs. previous 89; [GitHub Actions: 103/103](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40400786722) | Coded and automatically verified; manual browser switching and multilingual Meta quality remain pending |
-| 2026-10-26 | Baseten-hosted Meta Muse Spark Open hackathon 1026 fallback with local key isolation, plain-JSON fail-closed parser, bilingual provider selector and exact source provenance | 20 additional tests; [GitHub Actions: 123/123](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40404384396) | Inference adapter/UI implemented; no real partner API request made yet; audio/browser acceptance pending |
+## 26 October 2026
 
-### Verification evidence
-- Branch: `feat/baseten-muse-open-fallback` (forked from `feat/i18n-en-es-2026-10-26`; earlier script/audio and first-party Meta branches remain unchanged).
-- Test command: `npm test` (Node.js 20+; no dependencies).
-- Total: **123/123 automated tests passed** in GitHub Actions with Node.js 22; module syntax checks passed. The Meta and Baseten API routes have only been tested against mocked transport responses. Local speaker/headphone playback has not yet been confirmed manually.
-- GitHub Actions: Core tests succeeded on the branch, [workflow run #40372369548](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40372369548); the checkout and Node test step completed successfully.
-- Pending: manual Chrome/Edge EN/ES switching and original script preservation, actual audio GO, STOP, fade and panic; independent code review, actual live Meta API credentials/quota verification, Windows native WASAPI proof, and desktop installer. Web Audio is a local prototype backend, not certified for professional live shows. ASIO is a legally gated future option.
-- JSON project format does **not** contain actual audio data; it is not a complete portable backup.
-- `main` remains unchanged.
+| Contribution | Verification | Honest product status |
+|---|---|---|
+| Independent script parser, stable line IDs, search, untrusted proposal validation, and explicit approve/reject transition to `DRAFT` | Pure Node unit tests | New domain core; no automatic execution |
+| Rights-clear terminal review demonstration and GitHub Actions test workflow | Integration and CLI tests | Simulation only |
+| Strict schema-v1 JSON codec for script, asset metadata, proposals, and cues | Roundtrip, limits, malformed-input, reference, and pollution tests | Browser save/open exists; audio bytes are excluded |
+| Local browser UI and loopback allowlisted server | DOM/static and HTTP tests | Manual visual/accessibility acceptance pending |
+| Browser Web Audio backend with manual GO, STOP, fade, STOP ALL, decoding, and reset protection | Mock-WebAudio tests | Real local playback code; audible hardware/browser acceptance pending |
+| Replaceable audio-backend boundary and desktop WASAPI/ASIO architecture ADR | Interface/capability tests | Native backend not implemented |
+| Optional first-party Meta Model API adapter with server-only key, explicit consent, strict structured output, and source provenance | Mocked-transport unit/HTTP tests | Live credentials/quota/inference unverified |
+| English-default and Spanish UI, device-local locale, independent source-language hint | Catalog parity, safe interpolation, persistence, and request tests | Manual EN/ES browser acceptance pending |
+| Baseten-hosted Muse Spark Open fallback with fail-closed plain-JSON parsing | Mocked transport and route tests | Live partner inference unverified |
+| Asset-free planning with `PLAN_AUDIO`; library, DEFER, and GENERATE-intent paths | Workflow, persistence, and audio safety tests | No sound generator; unresolved GO is blocked |
+| Theatre prompt specialization and exact-line gold evaluator | Synthetic rubric tests | Offline baseline, not observed model quality |
+| Official Meta contract hardening: exact strict schema parity, required `soundPrompt`, safe phased diagnostics, timeout/transport/envelope/refusal handling, zero retry | Deterministic provider and integration matrix, including HTTP 400/401/402/403/404/429/5xx/504 | No live request performed |
+| Explicit one-request Meta smoke CLI using a three-line zero-asset synthetic script | Tests prove no authorization/key means zero calls and authorized path calls injected transport once | Implemented but **not run live** |
+| Deterministic multilingual scene/window planner and visible coverage model | Exact coverage, context, stable-ID, nonmutation, and UI tests | Transient only; no project-format change |
+| Strict transient `CueSuggestionV2`, theatrical transport distinctions, semantic evidence checks, and deterministic deduplication | DTO/schema/semantic/dedupe tests | Only PLAY becomes a pending project proposal |
+| Extended evaluation for hallucinated references, duplicates, forbidden triggers, precision, recall, and F1 | Rights-clear multilingual aggregate fixtures | Reproducible offline measurement |
 
-### Submission truthfulness
-- AI proposals in unit tests are hand-written mock input, **not** Meta model output.
-- A local browser **prototype UI** and actual browser Web Audio playback engine exist, with manual audible acceptance pending. Meta and Baseten adapters coded but not verified against real credentials; no desktop installer, professional ASIO/routing, or complete competition demo exists. The generated cue suggestions are still manually authored **mock** input.
-- `operatorConfirmed` is a flag, not human authentication. A real UI must restrict the flag to explicit operator interactions and persist decisions.
-- No old application code is imported.
-- No third-party assets, secrets or dependencies are committed in these changes.
+## Current verification
+
+- Working branch: `feat/meta-muse-reliable-cues`, based on `feat/meta-theatrical-prompt-evals`.
+- Verified locally: `npm test` reports **180/180 passing**, `npm run check:syntax` passes, and `git diff --check` is clean.
+- Meta and Baseten provider paths are tested using injected/mock transports only.
+- The guarded `npm run smoke:meta -- --authorize-one-billable-meta-request` command is deliberately excluded from CI and has **not** been executed.
+- `main` is not modified or merged automatically. Delivery is through a draft PR for review.
+
+Historical GitHub Actions evidence remains visible in repository history. The draft PR should record the final local test count and current CI run rather than reusing an obsolete count from an earlier stacked branch.
+
+## Pending manual evidence
+
+- Explicitly authorized live Meta contract smoke with safe usage/latency output.
+- Human review of a rights-clear multilingual corpus, including a 91-line script and negative dialogue-memory fixture.
+- Chrome/Edge EN/ES switching, scene coverage progression, review controls, and responsive/accessibility checks.
+- Audible local GO/STOP/fade/STOP ALL at a safe level, including network-offline operation.
+- JSON save/reopen with `PLAN_AUDIO`, reassignment/reload of audio, and confirmation that transient analysis data is absent.
+- Independent code/security/privacy review before any merge.
+
+## Submission truthfulness
+
+- Synthetic expected/predicted suggestions are test fixtures, not Meta output.
+- “Prepare AI generation” records intent; it does not synthesize audio or spend generation credits.
+- `operatorConfirmed` expresses a UI transition, not authenticated identity.
+- Browser playback is real local code but not professional/certified show control.
+- Native WASAPI/ASIO, complete portable projects, desktop installer, hardware routing, and paid audio generation are not implemented.
+- Never commit keys, account/billing details, full private scripts, raw provider responses, or unlicensed media.

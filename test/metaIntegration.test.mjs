@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createAppServer } from '../tools/dev-server.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addMetaProposals, decideProposal } from '../src/core/workspace.mjs';
 import { serializeShowProject, deserializeShowProject } from '../src/core/projectPersistence.mjs';
+import { MetaOutputError, MetaProviderError } from '../src/core/metaCueProvider.mjs';
 
 const item = { lineId: 'L2', assetId: 'asset-1', label: 'Música de apertura' };
 function project() {
@@ -114,7 +115,7 @@ test('real API adapter response enters only as proposed pending cues', async (t)
 test('corrupt script line or resource response is rejected without partial approval', async (t) => {
   const base = await withServer(t, {
     getKey: () => 'SERVER_ONLY_KEY',
-    modelClient: async () => ({ proposals: [{ ...item, lineId: 'L120' }] }),
+    modelClient: async () => ({ provider: 'META_MODEL_API', proposals: [{ ...item, lineId: 'L120' }] }),
   });
   const res = await analysisRequest(base, { project: project() });
   assert.notEqual(res.status, 200);
@@ -201,8 +202,7 @@ test('invalid language hint is rejected before sending anything to Meta', async 
 });
 
 test('Meta errors return safe distinct categories without revealing script or key', async t => {
-  const { MetaOutputError } = await import('../src/core/metaCueProvider.mjs');
-  for (const reason of ['TRUNCATED','NOT_JSON','SCHEMA','EMPTY_OR_OVERSIZED']) {
+  for (const reason of ['TRUNCATED','NOT_JSON','SCHEMA','EMPTY_OR_OVERSIZED','REFUSED','FINISH_REASON']) {
     const base = await withServer(t, {
       getKey: () => 'NO_LEAK_KEY',
       modelClient: async () => { throw new MetaOutputError(reason); },
@@ -212,6 +212,49 @@ test('Meta errors return safe distinct categories without revealing script or ke
     const body = await response.text();
     assert.equal(JSON.parse(body).code, 'META_OUTPUT_' + reason);
     assert.doesNotMatch(body, /NO_LEAK_KEY|ESCENA|Música/);
+  }
+});
+
+test('malformed provider envelope has an upstream category rather than truncation', async t => {
+  const base = await withServer(t, {
+    getKey: () => 'NO_LEAK_KEY',
+    modelClient: async () => { throw new MetaOutputError('ENVELOPE', { requestId: 'meta-envelope' }); },
+  });
+  const response = await analysisRequest(base, { project: project() });
+  assert.equal(response.status, 502);
+  const body = await response.json();
+  assert.equal(body.code, 'META_UPSTREAM_ENVELOPE');
+  assert.equal(body.diagnostic.phase, 'UPSTREAM_ENVELOPE');
+});
+
+test('typed provider diagnostics distinguish schema, timeout, transport and HTTP failures', async t => {
+  const cases = [
+    [new MetaProviderError('SCHEMA_INCOMPATIBLE', {
+      requestId: 'meta-schema', phase: 'SCHEMA_INCOMPATIBILITY', upstreamStatus: 400,
+      providerError: { type: 'invalid_request_error', param: 'response_format', code: 'invalid_json_schema' },
+    }), 502, 'META_SCHEMA_INCOMPATIBLE'],
+    [new MetaProviderError('TIMEOUT', {
+      requestId: 'meta-timeout', phase: 'UPSTREAM_TIMEOUT', durationMs: 45000,
+    }), 504, 'META_TIMEOUT'],
+    [new MetaProviderError('TRANSPORT', {
+      requestId: 'meta-transport', phase: 'UPSTREAM_TRANSPORT', durationMs: 3,
+    }), 502, 'META_TRANSPORT'],
+    [new MetaProviderError('HTTP_FAILURE', {
+      requestId: 'meta-http', phase: 'UPSTREAM_HTTP', upstreamStatus: 503,
+    }), 502, 'META_UPSTREAM_HTTP'],
+  ];
+  for (const [failure, expectedStatus, expectedCode] of cases) {
+    const base = await withServer(t, {
+      getKey: () => 'NO_LEAK_KEY',
+      modelClient: async () => { throw failure; },
+    });
+    const response = await analysisRequest(base, { project: project() });
+    assert.equal(response.status, expectedStatus);
+    const raw = await response.text();
+    const body = JSON.parse(raw);
+    assert.equal(body.code, expectedCode);
+    assert.equal(body.diagnostic.requestId, failure.diagnostic.requestId);
+    assert.doesNotMatch(raw, /NO_LEAK_KEY|ESCENA|Música|PRIVATE/);
   }
 });
 
@@ -233,6 +276,62 @@ test('Meta request accepts a show with no audio and null assetId sound prompt', 
   assert.deepEqual(data.proposals, [{lineId:'L2',assetId:null,label:'Trueno lejano',soundPrompt:'Low rumbling distant thunder'}]);
 });
 
+test('scene window offset returns transient coverage, observations and proposal details', async t => {
+  const scriptText = Array.from({length:130}, (_, index) =>
+    index === 124 ? '(A bell rings in the final scene.)' : `Line ${index + 1}`).join('\n');
+  const later = createNewShow({id:'later-show',name:'Later scene',scriptText});
+  const proposal = {
+    lineId:'L125', assetId:null, label:'Final bell',
+    soundPrompt:'One distant bell strike with a long, quiet decay.',
+  };
+  const detail = {cueKind:'FX',basis:'EXPLICIT',transport:'PLAY',reason:'The direction explicitly calls for a bell.'};
+  let observedOffset;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_KEY',
+    modelClient: async ({analysisWindowStart}) => {
+      observedOffset = analysisWindowStart;
+      return {
+        provider:'META_MODEL_API',
+        proposals:[proposal],
+        details:[detail],
+        observations:[{cueKind:'MUSIC',basis:'EXPLICIT',transport:'STOP',reason:'Existing music ends.'}],
+        duplicatesRemoved:1,
+        coverage:{
+          totalLines:130,sceneCount:1,totalWindows:3,
+          batchStartWindow:2,batchEndWindowExclusive:3,
+          analyzedWindowIds:['S1-W3'],
+          analyzedLineIds:Array.from({length:10},(_,index)=>`L${121+index}`),
+          analyzedLines:10,nextWindowStart:null,complete:true,
+        },
+      };
+    },
+  });
+  const response = await analysisRequest(base, {project:later,scriptLanguage:'en',analysisWindowStart:2});
+  assert.equal(response.status, 200);
+  assert.equal(observedOffset, 2);
+  const data = await response.json();
+  assert.deepEqual(data.proposals, [proposal]);
+  assert.deepEqual(data.proposalDetails, [detail]);
+  assert.equal(data.observations[0].transport, 'STOP');
+  assert.equal(data.duplicatesRemoved, 1);
+  assert.equal(data.coverage.complete, true);
+  const imported = addMetaProposals(later, data.proposals);
+  const persisted = serializeShowProject(imported);
+  assert.doesNotMatch(persisted, /coverage|cueKind|basis|transport|reason/);
+});
+
+test('invalid scene window offset is rejected before an external call', async t => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_KEY',
+    modelClient: async () => { calls += 1; throw new Error('SHOULD_NOT_RUN'); },
+  });
+  const response = await analysisRequest(base, {project:project(),analysisWindowStart:-1});
+  assert.equal(response.status, 400);
+  assert.equal(calls, 0);
+  assert.equal((await response.json()).diagnostic.phase, 'LOCAL_VALIDATION');
+});
+
 test('hallucinated Meta source line produces specific safe diagnostic', async t => {
   const base = await withServer(t, {
     getKey: () => 'NO_LEAK_KEY',
@@ -243,5 +342,8 @@ test('hallucinated Meta source line produces specific safe diagnostic', async t 
   });
   const response = await analysisRequest(base, {project: project()});
   assert.equal(response.status, 422);
-  assert.deepEqual(await response.json(), {code:'META_BAD_REFERENCES'});
+  const body = await response.json();
+  assert.equal(body.code, 'META_BAD_REFERENCES');
+  assert.equal(body.diagnostic.phase, 'LOCAL_SEMANTIC_VALIDATION');
+  assert.equal(body.diagnostic.code, 'BAD_REFERENCES');
 });

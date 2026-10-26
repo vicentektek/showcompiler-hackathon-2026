@@ -1,40 +1,66 @@
 # ShowCompiler — Meta Global AI Developer Hackathon 2026
 
-**Status: new experimental browser prototype with real local audio playback and opt-in Meta Model API or Baseten-hosted Muse Spark Open proposals (live inference testing pending).** This repository tracks only work created during the event (26 October–4 November 2026). The intended entry is **Build for Your World**, applying Meta AI to stage and event sound-control workflows.
+ShowCompiler is a new, hackathon-only browser prototype for turning theatre scripts into human-reviewed sound-cue plans. It combines opt-in Meta Muse Spark analysis with deterministic local audio playback. No code was copied from the earlier SHOWCOMPILER repository.
 
-## Run locally (Node.js 20+)
+**Current truth:** the Meta and Baseten adapters, strict validation, review workflow, and browser audio engine are implemented and covered by mocked-transport tests. The guarded live Meta smoke test has **not** been run, so live inference remains unverified. No paid audio-generation service is implemented.
+
+## Run locally
+
+Node.js 20 or newer is required; there are no npm dependencies to install.
 
 ```sh
 npm test
+npm run check:syntax
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173** in Chrome or Edge (English default; select **Español** for Spanish), click **Example**, load a WAV/MP3 and approve a mock cue to test **real audio playback**.
+Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface; Spanish is selectable. `npm run demo:core` runs the terminal-only review demonstration.
 
-Other commands: `npm run check:syntax` checks browser/server modules, and `npm run demo:core` launches the independent terminal walkthrough. No npm dependencies or installation steps are needed.
+## Implemented
 
-## Currently implemented
+- Import a UTF-8 script without translating or rewriting it. Stable `L1`, `L2`, … references always point to the original source.
+- Plan bounded scene-aware analysis windows: 60 core lines plus up to three read-only context lines. One expressly confirmed Meta request analyzes at most two windows and returns at most eight rich transient suggestions. Later windows require another explicit click.
+- Distinguish explicit acoustic directions, creative atmospheric suggestions, dialogue-only mentions, continuing ambience, stop/silence intent, and playable cues. Exact source evidence and original-language labels are validated locally.
+- Analyze a show with no audio library. A valid missing sound uses `assetId: null` and a nonempty acoustic `soundPrompt`.
+- Keep every AI result `PENDING` until the operator approves or rejects it. Approval creates a `DRAFT`; it never executes audio.
+- Resolve approved sound needs in three ways: choose an existing library asset, decide later, or prepare future AI generation. The third choice records intent only—no generation request or charge occurs.
+- Block **GO** for unresolved `PLAN_AUDIO` cues and for missing decoded files. The browser audio engine independently enforces this rule.
+- Run approved `PLAY` cues using local Web Audio with manual **GO**, **STOP**, **FADE 1.5 s**, and **STOP ALL**. Playback performs no AI or network call.
+- Export and reopen strict versioned project JSON. Audio bytes, UI locale, analysis coverage, provider diagnostics, and transient `CueSuggestionV2` fields are deliberately excluded.
+- Use either the first-party Meta Model API or the Baseten-hosted Muse Spark Open fallback. Keys stay in the local Node process; WAV/MP3 bytes are never sent.
+- Measure offline exact-line precision, recall, F1, forbidden triggers, duplicate proposals, and hallucinated source references with rights-clear synthetic fixtures.
 
-- Local browser interface in **English (default) and Spanish**, with a persistent per-device language selector; import a UTF-8 TXT script and see stable source-line references.
-- Load **real local WAV/MP3** files into browser memory; attach them to their asset IDs (audio never leaves the browser).
-- **Analyze scripts with no audio library:** approve sound-design cues as **AUDIO PENDING**; choose an existing local sound, defer assignment, or prepare a future AI sound-generation request (preparation only; no generator integration or credits used).
-- Create either a **SIMULATED** cue proposal or select **Meta Model API** (MODEL_API_KEY) or **Baseten-hosted Meta Muse Spark Open** (BASETEN_API_KEY). The original Meta adapter is unchanged. Every external inference request requires operator confirmation; no automatic GO. JSON records exact provenance (manual, Meta or Baseten), and script-language hints remain independent of the UI.
-- Execute explicitly approved cues by manual **GO**, **STOP**, **FADE 1.5 s**, and **PARAR TODO** using the browser Web Audio engine.
-- UI now uses an explicit [audio backend boundary](src/core/audioBackend.mjs) with truthful capabilities. **Native Rust/WASAPI/ASIO are planned, not implemented.**
-- Export and reimport validated versioned JSON project data (**the actual audio is not embedded**).
-- Unit and integration tests, plus syntax checks and GitHub Actions verification.
-- Local, allowlisted web server bound to 127.0.0.1 only.
+## Meta contract smoke test
 
-**Not implemented or unverified:** Neither live first-party Meta API access nor the Baseten-hosted Muse Spark Open inference have yet been tested with an actual account key/quota. Baseten Muse Spark Open does not provide structured JSON mode; its output must pass strict validation. Professional WASAPI/ASIO output routing, persistent audio files, desktop installer, hardware interfaces and full portable projects are not implemented. Browser audio still needs manual audible acceptance. No mock feature is described as real inference.
+The smoke command is intentionally separate from tests and the development server. It makes exactly one potentially billable request, uses a three-line synthetic script with no assets, performs zero retries, and prints only sanitized metadata.
 
-Read the [sound-first workflow ADR](docs/ADR-0002_SOUND_PLANNING_GENERATION_FLOW.md), [Baseten-hosted Muse Spark Open fallback](docs/BASETEN_MUSE_OPEN_FALLBACK.md), [EN/ES multilingual design](docs/I18N_ARCHITECTURE.md), [Meta Model API local setup](docs/META_MODEL_API.md), [desktop audio architecture decision](docs/ADR-0001_MOTOR_AUDIO_NATIVO_2026-10-26.md), [real audio GO/STOP walkthrough](docs/LOCAL_AUDIO_MVP.md), [UI walkthrough](docs/UI_PROTOTYPE.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), [persistence limits](docs/PERSISTENCE.md), and [contribution log](docs/CONTRIBUTIONS.md).
+```powershell
+$env:MODEL_API_KEY = '<set locally; never commit>'
+npm run smoke:meta -- --authorize-one-billable-meta-request
+```
 
-## Planned competition path
+Do not run it merely to execute the test suite. A timeout may still have consumed provider tokens. This repository does **not** claim live Meta inference works until this explicitly authorized command succeeds and its result is manually reviewed.
 
-TXT script → Meta-model cue proposals → strict validation → explicit operator approval → deterministic audio execution. Only completed, tested features developed during the hackathon will be claimed in the submission.
+## Safety and scope limits
 
-## Compliance
+- The loopback server binds to `127.0.0.1`, serves an allowlist, and requires same-origin JSON POSTs for inference.
+- Provider errors are reduced to safe categories, a local request ID, status, phase, latency, finish reason, token counts, and allowlisted error `type`/`param`/`code`. Keys, full scripts, upstream messages, and raw provider bodies are never logged or returned.
+- No inference request is automatic and no request is automatically retried.
+- Project JSON remains schema v1. It supports both executable `PLAY` and unresolved `PLAN_AUDIO`; older builds may reject v1 files containing the later action.
+- Browser audio is a local prototype, not certified professional show control. Native WASAPI/ASIO, portable media packages, hardware routing, desktop installation, and paid sound generation remain future work.
+- Neither first-party Meta nor Baseten live inference has been verified with a real account in this branch. Browser audio still needs manual audible acceptance.
 
-No source code from the earlier application was imported. Previous research is a design reference, not event-created code. Keep dated commits and accurate feature descriptions. The submitted repository must be public by the deadline; do not commit credentials, private scripts, or unlicensed media.
+## Documentation
 
-Development branches and draft PRs remain isolated until reviewed. The sound-planning experimental branch is `feat/audio-planning-unbound-cues`, based on `feat/baseten-muse-open-fallback`. The fallback branch is unchanged. , based on `feat/i18n-en-es-2026-10-26`. The default `main` does not contain these additions yet.
+- [Meta Model API contract and setup](docs/META_MODEL_API.md)
+- [Technical research and evaluation record](docs/META_API_TECHNICAL_RESEARCH_AND_EVAL_2026-10-26.md)
+- [Theatre cue evaluation](docs/THEATRE_CUE_EVALUATION.md)
+- [Sound-planning decision](docs/ADR-0002_SOUND_PLANNING_GENERATION_FLOW.md)
+- [Internationalisation architecture](docs/I18N_ARCHITECTURE.md)
+- [Persistence contract](docs/PERSISTENCE.md)
+- [Browser acceptance](docs/UI_PROTOTYPE.md)
+- [Hackathon contribution log](docs/CONTRIBUTIONS.md)
+
+## Contribution boundary
+
+Work remains on isolated feature branches and draft pull requests until review; do not merge to `main` automatically. Keep dated commits and truthful capability statements. Never commit credentials, account/billing data, private scripts, raw provider responses, or unlicensed media.

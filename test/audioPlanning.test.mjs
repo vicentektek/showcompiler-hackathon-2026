@@ -88,6 +88,17 @@ test('reject suggestions referring to nonexistent resources even when planning i
  const current=show();
  assert.throws(()=>addModelProposals(current,[{...suggestion,assetId:'invented'}]));
  assert.throws(()=>addModelProposals(current,[{...suggestion,lineId:'L99'}]));
+ assert.throws(()=>addModelProposals(current,[{lineId:'L2',assetId:null,label:'Missing brief'}]));
+ assert.throws(()=>addModelProposals(current,[{...suggestion,soundPrompt:'   '}]));
  const validated=validateCueProposals([{id:'proposal-1',label:'Test',sourceLineIds:['L2'],actions:[{type:'PLAY',assetId:'fake'}]}],[{id:'L2'}],[]);
  assert.equal(validated.valid,false);
+});
+
+test('first-party scene batches can reference later script lines while fallback scope stays bounded',()=>{
+ const scriptText=Array.from({length:140},(_,index)=>index===129?'(A distant bell rings.)':`Line ${index+1}`).join('\n');
+ const current=createNewShow({id:'later-scenes',name:'Later scenes',scriptText});
+ const later={lineId:'L130',assetId:null,label:'Distant bell',soundPrompt:'One distant bell strike with a long natural decay.'};
+ const meta=addModelProposals(current,[later],'META_MODEL_API');
+ assert.equal(meta.proposals[0].sourceLineIds[0],'L130');
+ assert.throws(()=>addModelProposals(current,[later],'BASETEN_MUSE_SPARK_OPEN'));
 });

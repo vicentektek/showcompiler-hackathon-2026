@@ -1,44 +1,54 @@
-# Reproducción real de audio — MVP local (26 octubre 2026)
+# Real local audio — browser MVP
 
-Esta versión **sí reproduce archivos de audio** desde Chrome o Edge con la API Web Audio. El motor se ha escrito durante el hackathon y está separado de las propuestas generadas manualmente.
+Date: 26 October 2026
+Status: Web Audio engine implemented and automatically tested with simulated adapters; manual audible Windows acceptance remains pending.
 
-## Prueba de aceptación en Windows
+The browser decodes and plays operator-selected local files. This engine is separate from model analysis: no AI or network request occurs in GO, STOP, fade, or STOP ALL.
 
-Desde PowerShell, en la rama `feat/hackathon-script-core`:
+## Windows acceptance
+
+From PowerShell in the repository:
 
 ```powershell
-git pull --ff-only
 npm test
 npm run dev
 ```
 
-Abre **http://127.0.0.1:5173**, recarga la página con `Ctrl+F5` y sigue estos pasos:
+Open `http://127.0.0.1:5173` in Chrome or Edge, set a safe speaker/headphone level, then:
 
-1. Pulsa **Ejemplo**. Se carga un pequeño guion nuevo.
-2. Pulsa **Cargar WAV/MP3 real** y selecciona un archivo propio compatible, preferiblemente corto. No se sube al servidor.
-3. Escribe un nombre de cue, selecciona la línea deseada y el audio que figura como **CARGADO**.
-4. Pulsa **Crear propuesta simulada** y después **Aprobar**.
-5. En la columna de cues, pulsa **GO**: ahora **se oye el audio real** del archivo cargado.
-6. Prueba **STOP** y vuelve a pulsar GO. Prueba **FADE 1,5 s** para oír el fundido.
-7. Crea otro cue, ejecútalo y pulsa el botón rojo **PARAR TODO** para silenciar todas las reproducciones.
+1. Select **Example** or import a rights-clear script.
+2. Select **Load real audio** and choose a short supported file. It stays in browser memory and is not uploaded.
+3. Create a simulated proposal on a source line with that asset, then explicitly approve it.
+4. Select **GO** and verify the file is audible.
+5. Test immediate **STOP**, GO again, and **FADE 1.5 s**.
+6. Run multiple cues and select **STOP ALL**; confirm every source is silent.
+7. Approve an unbound `PLAN_AUDIO` cue and verify GO remains disabled for DEFER and GENERATE intent.
+8. Assign a library asset but do not load its file; verify GO remains disabled until decoding completes.
+9. Disconnect the network and repeat loaded GO/STOP/fade/STOP ALL.
+10. Export/open JSON and reload the matching local file, because audio bytes are not persisted.
 
-Si el puerto 5173 está ocupado, detén el servidor con Ctrl+C y ejecuta `$env:PORT=5174; npm run dev`. Usa http://127.0.0.1:5174.
+If port 5173 is occupied:
 
-## Restricciones conocidas
+```powershell
+$env:PORT = 5174
+npm run dev
+```
 
-- Las propuestas siguen siendo **SIMULADAS**. No hay todavía inferencia de Meta AI.
-- **GO requiere acción humana explícita** sobre un cue previamente aprobado.
-- La ganancia inicial de cada reproducción es del 50 % (aprox. –6 dB); comprueba volumen de altavoces/salida.
-- Se decodifican archivos WAV, MP3 y otros formatos si el navegador los soporta, máximo **20 MB**, **10 minutos**, **mono o estéreo**.
-- Cada GO reproduce el audio una vez; el módulo admite varios cues sonando a la vez.
-- STOP para inmediatamente y FADE programa una rampa de salida de 1,5 segundos.
-- PARAR TODO silencia las ganancias y cancela GO pendientes.
-- No hay salida ASIO, buses de hardware, ruteo de canales profesional, timecode, MagicQ ni garantías de latencia.
-- El audio decodificado reside **solo en la memoria del navegador** y no se guarda en JSON. Tras recargar la página, crear un nuevo espectáculo o abrir un JSON, vuelve a cargar el archivo **con el mismo nombre** para recuperar su vínculo.
-- No uses este MVP para un espectáculo real con público ni para control de seguridad.
+## Enforced constraints
 
-## Criterio de verificación
+- GO needs a direct operator action on an approved `DRAFT` cue.
+- Every action must be `PLAY` and every referenced asset must have a decoded buffer.
+- Initial gain is 50% (approximately −6 dB); this is not a substitute for safe hardware gain staging.
+- Input size is capped at 20 MB, duration at 10 minutes, and channels at mono/stereo. Browser codec support varies.
+- A running/pending cue cannot GO twice.
+- STOP and fade are local; STOP ALL silences active gains and invalidates pending asynchronous GO.
+- Changing/opening a project resets buffers and cancels stale decode/transport work.
+- Audio exists only in volatile browser memory and is never embedded in project JSON.
 
-Las pruebas automatizadas validan estados, programación de fuentes Web Audio mediante adaptadores simulados y cancelaciones. **No certifican por sí solas salida audible, compatibilidad de códecs ni latencia.** Comprobar manualmente con auriculares o altavoces el recorrido de GO, STOP, FADE y PARAR TODO en Windows es obligatorio antes de declarar superada la aceptación de usuario.
+## Not provided
 
-Código: `src/core/browserAudio.mjs`. Pruebas: `test/browserAudio.test.mjs`.
+No ASIO, professional channel routing, independent preview bus, multichannel output, timecode, native sample-clock guarantees, portable media package, or safety certification exists. Do not use this prototype for a public performance or safety-critical control.
+
+Automated tests validate state transitions and scheduling against fake AudioContext objects. They do not certify audible output, codecs, hardware compatibility, latency, or gain. Record manual evidence before making those claims.
+
+Implementation: `src/core/browserAudio.mjs` behind `src/core/audioBackend.mjs`. Tests: `test/browserAudio.test.mjs` and `test/audioBackend.test.mjs`.
