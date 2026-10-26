@@ -15,7 +15,7 @@ test('browser wiring references only actual HTML element IDs', () => {
 });
 
 test('prototype labels mock AI, real local audio and incomplete JSON packaging', () => {
-  assert.match(html, /IA SIMULADA · AUDIO LOCAL REAL/);
+  assert.match(html, /META AI OPCIONAL · AUDIO LOCAL REAL/);
   assert.match(html, /ORIGEN IDENTIFICADO/);
   assert.match(html, /id="analyzeMetaBtn"/);
   assert.match(html, /no quedan dentro del JSON/);
