@@ -71,8 +71,12 @@ const COMMON_ERRORS = Object.freeze([
   [/^Proposal /i, 'errors.generic'],
 ]);
 
-export function translateError(locale, error) {
+export function resolveErrorKey(error) {
+  if (typeof error?.uiKey === 'string' && Object.hasOwn(UI_CATALOGS.en, error.uiKey)) return error.uiKey;
   const message = error instanceof Error ? error.message : '';
-  const matched = COMMON_ERRORS.find(([pattern]) => pattern.test(message));
-  return translate(locale, matched?.[1] ?? 'errors.generic');
+  return COMMON_ERRORS.find(([pattern]) => pattern.test(message))?.[1] ?? 'errors.generic';
+}
+
+export function translateError(locale, error) {
+  return translate(locale, resolveErrorKey(error), error?.uiValues ?? {});
 }
