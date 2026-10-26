@@ -104,3 +104,17 @@ test('client does not reach model providers directly or make calls on load', () 
   assert.doesNotMatch(client, /inference\.baseten\.co|api\.meta\.ai/);
   assert.doesNotMatch(html, /BASETEN_API_KEY|MODEL_API_KEY/);
 });
+
+test('cue cards offer direct local audio choice and replacement without remote upload', () => {
+  assert.match(client, /function pickAudioFile\(cueId = null\)/);
+  assert.match(client, /function cueAudioPicker\(cueId, translationKey\)/);
+  assert.match(client, /soundPlan\.loadFile/);
+  assert.match(client, /soundPlan\.replaceFile/);
+  assert.match(client, /linkLocalAudioToCue\(before, cueId, file\.name\)/);
+  assert.match(client, /await player\.loadFile\(file, assetId\)/);
+  assert.match(client, /generation !== projectGeneration \|\| show !== before/);
+  assert.match(client, /transport\.activeCueCount \|\| transport\.pendingGoCount/);
+  assert.match(client, /show = nextShow;/);
+  assert.match(client, /audioInFlight/);
+  assert.doesNotMatch(client, /fetch\([^\n]*file/);
+});
