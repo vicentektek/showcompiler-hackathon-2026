@@ -1,6 +1,6 @@
 # Browser UI — hackathon prototype
 
-The frontend is a local, dependency-free rehearsal prototype. It has real browser audio playback and opt-in model adapters, but it is not production show-control software. Live Meta and Baseten inference remain unverified with real accounts.
+The frontend is a local, dependency-free rehearsal prototype. It has real browser audio playback and opt-in model adapters, but it is not production show-control software. The user verified one Meta Muse Spark 1.3 live smoke and AI proposal → DRAFT approval in the browser. Baseten live inference and the new direct audio attachment still await manual acceptance.
 
 ## Start on Windows
 
@@ -27,7 +27,7 @@ npm run dev
 4. For Meta, inspect the scene-window scope and confirmation. One click authorizes one potentially billable request (maximum two windows); later coverage needs another click.
 5. Inspect visible line/window coverage and transient cue-kind/basis/transport details. Continuing ambience, stop, and silence are observations rather than executable PLAY proposals.
 6. Approve or reject each pending proposal. Approval creates a `DRAFT`; no audio starts.
-7. For an unbound sound choose **Library**, **Decide later**, or **Prepare AI generation**. The last choice records intent only and never contacts an audio generator.
+7. For an unbound sound choose **Load local audio** directly within the cue, **Library**, **Decide later**, or **Prepare AI generation**. The local file is decoded and linked to the cue and asset library without a separate import. A single-PLAY cue offers **Replace local audio**, preserving number, script anchors and approval. The AI generation choice only records intent.
 8. GO is enabled only for an approved `PLAY` cue whose local file is loaded. Use **STOP**, **FADE 1.5 s**, and **STOP ALL** as operator actions.
 9. Download project JSON and reopen it. Script, review state, cues, and sound-resolution intent persist; audio files and transient analysis metadata do not.
 
@@ -39,7 +39,7 @@ npm run dev
 - The server sends bounded script windows and audio names/IDs, never WAV/MP3 bytes.
 - Requests have zero automatic retries.
 - Safe error categories are localized; raw upstream bodies/messages, full scripts, secrets, and stack traces are not shown.
-- The guarded CLI smoke has not been run, so the UI must not imply that live inference is proven.
+- The guarded Meta smoke succeeded once with the user's account. That does not establish correctness for longer scripts or all languages, and Baseten remains unverified.
 
 ## Playback boundary
 
@@ -67,7 +67,8 @@ Refreshing without exporting loses in-memory changes. JSON is not a portable med
 - Test explicit sound, suggested atmosphere, remembered sound, continuing ambience, silence, and stop cases.
 - Confirm every proposal requires approve/reject and approval never starts playback.
 - Approve an unbound cue; verify all three resolution choices and blocked GO.
-- Assign/load audio and audibly test GO, STOP, fade, and STOP ALL at a safe level.
+- Load audio directly from an approved cue, verify that it is automatically added to the library and GO stays manual, then audibly test GO, STOP, fade and STOP ALL at a safe level.
+- Replace a cue file while retaining its source reference. Test cancelled/invalid files, currently playing transport rejection, and confirmation when overwriting a file shared by another cue.
 - Disconnect the network and repeat local transport operations.
 - Exercise invalid JSON, missing files, stale responses, provider timeout, refusal, schema error, and project changes during analysis.
 - Inspect responsive layout, keyboard focus, screen-reader status regions, and confirmation dialogs in Chrome and Edge.
@@ -76,7 +77,7 @@ Refreshing without exporting loses in-memory changes. JSON is not a portable med
 
 - Only the first 300 script lines are rendered in the preview; manual source selection is capped at 1,000 even though analysis planning and the parser can cover more.
 - Only EN/ES UI catalogs exist; model-language hints do not guarantee quality in every language.
-- Browser audio lacks professional device routing, independent preview bus, multichannel output, native WASAPI/ASIO, packaging, and certification.
+- Browser audio lacks professional device routing, an independent preview bus, multichannel output, native WASAPI/ASIO, packaging, and certification. Loading is refused while audio transport is active.
 - No paid sound generation, desktop installer, collaborative server, or portable show bundle exists.
 
 Record manual evidence before merging or making demo claims. Automated Node tests do not replace audible, visual, accessibility, or real-provider acceptance.
