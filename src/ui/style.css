@@ -54,3 +54,18 @@ footer{padding:20px 34px;border-top:1px solid #263149;color:#73839f;text-align:c
 #scriptLanguageCustom{margin:1px 0 9px}
 [hidden]{display:none!important}
 @media(max-width:740px){.top-actions .locale-select{flex:0 0 125px}}
+
+/* Script source navigation and read-only operator readiness audit. */
+.script-search-row{display:flex;align-items:center;gap:6px;margin:8px 0 4px}
+.script-search-row input{min-width:0;flex:1 1 auto}
+.script-search-row .btn{flex:0 0 auto;padding:8px 11px}
+#scriptSearchStatus{margin:0 0 8px;min-height:18px}
+.script-line-match{background:#23395372!important}
+.script-line-focus{background:#243f63!important;box-shadow:inset 3px 0 #7bb3ff}
+.preflight-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 14px}
+.preflight-report{border:1px solid #495d78;border-radius:8px;background:#121f32;padding:11px 13px;margin-bottom:14px}
+.preflight-report strong{font-size:12px;color:#e7efff;line-height:1.5}
+.preflight-report ul{padding-left:18px;margin:9px 0 0;display:grid;gap:6px}
+.preflight-report li{font-size:12px;line-height:1.45;color:#c8d4e9}
+.preflight-report li.preflight-blocker{color:#ffcad0}
+.preflight-report li.preflight-warning{color:#f2dfa1}

@@ -60,6 +60,13 @@
             <span data-i18n="script.sourceHeading">Original text and source references</span>
             <span id="scriptLimitNote" class="caption"></span>
           </div>
+          <div class="script-search-row">
+            <label class="sr-only" for="scriptSearchInput" data-i18n="script.searchLabel">Find in script</label>
+            <input id="scriptSearchInput" type="search" autocomplete="off" data-i18n-placeholder="script.searchPlaceholder" placeholder="Find dialogue or stage directions">
+            <button id="scriptSearchPrevBtn" class="btn subtle small" type="button" data-i18n-aria="script.previousMatch" aria-label="Previous match">↑</button>
+            <button id="scriptSearchNextBtn" class="btn subtle small" type="button" data-i18n-aria="script.nextMatch" aria-label="Next match">↓</button>
+          </div>
+          <p id="scriptSearchStatus" class="caption" role="status" aria-live="polite"></p>
           <div id="scriptPreview" class="script-view" data-i18n-aria="script.linesAria" aria-label="Script lines"></div>
           <div class="separator"></div>
           <div class="subheading">
@@ -130,6 +137,14 @@
             <span class="label-draft" data-i18n="cues.manual">MANUAL GO</span>
           </div>
           <p class="help" data-i18n="cues.help">Only expressly approved suggestions appear here. GO plays the loaded audio; STOP and FADE 1.5 s stop playback. The operator remains in control.</p>
+          <div class="preflight-toolbar">
+            <button id="checkPreflightBtn" type="button" class="btn subtle small" data-i18n="preflight.check">Check show readiness</button>
+            <span class="caption" data-i18n="preflight.notice">Advisory only · does not arm live mode</span>
+          </div>
+          <div id="preflightReport" class="preflight-report" hidden>
+            <strong id="preflightSummary"></strong>
+            <ul id="preflightIssues"></ul>
+          </div>
           <div id="cueList" class="item-list"></div>
           <div id="transportStatus" class="caption" role="status" aria-live="polite" data-i18n="cues.transportInitial">Transport stopped.</div>
           <div class="info">
