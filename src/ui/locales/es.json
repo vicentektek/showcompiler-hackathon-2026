@@ -166,5 +166,16 @@
   "errors.basetenOutputNotJson": "Muse Spark devolvió texto en lugar de propuestas JSON válidas. No se importó ningún cue.",
   "errors.basetenOutputSchema": "Muse Spark devolvió propuestas con un formato no compatible. No se importó ningún cue.",
   "errors.basetenOutputEmpty": "Muse Spark devolvió contenido vacío o demasiado largo. No se importó ningún cue.",
-  "errors.basetenBadReferences": "Muse Spark citó una línea o un audio inexistente en el proyecto. Se rechazaron las propuestas por seguridad."
+  "errors.basetenBadReferences": "Muse Spark citó una línea o un audio inexistente en el proyecto. Se rechazaron las propuestas por seguridad.",
+  "soundPlan.defer": "Decidir después (sin audio)",
+  "soundPlan.manualHelp": "¿No tienes audio? Elige «Decidir después» y crea ya el cue.",
+  "soundPlan.unresolved": "AUDIO PENDIENTE",
+  "soundPlan.generationQueued": "GENERACIÓN IA PREPARADA (NO GENERADA)",
+  "soundPlan.prepareGeneration": "Preparar sonido IA",
+  "soundPlan.libraryLabel": "Seleccionar audio existente",
+  "soundPlan.assign": "Asignar audio",
+  "soundPlan.deferredFeedback": "Audio aplazado. GO permanecerá inactivo hasta asignar y cargar el sonido.",
+  "soundPlan.generationFeedback": "Preparada la intención de generar sonido. No se ha contactado con ningún proveedor ni gastado créditos. GO permanece inactivo.",
+  "soundPlan.assignedFeedback": "Referencia de audio asignada. Carga el archivo correspondiente antes de pulsar GO.",
+  "soundPlan.silenceExplanation": "Un sonido planificado no se puede reproducir hasta vincularle un archivo decodificado."
 }
