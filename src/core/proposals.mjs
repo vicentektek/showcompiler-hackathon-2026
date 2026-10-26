@@ -20,7 +20,7 @@ export function validateCueProposals(proposals, scriptLines, assetIds, options =
     if (!Array.isArray(p.actions) || p.actions.length === 0 || p.actions.length > 12) { errors.push(`${where}: invalid action count`); continue; }
     const badAction = p.actions.some(action => !action || typeof action !== 'object' || Array.isArray(action) || action.type !== 'PLAY' || typeof action.assetId !== 'string' || !knownAssets.has(action.assetId));
     if (badAction) { errors.push(`${where}: unsupported action or missing audio asset`); continue; }
-    if (p.source !== undefined && !['MANUAL_MOCK', 'META_MODEL_API'].includes(p.source)) {
+    if (p.source !== undefined && !['MANUAL_MOCK', 'META_MODEL_API', 'BASETEN_MUSE_SPARK_OPEN'].includes(p.source)) {
       errors.push(`${where}: invalid suggestion source`);
       continue;
     }
