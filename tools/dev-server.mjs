@@ -1,0 +1,64 @@
+/** Minimal loopback-only development server; no npm dependencies. */
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const allowed = new Map([
+  ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/src/ui/app.mjs', ['src/ui/app.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/style.css', ['src/ui/style.css', 'text/css; charset=utf-8']],
+  ['/src/core/workspace.mjs', ['src/core/workspace.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/script.mjs', ['src/core/script.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/proposals.mjs', ['src/core/proposals.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/review.mjs', ['src/core/review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/projectPersistence.mjs', ['src/core/projectPersistence.mjs', 'text/javascript; charset=utf-8']],
+]);
+export function createAppServer() {
+  return createServer(async (request, response) => {
+    const headers = {
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      'Referrer-Policy': 'no-referrer',
+    };
+    if (!['GET', 'HEAD'].includes(request.method)) {
+      response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
+      response.end();
+      return;
+    }
+    let pathname;
+    try { pathname = new URL(request.url, 'http://127.0.0.1').pathname; }
+    catch { response.writeHead(400, headers); response.end(); return; }
+    const entry = allowed.get(pathname);
+    if (!entry) { response.writeHead(404, headers); response.end(); return; }
+    try {
+      const data = await readFile(join(projectRoot, entry[0]));
+      response.writeHead(200, { ...headers, 'Content-Type': entry[1], 'Content-Length': data.byteLength });
+      response.end(request.method === 'HEAD' ? undefined : data);
+    } catch {
+      response.writeHead(500, headers);
+      response.end('Local resource unavailable');
+    }
+  });
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const port = Number(process.env.PORT ?? 5173);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    console.error('PORT must be between 1024 and 65535');
+    process.exitCode = 1;
+  } else {
+    const server = createAppServer();
+    server.once('error', error => {
+      console.error(error.code === 'EADDRINUSE' ? `Port ${port} is busy; set PORT=5174` : error.message);
+      process.exitCode = 1;
+    });
+    server.listen(port, '127.0.0.1', () => {
+      console.log(`ShowCompiler prototype at http://127.0.0.1:${port}`);
+      console.log('Ctrl+C to stop. Local simulation only; no Meta AI or audio playback.');
+    });
+  }
+}
