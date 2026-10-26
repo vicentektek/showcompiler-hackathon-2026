@@ -1,6 +1,6 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, decideProposal, nextAvailableId } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addMetaProposals, decideProposal, nextAvailableId } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -10,6 +10,8 @@ const maximumShownLines = 300;
 let show = createNewShow();
 let dirty = false;
 let projectGeneration = 0;
+let metaAvailable = false;
+let metaInFlight = false;
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
 function refreshAudioControls() {
   const status = $('transportStatus');
@@ -99,6 +101,7 @@ function render() {
   replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || '(línea vacía)'}`]) : [], $('lineSelect').value);
   replaceOptions($('assetSelect'), show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`]), $('assetSelect').value);
   $('createProposalBtn').disabled = !show.scriptText || show.assets.length === 0;
+  $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim() || show.assets.length === 0;
 
   const proposalList = $('proposalList');
   proposalList.replaceChildren();
@@ -107,6 +110,7 @@ function render() {
     const card = node('article', 'item');
     const top = node('div', 'item-head');
     top.append(node('strong', '', proposal.label), node('span', 'state', proposal.status));
+    top.append(node('span', 'state', proposal.source === 'META_MODEL_API' ? 'META AI' : 'MANUAL / IMPORTADO'));
     card.append(top);
     const line = getScriptLine(lines, proposal.sourceLineIds[0]);
     card.append(node('p', 'item-detail', `${proposal.sourceLineIds.join(', ')} · ${line?.text ?? 'Sin línea'}`));
@@ -251,6 +255,63 @@ $('projectFileInput').addEventListener('change', async (event) => {
     dirty = false;
   } catch (error) { feedback(error.message, 'error'); }
 });
+async function refreshMetaStatus() {
+  try {
+    const response = await fetch('/api/meta/status', { cache: 'no-store' });
+    if (!response.ok) throw new Error('El servidor local no está disponible');
+    const status = await response.json();
+    metaAvailable = status.provider === 'META_MODEL_API' && status.configured === true;
+    $('metaStatus').textContent = metaAvailable
+      ? 'Meta Model API configurada (' + status.model + '). Cada análisis requiere confirmación.'
+      : 'Meta AI no configurada: establece MODEL_API_KEY en la terminal que inicia npm run dev.';
+  } catch {
+    metaAvailable = false;
+    $('metaStatus').textContent = 'El servicio de Meta AI no responde en el servidor local.';
+  } finally {
+    render();
+  }
+}
+
+$('analyzeMetaBtn').addEventListener('click', async () => {
+  if (metaInFlight || !metaAvailable) return;
+  let snapshot;
+  try { snapshot = serializeShowProject(show); }
+  catch (error) { feedback(error.message, 'error'); return; }
+  const confirmed = window.confirm(
+    '¿Autorizar análisis externo con Meta AI?\n\nSe enviarán las primeras 120 líneas del guion (hasta 250 caracteres por línea) y los nombres de hasta 80 audios registrados. No se envían WAV/MP3. Podría consumir créditos de la API.\n\nNo se ejecutará ningún cue automáticamente.'
+  );
+  if (!confirmed) return;
+  const generation = projectGeneration;
+  metaInFlight = true;
+  render();
+  feedback('Consultando Meta Model API... No se reproducirá ningún audio automáticamente.');
+  try {
+    const response = await fetch('/api/meta/proposals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: JSON.parse(snapshot) }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error ?? 'Error al analizar el guion');
+    if (generation !== projectGeneration || serializeShowProject(show) !== snapshot) {
+      throw new Error('El proyecto cambió durante el análisis. No se han importado resultados antiguos.');
+    }
+    if (result.provider !== 'META_MODEL_API' || !Array.isArray(result.proposals)) {
+      throw new Error('La respuesta de Meta es inválida.');
+    }
+    const proposedCount = result.proposals.length;
+    show = addMetaProposals(show, result.proposals);
+    dirty = true;
+    render();
+    feedback('Meta AI devolvió ' + proposedCount + ' propuestas reales. Revísalas antes de aprobar. Ningún cue ha ejecutado GO.', 'success');
+  } catch (error) {
+    feedback(error?.message ?? 'No se pudo generar propuestas', 'error');
+  } finally {
+    metaInFlight = false;
+    render();
+  }
+});
+
 $('stopAllBtn').addEventListener('click', () => {
   player.stopAll();
   feedback('PARAR TODO: todos los audios locales se han silenciado.', 'success');
@@ -293,3 +354,4 @@ $('audioFileInput').addEventListener('change', async (event) => {
 });
 
 render();
+refreshMetaStatus();
