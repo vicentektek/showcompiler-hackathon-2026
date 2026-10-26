@@ -103,7 +103,7 @@ test('rejects fake audio and script IDs rather than partially accepting the mode
   });
   const res=await post(base,show());
   assert.notEqual(res.status,200);
-  assert.deepEqual(await res.json(),{code:'BASETEN_INVALID'});
+  assert.deepEqual(await res.json(),{code:'BASETEN_BAD_REFERENCES'});
 });
 
 test('invalid language hint is rejected before spending any provider tokens',async(t)=>{
