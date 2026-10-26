@@ -15,7 +15,14 @@ In PowerShell, inside `showcompiler-hackathon-2026`:
 ```powershell
 git fetch origin
 git switch --track origin/feat/meta-model-cue-proposals
-$env:MODEL_API_KEY = Read-Host "Introduce tu clave de Meta Model API"
+$keySecure = Read-Host "Clave de Meta Model API (no se muestra en pantalla)" -AsSecureString
+$keyPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($keySecure)
+try {
+  $env:MODEL_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPtr)
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPtr)
+  Remove-Variable keySecure, keyPtr
+}
 npm test
 npm run dev
 ```
