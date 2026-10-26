@@ -1,23 +1,22 @@
-# Script core — isolated new implementation
+# Script core — independent hackathon implementation
 
-Branch: `feat/hackathon-script-core`
+Branch: `feat/hackathon-script-core` (isolated from main).
 
-This is a small, dependency-free first increment written during the hackathon. It is **not** a complete application.
+The pure script utilities support text parsing, stable line references and accent-insensitive search. The separate proposal module validates untrusted suggestions against actual script lines and available asset IDs. The separate review module requires explicit operator confirmation before creating a **DRAFT** cue.
 
-Implemented:
-- UTF-8 string parsing with BOM, CRLF, CR and LF normalization.
-- Stable source references `L1`, `L2`, etc., including blank lines.
-- Lookup by source reference.
-- Accent- and case-insensitive search, preserving original text.
-
-Run tests locally with Node.js 20+:
+Run all 22 tests with Node.js 20+:
 
 ```sh
-node --test test/script.test.mjs
+npm test
 ```
 
-Scope limits:
-- No file upload UI, AI model, cue proposal generation, audio or deployment.
-- No previous repository source files imported.
-- Tests are committed, but execution in the user's environment and CI remains to be verified.
-- No merge to `main` until tests are executed and reviewed.
+The tests passed in a copied isolated Node.js 22.16.0 environment. Running a full build is not yet possible because this branch has no UI or bundler.
+
+See `docs/REVIEW_CORE.md` for trust-boundary details.
+
+### Not implemented
+- Script file upload UI, generative model calls, audio, cue editor, persistence, desktop application and deployment.
+- Human identity verification or durable approval history.
+- STOP and FADE validation or professional show-control readiness.
+
+Do not merge into main before checkout-based tests, review and integration.
