@@ -115,6 +115,52 @@ export function assignAudioToCue(project, cueId, assetId) {
   });
 }
 
+/** Link one locally selected file to a cue without ever starting playback.
+ * Used only after the browser has successfully decoded the file.
+ * Filename identity reuses an existing library reference (for JSON reloads).
+ * The approved parent proposal stays aligned with the cue.
+ */
+export function linkLocalAudioToCue(project, cueId, fileName) {
+  const current = normalizeShowProject(project);
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || cue.actions.length !== 1 ||
+      !['PLAN_AUDIO', 'PLAY'].includes(cue.actions[0].type)) {
+    throw new TypeError('Cue cannot accept one local audio file');
+  }
+  if (typeof fileName !== 'string' || !fileName.trim() || fileName.length > 200) {
+    throw new TypeError('Invalid audio filename');
+  }
+  const matches = current.assets.filter(asset => asset.name === fileName);
+  if (matches.length > 1) throw new TypeError('Duplicate audio filename references');
+  const withAsset = matches.length ? current : addAudioReference(current, fileName);
+  const assetId = matches.length ? matches[0].id : withAsset.assets.at(-1).id;
+  const result = cue.actions[0].type === 'PLAN_AUDIO'
+    ? assignAudioToCue(withAsset, cueId, assetId)
+    : replaceCueAudioAsset(withAsset, cueId, assetId);
+  return { project: result, assetId };
+}
+
+/** Replace the asset of an existing single-PLAY DRAFT cue.
+ * No change to cue number, original source references or playback state.
+ */
+export function replaceCueAudioAsset(project, cueId, assetId) {
+  const current = normalizeShowProject(project);
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || cue.status !== 'DRAFT' || cue.actions.length !== 1 ||
+      cue.actions[0].type !== 'PLAY') {
+    throw new TypeError('Cue has no replaceable PLAY action');
+  }
+  if (!current.assets.some(asset => asset.id === assetId)) throw new TypeError('Unknown audio asset');
+  const parent = current.proposals.find(item => item.id === cue.sourceProposalId);
+  if (!parent || parent.status !== 'APPROVED') throw new TypeError('Approved parent is missing');
+  const action = { type: 'PLAY', assetId };
+  return normalizeShowProject({
+    ...current,
+    proposals: current.proposals.map(item => item.id === parent.id ? { ...item, actions: [action] } : item),
+    cues: current.cues.map(item => item.id === cueId ? { ...item, actions: [action] } : item),
+  });
+}
+
 /** Mark an unresolved cue for later sound design or explicit generation.
  * This records intent only. No provider is called and no credits are consumed.
  */
