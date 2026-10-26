@@ -18,6 +18,9 @@ test('prototype labels mock AI, real local audio and incomplete JSON packaging',
   assert.match(html, /OPTIONAL META AI · REAL LOCAL AUDIO/);
   assert.match(html, /SOURCE TRACKED/);
   assert.match(html, /id="analyzeMetaBtn"/);
+  assert.match(html, /id="modelProviderSelect"/);
+  assert.match(html, /value="baseten"/);
+  assert.match(html, /value="meta"/);
   assert.match(html, /id="uiLocaleSelect"/);
   assert.match(html, /id="scriptLanguageSelect"/);
   assert.match(html, /audio is not embedded in JSON/);
@@ -69,6 +72,10 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const backendFacade = await fetch(base + '/src/core/audioBackend.mjs');
   assert.equal(backendFacade.status, 200);
   assert.match(await backendFacade.text(), /createBrowserAudioBackend/);
+  const privateBaseten = await fetch(base + '/tools/basetenRoutes.mjs');
+  assert.equal(privateBaseten.status, 404);
+  const privateProvider = await fetch(base + '/src/core/basetenCueProvider.mjs');
+  assert.equal(privateProvider.status, 404);
   const blocked = await fetch(base + '/tools/dev-server.mjs');
   assert.equal(blocked.status, 404);
   const post = await fetch(base + '/', { method: 'POST' });
@@ -76,4 +83,11 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const head = await fetch(base + '/index.html', { method: 'HEAD' });
   assert.equal(head.status, 200);
   assert.equal(await head.text(), '');
+});
+
+test('client does not reach model providers directly or make calls on load', () => {
+  assert.match(client, /\/api\/.*?status/);
+  assert.match(client, /window\.confirm\(t\(/);
+  assert.doesNotMatch(client, /inference\.baseten\.co|api\.meta\.ai/);
+  assert.doesNotMatch(html, /BASETEN_API_KEY|MODEL_API_KEY/);
 });
