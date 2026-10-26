@@ -193,7 +193,7 @@ function render() {
             player.stopCue(cue.id, 1500);
             feedback('status.audioFaded', { number: cue.number }, 'success');
           }
-        } catch (error) { showError(error, 'errors.invalidAudio'); }
+        } catch (error) { showError(error, resolveErrorKey(error) === 'errors.generic' ? 'errors.invalidAudio' : undefined); }
       });
       controls.append(button);
     }
