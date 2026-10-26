@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut count = 0usize;
     for device in host.output_devices()? {
         count += 1;
-        let name = device.name().unwrap_or_else(|_| "(nombre no disponible)".into());
+        let name = device.to_string();
         let info = match device.default_output_config() {
             Ok(cfg) => format!("{:?}", cfg),
             Err(err) => format!("config no disponible: {}", err),
@@ -56,7 +56,7 @@ where
     // Real-time callback: NO blocking, disk/network I/O, mutex or allocation.
     let stream = device.build_output_stream(
         config,
-        move |output: &mut [T], _callback: &cpal::CallbackInfo| {
+        move |output: &mut [T], _callback: &cpal::OutputCallbackInfo| {
             for frame in output.chunks_mut(channels) {
                 let value = (phase * std::f32::consts::TAU).sin() * 0.06;
                 phase += phase_step;
@@ -67,7 +67,7 @@ where
         move |error| eprintln!("Salida WASAPI error: {error}"),
         None,
     )?;
-    stream.start()?;
+    stream.play()?;
     std::thread::sleep(Duration::from_millis(550));
     stream.pause()?;
     Ok(())
