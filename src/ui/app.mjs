@@ -37,10 +37,11 @@ function refreshAudioControls() {
   for (const label of document.querySelectorAll('[data-cue-state]')) {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
     if (!cue) continue;
-    const ready = cue.actions.every(action => player.hasAsset(action.assetId));
+    const unresolved = cue.actions.find(action => action.type === 'PLAN_AUDIO');
+    const ready = !unresolved && cue.actions.every(action => player.hasAsset(action.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
-    label.textContent = t(stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
+    label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
   for (const button of document.querySelectorAll('[data-cue-action]')) {
     const cue = show.cues.find(item => item.id === button.dataset.cueId);
