@@ -4,6 +4,8 @@ import { createNewShow, addAudioReference, addMockProposal, addModelProposals, d
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
+import { inspectShowReadiness } from '../core/showPreflight.mjs';
+import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -29,6 +31,9 @@ let metaCoverage = null;
 let metaProposalDetails = new Map();
 let pendingAudioCueId = null;
 let audioInFlight = false;
+let scriptFocusLineId = null;
+let scriptMatchIndex = 0;
+let preflightVisible = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
@@ -217,6 +222,48 @@ function cueAudioPicker(cueId, translationKey) {
   return button;
 }
 
+function jumpToScriptLine(lineId) {
+  if (!lineId) return;
+  scriptFocusLineId = lineId;
+  render();
+  const target = [...$('scriptPreview').querySelectorAll('[data-script-line-id]')]
+    .find(item => item.dataset.scriptLineId === lineId);
+  target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function moveScriptMatch(direction) {
+  const matches = findScriptMatches(parseScript(show.scriptText), $('scriptSearchInput').value);
+  if (!matches.length) return;
+  scriptMatchIndex = (scriptMatchIndex + direction + matches.length) % matches.length;
+  jumpToScriptLine(matches[scriptMatchIndex]);
+}
+
+function sourceButton(lineId) {
+  const button = node('button', 'btn subtle small', t('script.viewSource'));
+  button.type = 'button';
+  button.addEventListener('click', () => jumpToScriptLine(lineId));
+  return button;
+}
+
+function renderPreflight() {
+  const report = $('preflightReport');
+  report.hidden = !preflightVisible;
+  if (!preflightVisible) return;
+  const audit = inspectShowReadiness(show, assetId => player.hasAsset(assetId), { audioLoading: audioInFlight });
+  $('preflightSummary').textContent = t(audit.ready ? 'preflight.ready' : 'preflight.blocked', {
+    ready: audit.readyCues, total: audit.totalCues,
+    blockers: audit.blockerCount, warnings: audit.warningCount,
+  });
+  const issues = $('preflightIssues');
+  issues.replaceChildren();
+  if (audit.issues.length === 0) issues.append(node('li', '', t('preflight.noIssues')));
+  for (const issue of audit.issues) {
+    const name = show.assets.find(asset => asset.id === issue.assetId)?.name ?? issue.assetId ?? '';
+    issues.append(node('li', issue.severity === 'BLOCKER' ? 'preflight-blocker' : 'preflight-warning',
+      t('preflight.issue.' + issue.code, { number: issue.cueNumber ?? '', id: issue.proposalId ?? '', name })));
+  }
+}
+
 function render() {
   const lines = parseScript(show.scriptText);
   $('showName').value = show.name;
@@ -225,16 +272,28 @@ function render() {
   $('cuesCount').textContent = String(show.cues.length);
   const preview = $('scriptPreview');
   preview.replaceChildren();
+  const matches = findScriptMatches(lines, $('scriptSearchInput').value);
+  if (scriptMatchIndex >= matches.length) scriptMatchIndex = 0;
   if (!show.scriptText) {
     preview.append(node('p', 'empty', t('status.scriptEmpty')));
   } else {
-    for (const line of lines.slice(0, maximumShownLines)) {
+    const { start, visible } = scriptWindow(lines, scriptFocusLineId, maximumShownLines);
+    for (const line of visible) {
       const row = node('div', 'script-line');
+      row.dataset.scriptLineId = line.id;
+      if (line.id === scriptFocusLineId) row.classList.add('script-line-focus');
+      if (matches.includes(line.id)) row.classList.add('script-line-match');
       row.append(node('span', 'line-ref', line.id), node('span', 'line-text', line.text || ' '));
       preview.append(row);
     }
+    if (start > 0 && !scriptFocusLineId) scriptFocusLineId = visible[0]?.id ?? null;
   }
-  $('scriptLimitNote').textContent = lines.length > maximumShownLines ? t('status.showingLines', { shown: maximumShownLines, total: lines.length }) : '';
+  $('scriptLimitNote').textContent = lines.length > maximumShownLines ? t('script.windowNotice', { shown: Math.min(maximumShownLines, lines.length), total: lines.length }) : '';
+  $('scriptSearchStatus').textContent = $('scriptSearchInput').value.trim()
+    ? t('script.searchCount', { current: matches.length ? scriptMatchIndex + 1 : 0, total: matches.length })
+    : '';
+  $('scriptSearchPrevBtn').disabled = matches.length === 0;
+  $('scriptSearchNextBtn').disabled = matches.length === 0;
 
   const list = $('assetList');
   list.replaceChildren();
@@ -282,6 +341,9 @@ function render() {
       controls.append(approve, reject);
       card.append(controls);
     }
+    const proposalSource = node('div', 'item-actions');
+    proposalSource.append(sourceButton(proposal.sourceLineIds[0]));
+    card.append(proposalSource);
     proposalList.append(card);
   }
 
@@ -296,6 +358,9 @@ function render() {
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
     card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', describeCueActions(cue.actions)));
+    const sourceActions = node('div', 'item-actions');
+    sourceActions.append(sourceButton(cue.sourceLineIds[0]));
+    card.append(sourceActions);
     const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
     if (plan) {
       const resolve = node('div', 'item-actions');
@@ -360,6 +425,7 @@ function render() {
   }
   refreshMetaMessage();
   refreshAudioControls();
+  renderPreflight();
 }
 function userAllowsReplacement() {
   if (!dirty && !show.scriptText && !show.proposals.length && !show.assets.length) return true;
@@ -409,6 +475,10 @@ function currentScriptLanguageHint() {
 
 function setNewShow(project, statusKey, values = {}) {
   projectGeneration += 1;
+  scriptFocusLineId = null;
+  scriptMatchIndex = 0;
+  preflightVisible = false;
+  $('scriptSearchInput').value = '';
   player.reset();
   show = project;
   resetMetaAnalysis();
@@ -419,6 +489,26 @@ function setNewShow(project, statusKey, values = {}) {
 }
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
+$('scriptSearchInput').addEventListener('input', () => {
+  scriptMatchIndex = 0;
+  const matches = findScriptMatches(parseScript(show.scriptText), $('scriptSearchInput').value);
+  scriptFocusLineId = matches[0] ?? null;
+  render();
+  const first = $('scriptPreview').querySelector('.script-line-focus');
+  first?.scrollIntoView({ block: 'nearest' });
+});
+$('scriptSearchInput').addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    moveScriptMatch(event.shiftKey ? -1 : 1);
+  }
+});
+$('scriptSearchPrevBtn').addEventListener('click', () => moveScriptMatch(-1));
+$('scriptSearchNextBtn').addEventListener('click', () => moveScriptMatch(1));
+$('checkPreflightBtn').addEventListener('click', () => {
+  preflightVisible = !preflightVisible;
+  renderPreflight();
+});
 $('scriptLanguageSelect').addEventListener('change', event => {
   const custom = event.target.value === 'other';
   $('scriptLanguageCustom').hidden = !custom;
