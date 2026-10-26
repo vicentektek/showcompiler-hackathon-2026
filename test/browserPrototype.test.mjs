@@ -79,6 +79,12 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   assert.equal(i18nModule.status, 200);
   const scriptLanguageModule = await fetch(base + '/src/core/scriptLanguage.mjs');
   assert.equal(scriptLanguageModule.status, 200);
+  const navigationModule = await fetch(base + '/src/core/scriptNavigation.mjs');
+  assert.equal(navigationModule.status, 200);
+  assert.match(await navigationModule.text(), /findScriptMatches/);
+  const preflightModule = await fetch(base + '/src/core/showPreflight.mjs');
+  assert.equal(preflightModule.status, 200);
+  assert.match(await preflightModule.text(), /inspectShowReadiness/);
   const sceneAnalysisModule = await fetch(base + '/src/core/sceneAnalysis.mjs');
   assert.equal(sceneAnalysisModule.status, 200);
   assert.match(await sceneAnalysisModule.text(), /planScriptAnalysis/);
@@ -117,4 +123,18 @@ test('cue cards offer direct local audio choice and replacement without remote u
   assert.match(client, /show = nextShow;/);
   assert.match(client, /audioInFlight/);
   assert.doesNotMatch(client, /fetch\([^\n]*file/);
+});
+
+test('script search, source links and preflight expose safe, actual UI controls', () => {
+  assert.match(html, /id="scriptSearchInput"/);
+  assert.match(html, /id="scriptSearchPrevBtn"/);
+  assert.match(html, /id="scriptSearchNextBtn"/);
+  assert.match(html, /id="checkPreflightBtn"/);
+  assert.match(html, /id="preflightReport"/);
+  assert.match(client, /sourceButton\(cue\.sourceLineIds\[0\]\)/);
+  assert.match(client, /sourceButton\(proposal\.sourceLineIds\[0\]\)/);
+  assert.match(client, /inspectShowReadiness\(show, assetId/);
+  assert.match(client, /scriptWindow\(lines, scriptFocusLineId, maximumShownLines\)/);
+  assert.match(client, /findScriptMatches\(lines, \$\('scriptSearchInput'\)\.value\)/);
+  assert.doesNotMatch(client, /\.innerHTML\s*=/);
 });
