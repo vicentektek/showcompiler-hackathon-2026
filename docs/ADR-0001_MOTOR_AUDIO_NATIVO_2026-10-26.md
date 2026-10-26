@@ -20,6 +20,12 @@ SHOWCOMPILER es **desktop-first y offline-first**. El servidor actual `127.0.0.1
 | Instalador Windows/Tauri | Construcción nueva pendiente | No equivale a activar ASIO al envolver la web |
 | MagicQ/timecode y Android | Fuera del audio MVP | Capacidad opcional posterior |
 
+## 1.1. Frontera implementada en este hackathon
+
+Se ha añadido `src/core/audioBackend.mjs`, fachada que la UI utiliza en vez de importar directamente `BrowserAudioEngine`. Publica `capabilities`, `loadFile`, `go`, `stopCue`, `stopAll`, `reset`, consulta de recursos y `getStatus`. La fachada indica expresamente que **ASIO, selección física de dispositivo, buses independientes y certificación profesional no existen todavía**. Sus pruebas se encuentran en `test/audioBackend.test.mjs` y `test/browserPrototype.test.mjs`.
+
+Esta es una **frontera transitoria v0** que no afirma compatibilidad nativa completa: el objetivo de contrato `playId`/rutado/prepareToken descrito a continuación sigue pendiente. La sustitución por Rust requerirá una versión ampliada del contrato y pruebas nativas en Windows.
+
 ## 2. Comparación basada en capacidades (no benchmarks)
 
 - **Web Audio (Chromium/WebView2):** cómodo para una demo y reproducción estéreo; buffer local, scheduling de AudioContext y fades. No presenta una API ASIO directa, ni garantiza selección/patcheo de los canales físicos de una interfaz profesional. No suponer latencia determinada: consultar `baseLatency`/`outputLatency` y medir físicamente.
