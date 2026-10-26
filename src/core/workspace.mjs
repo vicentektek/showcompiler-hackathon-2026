@@ -71,6 +71,7 @@ export function addModelProposals(project, suggestions, provider = 'META_MODEL_A
         !permittedLines.has(item.lineId) ||
         (item.assetId != null && !permittedAssets.has(item.assetId)) ||
         typeof item.label !== 'string' || !item.label.trim() ||
+        (item.assetId == null && (typeof item.soundPrompt !== 'string' || !item.soundPrompt.trim())) ||
         (item.soundPrompt !== undefined && (typeof item.soundPrompt !== 'string' || !item.soundPrompt.trim() || item.soundPrompt.length > 500))) {
       throw new TypeError('Meta suggestion does not match supplied script excerpt or audio list');
     }
@@ -79,7 +80,7 @@ export function addModelProposals(project, suggestions, provider = 'META_MODEL_A
     proposed.push({
       id, label: item.label.trim(), sourceLineIds: [item.lineId],
       actions: [item.assetId == null
-        ? { type: 'PLAN_AUDIO', prompt: (item.soundPrompt || item.label).trim(), resolution: 'DEFER' }
+        ? { type: 'PLAN_AUDIO', prompt: item.soundPrompt.trim(), resolution: 'DEFER' }
         : { type: 'PLAY', assetId: item.assetId }],
       source: provider,
     });

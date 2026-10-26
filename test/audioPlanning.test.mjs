@@ -88,6 +88,8 @@ test('reject suggestions referring to nonexistent resources even when planning i
  const current=show();
  assert.throws(()=>addModelProposals(current,[{...suggestion,assetId:'invented'}]));
  assert.throws(()=>addModelProposals(current,[{...suggestion,lineId:'L99'}]));
+ assert.throws(()=>addModelProposals(current,[{lineId:'L2',assetId:null,label:'Missing brief'}]));
+ assert.throws(()=>addModelProposals(current,[{...suggestion,soundPrompt:'   '}]));
  const validated=validateCueProposals([{id:'proposal-1',label:'Test',sourceLineIds:['L2'],actions:[{type:'PLAY',assetId:'fake'}]}],[{id:'L2'}],[]);
  assert.equal(validated.valid,false);
 });

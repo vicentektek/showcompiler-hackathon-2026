@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createAppServer } from '../tools/dev-server.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addMetaProposals, decideProposal } from '../src/core/workspace.mjs';
 import { serializeShowProject, deserializeShowProject } from '../src/core/projectPersistence.mjs';
+import { MetaOutputError, MetaProviderError } from '../src/core/metaCueProvider.mjs';
 
 const item = { lineId: 'L2', assetId: 'asset-1', label: 'Música de apertura' };
 function project() {
@@ -201,8 +202,7 @@ test('invalid language hint is rejected before sending anything to Meta', async 
 });
 
 test('Meta errors return safe distinct categories without revealing script or key', async t => {
-  const { MetaOutputError } = await import('../src/core/metaCueProvider.mjs');
-  for (const reason of ['TRUNCATED','NOT_JSON','SCHEMA','EMPTY_OR_OVERSIZED']) {
+  for (const reason of ['TRUNCATED','NOT_JSON','SCHEMA','EMPTY_OR_OVERSIZED','REFUSED','FINISH_REASON']) {
     const base = await withServer(t, {
       getKey: () => 'NO_LEAK_KEY',
       modelClient: async () => { throw new MetaOutputError(reason); },
@@ -212,6 +212,49 @@ test('Meta errors return safe distinct categories without revealing script or ke
     const body = await response.text();
     assert.equal(JSON.parse(body).code, 'META_OUTPUT_' + reason);
     assert.doesNotMatch(body, /NO_LEAK_KEY|ESCENA|Música/);
+  }
+});
+
+test('malformed provider envelope has an upstream category rather than truncation', async t => {
+  const base = await withServer(t, {
+    getKey: () => 'NO_LEAK_KEY',
+    modelClient: async () => { throw new MetaOutputError('ENVELOPE', { requestId: 'meta-envelope' }); },
+  });
+  const response = await analysisRequest(base, { project: project() });
+  assert.equal(response.status, 502);
+  const body = await response.json();
+  assert.equal(body.code, 'META_UPSTREAM_ENVELOPE');
+  assert.equal(body.diagnostic.phase, 'UPSTREAM_ENVELOPE');
+});
+
+test('typed provider diagnostics distinguish schema, timeout, transport and HTTP failures', async t => {
+  const cases = [
+    [new MetaProviderError('SCHEMA_INCOMPATIBLE', {
+      requestId: 'meta-schema', phase: 'SCHEMA_INCOMPATIBILITY', upstreamStatus: 400,
+      providerError: { type: 'invalid_request_error', param: 'response_format', code: 'invalid_json_schema' },
+    }), 502, 'META_SCHEMA_INCOMPATIBLE'],
+    [new MetaProviderError('TIMEOUT', {
+      requestId: 'meta-timeout', phase: 'UPSTREAM_TIMEOUT', durationMs: 45000,
+    }), 504, 'META_TIMEOUT'],
+    [new MetaProviderError('TRANSPORT', {
+      requestId: 'meta-transport', phase: 'UPSTREAM_TRANSPORT', durationMs: 3,
+    }), 502, 'META_TRANSPORT'],
+    [new MetaProviderError('HTTP_FAILURE', {
+      requestId: 'meta-http', phase: 'UPSTREAM_HTTP', upstreamStatus: 503,
+    }), 502, 'META_UPSTREAM_HTTP'],
+  ];
+  for (const [failure, expectedStatus, expectedCode] of cases) {
+    const base = await withServer(t, {
+      getKey: () => 'NO_LEAK_KEY',
+      modelClient: async () => { throw failure; },
+    });
+    const response = await analysisRequest(base, { project: project() });
+    assert.equal(response.status, expectedStatus);
+    const raw = await response.text();
+    const body = JSON.parse(raw);
+    assert.equal(body.code, expectedCode);
+    assert.equal(body.diagnostic.requestId, failure.diagnostic.requestId);
+    assert.doesNotMatch(raw, /NO_LEAK_KEY|ESCENA|Música|PRIVATE/);
   }
 });
 
@@ -243,5 +286,8 @@ test('hallucinated Meta source line produces specific safe diagnostic', async t 
   });
   const response = await analysisRequest(base, {project: project()});
   assert.equal(response.status, 422);
-  assert.deepEqual(await response.json(), {code:'META_BAD_REFERENCES'});
+  const body = await response.json();
+  assert.equal(body.code, 'META_BAD_REFERENCES');
+  assert.equal(body.diagnostic.phase, 'LOCAL_SEMANTIC_VALIDATION');
+  assert.equal(body.diagnostic.code, 'BAD_REFERENCES');
 });
