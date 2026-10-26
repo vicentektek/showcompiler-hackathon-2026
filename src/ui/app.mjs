@@ -1,6 +1,6 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -27,6 +27,8 @@ let metaAvailable = false;
 let metaInFlight = false;
 let metaCoverage = null;
 let metaProposalDetails = new Map();
+let pendingAudioCueId = null;
+let audioInFlight = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
@@ -53,7 +55,7 @@ function refreshAudioControls() {
     const ready = cue.actions.every(action => player.hasAsset(action.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
-    button.disabled = button.dataset.cueAction === 'go' ? !ready || playing : !playing || stopping;
+    button.disabled = button.dataset.cueAction === 'go' ? audioInFlight || !ready || playing : !playing || stopping;
   }
 }
 
@@ -199,6 +201,22 @@ function describeCueActions(actions) {
     : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') + ': ' + action.prompt
   ).join(' | ');
 }
+function pickAudioFile(cueId = null) {
+  if (audioInFlight) return;
+  pendingAudioCueId = cueId;
+  $('audioFileInput').value = '';
+  $('audioFileInput').click();
+}
+
+function cueAudioPicker(cueId, translationKey) {
+  const button = node('button', 'btn accent small', t(translationKey));
+  button.type = 'button';
+  button.disabled = audioInFlight;
+  button.dataset.cueAudioPick = cueId;
+  button.addEventListener('click', () => pickAudioFile(cueId));
+  return button;
+}
+
 function render() {
   const lines = parseScript(show.scriptText);
   $('showName').value = show.name;
@@ -293,7 +311,7 @@ function render() {
       generate.addEventListener('click', () => safeOperation(
         () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'
       ));
-      resolve.append(deferred, generate);
+      resolve.append(cueAudioPicker(cue.id, 'soundPlan.loadFile'), deferred, generate);
       if (show.assets.length) {
         const library = node('select', '', '');
         library.setAttribute('aria-label', t('soundPlan.libraryLabel'));
@@ -306,6 +324,10 @@ function render() {
         resolve.append(library, assign);
       }
       card.append(resolve);
+    } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
+      const replaceAudio = node('div', 'item-actions');
+      replaceAudio.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
+      card.append(replaceAudio);
     }
     const controls = node('div', 'item-actions');
     const commands = [['go', t('actions.go'), 'btn primary small'], ['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
@@ -622,35 +644,53 @@ $('stopAllBtn').addEventListener('click', () => {
   player.stopAll();
   feedback('status.panic', {}, 'success');
 });
-$('loadAudioBtn').addEventListener('click', () => $('audioFileInput').click());
+$('loadAudioBtn').addEventListener('click', () => pickAudioFile());
 $('audioFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
+  const cueId = pendingAudioCueId;
+  pendingAudioCueId = null;
   event.target.value = '';
-  if (!file) return;
+  if (!file || audioInFlight) return;
+  audioInFlight = true;
+  refreshAudioControls();
   const generation = projectGeneration;
+  const before = show;
   const button = $('loadAudioBtn');
   button.disabled = true;
   try {
     if (file.name.length > 200) throw uiError('errors.audioFilenameLong');
-    const existing = show.assets.filter(asset => asset.name === file.name);
+    const existing = before.assets.filter(asset => asset.name === file.name);
     if (existing.length > 1) throw uiError('errors.duplicateAudioName');
-    const assetId = existing.length
-      ? existing[0].id
-      : nextAvailableId('asset', show.assets.map(asset => asset.id));
-    feedback('status.decoding');
-    const info = await player.loadFile(file, assetId);
-    if (generation !== projectGeneration) throw uiError('errors.projectChanged');
-    if (!existing.length) {
-      const updated = addAudioReference(show, file.name);
-      if (updated.assets.at(-1)?.id !== assetId) {
-        player.reset();
+    let nextShow;
+    let assetId;
+    if (cueId) {
+      const linked = linkLocalAudioToCue(before, cueId, file.name);
+      nextShow = linked.project;
+      assetId = linked.assetId;
+    } else {
+      assetId = existing.length
+        ? existing[0].id
+        : nextAvailableId('asset', before.assets.map(asset => asset.id));
+      nextShow = existing.length ? before : addAudioReference(before, file.name);
+      if (nextShow.assets.at(-1)?.id !== assetId && !existing.length) {
         throw uiError('errors.staleAudioList');
       }
-      show = updated;
     }
+    const transport = player.getStatus();
+    if (transport.activeCueCount || transport.pendingGoCount) throw uiError('errors.audioWhilePlaying');
+    // Reusing an already-decoded file reference changes playback for every
+    // cue sharing that asset ID. Require explicit confirmation before doing so.
+    const shared = before.cues.some(cue => cue.id !== cueId &&
+      cue.actions.some(action => action.type === 'PLAY' && action.assetId === assetId));
+    if (player.hasAsset(assetId) && shared &&
+        !window.confirm(t('soundPlan.sharedAudioConfirm', { name: file.name }))) return;
+    feedback('status.decoding');
+    const info = await player.loadFile(file, assetId);
+    if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
+    show = nextShow;
     dirty = true;
     render();
-    feedback('status.audioLoaded', {
+    feedback(cueId ? 'soundPlan.fileAttachedFeedback' : 'status.audioLoaded', {
       name: file.name,
       duration: info.durationSeconds.toFixed(1),
       channels: info.channels,
@@ -658,7 +698,10 @@ $('audioFileInput').addEventListener('change', async event => {
   } catch (error) {
     showError(error);
   } finally {
+    audioInFlight = false;
     button.disabled = false;
+    for (const picker of document.querySelectorAll('[data-cue-audio-pick]')) picker.disabled = false;
+    refreshAudioControls();
   }
 });
 
