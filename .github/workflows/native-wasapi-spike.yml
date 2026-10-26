@@ -33,4 +33,4 @@ jobs:
             native-audio-spike/target/release/showcompiler-native-audio-spike.exe
             native-audio-spike/Cargo.lock
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
