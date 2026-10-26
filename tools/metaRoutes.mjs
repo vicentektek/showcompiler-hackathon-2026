@@ -4,6 +4,7 @@
  */
 import { deserializeShowProject, MAX_PROJECT_JSON_BYTES } from '../src/core/projectPersistence.mjs';
 import { addMetaProposals } from '../src/core/workspace.mjs';
+import { normalizeScriptLanguageHint } from '../src/core/scriptLanguage.mjs';
 import { callMetaCueModel, DEFAULT_META_MODEL, validateMetaModelId } from '../src/core/metaCueProvider.mjs';
 
 function answer(response, code, data, headers) {
@@ -86,13 +87,15 @@ export function makeMetaRoute({
       const raw = await readBoundedBody(request, MAX_PROJECT_JSON_BYTES);
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
-          Object.keys(parsed).length !== 1 || typeof parsed.project !== 'object') {
+          Object.keys(parsed).some(key => key !== 'project' && key !== 'scriptLanguage') ||
+          typeof parsed.project !== 'object') {
         answer(response, 400, { error: 'Solicitud de proyecto no válida' }, headers);
         return true;
       }
       const project = deserializeShowProject(JSON.stringify(parsed.project));
+      const scriptLanguage = normalizeScriptLanguageHint(parsed.scriptLanguage);
       const result = await modelClient({
-        show: project, apiKey: getKey(), model,
+        show: project, apiKey: getKey(), model, scriptLanguage,
       });
       // Revalidate everything on the server before returning anything to the UI.
       const accepted = addMetaProposals(project, result.proposals);
