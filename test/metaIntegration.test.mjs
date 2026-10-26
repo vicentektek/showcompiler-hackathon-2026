@@ -1,0 +1,136 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createAppServer } from '../tools/dev-server.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addMetaProposals, decideProposal } from '../src/core/workspace.mjs';
+import { serializeShowProject, deserializeShowProject } from '../src/core/projectPersistence.mjs';
+
+const item = { lineId: 'L2', assetId: 'asset-1', label: 'Música de apertura' };
+function project() {
+  return addAudioReference(
+    createNewShow({ name: 'Música', scriptText: 'ESCENA 1\n(ABRIR MÚSICA)\nANA: Hola' }),
+    'intro.wav'
+  );
+}
+async function withServer(t, options = {}) {
+  const server = createAppServer(options);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  return 'http://127.0.0.1:' + server.address().port;
+}
+function analysisRequest(base, body, opts = {}) {
+  return fetch(base + '/api/meta/proposals', {
+    method: 'POST',
+    headers: {
+      origin: opts.origin ?? base,
+      'Content-Type': opts.contentType ?? 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+test('metadata/provenance roundtrips through strict v1 project JSON', () => {
+  let base = project();
+  base = addMockProposal(base, { lineId: 'L2', assetId: 'asset-1', label: 'Manual' });
+  base = addMetaProposals(base, [item]);
+  assert.equal(base.proposals[0].source, 'MANUAL_MOCK');
+  assert.equal(base.proposals[1].source, 'META_MODEL_API');
+  const approved = decideProposal(base, base.proposals[1].id, 'APPROVE');
+  assert.equal(approved.proposals[1].status, 'APPROVED');
+  assert.equal(approved.proposals[1].source, 'META_MODEL_API');
+  assert.deepEqual(deserializeShowProject(serializeShowProject(approved)), approved);
+});
+
+test('reject invalid provenance field and an out-of-excerpt model reference', () => {
+  const altered = { ...project() };
+  const bad = addMockProposal(altered, { lineId:'L2',assetId:'asset-1',label:'test' });
+  bad.proposals[0].source = 'MADE_UP';
+  assert.throws(() => serializeShowProject(bad));
+  assert.throws(() => addMetaProposals(project(), [{ lineId:'L99',assetId:'asset-1',label:'x' }]));
+  assert.throws(() => addMetaProposals(project(), [{ lineId:'L2',assetId:'NO',label:'x' }]));
+  assert.throws(() => addMetaProposals(project(), Array.from({ length: 9 }, () => item)));
+});
+
+test('local status reports configured/unconfigured without exposing secret', async (t) => {
+  const base = await withServer(t, { getKey: () => 'SUPER_SECRET_TEST' });
+  const result = await fetch(base + '/api/meta/status');
+  assert.equal(result.status, 200);
+  const raw = await result.text();
+  assert.doesNotMatch(raw, /SUPER_SECRET_TEST/);
+  const status = JSON.parse(raw);
+  assert.equal(status.configured, true);
+  assert.equal(status.provider, 'META_MODEL_API');
+});
+
+test('no MODEL_API_KEY means no external inference is attempted', async (t) => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => undefined,
+    modelClient: async () => { calls += 1; throw new Error('SHOULD_NOT_HAPPEN'); },
+  });
+  const r = await analysisRequest(base, { project: project() });
+  assert.equal(r.status, 503);
+  assert.equal(calls, 0);
+});
+
+test('cross-origin and HTML form payloads are rejected without invoking model', async (t) => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => 'SECRET', modelClient: async () => { calls += 1; },
+  });
+  const forged = await analysisRequest(base, { project: project() }, { origin: 'https://malicious.example' });
+  assert.equal(forged.status, 403);
+  const form = await analysisRequest(base, { project: project() }, { contentType: 'text/plain' });
+  assert.equal(form.status, 403);
+  assert.equal(calls, 0);
+});
+
+test('real API adapter response enters only as proposed pending cues', async (t) => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_KEY',
+    modelClient: async ({ show, apiKey, model }) => {
+      calls += 1;
+      assert.equal(apiKey, 'SERVER_ONLY_KEY');
+      assert.equal(model, 'muse-spark-1.3');
+      assert.equal(show.assets[0].name, 'intro.wav');
+      return { provider: 'META_MODEL_API', model, proposals: [item] };
+    },
+  });
+  const res = await analysisRequest(base, { project: project() });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.provider, 'META_MODEL_API');
+  assert.deepEqual(data.proposals, [item]);
+  assert.equal(calls, 1);
+  assert.equal(JSON.stringify(data).includes('SERVER_ONLY_KEY'), false);
+  assert.deepEqual(addMetaProposals(project(), data.proposals).cues, []);
+  const sourceModule = await fetch(base + '/tools/metaRoutes.mjs');
+  assert.equal(sourceModule.status, 404);
+});
+
+test('corrupt script line or resource response is rejected without partial approval', async (t) => {
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_KEY',
+    modelClient: async () => ({ proposals: [{ ...item, lineId: 'L120' }] }),
+  });
+  const res = await analysisRequest(base, { project: project() });
+  assert.notEqual(res.status, 200);
+  assert.equal(JSON.stringify(await res.json()).includes('SERVER_ONLY_KEY'), false);
+});
+
+test('large body is rejected before calling API', async (t) => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_KEY',
+    modelClient: async () => { calls += 1; },
+  });
+  const result = await fetch(base + '/api/meta/proposals', {
+    method:'POST', headers:{ origin: base, 'Content-Type':'application/json' },
+    body: JSON.stringify({ project: { junk: 'x'.repeat(2_100_000) } }),
+  });
+  assert.equal(result.status, 413);
+  assert.equal(calls, 0);
+});
