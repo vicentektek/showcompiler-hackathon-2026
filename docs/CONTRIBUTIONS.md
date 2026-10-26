@@ -12,13 +12,14 @@ Only source and functionality created during the event window (26 October–4 No
 | 2026-10-26 | Versioned JSON serialization/deserialization of script, assets metadata, proposals and DRAFT cues | 13 additional Node tests; [GitHub Actions success](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40374044921) | Library only; no file picker or embedded audio |
 | 2026-10-26 | Independent domain workflow and local browser UI with mock-only proposal creation, explicit review, JSON file picker, and restricted loopback server | 14 additional tests; Node syntax + [GitHub Actions success](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40377108460) | Browser prototype coded; visual/manual browser acceptance pending |
 | 2026-10-26 | Local browser Web Audio engine: operator GO, STOP, 1.5s fade, panic STOP, local file decoding; UI wiring and smoke tests | 13 new mock-WebAudio tests, browser/HTTP checks, [GitHub Actions: 65/65 tests passed](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40381536145) | Actual audio code available; hardware/browser audible acceptance remains pending |
+| 2026-10-26 | Desktop-first WASAPI/ASIO architecture ADR and replaceable browser audio backend facade; UI no longer imports Web Audio engine directly | 5 additional tests; [GitHub Actions 70/70](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40387476270) | Boundary implemented; native backend not implemented |
 
 ### Verification evidence
 - Branch: `feat/hackathon-script-core`.
 - Test command: `npm test` (Node.js 20+; no dependencies).
-- Total: **65/65 automated tests passed** in GitHub Actions with Node.js 22; module syntax checks passed. Local speaker/headphone playback has not yet been confirmed manually.
+- Total: **70/70 automated tests passed** in GitHub Actions with Node.js 22; module syntax checks passed. Local speaker/headphone playback has not yet been confirmed manually.
 - GitHub Actions: Core tests succeeded on the branch, [workflow run #40372369548](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40372369548); the checkout and Node test step completed successfully.
-- Pending: manual Chrome/Edge acceptance of actual audio GO, STOP, fade and panic; independent code review, Meta API inference integration and desktop installer. The Web Audio engine is implemented for local prototype use only, not certified for professional live shows.
+- Pending: manual Chrome/Edge acceptance of actual audio GO, STOP, fade and panic; independent code review, Meta API inference integration, Windows native WASAPI proof, and desktop installer. Web Audio is a local prototype backend, not certified for professional live shows. ASIO is a legally gated future option.
 - JSON project format does **not** contain actual audio data; it is not a complete portable backup.
 - `main` remains unchanged.
 
