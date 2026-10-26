@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Hackathon-only local browser prototype; simulated cue review with no AI or audio playback",
+  "description": "Hackathon-only local browser demo: mock cue generation with real operator-controlled Web Audio playback",
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "demo:core": "node tools/review-demo.mjs",
     "dev": "node tools/dev-server.mjs",
-    "check:syntax": "node --check src/ui/app.mjs && node --check src/core/workspace.mjs && node --check tools/dev-server.mjs"
+    "check:syntax": "node --check src/ui/app.mjs && node --check src/core/workspace.mjs && node --check src/core/browserAudio.mjs && node --check tools/dev-server.mjs"
   },
   "engines": {
     "node": ">=20"
