@@ -1,0 +1,13 @@
+{
+  "name": "showcompiler-hackathon-2026",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Hackathon-only, dependency-free domain prototype; no UI or runtime yet",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
