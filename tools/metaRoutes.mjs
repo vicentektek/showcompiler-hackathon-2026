@@ -107,10 +107,18 @@ export function makeMetaRoute({
       const code = error?.status === 413 ? 413 :
         error instanceof SyntaxError || error?.code === 'INVALID_SHOW_PROJECT' ||
         error instanceof TypeError || error instanceof RangeError ? 400 : 502;
-      answer(response, code, {
-        error: code === 413 ? 'Solicitud demasiado grande' :
-          code === 400 ? 'Proyecto o respuesta no válida' : 'No se ha podido completar el análisis de Meta',
-      }, headers);
+      const upstreamCode = Number.isInteger(error?.metaStatus) ? error.metaStatus : null;
+      const safeMessage =
+        upstreamCode === 401 || upstreamCode === 403
+          ? 'Meta rechaza la clave o los permisos de tu cuenta. Comprueba API keys, créditos y facturación.'
+          : upstreamCode === 429
+            ? 'Meta aplica un límite de solicitudes o cuota (429). Comprueba créditos, límites y espera antes de reintentar.'
+            : upstreamCode === 400
+              ? 'Meta no acepta esta solicitud (400). Puede necesitar adaptar el esquema o los parámetros del modelo.'
+              : code === 413 ? 'Solicitud demasiado grande'
+                : code === 400 ? 'Proyecto o respuesta no válida'
+                  : 'No se ha podido completar el análisis de Meta';
+      answer(response, code, { error: safeMessage }, headers);
     } finally {
       busy = false;
     }
