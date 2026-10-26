@@ -3,6 +3,12 @@ on:
   push:
     branches:
       - spike/native-wasapi-2026-10-26
+  pull_request:
+    branches:
+      - feat/hackathon-script-core
+    paths:
+      - 'native-audio-spike/**'
+      - '.github/workflows/native-wasapi-spike.yml'
   workflow_dispatch:
 permissions:
   contents: read
