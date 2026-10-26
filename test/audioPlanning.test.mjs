@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution } from '../src/core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, linkLocalAudioToCue, replaceCueAudioAsset } from '../src/core/workspace.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject } from '../src/core/projectPersistence.mjs';
 import { validateCueProposals } from '../src/core/proposals.mjs';
 import { BrowserAudioEngine } from '../src/core/browserAudio.mjs';
@@ -101,4 +101,45 @@ test('first-party scene batches can reference later script lines while fallback 
  const meta=addModelProposals(current,[later],'META_MODEL_API');
  assert.equal(meta.proposals[0].sourceLineIds[0],'L130');
  assert.throws(()=>addModelProposals(current,[later],'BASETEN_MUSE_SPARK_OPEN'));
+});
+
+
+test('direct file choice registers an asset and resolves the approved cue without changing its source', async () => {
+  let current=addModelProposals(show(),[suggestion],'META_MODEL_API');
+  current=decideProposal(current,current.proposals[0].id,'APPROVE');
+  const originalCue=current.cues[0];
+  const linked=linkLocalAudioToCue(current,originalCue.id,'bell.wav');
+  assert.equal(current.assets.length,0);
+  assert.equal(current.cues[0].actions[0].type,'PLAN_AUDIO');
+  assert.equal(linked.project.assets.length,1);
+  assert.equal(linked.project.assets[0].name,'bell.wav');
+  assert.deepEqual(linked.project.cues[0].actions,[{type:'PLAY',assetId:linked.assetId}]);
+  assert.deepEqual(linked.project.proposals[0].actions,[{type:'PLAY',assetId:linked.assetId}]);
+  assert.equal(linked.project.cues[0].number,originalCue.number);
+  assert.deepEqual(linked.project.cues[0].sourceLineIds,originalCue.sourceLineIds);
+  const audio=new BrowserAudioEngine({contextFactory:()=>{throw Error('No audio file decoded');}});
+  await assert.rejects(audio.go(linked.project.cues[0]),/sin todos sus audios/);
+  assert.equal(deserializeShowProject(serializeShowProject(linked.project)).cues[0].actions[0].assetId,linked.assetId);
+});
+
+test('direct audio reload reuses filenames and replacement preserves traceability', () => {
+  let current=addModelProposals(show(),[suggestion]);
+  current=decideProposal(current,current.proposals[0].id,'APPROVE');
+  const cueId=current.cues[0].id;
+  const first=linkLocalAudioToCue(current,cueId,'bell.wav');
+  const same=linkLocalAudioToCue(first.project,cueId,'bell.wav');
+  assert.equal(same.assetId,first.assetId);
+  assert.equal(same.project.assets.length,1);
+  const updated=linkLocalAudioToCue(first.project,cueId,'other.mp3');
+  assert.equal(updated.project.assets.length,2);
+  assert.notEqual(updated.assetId,first.assetId);
+  assert.deepEqual(updated.project.cues[0].sourceLineIds,current.cues[0].sourceLineIds);
+  assert.equal(updated.project.cues[0].number,current.cues[0].number);
+  assert.equal(updated.project.proposals[0].actions[0].assetId,updated.assetId);
+  assert.equal(updated.project.cues[0].actions[0].assetId,updated.assetId);
+  assert.equal(first.project.cues[0].actions[0].assetId,first.assetId);
+  assert.throws(()=>replaceCueAudioAsset(current,cueId,first.assetId));
+  assert.throws(()=>linkLocalAudioToCue(first.project,'cue-unknown','any.wav'));
+  assert.throws(()=>linkLocalAudioToCue(first.project,cueId,''));
+  assert.throws(()=>linkLocalAudioToCue(first.project,cueId,'x'.repeat(201)));
 });
