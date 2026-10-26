@@ -1,6 +1,7 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, decideProposal } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, decideProposal, nextAvailableId } from '../core/workspace.mjs';
+import { BrowserAudioEngine } from '../core/browserAudio.mjs';
 
 const $ = (id) => document.getElementById(id);
 const sampleText = 'ESCENA 1. COMIENZA EL ENSAYO\n(Ambiente musical de apertura.)\nANA: ¿Está todo listo?\nLUIS: Preparados.\n(Suena una campana a lo lejos.)\nANA: ¡Adelante!\n';
@@ -8,6 +9,34 @@ const limitScriptBytes = 1_000_000;
 const maximumShownLines = 300;
 let show = createNewShow();
 let dirty = false;
+let projectGeneration = 0;
+const player = new BrowserAudioEngine({ onStateChange: () => refreshAudioControls() });
+function refreshAudioControls() {
+  const status = $('transportStatus');
+  if (!status) return;
+  const active = player.activeCueCount();
+  const pending = player.pending.size;
+  status.textContent = active || pending
+    ? 'Transporte local: ' + active + ' cues activos' + (pending ? ', ' + pending + ' GO pendientes' : '')
+    : 'Transporte detenido. Audio local al 50 % de ganancia inicial.';
+  $('stopAllBtn').disabled = active === 0 && pending === 0;
+  for (const label of document.querySelectorAll('[data-cue-state]')) {
+    const cue = show.cues.find(item => item.id === label.dataset.cueState);
+    if (!cue) continue;
+    const ready = cue.actions.every(action => player.hasAsset(action.assetId));
+    const playing = player.isPlaying(cue.id);
+    const stopping = player.isStopping(cue.id);
+    label.textContent = stopping ? 'FADE / STOP' : playing ? 'SONANDO' : ready ? 'LISTO' : 'FALTA AUDIO';
+  }
+  for (const button of document.querySelectorAll('[data-cue-action]')) {
+    const cue = show.cues.find(item => item.id === button.dataset.cueId);
+    if (!cue) continue;
+    const ready = cue.actions.every(action => player.hasAsset(action.assetId));
+    const playing = player.isPlaying(cue.id);
+    const stopping = player.isStopping(cue.id);
+    button.disabled = button.dataset.cueAction === 'go' ? !ready || playing : !playing || stopping;
+  }
+}
 
 function node(tag, className, value) {
   const element = document.createElement(tag);
@@ -63,7 +92,10 @@ function render() {
   const list = $('assetList');
   list.replaceChildren();
   if (show.assets.length === 0) list.append(node('span', 'caption', 'Sin referencias registradas.'));
-  for (const asset of show.assets) list.append(node('span', 'tag', `${asset.id} · ${asset.name}`));
+  for (const asset of show.assets) {
+    const state = player.hasAsset(asset.id) ? 'CARGADO' : 'SIN ARCHIVO';
+    list.append(node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state));
+  }
 
   replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || '(línea vacía)'}`]) : [], $('lineSelect').value);
   replaceOptions($('assetSelect'), show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`]), $('assetSelect').value);
@@ -101,9 +133,40 @@ function render() {
     const card = node('article', 'item cue-item');
     const top = node('div', 'item-head');
     top.append(node('strong', '', `${cue.number}. ${cue.label}`), node('span', 'state', cue.status));
-    card.append(top, node('p', 'item-detail', `Guion: ${cue.sourceLineIds.join(', ')}`), node('p', 'item-detail', `PLAY → ${cue.actions.map(action => action.assetId).join(', ')}`));
+    const runtime = node('span', 'state', 'FALTA AUDIO');
+    runtime.dataset.cueState = cue.id;
+    top.append(runtime);
+    card.append(top, node('p', 'item-detail', 'Guion: ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', 'PLAY → ' + cue.actions.map(action => action.assetId).join(', ')));
+    const controls = node('div', 'item-actions');
+    const commands = [['go', 'GO', 'btn primary small'], ['stop', 'STOP', 'btn subtle small'], ['fade', 'FADE 1,5 s', 'btn subtle small']];
+    for (const [action, title, style] of commands) {
+      const button = node('button', style, title);
+      button.type = 'button';
+      button.dataset.cueAction = action;
+      button.dataset.cueId = cue.id;
+      button.addEventListener('click', async () => {
+        try {
+          if (action === 'go') {
+            const checked = normalizeShowProject(show);
+            const currentCue = checked.cues.find(item => item.id === cue.id);
+            if (!currentCue) throw new Error('Cue no encontrado.');
+            await player.go(currentCue);
+            feedback('GO ' + currentCue.number + ': reproduciendo audio real en este navegador.', 'success');
+          } else if (action === 'stop') {
+            player.stopCue(cue.id);
+            feedback('STOP ' + cue.number + ': audio detenido.', 'success');
+          } else {
+            player.stopCue(cue.id, 1500);
+            feedback('FADE ' + cue.number + ': fundido de salida de 1,5 segundos.', 'success');
+          }
+        } catch (error) { feedback(error?.message ?? 'Error de reproducción', 'error'); }
+      });
+      controls.append(button);
+    }
+    card.append(controls);
     cueList.append(card);
   }
+  refreshAudioControls();
 }
 function userAllowsReplacement() {
   if (!dirty && !show.scriptText && !show.proposals.length && !show.assets.length) return true;
@@ -133,6 +196,8 @@ async function readTextFile(file, maxBytes) {
   catch { throw new Error('El archivo debe utilizar codificación UTF-8 válida.'); }
 }
 function setNewShow(project, message) {
+  projectGeneration += 1;
+  player.reset();
   show = project;
   dirty = true;
   render();
@@ -140,7 +205,7 @@ function setNewShow(project, message) {
 }
 $('exampleBtn').addEventListener('click', () => {
   if (!userAllowsReplacement()) return;
-  safeOperation(() => addAudioReference(createNewShow({ name: 'Escena de prueba', scriptText: sampleText }), 'ambiente-demo.wav'), 'Ejemplo cargado. El audio es una referencia simulada, no un archivo reproducible.');
+  setNewShow(createNewShow({ name: 'Escena de prueba', scriptText: sampleText }), 'Guion de ejemplo cargado. Ahora carga un WAV o MP3 real.');
 });
 $('newShowBtn').addEventListener('click', () => {
   if (!userAllowsReplacement()) return;
@@ -183,8 +248,8 @@ $('projectFileInput').addEventListener('change', async (event) => {
     if (!file.name.toLowerCase().endsWith('.json')) throw new Error('Selecciona un archivo .json');
     const text = await readTextFile(file, MAX_PROJECT_JSON_BYTES);
     const restored = deserializeShowProject(text);
-    show = restored; dirty = false; render();
-    feedback(`Proyecto ${restored.name} cargado y validado. Los audios deben registrarse por separado.`, 'success');
+    setNewShow(restored, 'Proyecto ' + restored.name + ' recuperado. Vuelve a cargar los WAV/MP3 por su nombre.');
+    dirty = false;
   } catch (error) { feedback(error.message, 'error'); }
 });
 render();
