@@ -45,7 +45,7 @@ The local application is http://127.0.0.1:5173 . Choose **Baseten · Meta Muse S
 4. Press Generate with Muse Spark Open and **read/confirm the external-data and credit disclosure**. No provider calls happen on page load, on changing language, or on checking configuration.
 5. Inspect the proposed line L-number and exact audio reference. Reject incorrect suggestions; explicitly approve only suitable ones.
 6. Click GO to play the local audio. Try STOP, FADE and STOP ALL, then save JSON.
-7. Reload the saved JSON and verify each proposal identifies its origin as BASTEN/Meta Muse Open; reload WAV/MP3 manually (binary audio is not in the JSON).
+7. Reload the saved JSON and verify each proposal identifies its origin as BASETEN/Meta Muse Open; reload WAV/MP3 manually (binary audio is not in the JSON).
 
 To remove the key from that PowerShell process, stop Node with Ctrl+C and run:
 
