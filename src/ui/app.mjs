@@ -389,6 +389,11 @@ const remoteErrors = Object.freeze({
   BASETEN_INVALID: 'errors.basetenInvalid',
   BASETEN_TOO_LARGE: 'errors.basetenTooLarge',
   BASETEN_SERVICE: 'errors.basetenService',
+  BASETEN_OUTPUT_TRUNCATED: 'errors.basetenOutputTruncated',
+  BASETEN_OUTPUT_NOT_JSON: 'errors.basetenOutputNotJson',
+  BASETEN_OUTPUT_SCHEMA: 'errors.basetenOutputSchema',
+  BASETEN_OUTPUT_EMPTY_OR_OVERSIZED: 'errors.basetenOutputEmpty',
+  BASETEN_BAD_REFERENCES: 'errors.basetenBadReferences',
 });
 $('modelProviderSelect').addEventListener('change', () => {
   refreshMetaStatus();
