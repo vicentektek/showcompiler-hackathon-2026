@@ -54,7 +54,10 @@ export function addMockProposal(project, { lineId, assetId, label } = {}) {
  * Integrate server-verified Meta text proposals without auto-approving or executing.
  * The browser revalidates raw response data against the current project.
  */
-export function addMetaProposals(project, suggestions) {
+export function addModelProposals(project, suggestions, provider = 'META_MODEL_API') {
+  if (!['META_MODEL_API', 'BASETEN_MUSE_SPARK_OPEN'].includes(provider)) {
+    throw new TypeError('Unsupported AI suggestion provider');
+  }
   const current = normalizeShowProject(project);
   if (!Array.isArray(suggestions) || suggestions.length > 8) throw new TypeError('Meta returned too many suggestions');
   if (current.proposals.length + suggestions.length > 100) throw new RangeError('Proposal limit reached');
@@ -74,12 +77,16 @@ export function addMetaProposals(project, suggestions) {
     proposed.push({
       id, label: item.label.trim(), sourceLineIds: [item.lineId],
       actions: [{ type: 'PLAY', assetId: item.assetId }],
-      source: 'META_MODEL_API',
+      source: provider,
     });
   }
   const validated = validateCueProposals(proposed, allLines, current.assets.map(asset => asset.id));
   if (!validated.valid) throw new TypeError('Meta suggestions failed validation: ' + validated.errors.join('; '));
   return normalizeShowProject({ ...current, proposals: [...current.proposals, ...validated.proposals] });
+}
+
+export function addMetaProposals(project, suggestions) {
+  return addModelProposals(project, suggestions, 'META_MODEL_API');
 }
 
 export function decideProposal(project, proposalId, decision) {
