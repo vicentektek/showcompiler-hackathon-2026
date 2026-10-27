@@ -157,13 +157,21 @@ export async function runBasetenSeminarEval({
   return report;
 }
 
-/** Compare ONLY complete-case identifiers shared by two reports; no extrapolation. */
-export function compareProviderReports(meta,baseten){
-  if(meta?.model!=='muse-spark-1.3'||baseten?.model!==BASETEN_MODEL)throw new TypeError('Unexpected comparison models');
+/** Compare only the intersection of COMPLETE cases against the SAME fixed gold. */
+export function compareProviderReports(meta,baseten,corpus){
+  if(meta?.model!=='muse-spark-1.3'||baseten?.model!==BASETEN_MODEL||
+     !Array.isArray(meta.cases)||!Array.isArray(baseten.cases)||!Array.isArray(corpus?.cases))
+    throw new TypeError('Unexpected comparison reports');
   const a=new Map(meta.cases.filter(c=>c.status==='COMPLETE'&&Array.isArray(c.typedEvents)).map(c=>[c.id,c]));
   const b=new Map(baseten.cases.filter(c=>c.status==='COMPLETE'&&Array.isArray(c.typedEvents)).map(c=>[c.id,c]));
-  const common=[...a.keys()].filter(id=>b.has(id)).sort();
-  return {kind:'PAIRED_PROVIDER_COMPARISON',casesCompared:common.length,caseIds:common,
-    comparable:common.length>0,
-    note:'Scores must be recomputed on paired cases only. Unpaired aggregate F1 values must not be compared.'};
+  const common=corpus.cases.filter(c=>a.has(c.id)&&b.has(c.id));
+  const score=(provider)=>evaluateStageEventCases(
+    {version:1,provenance:corpus.provenance,cases:common},
+    {version:1,provenance:provider==='META'?'LOCAL_META_PAIRED':'LOCAL_BASETEN_PAIRED',
+      predictionsByCase:Object.fromEntries(common.map(c=>[c.id,(provider==='META'?a:b).get(c.id).typedEvents]))}
+  ).summary;
+  return {kind:'PAIRED_PROVIDER_COMPARISON',casesCompared:common.length,
+    caseIds:common.map(c=>c.id),comparable:common.length>0,
+    meta:common.length?score('META'):null,baseten:common.length?score('BASETEN'):null,
+    note:'Both providers evaluated on identical complete cases and unchanged human-review-pending gold. No statistical significance or production quality claimed.'};
 }
