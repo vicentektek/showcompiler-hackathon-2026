@@ -41,8 +41,8 @@ let scriptMatchIndex = 0;
 let preflightVisible = false;
 let editingCueId = null;
 let selectedCueId = null; // Selection inspects only; it never changes the GO queue.
-let activeWorkspace = 'script';
-const availableWorkspaces = Object.freeze(['script', 'ai', 'cues', 'audio', 'setup', 'operation']);
+let activeWorkspace = 'home';
+const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'setup', 'operation']);
 let operatorQueue = newOperatorQueue();
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
@@ -721,6 +721,10 @@ for (const button of document.querySelectorAll('[data-workspace-nav]')) {
   button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
 }
 $('setupOpenOperationBtn').addEventListener('click', () => setWorkspace('operation'));
+$('homeNewBtn').addEventListener('click', () => $('newShowBtn').click());
+$('homeOpenZipBtn').addEventListener('click', () => $('openBundleBtn').click());
+$('homeImportScriptBtn').addEventListener('click', () => $('scriptFileInput').click());
+$('homeDemoBtn').addEventListener('click', () => $('audibleExampleBtn').click());
 $('scriptSearchInput').addEventListener('input', () => {
   scriptMatchIndex = 0;
   const matches = findScriptMatches(parseScript(show.scriptText), $('scriptSearchInput').value);
@@ -791,6 +795,7 @@ $('newShowBtn').addEventListener('click', () => {
   if (!userAllowsReplacement()) return;
   setNewShow(createNewShow({ name: t('script.showNamePlaceholder') }), 'status.newShow');
   dirty = false;
+  setWorkspace('script');
 });
 $('importScriptBtn').addEventListener('click', () => $('scriptFileInput').click());
 $('scriptFileInput').addEventListener('change', async event => {
@@ -802,6 +807,7 @@ $('scriptFileInput').addEventListener('change', async event => {
     const text = await readTextFile(file, limitScriptBytes);
     const name = file.name.replace(/\.txt$/i, '').slice(0, 120).trim() || t('script.showNamePlaceholder');
     setNewShow(createNewShow({ name, scriptText: text }), 'status.scriptImported', { name: file.name });
+    setWorkspace('script');
   } catch (error) { showError(error); }
 });
 $('assetForm').addEventListener('submit', event => {
@@ -964,6 +970,7 @@ $('projectFileInput').addEventListener('change', async event => {
     const restored = deserializeShowProject(text);
     setNewShow(restored, 'status.projectOpened', { name: restored.name });
     dirty = false;
+    setWorkspace(restored.cues.length ? 'cues' : 'script');
   } catch (error) { showError(error); }
 });
 
