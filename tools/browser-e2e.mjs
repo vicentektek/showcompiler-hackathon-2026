@@ -225,10 +225,14 @@ try {
   assert.equal(await page.locator('#cuesCount').innerText(),'1');
   await page.locator('#cueInsertBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),2);
+  await page.locator('#cueDuplicateBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),3);
+  await page.locator('#cueMoveDownBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),3);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),startsBeforeManual);
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#cueDeleteBtn').click();
-  assert.equal(await page.locator('#cueList .cue-item').count(),1);
+  assert.equal(await page.locator('#cueList .cue-item').count(),2);
   assert.equal(await page.locator('#preparedCueStatus').innerText(), '1 · New cue');
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
