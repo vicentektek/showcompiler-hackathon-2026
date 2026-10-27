@@ -244,3 +244,6 @@ main{padding:24px 26px 34px}
 .cue-stop-option{display:flex;align-items:center;gap:9px;padding:6px;color:#d1dfef;cursor:pointer;font-size:12px;overflow-wrap:anywhere}
 .cue-stop-option:hover{background:#27405a}
 .cue-stop-option input{width:17px;min-height:17px;flex:0 0 17px;accent-color:#70babc}
+
+.operator-effect-summary{color:#ffdca0;font-size:12px;line-height:1.55;font-weight:720;margin:7px 0 10px;overflow-wrap:anywhere}
+.operator-effect-summary:empty{display:none}
