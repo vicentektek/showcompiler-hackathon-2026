@@ -28,12 +28,18 @@ test('cue inspection and filtered list cannot mutate prepared operator queue', (
   assert.match(html, /id="cueInspector"/);
   assert.match(html, /id="cueSearchInput"/);
   assert.match(client, /let selectedCueId = null/);
-  assert.match(client, /selectedCueId = cue\.id;/);
+  assert.match(client, /selectedCueId = cueId;/);
   assert.match(client, /const visibleCues = !cueQuery/);
   assert.match(client, /for \(const cue of visibleCues\)/);
-  const inspectHandler = client.match(/inspect\.addEventListener\('click', \(\) => \{([\s\S]*?)\}\);/);
-  assert.ok(inspectHandler);
-  assert.doesNotMatch(inspectHandler[1], /operatorQueue\s*=|player\.go\(/);
+  assert.match(client, /select\.addEventListener\('click', \(\) => selectCueForInspection\(cue\.id\)\)/);
+  const selectHandler = client.match(/function selectCueForInspection\(cueId\) \{([\s\S]*?)\n\}/);
+  assert.ok(selectHandler);
+  assert.doesNotMatch(selectHandler[1], /operatorQueue\s*=|player\.go\(/);
+  assert.match(client, /event\.key === 'ArrowDown'/);
+  assert.match(client, /event\.key === 'Home'/);
+  assert.match(client, /function renderCueList\(\)/);
+  assert.match(client, /function renderCueInspector\(\)/);
+  assert.match(client, /'cueEditor\.tab\.' \+ name/);
   assert.match(client, /function jumpToScriptLine\(lineId\) \{[\s\S]*?setWorkspace\('script'\)/);
 });
 
