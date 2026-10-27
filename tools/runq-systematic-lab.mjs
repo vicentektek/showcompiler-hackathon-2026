@@ -119,6 +119,7 @@ function codexTask(analysis){
     'Propose next authorized A/B case using the same script and distinct output folder.',''].join('\n');
 }
 export async function runSystematicExperiment(options={},deps={}){
+  if(Boolean(options.live)!==Boolean(options.ackPaid))throw new TypeError('Explicit paid authorization required');
   const opt=parseExperimentOptions([
     ...(options.live?['--live','--ack-paid']:[]),
     '--modes',(options.modes??['literal','balanced']).join(','),
