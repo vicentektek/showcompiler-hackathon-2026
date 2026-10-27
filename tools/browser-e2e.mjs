@@ -218,12 +218,13 @@ try {
   await page.locator('#homeNewBtn').click();
   await page.locator('[data-workspace-nav="cues"]').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),0);
+  const startsBeforeManual = await page.evaluate(()=>window.__testAudioStarts);
   await page.locator('#cueAddBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),1);
   assert.equal(await page.locator('#cuesCount').innerText(),'1');
   await page.locator('#cueInsertBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),2);
-  assert.equal(await page.evaluate(()=>window.__testAudioStarts),startsBeforeDirectGo+2);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),startsBeforeManual);
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#cueDeleteBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),1);
