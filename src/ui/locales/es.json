@@ -297,5 +297,17 @@
   "workspace.goOperation": "Abrir espacio de operación",
   "workspace.searchCue": "Buscar cues por número, nombre, guion o audio",
   "workspace.matchCount": "{visible} de {total} cues",
-  "workspace.noCueMatches": "No hay cues que coincidan. El cue preparado para GO no ha cambiado."
+  "workspace.noCueMatches": "No hay cues que coincidan. El cue preparado para GO no ha cambiado.",
+  "workspace.home": "Inicio",
+  "workspace.description.home": "Crea un espectáculo, abre un ZIP completo o prueba una demo de audio original.",
+  "workspace.homeTitle": "Empieza tu espectáculo",
+  "workspace.homeNew": "Crear espectáculo",
+  "workspace.homeNewDetail": "Empieza con un proyecto vacío e importa un guion.",
+  "workspace.homeOpenZip": "Abrir espectáculo ZIP",
+  "workspace.homeOpenZipDetail": "Recupera los sonidos originales, el texto del guion y los cues aprobados.",
+  "workspace.homeImport": "Importar guion TXT",
+  "workspace.homeImportDetail": "Conserva el texto original y añade después propuestas de sonido.",
+  "workspace.homeDemo": "Probar demo con audio real",
+  "workspace.homeDemoDetail": "Tres efectos WAV sintetizados y tres cues aprobados manualmente, sin conexión.",
+  "workspace.noRecent": "Este navegador no conserva una biblioteca permanente de proyectos recientes. Guarda el ZIP completo para conservar también los audios."
 }
