@@ -90,6 +90,13 @@ try {
     throw error;
   }
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  const workspaceStates = await page.locator('[data-workspace-nav]').evaluateAll(buttons =>
+    buttons.map(button => ({ name: button.dataset.workspaceNav,
+      pressed: button.getAttribute('aria-pressed'), current: button.classList.contains('is-current') })));
+  assert.deepEqual(workspaceStates.filter(state => state.pressed === 'true').map(state => state.name), ['cues'],
+    'Exactly one workspace should be pressed when Cue Editor is active');
+  assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
+    'Exactly one workspace should carry the current class');
   await capture('02-editor-1366.png');
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
