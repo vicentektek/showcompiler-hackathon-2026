@@ -367,5 +367,6 @@
   "cueEditor.saveActions": "Guardar acciones dirigidas",
   "cueEditor.actionsSaved": "Acciones de parada guardadas en el cue {number}. No se ha reproducido ningún sonido.",
   "cueEditor.listHelp": "Haz clic en un cue para editarlo. ↑ ↓ Inicio Fin para navegar. Inspeccionar no cambia SIGUIENTE GO.",
-  "cueEditor.hint": "Edita las propiedades a la derecha. GO y PARAR TODO están en Operación."
+  "cueEditor.hint": "Edita las propiedades a la derecha. GO y PARAR TODO están en Operación.",
+  "cueEditor.saveEditsFirst": "Guarda o descarta los cambios pendientes del inspector del cue antes de exportar JSON o ZIP."
 }
