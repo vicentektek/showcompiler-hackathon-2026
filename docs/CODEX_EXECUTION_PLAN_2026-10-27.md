@@ -25,16 +25,15 @@ Re-check HEAD and PR status at start; these facts are snapshots, not permanent a
 
 ## Execution sequence: only one stage per Codex task
 
-### C0 — Read-only dependency and baseline gate (first Codex assignment)
+### C0 — Minimal local preflight (already researched; DO NOT redo discovery)
 
-Objective: decide the minimal safe integration route, without changing files.
+This branch graph and CI evidence have already been checked directly in GitHub. Codex should NOT spend a new task researching old branches or rerunning whole isolated suites merely to recite results:
+- PR 20 Node test job: 223 passed, 0 failed/skipped (2026-10-27 12:43 UTC), plus syntax check passed.
+- PR 18 Node test job: 221 passed, 0 failed/skipped (2026-10-27 12:37 UTC).
+- PR 14 Node test job: 225 passed, 0 failed/skipped (2026-10-27 00:48 UTC), generated original WAV demo package and validated its ZIP structure.
+- None of those green runs proves the three branches integrated in one runtime or audible physical output.
 
-Required:
-1. Print git status --short, git branch --show-current, git rev-parse HEAD. Confirm feature-head SHAs for PR 14, PR 18, PR 19 and PR 20 and identify their merge bases, stacked dependencies and overlapping paths.
-2. Run npm run check:syntax and npm test on a clean checkout of PR 20. Record count of tests, successes, failures and skipped. Read .github/workflows/core-tests.yml and recent relevant checks.
-3. Compare PR 14 and PR 18 against PR 20: identify archive/demo and natural-end changes that would otherwise be lost. Identify collisions in src/ui/app.mjs, src/core/browserAudio.mjs, projectPersistence.mjs, workspace.mjs, package.json and core-tests.yml.
-4. Return a merge/cherry-pick/rebase order, the exact test gate and a go/no-go recommendation. No writes, no model calls, no cherry-picks, no branch creation, no pushes or merge.
-Acceptance: one concise evidence table with verified refs, exact commands, integration map, test totals, and known conflicts.
+Before C1 coding, perform ONLY git status --short, git branch --show-current, git rev-parse HEAD and git merge-base for the relevant branch heads. Verify no uncommitted user work. If HEAD/ref differs from this snapshot, report the minimal discrepancy; do not restart broad research. Commit to one narrow, integration-ready feature branch and run the full suite once AFTER actual integration work.
 
 ### C1 — Converge branches in ONE integration branch (after review of C0)
 
