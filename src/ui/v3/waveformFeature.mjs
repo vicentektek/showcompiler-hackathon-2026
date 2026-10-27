@@ -93,6 +93,7 @@ export function createWaveformFeature({getFile,onSaveStart}){
     const version=revision;
     const file=getFile(assetId);
     panel.hidden=false;
+    panel.scrollIntoView({block:'nearest',behavior:'instant'});
     title.textContent=assetName;
     status.textContent=labels().loading;
     if (!file || typeof file.arrayBuffer!=='function') {
