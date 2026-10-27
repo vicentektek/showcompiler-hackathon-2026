@@ -66,3 +66,28 @@ export function previousOperatorCue(state, cues) {
   if (index <= 0) return state;
   return prepareOperatorCue(state, cues, cues[index - 1].id);
 }
+
+
+/**
+ * Keep NEXT GO stable by cue identity while the operator adds, duplicates or
+ * reorders cues in Design. This is NEVER called during active playback.
+ * If NEXT itself is deleted, choose its successor's former position.
+ */
+export function reconcileOperatorQueueAfterEdit(state, beforeCues, nextCues) {
+  if (!state || !Array.isArray(beforeCues) || !Array.isArray(nextCues) ||
+      !Array.isArray(state.completedCueIds) || !Array.isArray(state.skippedCueIds)) {
+    throw new TypeError('Invalid sequence reconciliation input');
+  }
+  if (!beforeCues.length) return startOperatorQueue(nextCues);
+  const known = new Set(nextCues.map(cue=>cue.id));
+  let preparedCueId = state.preparedCueId;
+  if (preparedCueId !== null && !known.has(preparedCueId)) {
+    const previousIndex = beforeCues.findIndex(cue=>cue.id===preparedCueId);
+    preparedCueId = nextCues[Math.min(Math.max(previousIndex,0),nextCues.length-1)]?.id ?? null;
+  }
+  return {
+    preparedCueId,
+    completedCueIds:state.completedCueIds.filter(id=>known.has(id)),
+    skippedCueIds:state.skippedCueIds.filter(id=>known.has(id)),
+  };
+}
