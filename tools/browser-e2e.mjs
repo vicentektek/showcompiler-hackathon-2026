@@ -215,6 +215,7 @@ try {
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
   // Independent manual show authoring: no AI, no script and no permission.
   await page.locator('[data-workspace-nav="home"]').click();
+  page.once('dialog', dialog => dialog.accept());
   await page.locator('#homeNewBtn').click();
   await page.locator('[data-workspace-nav="cues"]').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),0);
