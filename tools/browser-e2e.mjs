@@ -227,7 +227,7 @@ try {
   assert.equal(await page.locator('#cueList .cue-item').count(),2);
   await page.locator('#cueDuplicateBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),3);
-  await page.locator('#cueMoveDownBtn').click();
+  await page.locator('#cueMoveUpBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),3);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),startsBeforeManual);
   page.once('dialog',dialog=>dialog.accept());
