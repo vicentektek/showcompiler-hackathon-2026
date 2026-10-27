@@ -16,3 +16,19 @@ jobs:
           node-version: '22'
       - run: npm run check:syntax
       - run: npm test
+      - name: Build original demo with three real WAV cues
+        run: npm run demo:package
+      - name: Verify standard ZIP format independently
+        run: unzip -t demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
+      - name: Publish self-contained show demo ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcompiler-full-demo-zip
+          path: demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Install pinned browser smoke driver (CI-only, no lockfile)
+        run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
+        run: node tools/browser-e2e.mjs

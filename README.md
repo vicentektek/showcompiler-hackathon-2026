@@ -11,6 +11,7 @@ Node.js 20 or newer is required; there are no npm dependencies to install.
 ```sh
 npm test
 npm run check:syntax
+npm run demo:package
 npm run dev
 ```
 
@@ -31,6 +32,16 @@ Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface
 - Use either the first-party Meta Model API or the Baseten-hosted Muse Spark Open fallback. Keys stay in the local Node process; WAV/MP3 bytes are never sent.
 - Measure offline exact-line precision, recall, F1, forbidden triggers, duplicate proposals, and hallucinated source references with rights-clear synthetic fixtures.
 
+## Integrated portable-show demo (draft branch)
+
+On the integration branch (PR #22), the browser has a self-contained `.showcompiler.zip` format with original WAV bytes, checksum validation and transactionally staged import. Select **Try with real sounds** for an 11-line example with three synthesized WAVs and three manually approved DRAFT cues; playback starts only after operator GO. A synthetic demo package can also be built offline using `npm run demo:package`.
+
+JSON export still excludes audio content. A cue's optional `automation` settings can be stored, but AUTO_CONTINUE/AUTO_FOLLOW are intentionally **not wired into browser GO**. The prototype has no per-playback-instance fading, true infinite loop, independent monitor bus, hardware routing, ASIO or native Windows installer.
+
+GitHub Actions validates the Node suites, syntax, demo ZIP construction and independent ZIP structure. Browser acceptance, real speaker output and operator verification remain pending.
+
+See [portable show documentation](docs/PORTABLE_SHOW_ARCHIVE.md) and [technical integration audit](docs/SECOND_PASS_TECHNICAL_AUDIT_2026-10-27.md).
+
 ## Meta contract smoke test
 
 The smoke command is intentionally separate from tests and the development server. It makes exactly one potentially billable request, uses a three-line synthetic script with no assets, performs zero retries, and prints only sanitized metadata.
@@ -48,8 +59,8 @@ Do not run it merely to execute the test suite. A timeout may still have consume
 - Provider errors are reduced to safe categories, a local request ID, status, phase, latency, finish reason, token counts, and allowlisted error `type`/`param`/`code`. Keys, full scripts, upstream messages, and raw provider bodies are never logged or returned.
 - No inference request is automatic and no request is automatically retried.
 - Project JSON remains schema v1. It supports both executable `PLAY` and unresolved `PLAN_AUDIO`; older builds may reject v1 files containing the later action.
-- Browser audio is a local prototype, not certified professional show control. Native WASAPI/ASIO, portable media packages, hardware routing, desktop installation, and paid sound generation remain future work.
-- First-party Meta smoke and one browser analysis/approval were verified by the user. Baseten live inference and direct audio-link/replacement still need manual verification; browser audio also needs audible acceptance. There is no independent preview bus or bundled media package.
+- Browser audio is a local prototype, not certified professional show control. Native WASAPI/ASIO, hardware routing, desktop installation, and paid sound generation remain future work. A bounded browser show ZIP with original audio is implemented but not yet manually accepted.
+- First-party Meta smoke and one browser analysis/approval were verified by the user. Baseten live inference and direct audio-link/replacement still need manual verification; browser audio also needs audible acceptance. There is no independent preview bus. A limited self-contained media ZIP exists in this draft branch.
 
 ## Documentation
 

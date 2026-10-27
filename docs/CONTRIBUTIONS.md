@@ -23,7 +23,15 @@ Only work created in this repository during the Meta Global AI Developer Hackath
 | Strict transient `CueSuggestionV2`, theatrical transport distinctions, semantic evidence checks, and deterministic deduplication | DTO/schema/semantic/dedupe tests | Only PLAY becomes a pending project proposal |
 | Extended evaluation for hallucinated references, duplicates, forbidden triggers, precision, recall, and F1 | Rights-clear multilingual aggregate fixtures | Reproducible offline measurement |
 
-## Current verification
+## 27 October 2026 — integration and validation (draft)
+
+- Original complete-show ZIP, original synthesized audio clips, browser demo and transactional staging were integrated with the optional cue automation data-model stack.
+- Preserved pending-GO per-cue cancellation during `AudioContext.resume()` while adding the guarded natural-completion callback. Automatic follow and advanced audio parameters remain disabled/unwired in the browser runtime.
+- The initial combined integration recorded **246 passing Node tests and zero failures** in GitHub Actions, with successful syntax, original WAV demo ZIP generation and independent archive verification.
+- Added a new deterministic regression suite for pending GO / STOP / natural-end and complete ZIP automation persistence, plus offline evaluation of 8 original multilingual gold scenarios (12 positive/23 forbidden cues). The latest CI result should be read from the feature PR.
+- No external model request, secret, historical source-code transplant, real speaker or hardware test was performed for this integration.
+
+## Historical verification (26 October snapshot)
 
 - Working branch: `feat/meta-muse-reliable-cues`, based on `feat/meta-theatrical-prompt-evals`.
 - Verified locally: `npm test` reports **180/180 passing**, `npm run check:syntax` passes, and `git diff --check` is clean.
@@ -48,5 +56,5 @@ Historical GitHub Actions evidence remains visible in repository history. The dr
 - “Prepare AI generation” records intent; it does not synthesize audio or spend generation credits.
 - `operatorConfirmed` expresses a UI transition, not authenticated identity.
 - Browser playback is real local code but not professional/certified show control.
-- Native WASAPI/ASIO, complete portable projects, desktop installer, hardware routing, and paid audio generation are not implemented.
+- Native WASAPI/ASIO, desktop installer, hardware routing, and paid audio generation are not implemented. A limited portable browser ZIP is available, pending user acceptance.
 - Never commit keys, account/billing details, full private scripts, raw provider responses, or unlicensed media.
