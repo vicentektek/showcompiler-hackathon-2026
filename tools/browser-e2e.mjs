@@ -95,6 +95,11 @@ try {
   assert.equal(await page.locator('#runqEditorToolbar').count(), 1);
   assert.equal(await page.locator('#cueList .cue-row-index').count(), 3);
   assert.equal(await page.locator('.runq-cue-columns').count(), 1);
+  assert.equal(await page.locator('.runq-cue-columns > span').count(), 5);
+  assert.equal(await page.locator('#cueList .cue-row-source').count(), 3);
+  assert.equal(await page.locator('#cueList .cue-row-audio').count(), 3);
+  assert.equal(await page.locator('#cueInspector .cue-inspector-quick-actions button').count(), 3);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'compact');
   await page.locator('#runqCueDensity').selectOption('standard');
   assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'standard');
@@ -173,7 +178,8 @@ try {
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
   // Repositioning belongs to Operation, never to a simple editor click.
-  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),0);
+  // V3 inspector has one explicit Set next control; it is not an automatic GO.
+  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),1);
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
@@ -368,6 +374,8 @@ try {
   await page.locator('#cueInsertBtn').click();
   await page.locator('#cueDuplicateBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),3);
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/,
+    'Authoring and duplicating cues preserve the original NEXT GO');
   await page.locator('#cueMoveUpBtn').click();
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual);
   page.once('dialog',dialog=>dialog.accept());
