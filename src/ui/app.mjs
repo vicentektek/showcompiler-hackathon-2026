@@ -713,6 +713,106 @@ $('saveProjectBtn').addEventListener('click', () => {
   try { saveProject(); }
   catch (error) { showError(error); }
 });
+/**
+ * Save a real self-contained ZIP. JSON Save remains available as a lightweight
+ * interchange format, but is NOT presented as a full audio-inclusive backup.
+ */
+$('saveBundleBtn').addEventListener('click', async () => {
+  if (bundleInFlight || audioInFlight) return;
+  const before = show;
+  const generation = projectGeneration;
+  bundleInFlight = true;
+  audioInFlight = true; // Prevent GO/loading while reading the original files.
+  refreshAudioControls();
+  feedback('bundle.saving');
+  try {
+    const canonical = normalizeShowProject({ ...before, name: $('showName').value.trim() });
+    const zip = await exportPortableShow(canonical, originalAudioFiles);
+    if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
+    const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'showcompiler-' + canonical.id + '.showcompiler.zip';
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    show = canonical;
+    dirty = false;
+    render();
+    feedback('bundle.saved', { count: canonical.assets.length }, 'success');
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Invalid package').slice(0, 180) }, 'error');
+  } finally {
+    bundleInFlight = false;
+    audioInFlight = false;
+    render();
+  }
+});
+$('openBundleBtn').addEventListener('click', () => {
+  if (bundleInFlight || audioInFlight) return;
+  $('bundleFileInput').click();
+});
+$('bundleFileInput').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file || bundleInFlight || audioInFlight || !userAllowsReplacement()) return;
+  if (!file.name.toLowerCase().endsWith('.zip') ||
+      file.size < 22 || file.size > MAX_PORTABLE_ZIP_BYTES) {
+    showError(uiError('bundle.invalidFile'));
+    return;
+  }
+  const before = show;
+  const generation = projectGeneration;
+  const previousPlayer = player;
+  const stage = createBrowserAudioBackend({ onStateChange: () => {} });
+  const decoded = new Map();
+  let committed = false;
+  bundleInFlight = true;
+  audioInFlight = true;
+  refreshAudioControls();
+  feedback('bundle.importing');
+  try {
+    const beforeTransport = player.getStatus();
+    if (beforeTransport.activeCueCount || beforeTransport.pendingGoCount ||
+        beforeTransport.auditionActive || beforeTransport.auditionPending) {
+      throw uiError('bundle.busy');
+    }
+    const archive = await importPortableShow(new Uint8Array(await file.arrayBuffer()));
+    // Stage all audio decoding without touching the playing engine or project.
+    for (const item of archive.audioFiles) {
+      const restoredFile = new File([item.bytes], item.name, { type: 'application/octet-stream' });
+      await stage.loadFile(restoredFile, item.assetId);
+      decoded.set(item.assetId, restoredFile);
+    }
+    if (generation !== projectGeneration || show !== before || player !== previousPlayer) {
+      throw uiError('errors.projectChanged');
+    }
+    const status = player.getStatus();
+    if (status.activeCueCount || status.pendingGoCount ||
+        status.auditionActive || status.auditionPending) throw uiError('bundle.busy');
+    setNewShow(archive.project, 'bundle.opened', {
+      name: archive.project.name, count: archive.audioFiles.length,
+    });
+    player = stage;
+    originalAudioFiles = decoded;
+    committed = true;
+    dirty = false;
+    render();
+    feedback('bundle.opened', { name: show.name, count: decoded.size }, 'success');
+    void previousPlayer.dispose().catch(() => {});
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Invalid package').slice(0, 180) }, 'error');
+  } finally {
+    if (!committed) {
+      try { await stage.dispose(); } catch {}
+    }
+    bundleInFlight = false;
+    audioInFlight = false;
+    render();
+  }
+});
+
 $('openProjectBtn').addEventListener('click', () => $('projectFileInput').click());
 $('projectFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
