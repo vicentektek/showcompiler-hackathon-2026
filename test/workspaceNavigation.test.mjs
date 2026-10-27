@@ -37,7 +37,7 @@ test('cue inspection and filtered list cannot mutate prepared operator queue', (
   assert.doesNotMatch(selectHandler[1], /operatorQueue\s*=|player\.go\(/);
   assert.match(client, /event\.key === 'ArrowDown'/);
   assert.match(client, /event\.key === 'Home'/);
-  assert.match(client, /function renderCueList\(\)/);
+  assert.match(client, /function renderCueList\(/);
   assert.match(client, /function renderCueInspector\(\)/);
   assert.match(client, /'cueEditor\.tab\.' \+ name/);
   assert.match(client, /function jumpToScriptLine\(lineId\) \{[\s\S]*?setWorkspace\('script'\)/);
