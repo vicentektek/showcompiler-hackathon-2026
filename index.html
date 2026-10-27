@@ -152,7 +152,17 @@
               </label>
               <output id="waveformRuler" class="caption" aria-live="polite"></output>
             </div>
-            <p class="caption" data-i18n="waveform.disclaimer">Visual preview only: no trim, fade or loop edit is saved from this canvas yet. No audio is played.</p>
+            <div id="waveformTrimTools" class="runq-waveform-trim" hidden>
+              <div>
+                <strong><span data-i18n="waveform.inLabel">IN point</span>: <output id="waveformInValue"></output></strong>
+                <p class="caption" data-i18n="waveform.inHelp">Drag on the waveform to set the IN position. Save to apply it to the selected cue only.</p>
+              </div>
+              <div class="item-actions">
+                <button id="waveformSaveIn" class="btn primary small" type="button" data-i18n="waveform.saveIn">Save IN to cue</button>
+                <button id="waveformCancelIn" class="btn subtle small" type="button" data-i18n="waveform.cancelIn">Discard change</button>
+              </div>
+            </div>
+            <p class="caption" data-i18n="waveform.disclaimer">Read-only for library files. An IN point can be edited only for a selected cue; OUT and loop regions are not implemented yet.</p>
           </section>
         </section>
 
