@@ -168,7 +168,7 @@ test('approved cue exposes safe editable operator details with no direct model e
   assert.match(client, /updateCueOperatorDetails\(show, cue\.id/);
   assert.match(client, /notesInput\.maxLength = 1500/);
   assert.match(client, /triggerInput\.maxLength = 300/);
-  assert.match(client, /t\('cue\.editDetails'\)/);
+  assert.match(client, /panel\.append\(cueDetailsEditor\(cue\)\)/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
 });
 
