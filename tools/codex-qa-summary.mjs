@@ -11,6 +11,7 @@ const VALID_ISSUES = new Set([
   'HALLUCINATED_SOURCE', 'FORBIDDEN_PLAY', 'DUPLICATE_EVENT',
   'WRONG_EVENT_TYPE', 'CREATIVE_REVIEW_REQUIRED',
   'UNSUPPORTED_EXPLICIT_CUE', 'MISSED_EXPECTED_EVENT',
+  'SEMANTIC_ALTERNATIVE_REVIEW', 'SEMANTIC_ALTERNATIVE_ACCEPTED',
 ]);
 const HINTS = {
   HALLUCINATED_SOURCE: 'Audit immutable source references.',
@@ -20,6 +21,8 @@ const HINTS = {
   UNSUPPORTED_EXPLICIT_CUE: 'Review evidence with an operator.',
   DUPLICATE_EVENT: 'Check repeated cues and continuing ambience.',
   CREATIVE_REVIEW_REQUIRED: 'Human artistic assessment required.',
+  SEMANTIC_ALTERNATIVE_REVIEW: 'Review the justified sound-classification alternative with an operator.',
+  SEMANTIC_ALTERNATIVE_ACCEPTED: 'Keep the strict score visible and record the human-approved semantic alternative.',
 };
 function count(value) {
   if (!Number.isSafeInteger(value) || value < 0) throw new TypeError('Invalid QA counter');
@@ -31,6 +34,14 @@ function percent(value) {
   }
   return (value * 100).toFixed(1) + '%';
 }
+function dimensionSummary(metric,prefix){
+  if(!metric||typeof metric!=='object')throw new TypeError('Missing QA dimension');
+  return {
+    [prefix+'Precision']:percent(metric.precision),
+    [prefix+'Recall']:percent(metric.recall),
+    [prefix+'F1']:percent(metric.f1),
+  };
+}
 export function buildCodexQaSummary(report) {
   if (!report || report.mode !== 'OFFLINE_HUMAN_GOLD_COMPARISON' ||
       report.modelQualityMeasured !== false || !report.summary ||
@@ -38,6 +49,7 @@ export function buildCodexQaSummary(report) {
     throw new TypeError('Expected an offline non-model QA report');
   }
   const s = report.summary;
+  const dimensions=s.dimensions;
   const summary = {
     cases: count(s.cases),
     expectedEvents: count(s.expectedEvents),
@@ -47,9 +59,15 @@ export function buildCodexQaSummary(report) {
     invalidReferences: count(s.invalidReferences),
     duplicates: count(s.duplicates),
     creativeAwaitingReview: count(s.creativeAwaitingReview),
+    semanticAlternativesPending: count(s.semanticAlternativesPending??0),
+    semanticAlternativesApproved: count(s.semanticAlternativesApproved??0),
     precision: percent(s.precision),
     recall: percent(s.recall),
     f1: percent(s.f1),
+    ...dimensionSummary(dimensions?.localization,'localization'),
+    ...dimensionSummary(dimensions?.transport,'transport'),
+    ...dimensionSummary(dimensions?.soundClassification,'soundClassification'),
+    ...dimensionSummary(dimensions?.basis,'basis'),
   };
   const findings = [];
   for (const entry of report.prioritizedCases) {
