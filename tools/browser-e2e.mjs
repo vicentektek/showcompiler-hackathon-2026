@@ -94,7 +94,17 @@ try {
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal(await page.locator('#runqEditorToolbar').count(), 1);
   assert.equal(await page.locator('#cueList .cue-row-index').count(), 3);
+  assert.equal(await page.locator('#cueList [data-cue-prepare]').count(), 3);
+  assert.equal(await page.locator('#cueList [data-cue-prepare]').first().getAttribute('aria-pressed'), 'true');
   assert.equal(await page.locator('.runq-cue-columns').count(), 1);
+  // The small number/arrow is an explicit positioning button in Cue Editor.
+  // It does not select the cue, trigger audio, or change its playback settings.
+  await page.locator('[data-cue-prepare]').nth(2).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /3\s*[·.]/);
+  assert.equal(await page.locator('[data-cue-select]').first().getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
+  await page.locator('[data-cue-prepare]').first().click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal(await page.locator('.runq-cue-columns > span').count(), 5);
   assert.equal(await page.locator('#cueList .cue-row-source').count(), 3);
   assert.equal(await page.locator('#cueList .cue-row-audio').count(), 3);
@@ -235,9 +245,22 @@ try {
   // V3 inspector has one explicit Set next control; it is not an automatic GO.
   assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),1);
   await page.locator('[data-workspace-nav="operation"]').click();
-  await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
+  assert.equal(await page.locator('#cueList .cue-row-meta').count(), 3,
+    'Operation displays its own row details after leaving Cue Editor');
+  assert.equal(await page.locator('#cueList .cue-row-audio').count(), 0);
+  await page.locator('[data-cue-prepare]').nth(1).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
+  assert.equal(await page.locator('[data-cue-prepare]').nth(1).getAttribute('aria-pressed'), 'true');
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
+  // Double-clicking the NAME is inspection only, never GO or NEXT relocation.
+  await page.locator('[data-cue-select]').nth(2).dblclick();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
+  // Enter on the numbered preparation control has the same safe semantics.
+  await page.locator('[data-cue-prepare]').nth(0).press('Enter');
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
+  await page.locator('[data-cue-prepare]').nth(1).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   await page.locator('#operatorBackBtn').click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   await page.locator('[data-workspace-nav="cues"]').click();
@@ -267,13 +290,28 @@ try {
   await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
-  await page.locator('#operatorGoBtn').click();
+  const startsBeforeTyping = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('#cueSearchInput').focus();
+  await page.keyboard.press('Space');
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), startsBeforeTyping,
+    'Space in a search field must never start GO');
+  await page.locator('#cueSearchInput').fill('');
+  // Operation Space is an explicit GO only when focused outside controls.
+  await page.locator('body').press('Space');
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
   assert.match(await page.locator('#operatorEffectSummary').innerText(), /STOP \/ FADE: 1/);
   assert.match(await page.locator('#operatorEffectSummary').innerText(), /4\.0 s/);
   const stopsBeforeTarget = await page.evaluate(()=>window.__testAudioStops);
+  // An earlier cue is still sounding: retarget NEXT without stopping it.
+  const activeSourcesBeforePrepare = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('[data-cue-prepare]').nth(2).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /3\s*[·.]/);
+  assert.equal(await page.evaluate(() => window.__testAudioStops), stopsBeforeTarget);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), activeSourcesBeforePrepare);
+  await page.locator('[data-cue-prepare]').nth(1).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(stops=>window.__testAudioStops>stops,stopsBeforeTarget);
   assert.ok(await page.evaluate(() => window.__testStopTimes.some(t => Math.abs(t - 5.02) < .01)));
