@@ -29,16 +29,20 @@ test('natural completion emitted once only after every voice ends',async()=>{
   x.sources[1].end();
   assert.deepEqual(x.ended,['a']);
 });
-test('STOP and fade never emit natural completion',async()=>{
+test('STOP, fade and STOP ALL never emit natural completion',async()=>{
   const x=setup();
   await x.engine.loadFile(x.file,'asset');
   await x.engine.go(x.cue('a'));
-  x.engine.stopCue('a',1000);
+  x.engine.stopCue('a');
   x.sources[0].end();
   assert.deepEqual(x.ended,[]);
   await x.engine.go(x.cue('b'));
-  x.engine.stopAll();
+  x.engine.stopCue('b',1000);
   x.sources[1].end();
+  assert.deepEqual(x.ended,[]);
+  await x.engine.go(x.cue('c'));
+  x.engine.stopAll();
+  x.sources[2].end();
   assert.deepEqual(x.ended,[]);
 });
 test('onCueNaturalEnd callback errors cannot prevent transport cleanup',async()=>{

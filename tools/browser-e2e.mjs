@@ -68,6 +68,7 @@ try {
   }
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal((await page.locator('#operatorGoBtn').isDisabled()), true);
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   await page.getByRole('button', { name: 'Prepare', exact: true }).first().click();
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   await page.locator('#operatorGoBtn').click();
@@ -81,6 +82,7 @@ try {
   assert.ok(download.suggestedFilename().endsWith('.showcompiler.zip'));
   const zip = await readFile(await download.path());
   assert.ok(zip.length > 1000);
+  const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#bundleFileInput').setInputFiles({
     name: 'roundtrip.showcompiler.zip', mimeType: 'application/zip', buffer: zip,
@@ -88,11 +90,46 @@ try {
   await page.waitForFunction(() => document.querySelector('#statusMessage')?.textContent?.includes('restored with 3 real audio files'));
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal((await page.locator('#operatorGoBtn').isDisabled()), true);
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), startsBeforeZipOpen);
+  const directGo = page.locator('[data-cue-action="go"]').first();
+  const directStop = page.locator('[data-cue-action="stop"]').first();
+  assert.equal((await directGo.isEnabled()), true);
+  assert.equal((await directStop.isDisabled()), true);
+  assert.equal((await page.locator('#stopAllBtn').isDisabled()), true);
+  const startsBeforeDirectGo = await page.evaluate(() => window.__testAudioStarts);
+  await directGo.click();
+  await page.waitForFunction(starts => window.__testAudioStarts > starts, startsBeforeDirectGo);
+  assert.equal((await directGo.isDisabled()), true);
+  assert.equal((await directStop.isEnabled()), true);
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
+  await directStop.click();
+  assert.equal((await directGo.isEnabled()), true);
+  assert.equal((await page.locator('#stopAllBtn').isDisabled()), true);
+  const beforeCorrupt = await page.evaluate(() => ({
+    name: document.querySelector('#showName')?.value,
+    script: document.querySelector('#scriptPreview')?.textContent,
+    starts: window.__testAudioStarts,
+  }));
+  const corruptZip = Buffer.from(zip);
+  corruptZip[44] ^= 0xff;
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#bundleFileInput').setInputFiles({
+    name: 'tampered.showcompiler.zip', mimeType: 'application/zip', buffer: corruptZip,
+  });
+  await page.waitForFunction(() => document.querySelector('#statusMessage')?.textContent?.includes('Could not complete show ZIP'));
+  assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  assert.equal((await page.locator('#showName').inputValue()), beforeCorrupt.name);
+  assert.equal((await page.locator('#scriptPreview').textContent()), beforeCorrupt.script);
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), beforeCorrupt.starts);
+  await directGo.click();
+  await page.waitForFunction(starts => window.__testAudioStarts > starts, beforeCorrupt.starts);
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
+  await page.locator('#stopAllBtn').click();
   await page.locator('#uiLocaleSelect').selectOption('es');
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
   assert.deepEqual(scriptErrors, []);
-  console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; UI locale change without script mutation; zero external provider calls.');
+  console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();
 } finally {
   try { if (browser) await browser.close(); } finally {

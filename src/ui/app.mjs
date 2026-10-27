@@ -758,7 +758,7 @@ async function loadCompleteZip(inputBytes) {
   const before = show;
   const generation = projectGeneration;
   const previousPlayer = player;
-  const stage = createBrowserAudioBackend({ onStateChange: () => {} });
+  const stage = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
   const decoded = new Map();
   let committed = false;
   bundleInFlight = true;
