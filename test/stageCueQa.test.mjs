@@ -49,6 +49,47 @@ test('optional creativity needs human review, and cannot mask an explicit gold m
   assert.equal(scored.summary.recall,0);
 });
 
+test('negative ambience, STOP, SILENCE, physical action and dialogue mentions remain distinct',()=>{
+  const gold={version:1,cases:[{
+    id:'negative-sound-language',
+    scriptText:[
+      'ESCENA 1',
+      '(No hay música ni murmullo de pasillo.)',
+      '[La lluvia grabada se corta.]',
+      '(Silencio total.)',
+      '(Mara golpea físicamente la puerta.)',
+      'MARA: Aún recuerdo aquel timbre.',
+    ].join('\n'),
+    expected:[e('L3','STOP','AMBIENCE'),e('L4','SILENCE','SILENCE')],
+    forbiddenPlayLineIds:['L2','L5','L6'],
+  }]};
+  const safe=evaluateStageEventCases(gold,{version:1,predictionsByCase:{
+    'negative-sound-language':[
+      {sourceLineId:'L3',transport:'STOP',cueKind:'AMBIENCE',basis:'EXPLICIT'},
+      {sourceLineId:'L4',transport:'SILENCE',cueKind:'SILENCE',basis:'EXPLICIT'},
+    ],
+  }});
+  assert.equal(safe.summary.precision,1);
+  assert.equal(safe.summary.recall,1);
+  assert.equal(safe.summary.forbiddenPlay,0);
+
+  const unsafe=evaluateStageEventCases(gold,{version:1,predictionsByCase:{
+    'negative-sound-language':[
+      {sourceLineId:'L2',transport:'PLAY',cueKind:'AMBIENCE',basis:'SUGGESTED'},
+      {sourceLineId:'L3',transport:'PLAY',cueKind:'AMBIENCE',basis:'EXPLICIT'},
+      {sourceLineId:'L4',transport:'PLAY',cueKind:'FX',basis:'EXPLICIT'},
+      {sourceLineId:'L5',transport:'PLAY',cueKind:'FX',basis:'EXPLICIT'},
+      {sourceLineId:'L6',transport:'PLAY',cueKind:'FX',basis:'EXPLICIT'},
+    ],
+  }});
+  assert.equal(unsafe.summary.forbiddenPlay,3);
+  assert.equal(unsafe.summary.wrongAction,2);
+  assert.equal(unsafe.summary.falseNegatives,2);
+  const issues=unsafe.prioritizedCases[0].issues;
+  assert.deepEqual(issues.filter(x=>x.type==='FORBIDDEN_PLAY').map(x=>x.lineId),['L2','L5','L6']);
+  assert.deepEqual(issues.filter(x=>x.type==='WRONG_EVENT_TYPE').map(x=>x.lineId),['L3','L4']);
+});
+
 test('empty guesses against existing cues score zero, not fictitious full precision',()=>{
   const s=one([e('L2')],[]);
   assert.equal(s.summary.precision,0);
@@ -68,6 +109,29 @@ test('invalid gold, source ID, and predictions are rejected without provider cal
   assert.throws(()=>one([], [{sourceLineId:'L2',transport:'RUN',cueKind:'FX',basis:'EXPLICIT'}]),TypeError);
   assert.throws(()=>evaluateStageEventCases({version:1,cases:[]},{version:1,predictionsByCase:{}}),TypeError);
   assert.throws(()=>evaluateStageEventCases({version:1,cases:[{id:'x',scriptText:'ok',expected:[]}]},{version:1,predictionsByCase:{unknown:[]}}),TypeError);
+});
+
+test('semantic alternatives require rationale and cannot redefine location or transport',()=>{
+  const sample={id:'alternatives',scriptText:'ESCENA\n(Suena ambiente.)',
+    expected:[e('L2','PLAY','AMBIENCE')],forbiddenPlayLineIds:[]};
+  const prediction={version:1,predictionsByCase:{alternatives:[]}};
+  const annotation={canonical:e('L2','PLAY','AMBIENCE'),
+    alternative:e('L2','PLAY','MUSIC'),
+    rationale:'Instrumental texture crosses the ambience/music boundary.',
+    reviewStatus:'PENDING_HUMAN_REVIEW'};
+  assert.doesNotThrow(()=>evaluateStageEventCases({version:1,cases:[{
+    ...sample,alternativeAnnotations:[annotation],
+  }]},prediction));
+  assert.throws(()=>evaluateStageEventCases({version:1,cases:[{
+    ...sample,alternativeAnnotations:[{...annotation,rationale:''}],
+  }]},prediction),TypeError);
+  assert.throws(()=>evaluateStageEventCases({version:1,cases:[{
+    ...sample,alternativeAnnotations:[{...annotation,
+      alternative:e('L2','STOP','MUSIC')}],
+  }]},prediction),RangeError);
+  assert.throws(()=>evaluateStageEventCases({version:1,cases:[{
+    ...sample,alternativeAnnotations:[{...annotation,reviewStatus:'AUTO_APPROVED'}],
+  }]},prediction),TypeError);
 });
 
 test('generated report avoids embedding the script and never claims verified model results',()=>{
