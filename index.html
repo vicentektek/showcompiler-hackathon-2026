@@ -9,7 +9,7 @@
   <script src="/src/ui/app.mjs" type="module"></script>
 </head>
 <body>
-  <div class="shell" data-active-workspace="script">
+  <div class="shell" data-active-workspace="home">
     <header class="topbar">
       <div class="brand">
         <span class="brand-icon" aria-hidden="true">◫</span>
@@ -37,7 +37,8 @@
     </header>
 
     <nav id="workspaceNav" class="workspace-nav" aria-label="Workspaces">
-      <button type="button" class="workspace-tab" data-workspace-nav="script" aria-pressed="true" data-i18n="workspace.script">Script</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="home" aria-pressed="true" data-i18n="workspace.home">Home</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="script" aria-pressed="false" data-i18n="workspace.script">Script</button>
       <button type="button" class="workspace-tab" data-workspace-nav="ai" aria-pressed="false" data-i18n="workspace.ai">AI &amp; Review</button>
       <button type="button" class="workspace-tab" data-workspace-nav="cues" aria-pressed="false" data-i18n="workspace.cues">Cue Editor</button>
       <button type="button" class="workspace-tab" data-workspace-nav="audio" aria-pressed="false" data-i18n="workspace.audio">Audio</button>
@@ -49,8 +50,8 @@
       <section class="intro workspace-intro">
         <div>
           <p class="eyebrow" data-i18n="intro.eyebrow">Build for Your World / Theatre and live events</p>
-          <h1 id="workspaceTitle" data-i18n="workspace.script">Script</h1>
-          <p id="workspaceDescription" data-i18n="workspace.description.script">Import and navigate the original script with stable source-line references.</p>
+          <h1 id="workspaceTitle" data-i18n="workspace.home">Home</h1>
+          <p id="workspaceDescription" data-i18n="workspace.description.home">Create a show, open a complete ZIP or start from an original audio demo.</p>
         </div>
         <div class="countbox">
           <div><strong id="linesCount">0</strong><span data-i18n="stats.lines">Lines</span></div>
@@ -61,6 +62,28 @@
 
       <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
       <div class="layout">
+        <section class="panel home-panel" data-workspaces="home" aria-labelledby="homeHeading">
+          <div class="panel-head"><div><span class="step">00</span><h2 id="homeHeading" data-i18n="workspace.homeTitle">Start your show</h2></div></div>
+          <div class="home-tiles">
+            <button id="homeNewBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeNew">Create a new show</strong>
+              <span data-i18n="workspace.homeNewDetail">Begin with a clean, empty project and import your script.</span>
+            </button>
+            <button id="homeOpenZipBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeOpenZip">Open complete show ZIP</strong>
+              <span data-i18n="workspace.homeOpenZipDetail">Restore the original audio, script and approved cues together.</span>
+            </button>
+            <button id="homeImportScriptBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeImport">Import a TXT script</strong>
+              <span data-i18n="workspace.homeImportDetail">Keep your original text and add sound suggestions afterward.</span>
+            </button>
+            <button id="homeDemoBtn" class="home-tile featured" type="button">
+              <strong data-i18n="workspace.homeDemo">Try original audio demo</strong>
+              <span data-i18n="workspace.homeDemoDetail">Three original WAV effects and three manually approved cues, offline.</span>
+            </button>
+          </div>
+          <p class="home-disclaimer" data-i18n="workspace.noRecent">This browser does not maintain a permanent recent-project library. Save a complete ZIP to keep every original audio file.</p>
+        </section>
         <section class="panel" data-workspaces="script" aria-labelledby="scriptHeading">
           <div class="panel-head">
             <div><span class="step">01</span><h2 id="scriptHeading" data-i18n="script.heading">Script</h2></div>
