@@ -104,7 +104,7 @@ test('fade schedules a ramp and eventually stops the source', async () => {
   assert.equal(x.sources[0].stopped,13.52);
   x.sources[0].end();
   assert.equal(x.engine.isPlaying('cue-1'),false);
-  assert.equal(x.engine.stopCue('cue-1',-1),false); // Already finished.
+  assert.throws(() => x.engine.stopCue('cue-1',-1), RangeError); // Invalid command fails closed.
 });
 
 test('invalid fade is rejected while cue remains active', async () => {
