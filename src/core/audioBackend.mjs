@@ -25,7 +25,7 @@ export const BROWSER_AUDIO_CAPABILITIES = Object.freeze({
 });
 
 const REQUIRED_METHODS = Object.freeze([
-  'loadFile', 'go', 'stopCue', 'stopAll', 'reset', 'hasAsset',
+  'loadFile', 'go', 'stopCue', 'stopAll', 'reset', 'dispose', 'hasAsset',
   'auditionAsset', 'stopAudition', 'isAuditioning',
   'isPlaying', 'isStopping', 'getStatus',
 ]);
@@ -56,6 +56,7 @@ export function createBrowserAudioBackend(options = {}) {
     stopCue: (cueId, fadeMs = 0) => engine.stopCue(cueId, fadeMs),
     stopAll: () => engine.stopAll(),
     reset: () => engine.reset(),
+    dispose: () => engine.dispose(),
     hasAsset: assetId => engine.hasAsset(assetId),
     isPlaying: cueId => engine.isPlaying(cueId),
     isStopping: cueId => engine.isStopping(cueId),
