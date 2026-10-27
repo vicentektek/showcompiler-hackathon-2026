@@ -7,7 +7,7 @@
 import { parseScript } from './script.mjs';
 import { planScriptAnalysis, isSceneHeading } from './sceneAnalysis.mjs';
 
-const TECHNICAL = /^(SFX|FX|SOUND|SONIDO|AUDIO|MUSIC|MÚSICA|LX|LIGHTING|LUCES|VIDEO|VÍDEO)(?:\s*[#-]?\s*\d{1,3})?\s*:\s*(.*)$/iu;
+const TECHNICAL = /^(SFX|FX|SOUND|SONIDO|AUDIO|MUSIC|MÚSICA|MUSIQUE|LX|LIGHTING|LUCES|VIDEO|VÍDEO)(?:\s*[#-]?\s*\d{1,3})?\s*:\s*(.*)$/iu;
 const SPEAKER = /^([\p{Lu}][\p{Lu}\p{M}\p{N} .'\u2019-]{0,39})\s*:\s*(.*)$/u;
 const DIRECTION = /^(?:\([\s\S]*\)|\[[\s\S]*\])$/u;
 
