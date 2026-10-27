@@ -1,7 +1,8 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
+import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
@@ -59,7 +60,9 @@ function refreshAudioControls() {
     : active || pending
       ? t('status.transportRunning', { count: active, pending: pending ? t('status.transportPending', { count: pending }) : '' })
       : t('status.transportStopped');
-  $('stopAllBtn').disabled = active === 0 && pending === 0 && !auditioning;
+  // Emergency stop must always be reachable, including pending asynchronous GO.
+  $('stopAllBtn').disabled = false;
+  $('operatorPanicBtn').disabled = false;
   $('stopAuditionBtn').disabled = !auditioning;
   $('loadAudioBtn').disabled = audioInFlight || auditioning || bundleInFlight;
   $('openBundleBtn').disabled = bundleInFlight || audioInFlight;
@@ -629,6 +632,76 @@ function render() {
   renderPreflight();
 }
 
+/**
+ * Operator audio settings are persisted and actually executed by Web Audio.
+ * This form is only mounted in the Cue Editor inspector; operation has one GO.
+ */
+function cuePlaybackEditor(cue) {
+  const settings = normalizeCuePlayback(cue.playback);
+  const form = node('form', 'cue-playback-editor');
+  form.id = 'cuePlaybackForm';
+  const heading = node('h4', 'inspector-section-heading', t('audioProps.heading'));
+  form.append(heading);
+  const inputs = new Map();
+  function numericField(key, min, max, step, description) {
+    const label = node('label', 'field', t('audioProps.' + key));
+    const input = node('input');
+    input.type = 'number';
+    input.min = String(min);
+    input.max = String(max);
+    input.step = String(step);
+    input.required = true;
+    input.value = String(settings[key]);
+    input.name = key;
+    label.append(input);
+    if (description) label.append(node('span', 'caption', t(description)));
+    form.append(label);
+    inputs.set(key, input);
+    return input;
+  }
+  numericField('gainDb', -60, 0, 0.5, 'audioProps.gainHelp');
+  numericField('fadeInMs', 0, 10000, 100);
+  const fadeOut = numericField('fadeOutMs', 0, 10000, 100);
+  numericField('startDelayMs', 0, 10000, 100);
+  const repeats = numericField('repeatCount', 1, 20, 1, 'audioProps.repeatHelp');
+  const loopLabel = node('label', 'cue-loop-field');
+  const loop = node('input');
+  loop.type = 'checkbox';
+  loop.name = 'loop';
+  loop.checked = settings.loop;
+  loopLabel.append(loop, node('span', '', t('audioProps.loop')));
+  form.append(loopLabel);
+  function syncLoop() {
+    if (loop.checked) {
+      repeats.value = '1';
+      fadeOut.value = '0';
+    }
+    repeats.disabled = loop.checked;
+    fadeOut.disabled = loop.checked;
+  }
+  loop.addEventListener('change', syncLoop);
+  syncLoop();
+  form.append(node('p', 'caption', t('audioProps.noAuto')));
+  const save = node('button', 'btn primary small', t('audioProps.save'));
+  save.type = 'submit';
+  form.append(save);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const next = { loop: loop.checked };
+    for (const [key, input] of inputs) {
+      next[key] = Number(input.value);
+    }
+    if (loop.checked) { next.repeatCount = 1; next.fadeOutMs = 0; }
+    try {
+      show = updateCuePlayback(show, cue.id, next);
+      dirty = true;
+      render();
+      feedback('audioProps.saved', { number: cue.number }, 'success');
+    } catch (error) { showError(error); }
+  });
+  return form;
+}
+
 function renderCueInspector() {
   const inspector = $('cueInspector');
   inspector.replaceChildren(node('h3', '', t('workspace.inspector')));
@@ -653,7 +726,8 @@ function renderCueInspector() {
       : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved');
     inspector.append(node('div', 'inspector-action', label));
   }
-  inspector.append(node('p', 'caption', t('workspace.engineNote')));
+  if (cue.actions.some(action => action.type === 'PLAY')) inspector.append(cuePlaybackEditor(cue));
+  inspector.append(node('p', 'caption', t('audioProps.currentLimits')));
   if (cue.automation && cue.automation.mode !== 'MANUAL') {
     inspector.append(node('p', 'inspector-warning', t('workspace.autoNotWired')));
   }
@@ -1154,10 +1228,12 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
   }
 });
 
-$('stopAllBtn').addEventListener('click', () => {
+function emergencyStopAllAudio() {
   player.stopAll();
   feedback('status.panic', {}, 'success');
-});
+}
+$('stopAllBtn').addEventListener('click', emergencyStopAllAudio);
+$('operatorPanicBtn').addEventListener('click', emergencyStopAllAudio);
 $('stopAuditionBtn').addEventListener('click', () => {
   if (player.stopAudition()) feedback('audio.auditionStopped', {}, 'success');
 });
