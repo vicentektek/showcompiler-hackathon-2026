@@ -104,7 +104,7 @@
   "scriptLanguage.help": "Independent of interface language. Keeps the original script unchanged.",
   "cues.heading": "Cue list",
   "cues.manual": "MANUAL GO",
-  "cues.help": "Only expressly approved suggestions appear here. GO plays the loaded audio; STOP and FADE 1.5 s stop playback. The operator remains in control.",
+  "cues.help": "Create and edit cues freely. AI suggestions are optional. Selecting a cue never starts audio.",
   "cues.transportInitial": "Transport stopped.",
   "cues.scopeHeading": "Prototype scope",
   "cues.scopeBody": "TXT import, human review, local GO/STOP/FADE/STOP ALL and JSON export/import. Reload your audio files after closing or refreshing the page: audio is not embedded in JSON.",
@@ -376,5 +376,11 @@
   "cueEditor.chooseLibraryAudio": "Select replacement from loaded library",
   "cueEditor.useLibraryAudio": "Use library audio",
   "cueEditor.libraryReplaced": "Audio assignment replaced for cue {number}. Nothing played.",
-  "cueEditor.trackEditorPending": "Audio attachment editing currently supports one PLAY track per cue; multi-track editing is a separate feature."
+  "cueEditor.trackEditorPending": "Audio attachment editing currently supports one PLAY track per cue; multi-track editing is a separate feature.",
+  "cueEditor.addCue": "+ Add cue",
+  "cueEditor.insertCue": "Insert after selected",
+  "cueEditor.deleteCue": "Delete selected",
+  "cueEditor.confirmDelete": "Delete the selected cue? Its active references will be removed. This cannot be undone.",
+  "cueEditor.stopBeforeEdit": "Stop all audio before changing the cue sequence.",
+  "cueEditor.sequenceChanged": "Cue sequence updated. Next GO is positioned at the first cue."
 }
