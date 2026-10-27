@@ -198,7 +198,7 @@ try {
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), startsBeforeZipOpen);
   await page.locator('[data-workspace-nav="cues"]').click();
-  await page.getByRole('button', {name:'Inspect',exact:true}).nth(editedCueIndex).click();
+  await page.locator('#cueList [data-cue-select]').nth(editedCueIndex).click();
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
   await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
