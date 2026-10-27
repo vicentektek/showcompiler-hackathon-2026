@@ -341,7 +341,7 @@
   "audioProps.noAuto": "Estos ajustes se aplican en el siguiente GO manual. Nunca disparan automáticamente otro cue. El fade final solo funciona en reproducciones finitas.",
   "audioProps.save": "Guardar ajustes de audio",
   "audioProps.saved": "Ajustes guardados en el cue {number}. No se ha reproducido sonido.",
-  "audioProps.currentLimits": "Reproducción real: atenuación, inicio desplazado, velocidad, panorama, retardo, fades, loops y repeticiones. Faltan PFL independiente, timecode, salidas por pista, STOP dirigido y avance automático.",
+  "audioProps.currentLimits": "Reproducción real: atenuación, posición inicial, velocidad, panorama, retardo, fades, loops, repeticiones y detener/fundear otros cues al pulsar GO. Faltan PFL independiente, timecode, salidas multicanal, cues exclusivos de STOP/FADE y seguimiento automático.",
   "audioProps.startAtMs": "Comenzar en (ms)",
   "audioProps.startAtHelp": "Omite el principio del archivo. Debe ser menor que su duración decodificada.",
   "audioProps.playbackRate": "Velocidad (0,5×–2×)",
