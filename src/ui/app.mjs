@@ -37,17 +37,29 @@ let scriptMatchIndex = 0;
 let preflightVisible = false;
 let editingCueId = null;
 let operatorQueue = newOperatorQueue();
+let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
 function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
-  const { activeCueCount: active, pendingGoCount: pending } = player.getStatus();
-  status.textContent = active || pending
-    ? t('status.transportRunning', { count: active, pending: pending ? t('status.transportPending', { count: pending }) : '' })
-    : t('status.transportStopped');
-  $('stopAllBtn').disabled = active === 0 && pending === 0;
+  const { activeCueCount: active, pendingGoCount: pending, auditionActive, auditionPending } = player.getStatus();
+  const auditioning = auditionActive || auditionPending;
+  status.textContent = auditioning
+    ? t('audio.auditionStatus')
+    : active || pending
+      ? t('status.transportRunning', { count: active, pending: pending ? t('status.transportPending', { count: pending }) : '' })
+      : t('status.transportStopped');
+  $('stopAllBtn').disabled = active === 0 && pending === 0 && !auditioning;
+  $('stopAuditionBtn').disabled = !auditioning;
+  $('loadAudioBtn').disabled = audioInFlight || auditioning;
+  for (const button of document.querySelectorAll('[data-asset-audition]')) {
+    button.disabled = !player.hasAsset(button.dataset.assetAudition) || audioInFlight || auditioning || active > 0 || pending > 0;
+  }
+  for (const button of document.querySelectorAll('[data-cue-audio-pick]')) {
+    button.disabled = audioInFlight || auditioning;
+  }
   for (const label of document.querySelectorAll('[data-cue-state]')) {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
     if (!cue) continue;
@@ -61,7 +73,7 @@ function refreshAudioControls() {
   $('preparedCueStatus').textContent = prepared
     ? t('operator.prepared', { number: prepared.number, label: prepared.label })
     : t('operator.nonePrepared');
-  $('operatorGoBtn').disabled = !prepared || audioInFlight ||
+  $('operatorGoBtn').disabled = !prepared || audioInFlight || auditioning ||
     prepared.actions.some(action => action.type !== 'PLAY' || !player.hasAsset(action.assetId)) ||
     player.isPlaying(prepared.id);
   $('operatorSkipBtn').disabled = !prepared || audioInFlight;
@@ -73,7 +85,7 @@ function refreshAudioControls() {
     const ready = cue.actions.every(action => player.hasAsset(action.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
-    button.disabled = button.dataset.cueAction === 'go' ? audioInFlight || !ready || playing : !playing || stopping;
+    button.disabled = button.dataset.cueAction === 'go' ? audioInFlight || auditioning || !ready || playing : !playing || stopping;
   }
 }
 
@@ -358,7 +370,24 @@ function render() {
   if (show.assets.length === 0) list.append(node('span', 'caption', t('status.noAssets')));
   for (const asset of show.assets) {
     const state = t(player.hasAsset(asset.id) ? 'status.loaded' : 'status.missingAsset');
-    list.append(node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state));
+    const row = node('div', 'asset-list-row');
+    const label = node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state);
+    const audition = node('button', 'btn subtle small', t('audio.audition'));
+    audition.type = 'button';
+    audition.dataset.assetAudition = asset.id;
+    audition.disabled = !player.hasAsset(asset.id);
+    audition.addEventListener('click', async () => {
+      if (!auditionAcknowledged) {
+        if (!window.confirm(t('audio.auditionConfirm'))) return;
+        auditionAcknowledged = true;
+      }
+      try {
+        await player.auditionAsset(asset.id);
+        feedback('audio.auditionStarted', { name: asset.name }, 'success');
+      } catch (error) { showError(error); }
+    });
+    row.append(label, audition);
+    list.append(row);
   }
 
   replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || t('status.emptyLine')}`]) : [], $('lineSelect').value);
@@ -843,6 +872,9 @@ $('stopAllBtn').addEventListener('click', () => {
   player.stopAll();
   feedback('status.panic', {}, 'success');
 });
+$('stopAuditionBtn').addEventListener('click', () => {
+  if (player.stopAudition()) feedback('audio.auditionStopped', {}, 'success');
+});
 $('loadAudioBtn').addEventListener('click', () => pickAudioFile());
 $('audioFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
@@ -876,7 +908,7 @@ $('audioFileInput').addEventListener('change', async event => {
       }
     }
     const transport = player.getStatus();
-    if (transport.activeCueCount || transport.pendingGoCount) throw uiError('errors.audioWhilePlaying');
+    if (transport.activeCueCount || transport.pendingGoCount || transport.auditionActive || transport.auditionPending) throw uiError('errors.audioWhilePlaying');
     // Reusing an already-decoded file reference changes playback for every
     // cue sharing that asset ID. Require explicit confirmation before doing so.
     const shared = before.cues.some(cue => cue.id !== cueId &&
