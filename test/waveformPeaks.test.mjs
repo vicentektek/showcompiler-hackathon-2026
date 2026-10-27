@@ -42,7 +42,7 @@ test('short source emits no empty buckets', () => {
 
 test('invalid buffers, non-finite PCM and unbounded bucket requests are rejected', () => {
   assert.throws(()=>buildWaveformPeaks(null),/AudioBuffer-compatible/);
-  assert.throws(()=>buildWaveformPeaks(fakeBuffer([])),/AudioBuffer-compatible/);
+  assert.throws(()=>buildWaveformPeaks({length:0,numberOfChannels:0,sampleRate:4,getChannelData:()=>[]}),/AudioBuffer-compatible/);
   assert.throws(()=>buildWaveformPeaks(fakeBuffer([new Float32Array([0])]),{bucketCount:0}),/bucketCount/);
   assert.throws(()=>buildWaveformPeaks(fakeBuffer([new Float32Array([0])]),{bucketCount:8193}),/bucketCount/);
   assert.throws(()=>buildWaveformPeaks(fakeBuffer([new Float32Array([Number.NaN])])),/non-finite/);
