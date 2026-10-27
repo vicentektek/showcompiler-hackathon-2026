@@ -20,6 +20,12 @@ The browser still uses Web Audio for playback and has no ASIO or independent PFL
 5. The entire archive and every included WAV/MP3 are verified/decoded **before** your current show is replaced. If the archive is invalid or a sound cannot be decoded, the current show and sound engine remain available.
 6. After successful import, all original audio names/IDs are restored; prepare the desired cue and press **GO** manually. Neither opening nor saving a package automatically plays audio.
 
+### Fastest test: one click inside the browser
+
+The Script panel now includes **Try with real sounds** / **Probar con sonidos reales**. After confirming replacement of an open show, the browser synthesizes three original WAV clips and loads them together with the 11-line theatre script and three approved manual DRAFT cues.
+
+There is **no need to create WAVs, run the CLI, download GitHub artifacts or configure a model API key** for this test. The browser does **not** execute GO automatically: select **Prepare**, then **GO PREPARED**, or use the cue's manual GO. STOP and STOP ALL remain available. This is a genuinely audible browser transport trial, but not proof of an AI generation or ASIO engine.
+
 ### An original, rights-clear show for testing
 
 The project includes a deterministic generator: `npm run demo:package`. It writes `demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip`, using an original 11-line English theatre script and three original synthesized PCM WAV samples (quiet atmosphere, bell, and musical transition). Three manually authored proposals are preapproved as DRAFT cues. **This example does not demonstrate live Meta AI inference.**
