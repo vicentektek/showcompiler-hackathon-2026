@@ -506,7 +506,10 @@ function renderCueList({ resetScroll = false } = {}) {
     select.setAttribute('aria-label', t('cueEditor.selectCue', { number: cue.number, label: cue.label }));
     select.setAttribute('aria-pressed', String(cue.id === selectedCueId));
     const top = node('div', 'item-head cue-row-heading');
-    top.append(node('strong', 'cue-row-title', cue.number + ' · ' + cue.label));
+    const cueNumber = node('span', 'cue-row-index', String(cue.number).padStart(2, '0'));
+    const cueTitle = node('strong', 'cue-row-title', cue.label);
+    cueTitle.title = cue.label;
+    top.append(cueNumber, cueTitle);
     const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
@@ -1100,8 +1103,9 @@ function renderCueInspector() {
     panel.append(cueDetailsEditor(cue));
     panel.append(sourceButton(cue.sourceLineIds[0]));
   } else if (inspectorTab === 'audio') {
-    panel.append(cueAudioSourceControls(cue));
+    // Keep essential playback controls visible on short desktop viewports.
     panel.append(cuePlaybackEditor(cue));
+    panel.append(cueAudioSourceControls(cue));
     panel.append(node('p', 'caption', t('audioProps.currentLimits')));
   } else {
     panel.append(cueActionInspector(cue));
