@@ -31,3 +31,34 @@ export function deleteOperatorCue(project,cueId){
   });
   return normalizeShowProject({...show,cues:renumber(cues)});
 }
+
+/** Duplicate any cue as an independently editable MANUAL cue. */
+export function duplicateOperatorCue(project, cueId) {
+  const show=normalizeShowProject(project);
+  const index=show.cues.findIndex(c=>c.id===cueId);
+  if(index<0)throw new TypeError('Cue not found');
+  if(show.cues.length>=2000)throw new RangeError('Show cue limit reached');
+  const source=show.cues[index];
+  const copy={...source,id:nextAvailableId('cue',show.cues.map(c=>c.id)),
+    origin:'MANUAL',label:source.label+' copy',number:index+2,
+    actions:source.actions.map(a=>({...a})),sourceLineIds:[...source.sourceLineIds]};
+  delete copy.sourceProposalId;
+  // A duplicate never inherits stop targets: it must be expressly programmed.
+  delete copy.automation;
+  delete copy.stopFadeOverrides;
+  const cues=[...show.cues.slice(0,index+1),copy,...show.cues.slice(index+1)];
+  return {project:normalizeShowProject({...show,cues:renumber(cues)}),cueId:copy.id};
+}
+
+/** Move cue one place, keeping its asset, source evidence and approved provenance. */
+export function moveOperatorCue(project,cueId,direction) {
+  const show=normalizeShowProject(project);
+  if(direction!==-1&&direction!==1)throw new TypeError('Invalid move direction');
+  const at=show.cues.findIndex(c=>c.id===cueId);
+  if(at<0)throw new TypeError('Cue not found');
+  const next=at+direction;
+  if(next<0||next>=show.cues.length)return show;
+  const cues=[...show.cues];
+  [cues[at],cues[next]]=[cues[next],cues[at]];
+  return normalizeShowProject({...show,cues:renumber(cues)});
+}
