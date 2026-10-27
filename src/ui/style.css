@@ -342,3 +342,20 @@ main{padding:24px 26px 34px}
 .cue-track-form .cue-loop-field,.cue-track-form .btn{grid-column:1/-1}
 .cue-track-form .btn{justify-self:start}
 @media(max-width:480px){.cue-track-form{grid-template-columns:1fr}}
+
+/* AI request feedback. Indeterminate by design: the upstream API exposes no per-scene progress. */
+.ai-analysis-activity{margin:11px 0 9px;padding:15px;border:1px solid #477d94;background:linear-gradient(120deg,#153047,#152739);border-radius:11px;color:#d6f0f5}
+.ai-analysis-activity[hidden]{display:none!important}
+.ai-analysis-summary{display:flex;align-items:center;gap:12px;min-height:36px}
+.ai-analysis-summary-text{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;line-height:1.4;font-size:12px}
+.ai-analysis-summary-text strong{font-size:13px;color:#e2f7fa}
+.ai-analysis-summary-text span{color:#a3d3df;overflow-wrap:anywhere}
+.ai-analysis-spinner{display:block;flex:0 0 22px;width:22px;height:22px;border:3px solid #47758a;border-top-color:#baf4f5;border-radius:50%;animation:ai-working-spin 850ms linear infinite}
+.ai-analysis-elapsed{font-size:12px;font-variant-numeric:tabular-nums;font-weight:800;color:#b3eff0}
+.ai-analysis-track{height:4px;margin:12px 0 9px;overflow:hidden;border-radius:8px;background:#28495a}
+.ai-analysis-indeterminate{width:38%;height:100%;background:#53c6c9;border-radius:8px;animation:ai-working-travel 1900ms ease-in-out infinite alternate}
+.ai-analysis-activity .caption{margin:5px 0 0;color:#b3d8e1}
+#analyzeMetaBtn[aria-busy="true"]{cursor:wait;opacity:.8}
+@keyframes ai-working-spin{to{transform:rotate(360deg)}}
+@keyframes ai-working-travel{from{transform:translateX(-105%)}to{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){.ai-analysis-spinner,.ai-analysis-indeterminate{animation:none}.ai-analysis-spinner{border-top-color:#8be5e6}.ai-analysis-indeterminate{width:100%;background:#416c7b}}

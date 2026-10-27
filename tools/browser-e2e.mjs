@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { readFile, mkdir } from 'node:fs/promises';
 import { createAppServer } from './dev-server.mjs';
+import { planScriptAnalysis } from '../src/core/sceneAnalysis.mjs';
 import { readZipStore } from '../src/core/zipStore.mjs';
 import { chromium } from 'playwright-core';
 
@@ -285,6 +286,59 @@ try {
   await page.waitForFunction(starts => window.__testAudioStarts > starts, beforeCorrupt.starts);
   assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
   await page.locator('#stopAllBtn').click();
+  // Simulate a bounded provider request. The browser must show a truthful
+  // indeterminate activity indicator and an operator-controlled repeat pass.
+  // No request here can reach an external service or consume model credits.
+  await page.route('**/api/meta/status', async route => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      configured: true, model: 'muse-spark-1.3', provider: 'META_MODEL_API',
+    }) });
+  });
+  let mockMetaCalls = 0;
+  let sentDesignMode;
+  await page.route('**/api/meta/proposals', async route => {
+    mockMetaCalls += 1;
+    const request = route.request().postDataJSON();
+    sentDesignMode = request.designMode;
+    const plan = planScriptAnalysis(request.project.scriptText);
+    const start = request.analysisWindowStart ?? 0;
+    const selected = plan.windows.slice(start, start + 2);
+    const end = start + selected.length;
+    const ids = selected.flatMap(window => window.coreLines.map(line => line.id));
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      provider: 'META_MODEL_API', model: 'muse-spark-1.3',
+      proposals: [], proposalDetails: [], observations: [], duplicatesRemoved: 0,
+      coverage: {
+        totalLines: plan.coverage.totalLines,
+        sceneCount: plan.coverage.sceneCount,
+        totalWindows: plan.coverage.windowCount,
+        batchStartWindow: start, batchEndWindowExclusive: end,
+        analyzedWindowIds: selected.map(window => window.id),
+        analyzedLineIds: ids, analyzedLines: ids.length,
+        nextWindowStart: end < plan.windows.length ? end : null,
+        complete: end === plan.windows.length,
+      },
+    }) });
+  });
+  await page.locator('[data-workspace-nav="ai"]').click();
+  await page.locator('#modelProviderSelect').selectOption('baseten');
+  await page.locator('#modelProviderSelect').selectOption('meta');
+  await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
+  await page.locator('#metaDesignMode').selectOption('expressive');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#analyzeMetaBtn').click();
+  await page.locator('#aiAnalysisActivity').waitFor({ state:'visible', timeout: 10000 });
+  assert.equal(await page.locator('#analyzeMetaBtn').getAttribute('aria-busy'), 'true');
+  assert.match(await page.locator('#aiAnalysisScope').innerText(), /window/);
+  await page.waitForFunction(() => document.querySelector('#aiAnalysisElapsed')?.textContent?.includes('1 s'));
+  await page.locator('#aiAnalysisActivity').waitFor({ state:'hidden', timeout: 10000 });
+  assert.equal(mockMetaCalls, 1, 'one confirmation = one simulated request');
+  assert.equal(sentDesignMode, 'expressive');
+  assert.equal(await page.locator('#analyzeMetaBtn').isEnabled(), true);
+  assert.match(await page.locator('#analyzeMetaBtn').innerText(), /another AI pass/);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), beforeCorrupt.starts + 1,
+    'Meta simulation and AI activity must never start another audio source');
   await page.locator('#uiLocaleSelect').selectOption('es');
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);

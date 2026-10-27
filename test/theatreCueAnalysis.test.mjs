@@ -221,3 +221,35 @@ test('validates options without any network or persistence side effect', () => {
   assert.throws(() => prepareTheatricalCueAnalysis(show, { extra: true }), TypeError);
   assert.equal(JSON.stringify(show), before);
 });
+
+
+test('sound-design modes preserve bounded request scope while separating optional creative proposals', () => {
+  const show = project([
+    'ESCENA 1',
+    '(La escena transcurre en una cafetería con reloj de pared.)',
+    'MARCOS: Recuerdo el tráfico de ayer.',
+    '(MARCOS y SOFÍA guardan silencio.)',
+    '(SOFÍA se levanta y sale deprisa.)',
+  ].join('\n'));
+  for (const mode of ['literal','balanced','expressive']) {
+    const prepared = prepareTheatricalCueAnalysis(show, { designMode: mode });
+    const userPayload = JSON.parse(prepared.request.messages[1].content);
+    assert.equal(userPayload.designMode, mode);
+    assert.equal(prepared.request.response_format.type, 'json_schema');
+    assert.equal(prepared.coverage.analyzedLines, 5);
+    assert.equal(prepared.coverage.totalWindows, 1);
+    assert.equal(prepared.request.messages[1].role, 'user');
+  }
+  const balanced = prepareTheatricalCueAnalysis(show);
+  const developerText = balanced.request.messages[0].content;
+  assert.equal(JSON.parse(balanced.request.messages[1].content).designMode, 'balanced');
+  assert.match(developerText, /BALANCED sound design/);
+  assert.match(developerText, /dramatic pauses/);
+  assert.match(developerText, /not suppress legitimate optional creative suggestions/);
+  assert.match(developerText, /NOT necessarily a sound-file playback cue/);
+  assert.match(developerText, /merely mentioning or remembering/);
+  assert.match(prepareTheatricalCueAnalysis(show, { designMode:'literal' }).request.messages[0].content, /LITERAL sound design/);
+  assert.match(prepareTheatricalCueAnalysis(show, { designMode:'expressive' }).request.messages[0].content, /EXPRESSIVE sound design/);
+  assert.throws(() => prepareTheatricalCueAnalysis(show, { designMode:'autoplay' }), TypeError);
+  assert.throws(() => prepareTheatricalCueAnalysis(show, { designMode:123 }), TypeError);
+});

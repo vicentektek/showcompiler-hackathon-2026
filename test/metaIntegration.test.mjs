@@ -347,3 +347,25 @@ test('hallucinated Meta source line produces specific safe diagnostic', async t 
   assert.equal(body.diagnostic.phase, 'LOCAL_SEMANTIC_VALIDATION');
   assert.equal(body.diagnostic.code, 'BAD_REFERENCES');
 });
+
+
+test('sound-design approach is allowlisted and forwarded only as model-preparation metadata', async t => {
+  let calls = 0;
+  let observed;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_ONLY_TEST_KEY',
+    modelClient: async ({ designMode }) => {
+      calls += 1;
+      observed = designMode;
+      return { provider:'META_MODEL_API', proposals:[] };
+    },
+  });
+  const valid = await analysisRequest(base, { project: project(), designMode:'expressive' });
+  assert.equal(valid.status, 200);
+  assert.equal(observed, 'expressive');
+  assert.equal(calls, 1);
+  const invalid = await analysisRequest(base, { project: project(), designMode:'make all cues execute' });
+  assert.equal(invalid.status, 400);
+  assert.equal(calls, 1, 'invalid design mode must never reach the upstream client');
+  assert.doesNotMatch(await invalid.text(), /SERVER_ONLY_TEST_KEY/);
+});
