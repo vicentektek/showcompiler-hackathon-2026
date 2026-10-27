@@ -45,7 +45,10 @@ let pendingAudioCueId = null;
 let audioInFlight = false;
 let bundleInFlight = false;
 let originalAudioFiles = new Map();
-const waveformViewer = createWaveformFeature({ getFile: assetId => originalAudioFiles.get(assetId) });
+const waveformViewer = createWaveformFeature({
+  getFile: assetId => originalAudioFiles.get(assetId),
+  onSaveStart: ({cueId,assetId,startAtMs}) => saveCueWaveformIn(cueId,assetId,startAtMs),
+});
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
@@ -994,6 +997,27 @@ function cueActionInspector(cue) {
 }
 
 
+/** Only commit graphical IN for the exact still-existing cue and file.
+ * GO remains a separate manual operator action and cannot occur here.
+ */
+function saveCueWaveformIn(cueId, assetId, startAtMs) {
+  const cue = show.cues.find(item => item.id === cueId);
+  const state = player.getStatus();
+  if (!cue || !cue.actions.some(a => a.type === 'PLAY' && a.assetId === assetId) ||
+      !originalAudioFiles.has(assetId) ||
+      !Number.isSafeInteger(startAtMs) || startAtMs < 0 || startAtMs > 600000 ||
+      audioInFlight || bundleInFlight ||
+      state.activeCueCount || state.pendingGoCount ||
+      state.auditionActive || state.auditionPending) {
+    throw new TypeError('Cannot save cue IN during active audio or changed source');
+  }
+  const existing = normalizeCuePlayback(cue.playback);
+  show = updateCuePlayback(show, cue.id, { ...existing, startAtMs });
+  dirty = true;
+  render();
+  feedback('audioProps.saved', { number: cue.number }, 'success');
+}
+
 function cueAudioSourceControls(cue) {
   const block = node('div', 'cue-source-controls');
   const playable = cue.actions.filter(action => action.type === 'PLAY');
@@ -1008,7 +1032,9 @@ function cueAudioSourceControls(cue) {
     viewWaveform.disabled = !originalAudioFiles.has(playable[0].assetId);
     viewWaveform.addEventListener('click', () => {
       if (!setWorkspace('audio')) return;
-      void waveformViewer.open(playable[0].assetId, asset?.name ?? playable[0].assetId);
+      void waveformViewer.open(playable[0].assetId, asset?.name ?? playable[0].assetId, {
+        cueId: cue.id, startAtMs: normalizeCuePlayback(cue.playback).startAtMs,
+      });
     });
     block.append(viewWaveform);
     if (show.assets.length > 1) {
