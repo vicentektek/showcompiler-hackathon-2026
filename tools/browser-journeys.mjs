@@ -268,6 +268,19 @@ const cases=[
     await p.keyboard.press('Space');
     assert.equal(await started(p),0,
       'Space on a menu header should open the menu, NEVER execute a cue');
+    // Verify custom focusable controls and links retain keyboard ownership.
+    await p.evaluate(()=>{
+      const link=document.createElement('a');
+      link.id='qa-focus-link';link.href='#top';link.textContent='QA focus link';
+      const custom=document.createElement('div');
+      custom.id='qa-focus-widget';custom.tabIndex=0;custom.textContent='QA widget';
+      document.body.append(link,custom);
+    });
+    for(const selector of ['#qa-focus-link','#qa-focus-widget']){
+      await p.locator(selector).focus();
+      await p.keyboard.press('Space');
+      assert.equal(await started(p),0,'Space must never GO from '+selector);
+    }
   }],
   ['AI safety','Unconfigured providers cannot generate or play anything',async p=>{
     await demo(p);await goTo(p,'ai');
