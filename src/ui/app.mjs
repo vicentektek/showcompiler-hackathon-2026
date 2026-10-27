@@ -176,8 +176,15 @@ function setWorkspace(workspace) {
     inspectorPendingChanges = false;
     renderCueInspector(); // Discard local form changes, not stored show data.
   }
+  const previousWorkspace = activeWorkspace;
   activeWorkspace = workspace;
   renderWorkspaceShell();
+  // The editor and operation use different row details and controls. Rebuild
+  // only when crossing those workspaces; never start playback by navigation.
+  if (previousWorkspace !== workspace && (workspace === 'cues' || workspace === 'operation')) {
+    renderCueList();
+    refreshAudioControls();
+  }
   return true;
 }
 
@@ -552,7 +559,10 @@ function prepareCueForNextGo(cueId) {
   if (!cue || operatorQueue.preparedCueId === cueId) return false;
   const status = player.getStatus();
   if (audioInFlight || bundleInFlight || status.pendingGoCount ||
-      status.auditionPending) return false;
+      status.auditionPending) {
+    feedback('operator.prepareBusy', {}, 'error');
+    return false;
+  }
   if (!confirmDiscardInspectorEdits()) return false;
   inspectorPendingChanges = false;
   editingCueId = null;
@@ -1421,6 +1431,24 @@ $('checkPreflightBtn').addEventListener('click', () => {
   preflightVisible = !preflightVisible;
   renderPreflight();
 });
+// Manual keyboard GO is limited to the Operation workspace. Focused buttons
+// and editable fields keep their normal Space behavior. Holding Space must not
+// launch successive cues through repeated keydown events.
+document.addEventListener('keydown', event => {
+  if (activeWorkspace !== 'operation' ||
+      (event.code !== 'Space' && event.key !== ' ') ||
+      event.repeat || event.isComposing ||
+      event.ctrlKey || event.altKey || event.metaKey || event.shiftKey ||
+      event.defaultPrevented) return;
+  const target = event.target;
+  if (target instanceof Element && target.closest(
+    'input, textarea, select, button, [contenteditable], [role="button"], [role="textbox"]'
+  )) return;
+  if ($('operatorGoBtn').disabled) return;
+  event.preventDefault();
+  $('operatorGoBtn').click();
+});
+
 $('operatorGoBtn').addEventListener('click', async () => {
   const id = operatorQueue.preparedCueId;
   if (!id || audioInFlight) return;
