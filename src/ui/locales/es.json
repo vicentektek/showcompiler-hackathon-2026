@@ -376,5 +376,20 @@
   "cueEditor.chooseLibraryAudio": "Seleccionar sustituto de la biblioteca",
   "cueEditor.useLibraryAudio": "Usar audio de biblioteca",
   "cueEditor.libraryReplaced": "Audio sustituido para el cue {number}. No se ha reproducido sonido.",
-  "cueEditor.trackEditorPending": "La edición de archivos admite de momento una sola pista PLAY por cue. El editor multipista es una función independiente."
+  "cueEditor.trackEditorPending": "La edición de archivos admite de momento una sola pista PLAY por cue. El editor multipista es una función independiente.",
+  "cueTracks.heading": "Pistas PLAY adicionales",
+  "cueTracks.explanation": "Se reproducen juntas con el mismo GO manual. Cada pista tiene su audio, volumen, retardo, fades, loop, velocidad y panorama. La propuesta original del guion permanece intacta.",
+  "cueTracks.add": "Añadir pista PLAY",
+  "cueTracks.choose": "Elegir otro audio de la biblioteca local",
+  "cueTracks.remove": "Quitar pista",
+  "cueTracks.removeConfirm": "¿Eliminar esta pista adicional? No se reproducirá ningún sonido.",
+  "cueTracks.replace": "Sustituir audio de la pista",
+  "cueTracks.properties": "Editar propiedades de pista",
+  "cueTracks.saveProperties": "Guardar propiedades",
+  "cueTracks.changed": "Audio de la pista modificado en el cue {number}.",
+  "cueTracks.removed": "Pista eliminada del cue {number}.",
+  "cueTracks.added": "Pista añadida al cue {number}.",
+  "cueTracks.savedProperties": "Ajustes de pista guardados en el cue {number}.",
+  "cueTracks.libraryEmpty": "Primero carga audio en la biblioteca local.",
+  "operator.effectTracks": "{count} pistas PLAY"
 }
