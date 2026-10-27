@@ -143,6 +143,9 @@ export class BrowserAudioEngine {
       throw new Error('Cue inválido o sin todos sus audios cargados.');
     }
     const playback = normalizeCuePlayback(cue.playback);
+    if (cue.actions.some(action => playback.startAtMs >= this.buffers.get(action.assetId).duration * 1000)) {
+      throw new RangeError('El inicio del audio debe estar dentro de cada archivo.');
+    }
     if (this.isAuditioning()) throw new Error('Detén la preescucha antes de GO.');
     if (this.isPlaying(cue.id)) throw new Error('Este cue ya está reproduciéndose.');
     this.pending.add(cue.id);
@@ -158,14 +161,23 @@ export class BrowserAudioEngine {
       if (ctx.state === 'suspended') throw new Error('El navegador ha bloqueado el audio.');
       const startAt = ctx.currentTime + 0.02 + playback.startDelayMs / 1000;
       const targetGain = 0.5 * 10 ** (playback.gainDb / 20);
+      const offsetSeconds = playback.startAtMs / 1000;
+      if (playback.pan !== 0 && typeof ctx.createStereoPanner !== 'function') {
+        throw new Error('Este navegador no admite panorama estéreo.');
+      }
       voices = cue.actions.map(action => {
         const source = ctx.createBufferSource();
         const gain = ctx.createGain();
         source.buffer = this.buffers.get(action.assetId);
-        // Web Audio loop is continuous; finite repeats are stopped at a
-        // deterministic buffer-duration boundary. No JS timer is required.
+        if (playback.playbackRate !== 1) {
+          if (!source.playbackRate) throw new Error('Control de velocidad no disponible.');
+          source.playbackRate.value = playback.playbackRate;
+        }
+        // Repeat the first portion from the selected offset, followed by
+        // whole-buffer cycles. This uses AudioBufferSourceNode scheduling.
         source.loop = playback.loop || playback.repeatCount > 1;
-        const duration = source.buffer.duration * playback.repeatCount;
+        const duration = (source.buffer.duration - offsetSeconds +
+          (playback.repeatCount - 1) * source.buffer.duration) / playback.playbackRate;
         const fadeIn = Math.min(playback.fadeInMs / 1000, duration);
         const fadeOut = playback.loop ? 0 : Math.min(playback.fadeOutMs / 1000, Math.max(0, duration - fadeIn));
         gain.gain.value = fadeIn ? 0 : targetGain;
@@ -177,9 +189,12 @@ export class BrowserAudioEngine {
           gain.gain.setValueAtTime(targetGain, startAt + duration - fadeOut);
           gain.gain.linearRampToValueAtTime(0, startAt + duration);
         }
+        const panner = playback.pan === 0 ? null : ctx.createStereoPanner();
+        if (panner) panner.pan.value = playback.pan;
         source.connect(gain);
-        gain.connect(ctx.destination);
-        return { source, gain, duration, repeatCount: playback.repeatCount };
+        if (panner) { gain.connect(panner); panner.connect(ctx.destination); }
+        else gain.connect(ctx.destination);
+        return { source, gain, panner, duration, repeatCount: playback.repeatCount };
       });
       const run = { voices: new Set(voices), stopping: false };
       this.playing.set(cue.id, run);
@@ -187,6 +202,7 @@ export class BrowserAudioEngine {
         voice.source.onended = () => {
           voice.source.disconnect();
           voice.gain.disconnect();
+          voice.panner?.disconnect();
           run.voices.delete(voice);
           if (run.voices.size === 0 && this.playing.get(cue.id) === run) {
             this.playing.delete(cue.id);
@@ -198,7 +214,7 @@ export class BrowserAudioEngine {
         };
       }
       for (const voice of voices) {
-        voice.source.start(startAt);
+        voice.source.start(startAt, offsetSeconds);
         if (!playback.loop && voice.repeatCount > 1) {
           voice.source.stop(startAt + voice.duration);
         }
@@ -210,6 +226,7 @@ export class BrowserAudioEngine {
         try { voice.source.stop(); } catch {}
         try { voice.source.disconnect(); } catch {}
         try { voice.gain.disconnect(); } catch {}
+        try { voice.panner?.disconnect(); } catch {}
       }
       this.playing.delete(cue?.id);
       this.notify();
