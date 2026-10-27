@@ -99,6 +99,15 @@ try {
   await page.locator('#cueReplaceLibrary').selectOption('asset-3');
   await page.getByRole('button',{name:'Use library audio'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Audio assignment replaced/);
+  await page.locator('#cueAddTrackSelect').selectOption('asset-2');
+  await page.locator('#cueAddTrackBtn').click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Audio track added/);
+  assert.equal(await page.locator('[data-extra-track="track-1"]').count(), 1);
+  await page.locator('[data-extra-track="track-1"] summary').click();
+  await page.locator('[data-track-settings="track-1"] [name="gainDb"]').fill('-12');
+  await page.locator('[data-track-settings="track-1"] [name="startDelayMs"]').fill('1250');
+  await page.locator('[data-track-settings="track-1"]').getByRole('button',{name:'Save track settings'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Track settings saved/);
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
   // Repositioning belongs to Operation, never to a simple editor click.
@@ -164,6 +173,9 @@ try {
   assert.deepEqual(exportedProject.cues[1].automation.stopCueIds,['cue-1']);
   assert.equal(exportedProject.cues[1].stopFadeOverrides['cue-1'],4000);
   assert.equal(exportedProject.cues[0].actions[0].assetId,'asset-3');
+  assert.equal(exportedProject.cues[0].audioTracks[0].assetId,'asset-2');
+  assert.equal(exportedProject.cues[0].audioTracks[0].playback.startDelayMs,1250);
+  assert.equal(exportedProject.cues[0].audioTracks[0].playback.gainDb,-12);
   const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#bundleFileInput').setInputFiles({
@@ -177,6 +189,7 @@ try {
   await page.locator('[data-workspace-nav="cues"]').click();
   await page.locator('[data-cue-select]').nth(editedCueIndex).click();
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
+  assert.equal(await page.locator('[data-extra-track="track-1"]').count(),1);
   await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
   const directStop = page.locator('[data-cue-action="stop"]').first();
