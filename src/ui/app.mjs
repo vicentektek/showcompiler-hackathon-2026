@@ -2,6 +2,7 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
+import { stageAddCueTrack, stageChangeCueTrack, stageRemoveCueTrack } from '../core/cueTracks.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
@@ -80,7 +81,8 @@ function refreshAudioControls() {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
     if (!cue) continue;
     const unresolved = cue.actions.find(action => action.type === 'PLAN_AUDIO');
-    const ready = !unresolved && cue.actions.every(action => player.hasAsset(action.assetId));
+    const ready = !unresolved && cue.actions.every(action => player.hasAsset(action.assetId)) &&
+      (cue.audioTracks ?? []).every(track => player.hasAsset(track.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
     label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
@@ -121,6 +123,7 @@ function refreshAudioControls() {
     : t('operator.noLastGo');
   $('operatorGoBtn').disabled = !prepared || audioInFlight || auditioning || pending > 0 ||
     prepared.actions.some(action => action.type !== 'PLAY' || !player.hasAsset(action.assetId)) ||
+    (prepared.audioTracks ?? []).some(track => !player.hasAsset(track.assetId)) ||
     player.isPlaying(prepared.id);
   $('operatorBackBtn').disabled = !show.cues.length || audioInFlight || pending > 0 ||
     preparedIndex === 0;
