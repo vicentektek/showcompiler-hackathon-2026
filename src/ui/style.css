@@ -311,3 +311,15 @@ main{padding:24px 26px 34px}
 .shell[data-active-workspace="operation"] .cue-item>.cue-operation-actions{grid-column:2;grid-row:1}
 .shell[data-active-workspace="operation"] .cue-item{gap:4px}
 @media(max-width:700px){.shell[data-active-workspace="operation"] .cue-item>.cue-operation-actions{grid-column:1;grid-row:auto}}
+
+/* Per-target timing makes STOP and FADE different, explicit outcomes. */
+.cue-stop-option{display:grid;grid-template-columns:20px minmax(0,1fr) 95px;align-items:center;gap:10px}
+.cue-stop-name{min-width:0;overflow-wrap:anywhere}
+.cue-stop-fade{display:grid;gap:3px;min-width:0}
+.cue-stop-fade .caption{font-size:10px;line-height:1.25}
+.cue-stop-fade input{width:100%;min-width:0;padding:7px 5px;font-variant-numeric:tabular-nums}
+.cue-stop-fade input:disabled{opacity:.48}
+.cue-source-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:9px 0 15px;padding:13px;border:1px solid #3b5976;border-radius:9px;background:#152a3e}
+.cue-source-controls .caption{width:100%;line-height:1.5}
+.cue-source-controls select{flex:1 1 160px;min-width:0}
+@media(max-width:500px){.cue-stop-option{grid-template-columns:20px minmax(0,1fr)}.cue-stop-fade{grid-column:2;width:120px}}
