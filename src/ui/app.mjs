@@ -3,6 +3,7 @@ import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
+import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
@@ -753,15 +754,7 @@ $('openBundleBtn').addEventListener('click', () => {
   if (bundleInFlight || audioInFlight) return;
   $('bundleFileInput').click();
 });
-$('bundleFileInput').addEventListener('change', async event => {
-  const file = event.target.files?.[0];
-  event.target.value = '';
-  if (!file || bundleInFlight || audioInFlight || !userAllowsReplacement()) return;
-  if (!file.name.toLowerCase().endsWith('.zip') ||
-      file.size < 22 || file.size > MAX_PORTABLE_ZIP_BYTES) {
-    showError(uiError('bundle.invalidFile'));
-    return;
-  }
+async function loadCompleteZip(inputBytes) {
   const before = show;
   const generation = projectGeneration;
   const previousPlayer = player;
@@ -778,7 +771,7 @@ $('bundleFileInput').addEventListener('change', async event => {
         beforeTransport.auditionActive || beforeTransport.auditionPending) {
       throw uiError('bundle.busy');
     }
-    const archive = await importPortableShow(new Uint8Array(await file.arrayBuffer()));
+    const archive = await importPortableShow(inputBytes);
     // Stage all audio decoding without touching the playing engine or project.
     for (const item of archive.audioFiles) {
       const restoredFile = new File([item.bytes], item.name, { type: 'application/octet-stream' });
@@ -810,6 +803,36 @@ $('bundleFileInput').addEventListener('change', async event => {
     bundleInFlight = false;
     audioInFlight = false;
     render();
+  }
+}
+
+$('bundleFileInput').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file || bundleInFlight || audioInFlight || !userAllowsReplacement()) return;
+  if (!file.name.toLowerCase().endsWith('.zip') ||
+      file.size < 22 || file.size > MAX_PORTABLE_ZIP_BYTES) {
+    showError(uiError('bundle.invalidFile'));
+    return;
+  }
+  try {
+    await loadCompleteZip(new Uint8Array(await file.arrayBuffer()));
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Invalid package').slice(0, 180) }, 'error');
+  }
+});
+
+$('audibleExampleBtn').addEventListener('click', async () => {
+  if (bundleInFlight || audioInFlight || !userAllowsReplacement()) return;
+  const before = show;
+  const generation = projectGeneration;
+  try {
+    feedback('bundle.preparingDemo');
+    const { archive } = await buildDemoPackage(); // Original sound synthesis in this browser.
+    if (show !== before || generation !== projectGeneration) throw uiError('errors.projectChanged');
+    await loadCompleteZip(archive);
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Unable to create demo').slice(0, 180) }, 'error');
   }
 });
 
