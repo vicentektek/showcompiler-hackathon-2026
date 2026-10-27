@@ -5,6 +5,7 @@
  */
 import { parseScript } from './script.mjs';
 import { validateCueProposals } from './proposals.mjs';
+import { validateCueAutomationPlan } from './cueAutomation.mjs';
 
 export const PROJECT_SCHEMA_VERSION = 1;
 export const MAX_PROJECT_JSON_BYTES = 2_000_000;
@@ -121,7 +122,7 @@ export function normalizeShowProject(input) {
 
   const cues = limitedArray(input.cues, MAX_CUES, 'cues').map((cue, index) => {
     const at = "cues[" + index + "]";
-    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes'], at);
+    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes', 'automation'], at);
     const cueId = identifier(cue.id, at + ".id");
     if (!Number.isSafeInteger(cue.number) || cue.number < 1 || cue.number > MAX_CUE_NUMBER) invalid(at + ".number is invalid");
     if (cue.status !== 'DRAFT') invalid(at + ".status must be DRAFT");
@@ -141,12 +142,23 @@ export function normalizeShowProject(input) {
       sourceLineIds: refs,
       actions: cueActions,
       status: 'DRAFT',
+      ...(cue.automation === undefined ? {} : { automation: cue.automation }),
     };
   });
   uniqueId(cues, 'cues');
   if (new Set(cues.map(c => c.number)).size !== cues.length) invalid('cues contain duplicate numbers');
   if (new Set(cues.map(c => c.sourceProposalId)).size !== cues.length) invalid('approved proposals are used by more than one cue');
 
+  // Existing schema-v1 files remain valid; automation is optional and operator-owned.
+  // Validate cross-cue references only after all cue identifiers are known.
+  try {
+    const plan = validateCueAutomationPlan(cues.map(cue => ({ id: cue.id, automation: cue.automation })));
+    for (let index = 0; index < cues.length; index += 1) {
+      if (cues[index].automation !== undefined) cues[index].automation = {
+        ...plan[index].automation, stopCueIds: [...plan[index].automation.stopCueIds],
+      };
+    }
+  } catch (error) { invalid('cue automation: ' + error.message); }
   return { schemaVersion: PROJECT_SCHEMA_VERSION, id, name, scriptText, assets, proposals, cues };
 }
 
