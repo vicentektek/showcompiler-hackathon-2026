@@ -3,13 +3,14 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Hackathon-only local browser demo: mock cue generation with real operator-controlled Web Audio playback",
+  "description": "Hackathon local SHOWCOMPILER demo with human-reviewed AI cues, real browser playback and self-contained audio-inclusive show ZIP",
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "demo:core": "node tools/review-demo.mjs",
     "smoke:meta": "node tools/meta-smoke.mjs",
     "dev": "node tools/dev-server.mjs",
-    "check:syntax": "node --check src/ui/app.mjs && node --check src/core/workspace.mjs && node --check src/core/browserAudio.mjs && node --check src/core/sceneAnalysis.mjs && node --check src/core/scriptNavigation.mjs && node --check src/core/showPreflight.mjs && node --check src/core/operatorQueue.mjs && node --check src/core/theatreCueAnalysis.mjs && node --check tools/dev-server.mjs && node --check tools/meta-smoke.mjs && node --check src/ui/i18n.mjs && node --check src/core/scriptLanguage.mjs && node --check src/core/metaCueProvider.mjs && node --check tools/metaRoutes.mjs && node --check src/core/basetenCueProvider.mjs && node --check tools/basetenRoutes.mjs"
+    "check:syntax": "node --check src/ui/app.mjs && node --check src/core/workspace.mjs && node --check src/core/browserAudio.mjs && node --check src/core/sceneAnalysis.mjs && node --check src/core/scriptNavigation.mjs && node --check src/core/showPreflight.mjs && node --check src/core/operatorQueue.mjs && node --check src/core/theatreCueAnalysis.mjs && node --check tools/dev-server.mjs && node --check tools/meta-smoke.mjs && node --check src/ui/i18n.mjs && node --check src/core/scriptLanguage.mjs && node --check src/core/metaCueProvider.mjs && node --check tools/metaRoutes.mjs && node --check src/core/basetenCueProvider.mjs && node --check tools/basetenRoutes.mjs && node --check src/core/showArchive.mjs && node --check src/core/zipStore.mjs && node --check src/core/demoShow.mjs && node --check tools/build-demo-package.mjs",
+    "demo:package": "node tools/build-demo-package.mjs"
   },
   "engines": {
     "node": ">=20"

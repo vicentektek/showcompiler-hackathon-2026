@@ -90,3 +90,9 @@ footer{padding:20px 34px;border-top:1px solid #263149;color:#73839f;text-align:c
 .asset-list-row{display:flex;gap:7px;align-items:center;max-width:100%;flex-wrap:wrap}
 .asset-list-row .tag{flex:1 1 145px;min-width:0}
 #stopAuditionBtn{margin:0 0 10px}
+
+/* Complete-show ZIP actions should remain accessible at 1366px and mobile. */
+.top-actions{flex-wrap:wrap;justify-content:flex-end;row-gap:8px;max-width:100%}
+#saveBundleBtn{background:#186858;border-color:#2e9d82;color:#f0fffb}
+#saveBundleBtn:hover:not(:disabled){background:#218c71}
+@media(max-width:740px){.top-actions{justify-content:flex-start}.top-actions #saveBundleBtn{flex:1 1 170px}}

@@ -148,3 +148,6 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Locally generated, rights-clear audio demonstration package (CI artifact)
+demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip

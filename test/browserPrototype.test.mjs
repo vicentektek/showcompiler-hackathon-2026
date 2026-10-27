@@ -6,6 +6,7 @@ import { createAppServer } from '../tools/dev-server.mjs';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const client = readFileSync(new URL('../src/ui/app.mjs', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/ui/style.css', import.meta.url), 'utf8');
+const demoModule = readFileSync(new URL('../src/core/demoShow.mjs', import.meta.url), 'utf8');
 
 test('browser wiring references only actual HTML element IDs', () => {
   const declared = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
@@ -94,6 +95,15 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const backendFacade = await fetch(base + '/src/core/audioBackend.mjs');
   assert.equal(backendFacade.status, 200);
   assert.match(await backendFacade.text(), /createBrowserAudioBackend/);
+  const bundle = await fetch(base + '/src/core/showArchive.mjs');
+  assert.equal(bundle.status, 200);
+  assert.match(await bundle.text(), /exportPortableShow/);
+  const zip = await fetch(base + '/src/core/zipStore.mjs');
+  assert.equal(zip.status, 200);
+  const demo = await fetch(base + '/src/core/demoShow.mjs');
+  assert.equal(demo.status, 200);
+  const privatePayload = await fetch(base + '/tools/private-archive-upload');
+  assert.equal(privatePayload.status, 404);
   const privateBaseten = await fetch(base + '/tools/basetenRoutes.mjs');
   assert.equal(privateBaseten.status, 404);
   const privateProvider = await fetch(base + '/src/core/basetenCueProvider.mjs');
@@ -161,6 +171,29 @@ test('manual operator queue is separate from source inspection and GO is guarded
   assert.match(client, /skipPreparedCue\(operatorQueue, show\.cues\)/);
   assert.match(client, /operatorQueue = newOperatorQueue\(\)/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
+});
+
+test('complete-show ZIP requires explicit local file selection and stages decode before project swap', () => {
+  assert.match(html, /id="saveBundleBtn"/);
+  assert.match(html, /id="openBundleBtn"/);
+  assert.match(html, /id="bundleFileInput"/);
+  assert.match(client, /exportPortableShow\(canonical, originalAudioFiles\)/);
+  assert.match(client, /await loadCompleteZip\(new Uint8Array\(await file\.arrayBuffer\(\)\)\)/);
+  assert.match(client, /const archive = await importPortableShow\(inputBytes\)/);
+  assert.match(client, /await stage\.loadFile\(restoredFile, item\.assetId\)/);
+  assert.match(client, /if \(!committed\)/);
+  assert.match(client, /await stage\.dispose\(\)/);
+  assert.match(client, /originalAudioFiles\.set\(assetId, file\)/);
+  assert.doesNotMatch(client, /innerHTML\s*=/);
+});
+
+test('original rights-clear complete demo is callable offline from the browser UI', async () => {
+  assert.match(html, /id="audibleExampleBtn"/);
+  assert.match(client, /await buildDemoPackage\(\)/);
+  assert.match(client, /await loadCompleteZip\(archive\)/);
+  assert.match(client, /generation !== projectGeneration/);
+  assert.match(demoModule, /buildDemoPackage/);
+  assert.doesNotMatch(demoModule, /node:fs|node:path|node:url/);
 });
 
 test('same-output audition controls are distinct from GO and disclose routing limits', () => {
