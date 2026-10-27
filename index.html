@@ -145,6 +145,15 @@
             <strong id="preflightSummary"></strong>
             <ul id="preflightIssues"></ul>
           </div>
+          <div class="operator-queue" aria-label="Manual cue transport">
+            <p id="preparedCueStatus" class="operator-prepared" role="status" aria-live="polite" data-i18n="operator.nonePrepared">No cue prepared</p>
+            <div class="operator-queue-controls">
+              <button id="operatorGoBtn" class="btn primary" type="button" disabled data-i18n="operator.goPrepared">GO PREPARED</button>
+              <button id="operatorSkipBtn" class="btn subtle" type="button" disabled data-i18n="operator.skip">SKIP</button>
+              <button id="operatorResetBtn" class="btn subtle" type="button" data-i18n="operator.reset">Reset position</button>
+            </div>
+            <p class="caption" data-i18n="operator.disclaimer">Preparation and SKIP do not start sound. Only manual GO can play a loaded cue.</p>
+          </div>
           <div id="cueList" class="item-list"></div>
           <div id="transportStatus" class="caption" role="status" aria-live="polite" data-i18n="cues.transportInitial">Transport stopped.</div>
           <div class="info">
