@@ -123,7 +123,7 @@ try {
   // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
   await page.locator('#cueTargetStopForm [data-stop-target="cue-1"]').check();
   await page.locator('#cueTargetStopForm').getByRole('button',{name:'Save target actions'}).click();
-  assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
+  assert.match(await page.locator('#statusMessage').innerText(), /Target-stop actions saved/);
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
   await page.locator('[data-workspace-nav="operation"]').click();
