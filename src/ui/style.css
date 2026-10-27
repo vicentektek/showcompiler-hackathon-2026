@@ -188,3 +188,30 @@ main{padding:24px 26px 34px}
 .home-tile.featured:hover{background:#1b4b44}
 .home-disclaimer{max-width:1000px;margin:22px 0 0;color:#90a6c4;line-height:1.65;font-size:12px}
 @media(max-width:700px){.home-tiles{grid-template-columns:1fr}.home-tile{min-height:110px;padding:16px}}
+
+
+/* Restored show-running workflow: one NEXT GO, one primary GO, no row GO. */
+.operator-queue{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:28px;align-items:center;padding:22px 25px;margin-bottom:16px;background:linear-gradient(115deg,#173d5d,#14283e 70%);border-color:#5989b9}
+.operator-next{min-width:0}
+.operator-kicker{display:block;margin-bottom:9px;color:#84bafa;font-size:11px;font-weight:800;letter-spacing:.14em}
+.operator-prepared{font-size:clamp(20px,2.1vw,30px);font-weight:790;line-height:1.25;margin:0 0 8px;color:#f1f8ff}
+.operator-trigger{color:#c0d5ec;line-height:1.5;margin:4px 0 8px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.operator-progress{display:inline-block;color:#83c9d3;font-size:11px;font-weight:750}
+.operator-queue-controls{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(3,minmax(90px,1fr));gap:8px;align-self:stretch;align-content:center;max-width:425px}
+.operator-queue-controls #operatorGoBtn{grid-column:1/-1;min-height:88px;font-size:32px;letter-spacing:.13em;background:#177b70;border-color:#34bba8}
+.operator-queue-controls #operatorGoBtn:hover:not(:disabled){background:#239e90}
+.operator-queue-controls #operatorBackBtn,.operator-queue-controls #operatorSkipBtn,.operator-queue-controls #operatorResetBtn{font-size:11px;white-space:normal;min-height:42px}
+.operator-queue #operatorLastGo{grid-column:1/-1;margin:14px 0 2px;color:#9ccdd8}
+.operator-queue>.caption{grid-column:1/-1;margin-top:5px;max-width:850px}
+.shell[data-active-workspace="operation"] .cue-workspace-body{grid-template-columns:1fr}
+.shell[data-active-workspace="operation"] #cueList{grid-template-columns:1fr;max-height:55vh;overflow:auto}
+.shell[data-active-workspace="operation"] .cue-edit-actions,
+.shell[data-active-workspace="operation"] .cue-audio-tools{display:none}
+.shell[data-active-workspace="operation"] .cue-item{padding:12px 15px;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}
+.shell[data-active-workspace="operation"] .cue-item>.item-head{grid-column:1}
+.shell[data-active-workspace="operation"] .cue-item>.item-detail{grid-column:1}
+.shell[data-active-workspace="operation"] .cue-item>.cue-operation-actions{grid-column:2;grid-row:1/span 3;justify-content:flex-end}
+.shell[data-active-workspace="operation"] .cue-item.cue-prepared{background:#203a50;border-left:6px solid #72d0d4}
+.shell[data-active-workspace="operation"] .cue-item.cue-selected:not(.cue-prepared){border-left-width:3px}
+@media(max-width:1050px){.operator-queue{grid-template-columns:1fr;gap:13px}.operator-queue-controls{grid-column:1;grid-row:auto;max-width:none}.operator-queue-controls #operatorGoBtn{min-height:70px}}
+@media(max-width:700px){.operator-queue{padding:14px}.operator-prepared{font-size:22px}.shell[data-active-workspace="operation"] .cue-item{grid-template-columns:1fr}.shell[data-active-workspace="operation"] .cue-item>.cue-operation-actions{grid-column:1;grid-row:auto;justify-content:flex-start}.operator-queue-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.operator-queue-controls #operatorGoBtn{grid-column:1/-1}.operator-queue-controls #operatorResetBtn{grid-column:1/-1}}
