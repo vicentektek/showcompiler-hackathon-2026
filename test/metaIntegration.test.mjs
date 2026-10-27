@@ -408,3 +408,56 @@ test('production and document types are operator-selected, allowlisted and non-e
     assert.doesNotMatch(await bad.text(), /SERVER_SIDE_ONLY_KEY/);
   }
 });
+
+
+test('local Meta route exposes bounded independent audio review without auto-approving cues', async (t) => {
+  const original=createNewShow({
+    scriptText:'ESCENA 1\nSFX: campana lejana\nANA: Hola',
+  });
+  const coverage={
+    totalLines:3,sceneCount:1,totalWindows:1,batchStartWindow:0,
+    batchEndWindowExclusive:1,analyzedWindowIds:['S1-W1'],
+    analyzedLineIds:['L1','L2','L3'],analyzedLines:3,
+    nextWindowStart:null,complete:true,
+  };
+  let modelCalls=0;
+  const base=await withServer(t,{
+    getKey:()=> 'FAKE_TEST_KEY',
+    modelClient:async()=>{
+      modelCalls+=1;
+      return {
+        provider:'META_MODEL_API',proposals:[],details:[],observations:[],
+        coverage,independentReview:{reviewFlags:['L2'],totalUnreviewed:1},
+      };
+    },
+  });
+  const response=await analysisRequest(base,{project:original});
+  assert.equal(response.status,200);
+  const data=await response.json();
+  assert.equal(modelCalls,1);
+  assert.deepEqual(data.independentReview,{reviewFlags:['L2'],totalUnreviewed:1});
+  assert.deepEqual(data.proposals,[]);
+  assert.deepEqual(addMetaProposals(original,data.proposals).cues,[]);
+  assert.doesNotMatch(JSON.stringify(data),/campana lejana|FAKE_TEST_KEY/);
+});
+
+test('independent review cannot report fabricated lines outside analyzed window', async (t) => {
+  const original=createNewShow({scriptText:'ESCENA 1\nFX: golpe'});
+  const base=await withServer(t,{
+    getKey:()=> 'FAKE_TEST_KEY',
+    modelClient:async()=>({
+      provider:'META_MODEL_API',proposals:[],
+      coverage:{
+        totalLines:2,sceneCount:1,totalWindows:1,batchStartWindow:0,
+        batchEndWindowExclusive:1,analyzedWindowIds:['S1-W1'],
+        analyzedLineIds:['L1','L2'],analyzedLines:2,
+        nextWindowStart:null,complete:true,
+      },
+      independentReview:{reviewFlags:['L999'],totalUnreviewed:1},
+    }),
+  });
+  const response=await analysisRequest(base,{project:original});
+  assert.notEqual(response.status,200);
+  const message=await response.text();
+  assert.doesNotMatch(message,/FAKE_TEST_KEY|FX: golpe|L999/);
+});
