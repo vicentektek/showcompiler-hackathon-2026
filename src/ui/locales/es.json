@@ -354,5 +354,18 @@
   "operator.effectRepeat": "Repetir {count} veces",
   "operator.effectDelay": "Retardo {ms} ms",
   "operator.effectFadeIn": "Fade-in {ms} ms",
-  "operator.effectStops": "DETENER / FUNDEAR: {targets}"
+  "operator.effectStops": "DETENER / FUNDEAR: {targets}",
+  "cueEditor.selectCue": "Seleccionar cue {number}: {label} para inspeccionarlo; no cambia el SIGUIENTE GO",
+  "cueEditor.nextGo": "SIGUIENTE GO · solo posición",
+  "cueEditor.discardChanges": "Tienes cambios de cue sin guardar. ¿Descartarlos y cambiar de selección o pestaña?",
+  "cueEditor.inspectorSections": "Secciones de edición del cue",
+  "cueEditor.tab.details": "Datos",
+  "cueEditor.tab.audio": "Audio",
+  "cueEditor.tab.actions": "Acciones",
+  "cueEditor.noTrigger": "Sin pie definido",
+  "cueEditor.assetSection": "Acciones de sonido",
+  "cueEditor.saveActions": "Guardar acciones dirigidas",
+  "cueEditor.actionsSaved": "Acciones de parada guardadas en el cue {number}. No se ha reproducido ningún sonido.",
+  "cueEditor.listHelp": "Haz clic en un cue para editarlo. ↑ ↓ Inicio Fin para navegar. Inspeccionar no cambia SIGUIENTE GO.",
+  "cueEditor.hint": "Edita las propiedades a la derecha. GO y PARAR TODO están en Operación."
 }
