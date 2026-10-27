@@ -657,7 +657,7 @@ function renderCueList({ resetScroll = false } = {}) {
     prepareNumber.setAttribute('aria-pressed', String(cue.id === operatorQueue.preparedCueId));
     prepareNumber.append(
       node('span', 'cue-prepare-arrow', '▶'),
-      node('span', 'cue-prepare-number', String(cue.number).padStart(2, '0')),
+      node('span', 'cue-row-index cue-prepare-number', String(cue.number).padStart(2, '0')),
     );
     prepareNumber.addEventListener('click', () => prepareCueForNextGo(cue.id));
     card.append(prepareNumber, select);
