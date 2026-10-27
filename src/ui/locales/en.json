@@ -376,5 +376,20 @@
   "cueEditor.chooseLibraryAudio": "Select replacement from loaded library",
   "cueEditor.useLibraryAudio": "Use library audio",
   "cueEditor.libraryReplaced": "Audio assignment replaced for cue {number}. Nothing played.",
-  "cueEditor.trackEditorPending": "Audio attachment editing currently supports one PLAY track per cue; multi-track editing is a separate feature."
+  "cueEditor.trackEditorPending": "Audio attachment editing currently supports one PLAY track per cue; multi-track editing is a separate feature.",
+  "cueTracks.heading": "Additional PLAY tracks",
+  "cueTracks.explanation": "These tracks play together on the same manual GO. Each has its own audio, volume, delay, fades, loop, speed and panorama. The approved script proposal stays unchanged.",
+  "cueTracks.add": "Add PLAY track",
+  "cueTracks.choose": "Choose another audio file from the local library",
+  "cueTracks.remove": "Remove track",
+  "cueTracks.removeConfirm": "Remove this additional audio track? No audio will play.",
+  "cueTracks.replace": "Replace track audio",
+  "cueTracks.properties": "Edit track properties",
+  "cueTracks.saveProperties": "Save track settings",
+  "cueTracks.changed": "Audio track changed for cue {number}.",
+  "cueTracks.removed": "Audio track removed from cue {number}.",
+  "cueTracks.added": "Audio track added to cue {number}.",
+  "cueTracks.savedProperties": "Track settings saved for cue {number}.",
+  "cueTracks.libraryEmpty": "Load audio into the local library first.",
+  "operator.effectTracks": "{count} PLAY sources"
 }
