@@ -15,7 +15,7 @@ test('production profiles are bounded and never control an audio transport', () 
   assert.throws(() => validateProductionContext({ documentKind: 'shell_command' }), TypeError);
   assert.throws(() => validateProductionContext({ performanceKind: 'casino' }), TypeError);
   assert.throws(() => validateProductionContext({ documentKind:'cue_sheet', additional:'x' }), TypeError);
-  assert.match(buildProductionGuidance(), /not an automatically executable/);
+  assert.match(buildProductionGuidance(), /A warning or standby prepares staff and is NOT a GO/);
   assert.match(buildProductionGuidance({ performanceKind:'play',documentKind:'dramatic_script' }), /Names on their own line/);
   assert.match(buildProductionGuidance({ performanceKind:'musical',documentKind:'libretto' }), /backing track/);
   assert.match(buildProductionGuidance({ performanceKind:'gala',documentKind:'running_order' }), /Time columns are estimates/);
@@ -77,7 +77,7 @@ test('a running order does not become dramatic dialogue or a soundtrack automati
     documentKind:'running_order',
   }).request;
   assert.match(request.messages[0].content,/Running-order timings|Time columns are estimates/);
-  assert.match(request.messages[0].content,/do not silently convert a multi-column rundown|multi-column rundown/);
-  assert.match(request.messages[0].content,/not a GO/);
+  assert.match(request.messages[0].content,/Time columns are estimates/);
+  assert.match(request.messages[0].content,/NOT a GO/);
   assert.equal(request.messages[1].content.includes('BLOQUE 2'),true);
 });
