@@ -161,3 +161,6 @@ artifacts/seminar-live/
 
 # Local cumulative Meta lab spending ledger/lock; NEVER commit this to GitHub
 .runq-local/
+
+# Local systematic A/B Muse experiments and private typed traces.
+artifacts/systematic-eval/
