@@ -11,6 +11,7 @@ import {createNewShow} from '../src/core/workspace.mjs';
 import {prepareTheatricalCueAnalysis,parseTheatricalCueContent,classifyTheatricalSuggestions} from '../src/core/theatreCueAnalysis.mjs';
 import {evaluateStageEventCases,renderStageEventReport} from '../src/core/stageCueQa.mjs';
 import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
+import {summarizeEvaluationRequests} from './evalMeasurements.mjs';
 
 const MAX_REQUESTS=20, MAX_BODY_BYTES=100000, MAX_RESPONSE_BYTES=100000;
 const MAX_COMPLETION_TOKENS=8192;
@@ -65,11 +66,25 @@ export async function callBasetenTheatre({prepared,apiKey,fetchImpl=globalThis.f
   if(typeof fetchImpl!=='function'||!Number.isSafeInteger(timeoutMs)||timeoutMs<100||timeoutMs>120000)throw new TypeError('Invalid transport');
   const body=makeBasetenTheatreRequest(prepared);
   const started=now();
-  const response=await fetchImpl(BASETEN_URL,{
-    method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
-    body:JSON.stringify(body),signal:AbortSignal.timeout(timeoutMs),
-  });
-  if(!response?.ok){const e=new Error('Provider request failed');e.safeReason='HTTP_FAILURE';e.upstreamStatus=Number.isInteger(response?.status)?response.status:null;throw e}
+  let response;
+  try{
+    response=await fetchImpl(BASETEN_URL,{
+      method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
+      body:JSON.stringify(body),signal:AbortSignal.timeout(timeoutMs),
+    });
+  }catch(cause){
+    const timeout=['AbortError','TimeoutError'].includes(cause?.name);
+    const error=new Error(timeout?'Baseten request timed out':'Baseten transport failed');
+    error.safeReason=timeout?'TIMEOUT':'TRANSPORT_FAILURE';
+    error.diagnostics={durationMs:Math.max(0,Math.round(now()-started)),finishReason:null,usage:null};
+    throw error;
+  }
+  if(!response?.ok){
+    const e=new Error('Provider request failed');e.safeReason='HTTP_FAILURE';
+    e.upstreamStatus=Number.isInteger(response?.status)?response.status:null;
+    e.diagnostics={durationMs:Math.max(0,Math.round(now()-started)),finishReason:null,usage:null};
+    throw e;
+  }
   const text=await response.text();
   if(Buffer.byteLength(text,'utf8')>MAX_RESPONSE_BYTES)throw Object.assign(new Error('Oversized provider response'),{safeReason:'OVERSIZED_RESPONSE'});
   let envelope;
@@ -122,8 +137,10 @@ export async function runBasetenSeminarEval({
         for(const e of [...result.classified.details,...result.classified.observations])events.push(validEvent(e));
         windowStart=prepared.coverage.nextWindowStart;
       }catch(error){
-        requests.push({...info,status:'FAILED',code:safeCode(error),upstreamStatus:error.upstreamStatus??null});
-        haltReason='REQUEST_FAILED';break;
+        const code=safeCode(error);
+        requests.push({...info,status:'FAILED',code,upstreamStatus:error.upstreamStatus??null,
+          diagnostics:error.diagnostics??null});
+        haltReason=code;break;
       }
     }
     complete=windowStart===null&&!haltReason;
@@ -135,11 +152,12 @@ export async function runBasetenSeminarEval({
   const scoredReport=live&&scored.length?evaluateStageEventCases(
     {version:1,provenance:corpus.provenance,cases:scored},
     {version:1,provenance:'LOCAL_LIVE_BASETEN_NOT_HUMAN_VERIFIED',predictionsByCase}):null;
+  const measurements=summarizeEvaluationRequests(cases);
   const report={kind:live?'LOCAL_LIVE_BASETEN_EXPERIMENT':'OFFLINE_BASETEN_REQUEST_PLAN',
     provider:'BASETEN',model:BASETEN_MODEL,realInferenceExecuted:submittedRequests>0,
     realModelQualityCertified:false,goldHumanReviewed:false,mode,
     maxRequests,submittedRequests,plannedRequests,haltReason,corpus:corpus.corpus,
-    cases,score:scoredReport?.summary??null,scoredCases:scored.length,
+    cases,score:scoredReport?.summary??null,scoredCases:scored.length,measurements,
     costUsd:null,note:'No verified Baseten per-token pricing: cost deliberately omitted. Verify dashboard. No retry or automatic calls.'};
   await mkdir(output,{recursive:true});
   await Promise.all([
@@ -149,6 +167,9 @@ export async function runBasetenSeminarEval({
       '', 'Same fixture corpus, scene windows, strict 16-field schema and stage QA metrics as Meta.',
       '**Not production certified; human gold review pending.**',
       'Requests: '+submittedRequests+' live / '+plannedRequests+' planned. Cost: not estimated.',
+      'Measured latency: '+(measurements.latencyMs.average??'n/a')+' ms average across '+measurements.latencyMs.sampled+' responses.',
+      'Prompt / completion / reasoning / cached tokens: '+measurements.tokens.prompt+' / '+
+        measurements.tokens.completion+' / '+measurements.tokens.reasoning+' / '+measurements.tokens.cachedPrompt+'.',
       'Stop: '+(haltReason??'none')+'. Complete scored cases: '+scored.length+'.',
       '',scoredReport?renderStageEventReport(scoredReport):'No completed live cases scored.',
       '', 'No model response text, script or API key is stored in this report.',
@@ -162,16 +183,43 @@ export function compareProviderReports(meta,baseten,corpus){
   if(meta?.model!=='muse-spark-1.3'||baseten?.model!==BASETEN_MODEL||
      !Array.isArray(meta.cases)||!Array.isArray(baseten.cases)||!Array.isArray(corpus?.cases))
     throw new TypeError('Unexpected comparison reports');
-  const a=new Map(meta.cases.filter(c=>c.status==='COMPLETE'&&Array.isArray(c.typedEvents)).map(c=>[c.id,c]));
-  const b=new Map(baseten.cases.filter(c=>c.status==='COMPLETE'&&Array.isArray(c.typedEvents)).map(c=>[c.id,c]));
+  if(meta.realInferenceExecuted!==true||baseten.realInferenceExecuted!==true)
+    throw new TypeError('Paired comparison requires real completed inference reports');
+  const completed=c=>c.status==='COMPLETE'&&Array.isArray(c.typedEvents)&&
+    Array.isArray(c.requests)&&c.requests.some(request=>request.status==='COMPLETED');
+  const a=new Map(meta.cases.filter(completed).map(c=>[c.id,c]));
+  const b=new Map(baseten.cases.filter(completed).map(c=>[c.id,c]));
   const common=corpus.cases.filter(c=>a.has(c.id)&&b.has(c.id));
   const score=(provider)=>evaluateStageEventCases(
     {version:1,provenance:corpus.provenance,cases:common},
     {version:1,provenance:provider==='META'?'LOCAL_META_PAIRED':'LOCAL_BASETEN_PAIRED',
       predictionsByCase:Object.fromEntries(common.map(c=>[c.id,(provider==='META'?a:b).get(c.id).typedEvents]))}
   ).summary;
+  const commonIds=new Set(common.map(item=>item.id));
+  const pairedMetaCases=meta.cases.filter(item=>commonIds.has(item.id));
+  const pairedBasetenCases=baseten.cases.filter(item=>commonIds.has(item.id));
   return {kind:'PAIRED_PROVIDER_COMPARISON',casesCompared:common.length,
     caseIds:common.map(c=>c.id),comparable:common.length>0,
     meta:common.length?score('META'):null,baseten:common.length?score('BASETEN'):null,
+    metaMeasurements:summarizeEvaluationRequests(pairedMetaCases),
+    basetenMeasurements:summarizeEvaluationRequests(pairedBasetenCases),
     note:'Both providers evaluated on identical complete cases and unchanged human-review-pending gold. No statistical significance or production quality claimed.'};
+}
+
+function percent(value){return value===null?'n/a':(value*100).toFixed(1)+'%'}
+function measurementRow(name,score,metrics){
+  return '| '+name+' | '+percent(score?.precision??null)+' / '+percent(score?.recall??null)+
+    ' / '+percent(score?.f1??null)+' | '+(metrics.latencyMs.average??'n/a')+' / '+
+    (metrics.latencyMs.maximum??'n/a')+' | '+metrics.tokens.prompt+' / '+metrics.tokens.completion+' / '+
+    metrics.tokens.reasoning+' / '+metrics.tokens.cachedPrompt+' |';
+}
+export function renderProviderComparisonReport(report){
+  if(report?.kind!=='PAIRED_PROVIDER_COMPARISON')throw new TypeError('Invalid paired report');
+  return ['# RunQ paired provider comparison','',
+    '**Identical complete cases: '+report.casesCompared+'. Provisional gold; no production certification.**','',
+    '| Provider | Exact P / R / F1 | Latency avg / max ms | Prompt / completion / reasoning / cached |',
+    '| --- | --- | --- | --- |',
+    measurementRow('Meta',report.meta,report.metaMeasurements),
+    measurementRow('Baseten',report.baseten,report.basetenMeasurements),'',
+    report.note,'','No provider call is made by this comparison. Costs remain provider-specific and are not inferred.',''].join('\n');
 }

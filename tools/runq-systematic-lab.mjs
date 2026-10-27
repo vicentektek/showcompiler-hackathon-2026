@@ -8,6 +8,7 @@ import { readSeminarCorpus } from './seminarCorpus.mjs';
 import { runMetaSeminarEval } from './metaSeminarEval.mjs';
 import { acquireMetaBudgetLedger } from './metaBudgetLedger.mjs';
 import { evaluateStageEventCases } from '../src/core/stageCueQa.mjs';
+import { summarizeEvaluationRequests } from './evalMeasurements.mjs';
 
 const MODES=['literal','balanced','expressive'];
 const ID=/^[a-z][a-z0-9-]{1,60}$/;
@@ -102,7 +103,14 @@ export function formatExperimentReport(summary){
     'Calls '+summary.submittedRequests+'; reserved $'+summary.reservedUsd.toFixed(4)+
     '; observed usage estimate $'+summary.estimatedSpendUsd.toFixed(4)+'.',
     'The existing cross-run ledger limits reservations to $2 in the same checkout only.',
-    'Billing platform remains authoritative. Failed calls are not retried.','');
+    'Billing platform remains authoritative. Failed calls are not retried.','',
+    '## Measured request telemetry','',
+    'Latency samples '+summary.measurements.latencyMs.sampled+', average '+
+      (summary.measurements.latencyMs.average??'n/a')+' ms, maximum '+
+      (summary.measurements.latencyMs.maximum??'n/a')+' ms.',
+    'Prompt / completion / reasoning / cached tokens: '+summary.measurements.tokens.prompt+
+      ' / '+summary.measurements.tokens.completion+' / '+summary.measurements.tokens.reasoning+
+      ' / '+summary.measurements.tokens.cachedPrompt+'.','');
   return lines.join('\n');
 }
 function codexTask(analysis){
@@ -135,7 +143,7 @@ export async function runSystematicExperiment(options={},deps={}){
   await mkdir(opt.output,{recursive:true});
   const folder=await mkdtemp(resolve(opt.output,'run-'));
   let ledger=null,calls=0,reservedUsd=0,estimatedSpendUsd=0;
-  const runs=[],attempts=[];
+  const runs=[],attempts=[],measurementCases=[];
   try{
     if(opt.live)ledger=await (deps.acquireLedger??acquireMetaBudgetLedger)();
     for(const {caseId,mode} of plan){
@@ -151,6 +159,7 @@ export async function runSystematicExperiment(options={},deps={}){
         ...(deps.modelCaller?{modelCaller:deps.modelCaller}:{}),
       });
       const caseResult=report.cases.find(x=>x.id===caseId);
+      if(caseResult)measurementCases.push(caseResult);
       const complete=opt.live&&caseResult?.status==='COMPLETE'&&Array.isArray(caseResult.eventTrace);
       const events=complete?caseResult.eventTrace.map(typed):null;
       const gold=corpus.cases.find(x=>x.id===caseId);
@@ -167,10 +176,11 @@ export async function runSystematicExperiment(options={},deps={}){
     }
   }finally{await ledger?.close();}
   const analysis=analyzeExperiment(corpus,attempts);
+  const measurements=summarizeEvaluationRequests(measurementCases);
   const summary={kind:opt.live?'REAL_META_SYSTEMATIC_EVAL':'OFFLINE_EXPERIMENT_PLAN',
     realInferenceExecuted:opt.live&&calls>0,model:'muse-spark-1.3',
     submittedRequests:calls,reservedUsd,estimatedSpendUsd,provisionalGold:true,
-    budgetCapUsd:opt.budgetUsd,runs,analysis};
+    budgetCapUsd:opt.budgetUsd,runs,analysis,measurements};
   await Promise.all([
     writeFile(join(folder,'summary.json'),JSON.stringify(summary,null,2)+'\n'),
     writeFile(join(folder,'summary.md'),formatExperimentReport(summary)+'\n'),
