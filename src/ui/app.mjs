@@ -476,34 +476,42 @@ function renderCueList() {
     const card = node('article', 'item cue-item');
     if (cue.id === selectedCueId) card.classList.add('cue-selected');
     if (cue.id === operatorQueue.preparedCueId) card.classList.add('cue-prepared');
-    const top = node('div', 'item-head');
-    top.append(node('strong', '', `${cue.number}. ${cue.label}`), node('span', 'state', t('status.draft')));
+    const select = node('button', 'cue-row-select');
+    select.type = 'button';
+    select.dataset.cueSelect = cue.id;
+    select.setAttribute('aria-label', t('cueEditor.selectCue', { number: cue.number, label: cue.label }));
+    select.setAttribute('aria-pressed', String(cue.id === selectedCueId));
+    const top = node('div', 'item-head cue-row-heading');
+    top.append(node('strong', 'cue-row-title', cue.number + ' · ' + cue.label));
     const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
-    card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', describeCueActions(cue.actions)));
+    const detail = node('span', 'cue-row-meta', cue.sourceLineIds.join(', ') + ' · ' + describeCueActions(cue.actions));
+    select.append(top, detail);
+    if (cue.trigger) select.append(node('span', 'cue-row-trigger', t('cue.trigger') + ': ' + cue.trigger));
+    if (cue.id === operatorQueue.preparedCueId) {
+      select.append(node('span', 'cue-row-next', t('cueEditor.nextGo')));
+    }
+    select.addEventListener('click', () => selectCueForInspection(cue.id));
+    select.addEventListener('keydown', event => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+      const index = visibleCues.findIndex(item => item.id === cue.id);
+      const destination = event.key === 'ArrowDown' ? Math.min(index + 1, visibleCues.length - 1)
+        : event.key === 'ArrowUp' ? Math.max(index - 1, 0)
+        : event.key === 'Home' ? 0
+        : event.key === 'End' ? visibleCues.length - 1 : -1;
+      if (destination < 0) return;
+      event.preventDefault();
+      const next = visibleCues[destination];
+      if (!next || !selectCueForInspection(next.id)) return;
+      const target = [...cueList.querySelectorAll('[data-cue-select]')][destination];
+      target?.focus();
+      target?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    card.append(select);
     const sourceActions = node('div', 'item-actions cue-edit-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
-    const inspect = node('button', 'btn subtle small', t('workspace.inspect'));
-    inspect.type = 'button';
-    inspect.setAttribute('aria-pressed', String(selectedCueId === cue.id));
-    inspect.addEventListener('click', () => {
-      selectedCueId = cue.id;
-      editingCueId = null;
-      render();
-    });
-    sourceActions.append(inspect);
-    const edit = node('button', 'btn subtle small', t('cue.editDetails'));
-    edit.type = 'button';
-    edit.addEventListener('click', () => {
-      selectedCueId = cue.id;
-      editingCueId = editingCueId === cue.id ? null : cue.id;
-      render();
-    });
-    sourceActions.append(edit);
     card.append(sourceActions);
-    if (cue.trigger) card.append(node('p', 'item-detail', t('cue.trigger') + ': ' + cue.trigger));
-    if (cue.notes) card.append(node('p', 'item-detail cue-technical-notes', t('cue.notes') + ': ' + cue.notes));
     // Editing belongs to the inspector, not to the scrolling cue list.
     const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
     if (plan) {
