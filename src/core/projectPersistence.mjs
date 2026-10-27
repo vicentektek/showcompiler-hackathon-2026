@@ -7,6 +7,7 @@ import { parseScript } from './script.mjs';
 import { validateCueProposals } from './proposals.mjs';
 import { validateCueAutomationPlan } from './cueAutomation.mjs';
 import { normalizeCuePlayback } from './cuePlayback.mjs';
+import { normalizeStopFadeOverrides } from './cueStopFades.mjs';
 
 export const PROJECT_SCHEMA_VERSION = 1;
 export const MAX_PROJECT_JSON_BYTES = 2_000_000;
@@ -123,7 +124,7 @@ export function normalizeShowProject(input) {
 
   const cues = limitedArray(input.cues, MAX_CUES, 'cues').map((cue, index) => {
     const at = "cues[" + index + "]";
-    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes', 'automation', 'playback'], at);
+    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes', 'automation', 'playback', 'stopFadeOverrides'], at);
     const cueId = identifier(cue.id, at + ".id");
     if (!Number.isSafeInteger(cue.number) || cue.number < 1 || cue.number > MAX_CUE_NUMBER) invalid(at + ".number is invalid");
     if (cue.status !== 'DRAFT') invalid(at + ".status must be DRAFT");
@@ -145,6 +146,7 @@ export function normalizeShowProject(input) {
       status: 'DRAFT',
       ...(cue.automation === undefined ? {} : { automation: cue.automation }),
       ...(cue.playback === undefined ? {} : { playback: normalizeCuePlayback(cue.playback) }),
+      ...(cue.stopFadeOverrides === undefined ? {} : { stopFadeOverrides: cue.stopFadeOverrides }),
     };
   });
   uniqueId(cues, 'cues');
@@ -156,6 +158,10 @@ export function normalizeShowProject(input) {
   try {
     const plan = validateCueAutomationPlan(cues.map(cue => ({ id: cue.id, automation: cue.automation })));
     for (let index = 0; index < cues.length; index += 1) {
+      if (cues[index].stopFadeOverrides !== undefined) {
+        cues[index].stopFadeOverrides = normalizeStopFadeOverrides(
+          cues[index].stopFadeOverrides, plan[index].automation.stopCueIds);
+      }
       if (cues[index].automation !== undefined) cues[index].automation = {
         ...plan[index].automation, stopCueIds: [...plan[index].automation.stopCueIds],
       };
