@@ -54,7 +54,18 @@ try {
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
   await page.locator('#audibleExampleBtn').click();
-  await page.waitForFunction(() => document.querySelector('#cuesCount')?.textContent === '3');
+  try {
+    await page.waitForFunction(() => document.querySelector('#cuesCount')?.textContent === '3', null, { timeout: 10000 });
+  } catch (error) {
+    console.error('BROWSER_DIAGNOSTIC', JSON.stringify(await page.evaluate(() => ({
+      status: document.querySelector('#statusMessage')?.textContent,
+      count: document.querySelector('#cuesCount')?.textContent,
+      hasCrypto: !!globalThis.crypto?.subtle,
+      name: document.querySelector('#showName')?.value,
+    }))));
+    console.error('BROWSER_PAGE_ERRORS', JSON.stringify(scriptErrors));
+    throw error;
+  }
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal((await page.locator('#operatorGoBtn').isDisabled()), true);
   await page.getByRole('button', { name: 'Prepare', exact: true }).first().click();
