@@ -557,7 +557,7 @@ function renderCueList({ resetScroll = false } = {}) {
   const priorScrollTop = cueList.scrollTop;
   cueList.replaceChildren();
   const projectedRows = projectCueRows(show, {
-    query: $('cueSearchInput').value, selectedCueId,
+    query: $('cueSearchInput').value.slice(0, 300), selectedCueId,
     preparedCueId: operatorQueue.preparedCueId,
   });
   const summaries = new Map(projectedRows.map(row => [row.id, row]));
