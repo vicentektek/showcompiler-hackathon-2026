@@ -6,6 +6,7 @@
 import { normalizeShowProject } from './projectPersistence.mjs';
 import { parseScript } from './script.mjs';
 import { normalizeScriptLanguageHint } from './scriptLanguage.mjs';
+import { planStageEvents } from './stageEventPlan.mjs';
 import {
   classifyTheatricalSuggestions,
   parseTheatricalCueContent,
@@ -402,8 +403,10 @@ export async function callMetaCueModel({
     throw error;
   }
   const classified = classifyTheatricalSuggestions(suggestions);
+  const stageEventPlan = planStageEvents(show.scriptText, suggestions);
   return {
     ...classified,
+    stageEventPlan,
     coverage: prepared.coverage,
     model,
     provider: 'META_MODEL_API',
