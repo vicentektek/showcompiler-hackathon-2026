@@ -125,6 +125,7 @@ export async function evaluateStageScriptCorpus(root=ROOT) {
   const failures=[];
   let totalLines=0,totalExpected=0,totalForbidden=0,totalWindows=0,totalCapacityExcess=0;
   let verifiedPackets=0;
+  let reviewDetected=0,reviewFalseFlags=0;
   for(const sample of scenarios){
     const {id,scriptText,lines}=sample;
     const original=JSON.stringify(scriptText);
@@ -173,6 +174,13 @@ export async function evaluateStageScriptCorpus(root=ROOT) {
         'request window/source mismatch '+id+'/'+wi);
       const scope=prepared.scope.windows[0];
       const expected=sample.expected.filter(e=>scope.coreLines.some(l=>l.id===e.lineId));
+      // Measure the REAL deterministic verifier independently of fake model
+      // responses: can it flag these required audio events if Meta omits all?
+      const coldReview=reviewExplicitAudioDirections(prepared.scope,[]);
+      const hinted=expected.filter(e=>coldReview.reviewFlags.includes(e.lineId)).length;
+      const unwantedHints=coldReview.reviewFlags.filter(l=>!expected.some(e=>e.lineId===l)).length;
+      reviewDetected+=hinted;
+      reviewFalseFlags+=unwantedHints;
       const excess=failureForWindow(expected);
       if(excess&&!sample.stress) failures.push({id,windowId:scope.id,reason:'EVENT_CAPACITY_EXCEEDED',count:excess});
       totalCapacityExcess+=excess;
@@ -194,6 +202,8 @@ export async function evaluateStageScriptCorpus(root=ROOT) {
         id:scope.id,start:scope.coreLines[0].id,end:scope.coreLines.at(-1).id,
         explicitGold:expected.length,packetCount:fake.length,
         capacityExcess:excess,reviewFlags:checked.reviewFlags,
+        verifierDetected:hinted,verifierMissing:expected.length-hinted,
+        verifierFalseFlags:unwantedHints,
         playableSuggestions:classified.proposals.length,
         nonPlayableObservations:classified.observations.length,
       });
@@ -245,13 +255,17 @@ export async function evaluateStageScriptCorpus(root=ROOT) {
     provenance, modelQualityMeasured:false, sourceFiles:scenarios.length,
     totals:{lines:totalLines,expectedEvents:totalExpected,
       forbiddenPlayLines:totalForbidden,sceneWindows:totalWindows,
-      validatedFakePackets:verifiedPackets,capacityExcess:totalCapacityExcess},
+      validatedFakePackets:verifiedPackets,capacityExcess:totalCapacityExcess,
+      verifierDetected:reviewDetected,verifierMissed:totalExpected-reviewDetected,
+      verifierFalseFlags:reviewFalseFlags,
+      verifierGoldRecall:totalExpected?reviewDetected/totalExpected:1},
     normalOracle:normalEvaluation.summary,
     stressIncludingCapacity:evaluation.summary,
     checks, failures,
     priorities:[
       {key:'P0',reason:'Retain exact Lxx source scope, strict JSON and human review'},
       {key:'P1',reason:'A scene with >8 required events cannot be fully expressed in one request'},
+      {key:'P1',reason:'Independent acoustic review misses unlabelled stage directions: improve review hints, not auto cues'},
       {key:'P1',reason:'Carry sound identity and STOP targets across windows; no automatic GO'},
       {key:'P1',reason:'Measure Muse Spark only with separately authorized, privately captured results'},
     ],
@@ -273,6 +287,9 @@ export function renderStageScriptReport(output) {
     '| Bounded, fake-response windows | '+totals.sceneWindows+' |',
     '| Validated fake packets | '+totals.validatedFakePackets+' |',
     '| Capacity overflow in stress case | '+totals.capacityExcess+' |',
+    '| Existing heuristic reviewer: detectable gold instructions | '+totals.verifierDetected+' / '+totals.expectedEvents+' |',
+    '| Existing heuristic reviewer: unflagged gold instructions | '+totals.verifierMissed+' |',
+    '| Existing heuristic reviewer: flags not in mandatory gold | '+totals.verifierFalseFlags+' |',
     '| Non-stress simulated-contract F1 | '+(output.normalOracle.f1*100).toFixed(1)+'% |',
     '',
     '## By scenario','',
@@ -285,6 +302,8 @@ export function renderStageScriptReport(output) {
     for(const w of c.windows){
       lines.push('- '+w.id+' '+w.start+'–'+w.end+'; required '+w.explicitGold+
         '; synthetic packet '+w.packetCount+'; over cap '+w.capacityExcess+
+        '; reviewer detected '+w.verifierDetected+'/'+w.explicitGold+
+        '; reviewer false flags '+w.verifierFalseFlags+
         '; PLAY '+w.playableSuggestions+'; observations '+w.nonPlayableObservations);
     }
     lines.push('');
