@@ -93,6 +93,20 @@ function refreshAudioControls() {
   $('operatorTrigger').textContent = prepared
     ? t('operator.triggerText', { trigger: (prepared.trigger?.trim() || source || t('operator.noTrigger')).slice(0, 240) })
     : '';
+  const effects = [];
+  if (prepared) {
+    const settings = normalizeCuePlayback(prepared.playback);
+    if (settings.loop) effects.push(t('operator.effectLoop'));
+    else if (settings.repeatCount > 1) effects.push(t('operator.effectRepeat', { count: settings.repeatCount }));
+    if (settings.startDelayMs) effects.push(t('operator.effectDelay', { ms: settings.startDelayMs }));
+    if (settings.fadeInMs) effects.push(t('operator.effectFadeIn', { ms: settings.fadeInMs }));
+    const stopTargets = (prepared.automation?.stopCueIds ?? []).map(id => {
+      const target = show.cues.find(cue => cue.id === id);
+      return target ? target.number + ' ' + target.label : id;
+    });
+    if (stopTargets.length) effects.push(t('operator.effectStops', { targets: stopTargets.join(', ') }));
+  }
+  $('operatorEffectSummary').textContent = prepared ? effects.join(' · ') : '';
   $('operatorProgress').textContent = prepared
     ? t('operator.progress', { current: preparedIndex + 1, total: show.cues.length })
     : show.cues.length ? t('operator.progressFinished', { total: show.cues.length }) : '';
