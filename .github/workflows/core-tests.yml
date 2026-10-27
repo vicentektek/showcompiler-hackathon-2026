@@ -56,6 +56,16 @@ jobs:
         env:
           RUNQ_CAPTURE_UI: '1'
         run: node tools/browser-e2e.mjs
+      - name: Full RunQ operator workflows (13 isolated Chrome journeys)
+        run: npm run qa:journeys
+      - name: Publish full-flow QA matrix and failure screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-full-journeys
+          path: artifacts/runq-journeys/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Publish RunQ browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
