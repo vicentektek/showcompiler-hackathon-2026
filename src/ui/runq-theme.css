@@ -318,3 +318,13 @@ footer{display:none}
 @media(prefers-reduced-motion:reduce){
   .btn,.workspace-tab,.home-tile{transition:none}
 }
+.runq-guide-dialog{
+  max-width:min(540px,calc(100vw - 30px));width:100%;
+  border-radius:12px;border:1px solid #496c6a;
+  padding:25px;background:#172a34;color:#e9f6f4;
+  box-shadow:0 20px 65px #000b;
+}
+.runq-guide-dialog::backdrop{background:#020a0dba}
+.runq-guide-dialog h2{margin:0 0 16px;font-size:20px;color:#d6fff3}
+.runq-guide-dialog p{font-size:13px;line-height:1.7;color:#bbd4d6}
+.runq-guide-footer{display:flex;justify-content:flex-end;margin-top:20px}
