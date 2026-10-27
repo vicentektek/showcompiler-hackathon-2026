@@ -296,10 +296,14 @@ try {
   });
   let mockMetaCalls = 0;
   let sentDesignMode;
+  let sentPerformanceKind;
+  let sentDocumentKind;
   await page.route('**/api/meta/proposals', async route => {
     mockMetaCalls += 1;
     const request = route.request().postDataJSON();
     sentDesignMode = request.designMode;
+    sentPerformanceKind = request.performanceKind;
+    sentDocumentKind = request.documentKind;
     const plan = planScriptAnalysis(request.project.scriptText);
     const start = request.analysisWindowStart ?? 0;
     const selected = plan.windows.slice(start, start + 2);
@@ -326,6 +330,8 @@ try {
   await page.locator('#modelProviderSelect').selectOption('meta');
   await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
   await page.locator('#metaDesignMode').selectOption('expressive');
+  await page.locator('#performanceKindSelect').selectOption('gala');
+  await page.locator('#documentKindSelect').selectOption('running_order');
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#analyzeMetaBtn').click();
   await page.locator('#aiAnalysisActivity').waitFor({ state:'visible', timeout: 10000 });
@@ -335,6 +341,8 @@ try {
   await page.locator('#aiAnalysisActivity').waitFor({ state:'hidden', timeout: 10000 });
   assert.equal(mockMetaCalls, 1, 'one confirmation = one simulated request');
   assert.equal(sentDesignMode, 'expressive');
+  assert.equal(sentPerformanceKind, 'gala');
+  assert.equal(sentDocumentKind, 'running_order');
   assert.equal(await page.locator('#analyzeMetaBtn').isEnabled(), true);
   assert.match(await page.locator('#analyzeMetaBtn').innerText(), /another AI pass/);
   assert.equal(await page.evaluate(() => window.__testAudioStarts), beforeCorrupt.starts + 1,

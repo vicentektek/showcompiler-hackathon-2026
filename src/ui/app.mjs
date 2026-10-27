@@ -238,6 +238,10 @@ function refreshMetaMessage() {
         : metaCoverage?.nextWindowStart ? 'proposals.metaNextButton' : 'proposals.metaButton');
   $('metaDesignModeField').hidden = baseten;
   $('metaDesignMode').disabled = metaInFlight;
+  $('metaProductionContext').hidden = baseten;
+  $('metaProductionHelp').hidden = baseten;
+  $('performanceKindSelect').disabled = metaInFlight;
+  $('documentKindSelect').disabled = metaInFlight;
   refreshMetaActivity();
   $('modelProviderDisclaimer').textContent = t(baseten ? 'proposals.basetenDisclaimer' : 'proposals.metaDisclaimer');
   $('metaCoverage').hidden = baseten;
@@ -1575,6 +1579,8 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
   let activityScope = { provider, startedAt: 0 };
   const isRepeat = provider === 'meta' && metaCoverage?.complete === true;
   const designMode = provider === 'meta' ? $('metaDesignMode').value : null;
+  const performanceKind = provider === 'meta' ? $('performanceKindSelect').value : null;
+  const documentKind = provider === 'meta' ? $('documentKindSelect').value : null;
   if (provider === 'meta') {
     const plan = planScriptAnalysis(show.scriptText);
     analysisWindowStart = metaCoverage?.nextWindowStart ?? 0;
@@ -1609,7 +1615,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
       body: JSON.stringify({
         project: JSON.parse(snapshot),
         scriptLanguage,
-        ...(provider === 'meta' ? { analysisWindowStart, designMode } : {}),
+        ...(provider === 'meta' ? { analysisWindowStart, designMode, performanceKind, documentKind } : {}),
       }),
     });
     const result = await response.json();

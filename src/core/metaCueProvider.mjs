@@ -287,6 +287,7 @@ export async function callMetaCueModel({
   fetchImpl = globalThis.fetch, timeoutMs = 45_000,
   requestId = createMetaRequestId(), now = () => Date.now(),
   analysisMode = 'THEATRICAL', analysisWindowStart = 0, designMode = 'balanced',
+  performanceKind = 'auto', documentKind = 'auto',
 }) {
   if (typeof apiKey !== 'string' || !apiKey.trim()) {
     throw new Error('Meta Model API key is not configured');
@@ -308,6 +309,8 @@ export async function callMetaCueModel({
         scriptLanguage,
         windowStart: analysisWindowStart,
         designMode,
+        performanceKind,
+        documentKind,
       })
     : null;
   const requestBody = prepared?.request ?? makeCueAnalysisRequest(show, model, scriptLanguage);
