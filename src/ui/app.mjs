@@ -452,16 +452,20 @@ function selectCueForInspection(cueId) {
   if (!confirmDiscardInspectorEdits()) return false;
   selectedCueId = cueId;
   editingCueId = null;
-  inspectorTab = show.cues.find(cue => cue.id === cueId).actions.some(a => a.type === 'PLAY')
-    ? 'audio' : 'details';
+  // Keep the same property section when reviewing consecutive cues;
+  // only fall back if the newly selected cue has no playable audio.
+  if (inspectorTab === 'audio' && !show.cues.find(cue => cue.id === cueId).actions.some(a => a.type === 'PLAY')) {
+    inspectorTab = 'details';
+  }
   inspectorPendingChanges = false;
   updateCueSelectionVisual();
   renderCueInspector();
   return true;
 }
 
-function renderCueList() {
+function renderCueList({ resetScroll = false } = {}) {
   const cueList = $('cueList');
+  const priorScrollTop = cueList.scrollTop;
   cueList.replaceChildren();
   const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
   const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
@@ -584,6 +588,7 @@ function renderCueList() {
   }
 
   updateCueSelectionVisual();
+  cueList.scrollTop = resetScroll ? 0 : priorScrollTop;
 }
 
 function render() {
@@ -855,6 +860,7 @@ function cueActionInspector(cue) {
 
 function renderCueInspector() {
   const inspector = $('cueInspector');
+  const previousScrollTop = inspector.scrollTop;
   inspector.replaceChildren();
   const cue = show.cues.find(item => item.id === selectedCueId);
   if (!cue) {
@@ -881,6 +887,7 @@ function renderCueInspector() {
     inspectorTab = next;
     inspectorPendingChanges = false;
     renderCueInspector();
+    inspector.scrollTop = 0;
     inspector.querySelector('[data-inspector-tab="' + next + '"]')?.focus();
   }
   for (const [index, name] of available.entries()) {
@@ -917,9 +924,11 @@ function renderCueInspector() {
     panel.append(sourceButton(cue.sourceLineIds[0]));
   }
   inspector.append(panel);
+  inspector.scrollTop = previousScrollTop;
 }
 
 function userAllowsReplacement() {
+  if (inspectorPendingChanges && !window.confirm(t('cueEditor.discardChanges'))) return false;
   if (!dirty && !show.scriptText && !show.proposals.length && !show.assets.length) return true;
   return window.confirm(t('status.replaceConfirm'));
 }
@@ -986,7 +995,7 @@ function setNewShow(project, statusKey, values = {}) {
 }
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
-$('cueSearchInput').addEventListener('input', () => { renderCueList(); refreshAudioControls(); });
+$('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScroll:true }); refreshAudioControls(); });
 for (const button of document.querySelectorAll('[data-workspace-nav]')) {
   button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
 }
