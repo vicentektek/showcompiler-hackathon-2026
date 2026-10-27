@@ -294,5 +294,8 @@
   "workspace.automation": "AUTO FOLLOW",
   "workspace.unwired": "No conectado a reproducción",
   "workspace.readiness": "Preparación del espectáculo",
-  "workspace.goOperation": "Abrir espacio de operación"
+  "workspace.goOperation": "Abrir espacio de operación",
+  "workspace.searchCue": "Buscar cues por número, nombre, guion o audio",
+  "workspace.matchCount": "{visible} de {total} cues",
+  "workspace.noCueMatches": "No hay cues que coincidan. El cue preparado para GO no ha cambiado."
 }
