@@ -150,9 +150,10 @@ try {
   await page.locator('#cueList [data-cue-select]').nth(1).click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
-  await page.locator('#cuePlaybackForm [data-stop-target="cue-1"]').check();
-  await page.locator('#cuePlaybackForm').getByRole('button',{name:'Save playback settings'}).click();
-  assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
+  await page.locator('#cueInspector [data-inspector-tab="actions"]').click();
+  await page.locator('#cueTargetStopForm [data-stop-target="cue-1"]').check();
+  await page.locator('#cueTargetStopForm').getByRole('button',{name:'Save target actions'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Target-stop actions saved/);
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
   assert.equal(await page.locator('#runqScriptContext').count(), 1);
