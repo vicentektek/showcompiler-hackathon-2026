@@ -136,7 +136,7 @@ const cases=[
     await p.locator('#scriptFileInput').setInputFiles({
       name:'qa-rehearsal.txt',mimeType:'text/plain',buffer:Buffer.from(script)
     });
-    await wait(p,()=>document.querySelector('#linesCount')?.textContent==='4');
+    await wait(p,()=>document.querySelector('#linesCount')?.textContent==='5');
     assert.match(await p.locator('#scriptPreview').innerText(),/SFX: Thunder/);
     await p.locator('#scriptSearchInput').fill('thunder');
     assert.match(await p.locator('#scriptSearchStatus').innerText(),/1/);
