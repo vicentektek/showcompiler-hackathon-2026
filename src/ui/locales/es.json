@@ -349,7 +349,7 @@
   "audioProps.pan": "Panorama estéreo (-1 a +1)",
   "audioProps.panHelp": "-1 izquierda, 0 centro, +1 derecha. Depende de la salida estéreo del navegador.",
   "audioProps.stopTargets": "Al hacer GO: detener otros cues activos",
-  "audioProps.stopTargetsHelp": "Selecciona hasta 20 cues que quieras detener o fundear antes de iniciar este. Se utiliza el fundido de salida de cada cue objetivo si está configurado; en caso contrario se detiene inmediatamente. No hay GO automático.",
+  "audioProps.stopTargetsHelp": "Elige los cues que se detendrán y define el tiempo de fundido de cada uno. 0 segundos es parada inmediata. Solo se ejecuta al pulsar GO; no hay Auto Follow.",
   "operator.effectLoop": "LOOP continuo hasta STOP",
   "operator.effectRepeat": "Repetir {count} veces",
   "operator.effectDelay": "Retardo {ms} ms",
@@ -368,5 +368,13 @@
   "cueEditor.actionsSaved": "Acciones de parada guardadas en el cue {number}. No se ha reproducido ningún sonido.",
   "cueEditor.listHelp": "Haz clic en un cue para editarlo. ↑ ↓ Inicio Fin para navegar. Inspeccionar no cambia SIGUIENTE GO.",
   "cueEditor.hint": "Edita las propiedades a la derecha. GO y PARAR TODO están en Operación.",
-  "cueEditor.saveEditsFirst": "Guarda o descarta los cambios pendientes del inspector del cue antes de exportar JSON o ZIP."
+  "cueEditor.saveEditsFirst": "Guarda o descarta los cambios pendientes del inspector del cue antes de exportar JSON o ZIP.",
+  "cueEditor.stopFadeSeconds": "Fundido de salida (s) · 0 = inmediato",
+  "cueEditor.fadeSeconds": "{seconds} s",
+  "cueEditor.currentAudio": "Sonido asignado: {name}",
+  "cueEditor.replaceAudio": "Reemplazar archivo de audio",
+  "cueEditor.chooseLibraryAudio": "Seleccionar sustituto de la biblioteca",
+  "cueEditor.useLibraryAudio": "Usar audio de biblioteca",
+  "cueEditor.libraryReplaced": "Audio sustituido para el cue {number}. No se ha reproducido sonido.",
+  "cueEditor.trackEditorPending": "La edición de archivos admite de momento una sola pista PLAY por cue. El editor multipista es una función independiente."
 }
