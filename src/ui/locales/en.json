@@ -438,5 +438,11 @@
   "cueEditor.moveDown": "Move down",
   "proposals.reviewHintsNone": "Independent check: no unaddressed SOUND/FX/AUDIO/MUSIC-labelled lines found in analyzed windows. This does not prove cue completeness.",
   "proposals.reviewHintsSummary": "Independent check: {count} labelled audio-direction line(s) have no model proposal or observation. Review the source; an audio file is NOT necessarily required.",
-  "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review."
+  "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review.",
+  "waveform.open": "View waveform",
+  "waveform.close": "Close waveform",
+  "waveform.canvas": "Original PCM audio waveform, separate channel traces",
+  "waveform.zoom": "Zoom",
+  "waveform.pan": "Scroll",
+  "waveform.disclaimer": "Visual preview only: this canvas does not yet save trim, fade or loop edits, and it never plays sound."
 }
