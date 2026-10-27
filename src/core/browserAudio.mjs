@@ -142,8 +142,14 @@ export class BrowserAudioEngine {
           typeof action.assetId !== 'string' || !this.hasAsset(action.assetId))) {
       throw new Error('Cue inválido o sin todos sus audios cargados.');
     }
-    const playback = normalizeCuePlayback(cue.playback);
-    if (cue.actions.some(action => playback.startAtMs >= this.buffers.get(action.assetId).duration * 1000)) {
+    const playable = [
+      ...cue.actions.map(action => ({assetId:action.assetId,playback:normalizeCuePlayback(cue.playback)})),
+      ...(cue.audioTracks ?? []).map(track => ({assetId:track.assetId,playback:normalizeCuePlayback(track.playback)})),
+    ];
+    if (playable.length > 12 || playable.some(track => !this.hasAsset(track.assetId))) {
+      throw new Error('Cue inválido o sin todos sus audios cargados.');
+    }
+    if (playable.some(track => track.playback.startAtMs >= this.buffers.get(track.assetId).duration * 1000)) {
       throw new RangeError('El inicio del audio debe estar dentro de cada archivo.');
     }
     if (this.isAuditioning()) throw new Error('Detén la preescucha antes de GO.');
@@ -159,22 +165,23 @@ export class BrowserAudioEngine {
         throw new Error('GO cancelado por STOP o PARAR TODO.');
       }
       if (ctx.state === 'suspended') throw new Error('El navegador ha bloqueado el audio.');
-      const startAt = ctx.currentTime + 0.02 + playback.startDelayMs / 1000;
-      const targetGain = 0.5 * 10 ** (playback.gainDb / 20);
-      const offsetSeconds = playback.startAtMs / 1000;
-      if (playback.pan !== 0 && typeof ctx.createStereoPanner !== 'function') {
+      const clockStart = ctx.currentTime + 0.02;
+      if (playable.some(track => track.playback.pan !== 0) &&
+          typeof ctx.createStereoPanner !== 'function') {
         throw new Error('Este navegador no admite panorama estéreo.');
       }
-      voices = cue.actions.map(action => {
+      voices = playable.map(track => {
+        const playback = track.playback;
         const source = ctx.createBufferSource();
         const gain = ctx.createGain();
-        source.buffer = this.buffers.get(action.assetId);
+        source.buffer = this.buffers.get(track.assetId);
+        const startAt = clockStart + playback.startDelayMs / 1000;
+        const offsetSeconds = playback.startAtMs / 1000;
+        const targetGain = 0.5 * 10 ** (playback.gainDb / 20);
         if (playback.playbackRate !== 1) {
           if (!source.playbackRate) throw new Error('Control de velocidad no disponible.');
           source.playbackRate.value = playback.playbackRate;
         }
-        // Repeat the first portion from the selected offset, followed by
-        // whole-buffer cycles. This uses AudioBufferSourceNode scheduling.
         source.loop = playback.loop || playback.repeatCount > 1;
         const duration = (source.buffer.duration - offsetSeconds +
           (playback.repeatCount - 1) * source.buffer.duration) / playback.playbackRate;
@@ -194,7 +201,8 @@ export class BrowserAudioEngine {
         source.connect(gain);
         if (panner) { gain.connect(panner); panner.connect(ctx.destination); }
         else gain.connect(ctx.destination);
-        return { source, gain, panner, duration, repeatCount: playback.repeatCount };
+        return {source,gain,panner,duration,repeatCount:playback.repeatCount,
+          loop:playback.loop,startAt,offsetSeconds};
       });
       const run = { voices: new Set(voices), stopping: false };
       this.playing.set(cue.id, run);
@@ -214,9 +222,9 @@ export class BrowserAudioEngine {
         };
       }
       for (const voice of voices) {
-        voice.source.start(startAt, offsetSeconds);
-        if (!playback.loop && voice.repeatCount > 1) {
-          voice.source.stop(startAt + voice.duration);
+        voice.source.start(voice.startAt, voice.offsetSeconds);
+        if (!voice.loop && voice.repeatCount > 1) {
+          voice.source.stop(voice.startAt + voice.duration);
         }
       }
       this.notify();
