@@ -82,6 +82,9 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const navigationModule = await fetch(base + '/src/core/scriptNavigation.mjs');
   assert.equal(navigationModule.status, 200);
   assert.match(await navigationModule.text(), /findScriptMatches/);
+  const operatorModule = await fetch(base + '/src/core/operatorQueue.mjs');
+  assert.equal(operatorModule.status, 200);
+  assert.match(await operatorModule.text(), /prepareOperatorCue/);
   const preflightModule = await fetch(base + '/src/core/showPreflight.mjs');
   assert.equal(preflightModule.status, 200);
   assert.match(await preflightModule.text(), /inspectShowReadiness/);
@@ -145,5 +148,17 @@ test('approved cue exposes safe editable operator details with no direct model e
   assert.match(client, /notesInput\.maxLength = 1500/);
   assert.match(client, /triggerInput\.maxLength = 300/);
   assert.match(client, /t\('cue\.editDetails'\)/);
+  assert.doesNotMatch(client, /\.innerHTML\s*=/);
+});
+
+test('manual operator queue is separate from source inspection and GO is guarded', () => {
+  assert.match(html, /id="operatorGoBtn"[^>]*disabled/);
+  assert.match(html, /id="operatorSkipBtn"[^>]*disabled/);
+  assert.match(html, /id="operatorResetBtn"/);
+  assert.match(client, /prepareOperatorCue\(operatorQueue, show\.cues, cue\.id\)/);
+  assert.match(client, /await player\.go\(cue\)/);
+  assert.match(client, /completePreparedCue\(operatorQueue, show\.cues, id\)/);
+  assert.match(client, /skipPreparedCue\(operatorQueue, show\.cues\)/);
+  assert.match(client, /operatorQueue = newOperatorQueue\(\)/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
 });

@@ -19,6 +19,7 @@ const allowed = new Map([
   ['/src/core/sceneAnalysis.mjs', ['src/core/sceneAnalysis.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/scriptNavigation.mjs', ['src/core/scriptNavigation.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/showPreflight.mjs', ['src/core/showPreflight.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/operatorQueue.mjs', ['src/core/operatorQueue.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/workspace.mjs', ['src/core/workspace.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/script.mjs', ['src/core/script.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/proposals.mjs', ['src/core/proposals.mjs', 'text/javascript; charset=utf-8']],
