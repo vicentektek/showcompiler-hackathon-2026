@@ -24,7 +24,6 @@ const RESERVED = new Set([
   'ACTO', 'ACT', 'ESCENA', 'SCENE', 'TELÓN', 'TELON', 'FIN', 'END',
   'BLACKOUT', 'OSCURO', 'PRÓLOGO', 'PROLOGO', 'EPÍLOGO', 'EPILOGO',
 ]);
-const EMPTY_RESULT = Object.freeze({ speaker: null, spokenText: null });
 
 function isHeader(value) {
   return isSceneHeading(value) || SCENE_WRAPPED.test(value);
@@ -115,9 +114,6 @@ export function annotateDramaticStructure(scriptText) {
       role,
       speaker,
       spokenText,
-      ...EMPTY_RESULT,
-      ...(speaker === null ? {} : { speaker }),
-      ...(spokenText === null ? {} : { spokenText }),
     });
   }
 
