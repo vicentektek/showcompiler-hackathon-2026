@@ -14,6 +14,8 @@ export class BrowserAudioEngine {
     this.buffers = new Map();
     this.playing = new Map();
     this.pending = new Set();
+    this.auditionVoice = null;
+    this.auditionPending = false;
     this.transportEpoch = 0;
     this.assetEpoch = 0;
   }
@@ -31,6 +33,71 @@ export class BrowserAudioEngine {
   isPlaying(cueId) { return this.playing.has(cueId) || this.pending.has(cueId); }
   isStopping(cueId) { return this.playing.get(cueId)?.stopping === true; }
   activeCueCount() { return this.playing.size; }
+  isAuditioning() { return this.auditionVoice !== null || this.auditionPending; }
+
+  /** Same-output audition for checking a decoded local file before cue assignment.
+   * This is NOT an independent monitor/headphone bus.
+   */
+  async auditionAsset(assetId) {
+    if (!this.hasAsset(assetId)) throw new Error('Audio local no cargado.');
+    if (this.playing.size || this.pending.size || this.isAuditioning()) {
+      throw new Error('Detén el transporte o la escucha antes de preescuchar.');
+    }
+    this.auditionPending = true;
+    const epoch = this.transportEpoch;
+    this.notify();
+    let voice = null;
+    try {
+      const ctx = this.getContext();
+      if (typeof ctx.resume === 'function') await ctx.resume();
+      if (epoch !== this.transportEpoch) throw new Error('Preescucha cancelada por PARAR TODO.');
+      if (ctx.state === 'suspended') throw new Error('El navegador ha bloqueado el audio.');
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = this.buffers.get(assetId);
+      gain.gain.value = 0.25;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      voice = { source, gain, assetId };
+      this.auditionVoice = voice;
+      source.onended = () => {
+        try { source.disconnect(); gain.disconnect(); } catch {}
+        if (this.auditionVoice === voice) this.auditionVoice = null;
+        this.notify();
+      };
+      source.start(ctx.currentTime + 0.02);
+      this.notify();
+      return true;
+    } catch (error) {
+      if (voice) {
+        try { voice.gain.gain.value = 0; voice.source.stop(); } catch {}
+        try { voice.source.disconnect(); voice.gain.disconnect(); } catch {}
+        if (this.auditionVoice === voice) this.auditionVoice = null;
+      }
+      throw error;
+    } finally {
+      this.auditionPending = false;
+      this.notify();
+    }
+  }
+
+  /** Also cancels a pending asynchronous audition via epoch invalidation. */
+  stopAudition() {
+    if (!this.isAuditioning()) return false;
+    this.transportEpoch += 1;
+    const voice = this.auditionVoice;
+    this.auditionVoice = null;
+    if (voice) {
+      const now = this.context?.currentTime ?? 0;
+      try {
+        voice.gain.gain.cancelScheduledValues(now);
+        voice.gain.gain.setValueAtTime(0, now);
+      } catch { try { voice.gain.gain.value = 0; } catch {} }
+      try { voice.source.stop(now); } catch {}
+    }
+    this.notify();
+    return true;
+  }
 
   /** Decode locally. Only the decoded AudioBuffer is kept in volatile memory. */
   async loadFile(file, assetId) {
@@ -54,6 +121,7 @@ export class BrowserAudioEngine {
         decoded.numberOfChannels < 1 || decoded.numberOfChannels > 2) {
       throw new Error('Solo se admiten audios mono/estéreo de hasta 10 minutos.');
     }
+    if (this.isAuditioning()) throw new Error('Detén la preescucha antes de cargar nuevos audios.');
     if (this.playing.size || this.pending.size) this.stopAll();
     this.buffers.set(assetId, decoded);
     this.notify();
@@ -70,6 +138,7 @@ export class BrowserAudioEngine {
           typeof action.assetId !== 'string' || !this.hasAsset(action.assetId))) {
       throw new Error('Cue inválido o sin todos sus audios cargados.');
     }
+    if (this.isAuditioning()) throw new Error('Detén la preescucha antes de GO.');
     if (this.isPlaying(cue.id)) throw new Error('Este cue ya está reproduciéndose.');
     this.pending.add(cue.id);
     const epoch = this.transportEpoch;
@@ -149,6 +218,7 @@ export class BrowserAudioEngine {
 
   /** Emergency cut: silence every active gain and invalidate pending asynchronous GO. */
   stopAll() {
+    this.stopAudition();
     this.transportEpoch += 1;
     const now = this.context?.currentTime ?? 0;
     for (const run of this.playing.values()) {

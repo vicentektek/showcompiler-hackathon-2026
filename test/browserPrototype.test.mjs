@@ -162,3 +162,14 @@ test('manual operator queue is separate from source inspection and GO is guarded
   assert.match(client, /operatorQueue = newOperatorQueue\(\)/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
 });
+
+test('same-output audition controls are distinct from GO and disclose routing limits', () => {
+  assert.match(html, /id="stopAuditionBtn"/);
+  assert.match(html, /id="assetList"/);
+  assert.match(client, /player\.auditionAsset\(asset\.id\)/);
+  assert.match(client, /player\.stopAudition\(\)/);
+  assert.match(client, /audio\.auditionConfirm/);
+  assert.match(client, /transport\.auditionActive \|\| transport\.auditionPending/);
+  assert.match(client, /\!prepared \|\| audioInFlight \|\| auditioning/);
+  assert.doesNotMatch(client, /\.innerHTML\s*=/);
+});

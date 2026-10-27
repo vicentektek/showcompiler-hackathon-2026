@@ -175,3 +175,51 @@ test('UI callback errors do not block STOP or PANIC', async () => {
   assert.doesNotThrow(()=>x.engine.stopAll());
   assert.equal(x.engine.activeCueCount(),0);
 });
+
+test('audition plays a decoded local asset at reduced output without executing a cue', async () => {
+  const x=fixture();
+  await x.engine.loadFile(x.file,'audio-1');
+  await x.engine.auditionAsset('audio-1');
+  assert.equal(x.engine.isAuditioning(),true);
+  assert.equal(x.engine.activeCueCount(),0);
+  assert.equal(x.sources.length,1);
+  assert.equal(x.gains[0].gain.value,0.25);
+  await assert.rejects(x.engine.go(x.cue()),/preescucha/);
+  assert.equal(x.engine.stopAudition(),true);
+  assert.equal(x.engine.isAuditioning(),false);
+  assert.equal(x.gains[0].gain.value,0);
+  assert.equal(x.sources[0].stopped,12);
+  assert.equal(x.engine.stopAudition(),false);
+  await x.engine.go(x.cue());
+  assert.equal(x.engine.activeCueCount(),1);
+});
+test('audition rejects missing assets, concurrent playback and double audition', async () => {
+  const x=fixture();
+  await assert.rejects(x.engine.auditionAsset('missing'),/no cargado/);
+  await x.engine.loadFile(x.file,'audio-1');
+  await x.engine.go(x.cue());
+  await assert.rejects(x.engine.auditionAsset('audio-1'),/Detén/);
+  x.engine.stopCue('cue-1');
+  await x.engine.auditionAsset('audio-1');
+  await assert.rejects(x.engine.auditionAsset('audio-1'),/Detén/);
+  await assert.rejects(x.engine.loadFile(x.file,'audio-2'),/preescucha/);
+});
+test('STOP ALL silences a running audition and cancels a pending one', async () => {
+  const x=fixture();
+  await x.engine.loadFile(x.file,'audio-1');
+  await x.engine.auditionAsset('audio-1');
+  x.engine.stopAll();
+  assert.equal(x.engine.isAuditioning(),false);
+  assert.equal(x.gains[0].gain.value,0);
+  assert.equal(x.sources[0].stopped,12);
+  const delayed=fixture({deferredResume:true});
+  await delayed.engine.loadFile(delayed.file,'audio-1');
+  const promise=delayed.engine.auditionAsset('audio-1');
+  await Promise.resolve();
+  assert.equal(delayed.engine.isAuditioning(),true);
+  delayed.engine.stopAll();
+  delayed.resumeNow();
+  await assert.rejects(promise,/cancelada/);
+  assert.equal(delayed.engine.isAuditioning(),false);
+  assert.equal(delayed.sources.length,0);
+});

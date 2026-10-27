@@ -85,3 +85,8 @@ footer{padding:20px 34px;border-top:1px solid #263149;color:#73839f;text-align:c
 .operator-queue-controls #operatorGoBtn{font-size:14px;padding:11px 18px}
 .operator-queue .caption{display:block;margin:9px 0 0}
 .cue-item.cue-prepared{border-color:#87bdff;box-shadow:inset 0 0 0 1px #87bdff70}
+
+/* Same-output audition: asset row controls are distinct from show cue GO. */
+.asset-list-row{display:flex;gap:7px;align-items:center;max-width:100%;flex-wrap:wrap}
+.asset-list-row .tag{flex:1 1 145px;min-width:0}
+#stopAuditionBtn{margin:0 0 10px}
