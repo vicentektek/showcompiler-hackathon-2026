@@ -26,6 +26,7 @@ try {
   await page.addInitScript(() => {
     window.__testAudioStarts = 0;
     window.__testAudioStops = 0;
+    window.__testStopTimes = [];
     class FakeAudioContext {
       constructor() { this.state = 'running'; this.currentTime = 1; this.destination = {}; }
       async resume() {}
@@ -43,7 +44,7 @@ try {
       createBufferSource() {
         return { buffer: null, onended: null, playbackRate:{value:1}, connect() {}, disconnect() {},
           start() { window.__testAudioStarts += 1; },
-          stop() { window.__testAudioStops += 1; } };
+          stop(time) { window.__testAudioStops += 1; window.__testStopTimes.push(time); } };
       }
     }
     window.AudioContext = FakeAudioContext;
@@ -94,6 +95,10 @@ try {
   await inspector.getByRole('button', {name:'Save playback settings'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
+  assert.equal(await page.locator('#cueReplaceLibrary').count(),1);
+  await page.locator('#cueReplaceLibrary').selectOption('asset-3');
+  await page.getByRole('button',{name:'Use library audio'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Audio assignment replaced/);
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
   // Repositioning belongs to Operation, never to a simple editor click.
@@ -122,6 +127,7 @@ try {
   await page.locator('[data-inspector-tab="actions"]').click();
   // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
   await page.locator('#cueTargetStopForm [data-stop-target="cue-1"]').check();
+  await page.locator('#cueTargetStopForm [data-stop-fade="cue-1"]').fill('4');
   await page.locator('#cueTargetStopForm').getByRole('button',{name:'Save target actions'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Target-stop actions saved/);
   await page.locator('[data-workspace-nav="script"]').click();
@@ -134,9 +140,11 @@ try {
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
   assert.match(await page.locator('#operatorEffectSummary').innerText(), /STOP \/ FADE: 1/);
+  assert.match(await page.locator('#operatorEffectSummary').innerText(), /4\.0 s/);
   const stopsBeforeTarget = await page.evaluate(()=>window.__testAudioStops);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(stops=>window.__testAudioStops>stops,stopsBeforeTarget);
+  assert.ok(await page.evaluate(() => window.__testStopTimes.some(t => Math.abs(t - 5.02) < .01)));
   assert.match(await page.locator('#preparedCueStatus').innerText(), /3\s*[·.]/);
   assert.equal(await page.locator('#operatorPanicBtn').isEnabled(), true);
   await page.locator('#operatorPanicBtn').click();
@@ -154,6 +162,8 @@ try {
   assert.equal(exportedProject.cues[editedCueIndex].playback.playbackRate,1.25);
   assert.equal(exportedProject.cues[editedCueIndex].playback.startAtMs,125);
   assert.deepEqual(exportedProject.cues[1].automation.stopCueIds,['cue-1']);
+  assert.equal(exportedProject.cues[1].stopFadeOverrides['cue-1'],4000);
+  assert.equal(exportedProject.cues[0].actions[0].assetId,'asset-3');
   const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#bundleFileInput').setInputFiles({

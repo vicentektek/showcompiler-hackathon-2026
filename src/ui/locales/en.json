@@ -349,7 +349,7 @@
   "audioProps.pan": "Stereo pan (-1 to +1)",
   "audioProps.panHelp": "-1 left, 0 center, +1 right. Depends on browser stereo output.",
   "audioProps.stopTargets": "On GO: stop other active cues",
-  "audioProps.stopTargetsHelp": "Select up to 20 cues to stop or fade before this cue starts. The target cue's saved fade-out duration is used if set; otherwise STOP is immediate. No auto-GO.",
+  "audioProps.stopTargetsHelp": "Choose target cues and specify a fade-out duration for each. 0 seconds cuts immediately. The action happens only when you press GO; no Auto Follow.",
   "operator.effectLoop": "Continuous LOOP until STOP",
   "operator.effectRepeat": "Repeat {count} times",
   "operator.effectDelay": "Delay {ms} ms",
@@ -368,5 +368,13 @@
   "cueEditor.actionsSaved": "Target-stop actions saved for cue {number}. No sound was started.",
   "cueEditor.listHelp": "Click a cue row to edit it. ↑ ↓ Home End navigate. Inspection never changes NEXT GO.",
   "cueEditor.hint": "Edit cue properties on the right. GO and emergency STOP remain in Operation.",
-  "cueEditor.saveEditsFirst": "Save or discard the cue's pending inspector edits before exporting JSON or ZIP."
+  "cueEditor.saveEditsFirst": "Save or discard the cue's pending inspector edits before exporting JSON or ZIP.",
+  "cueEditor.stopFadeSeconds": "Fade out (s) · 0 = immediate",
+  "cueEditor.fadeSeconds": "{seconds} s",
+  "cueEditor.currentAudio": "Assigned sound: {name}",
+  "cueEditor.replaceAudio": "Replace audio file",
+  "cueEditor.chooseLibraryAudio": "Select replacement from loaded library",
+  "cueEditor.useLibraryAudio": "Use library audio",
+  "cueEditor.libraryReplaced": "Audio assignment replaced for cue {number}. Nothing played.",
+  "cueEditor.trackEditorPending": "Audio attachment editing currently supports one PLAY track per cue; multi-track editing is a separate feature."
 }
