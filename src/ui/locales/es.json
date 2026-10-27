@@ -347,5 +347,7 @@
   "audioProps.playbackRate": "Velocidad (0,5×–2×)",
   "audioProps.rateHelp": "1,0× mantiene la velocidad original; cambiarla también altera el tono en este navegador.",
   "audioProps.pan": "Panorama estéreo (-1 a +1)",
-  "audioProps.panHelp": "-1 izquierda, 0 centro, +1 derecha. Depende de la salida estéreo del navegador."
+  "audioProps.panHelp": "-1 izquierda, 0 centro, +1 derecha. Depende de la salida estéreo del navegador.",
+  "audioProps.stopTargets": "Al hacer GO: detener otros cues activos",
+  "audioProps.stopTargetsHelp": "Selecciona hasta 20 cues que quieras detener o fundear antes de iniciar este. Se utiliza el fundido de salida de cada cue objetivo si está configurado; en caso contrario se detiene inmediatamente. No hay GO automático."
 }
