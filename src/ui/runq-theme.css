@@ -328,3 +328,41 @@ footer{display:none}
 .runq-guide-dialog h2{margin:0 0 16px;font-size:20px;color:#d6fff3}
 .runq-guide-dialog p{font-size:13px;line-height:1.7;color:#bbd4d6}
 .runq-guide-footer{display:flex;justify-content:flex-end;margin-top:20px}
+
+/* Screenshot review: keep a compact real GO transport inside Editor,
+   and align the inspector with the cue list instead of offsetting it. */
+.workspace-tab[aria-pressed="false"]:not(.is-current){background:transparent;border-color:transparent;box-shadow:none}
+.workspace-tab[aria-pressed="false"]:not(.is-current):hover{background:#20373e;border-color:#294d50;color:#e4f5f2}
+.shell[data-active-workspace="cues"] .operator-queue{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(260px,325px);
+  min-height:0;padding:9px 13px;margin:0 0 9px;
+  background:#193a38;border:1px solid #3a8176;
+}
+.shell[data-active-workspace="cues"] .cue-workspace-body{min-height:0}
+.shell[data-active-workspace="cues"] #cueList{
+  min-height:190px;max-height:calc(100vh - 402px);
+  padding:2px 5px 2px 0;
+}
+.shell[data-active-workspace="cues"] .cue-inspector{
+  position:relative;top:0;
+  min-height:190px;max-height:calc(100vh - 402px);
+  background:#10222c;border-color:#385960;padding:14px;
+}
+.shell[data-active-workspace="cues"] .cue-item{background:#162934;border-color:#314e57}
+.shell[data-active-workspace="cues"] .cue-item.cue-selected{
+  background:#22423f;border-color:#67a69c;border-left-color:#42d6be;
+}
+.shell[data-active-workspace="cues"] .cue-item.cue-selected .cue-row-select{background:transparent}
+.shell[data-active-workspace="cues"] .cue-item.cue-prepared{border-right-color:#44dabc}
+.cue-inspector-tab[aria-selected="true"]{
+  color:#d8fff6;background:#214641;border-bottom-color:#3ad8bb;
+}
+.cue-inspector-tab:hover{background:#23413e}
+@media(max-width:800px){
+  .shell[data-active-workspace="cues"] .operator-queue{grid-template-columns:1fr}
+}
+@media(max-width:740px){
+  .shell[data-active-workspace="cues"] #cueList,
+  .shell[data-active-workspace="cues"] .cue-inspector{max-height:none}
+}
