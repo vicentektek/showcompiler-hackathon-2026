@@ -6,6 +6,7 @@
 import { normalizeShowProject } from './projectPersistence.mjs';
 import { parseScript } from './script.mjs';
 import { normalizeScriptLanguageHint } from './scriptLanguage.mjs';
+import { reviewExplicitAudioDirections } from './independentCueReview.mjs';
 import {
   classifyTheatricalSuggestions,
   parseTheatricalCueContent,
@@ -408,6 +409,7 @@ export async function callMetaCueModel({
   const classified = classifyTheatricalSuggestions(suggestions);
   return {
     ...classified,
+    independentReview: reviewExplicitAudioDirections(prepared.scope, suggestions),
     coverage: prepared.coverage,
     model,
     provider: 'META_MODEL_API',

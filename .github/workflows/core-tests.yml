@@ -14,10 +14,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm run check:syntax
-      - run: npm test
-      - name: Offline cue event QA (synthetic illustrative predictions; no providers)
-        run: npm run qa:cues
+      - name: Full Codex QA (offline syntax, unit tests and synthetic cue comparisons)
+        run: npm run qa:codex
+      - name: Upload concise Codex task report (synthetic fixtures only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-codex-qa-summary
+          path: artifacts/codex-qa/summary.*
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload cue QA report for developer and Codex review
         uses: actions/upload-artifact@v4
         with:

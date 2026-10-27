@@ -229,3 +229,12 @@ test('same-output audition controls are distinct from GO and disclose routing li
   assert.match(client, /\!prepared \|\| audioInFlight \|\| auditioning/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
 });
+
+
+test('Meta independent verifier is a transient, review-only UI with source links', () => {
+  assert.match(html, /id="metaIndependentReview"/);
+  assert.match(html, /id="metaIndependentReviewLines"/);
+  assert.match(client, /applyMetaIndependentReview\(result\.independentReview, result\.coverage\)/);
+  assert.match(client, /sourceButton\(lineId\)/);
+  assert.doesNotMatch(client, /metaIndependentReview\s*=\s*show/);
+});
