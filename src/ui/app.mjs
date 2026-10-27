@@ -445,6 +445,7 @@ function moveScriptMatch(direction) {
 function sourceButton(lineId) {
   const button = node('button', 'btn subtle small', t('script.viewSource'));
   button.type = 'button';
+  button.disabled = !lineId;
   button.addEventListener('click', () => jumpToScriptLine(lineId));
   return button;
 }
@@ -1146,6 +1147,25 @@ function renderCueInspector() {
   inspector.append(header);
   inspector.append(node('p', 'cue-inspector-origin', cue.sourceLineIds.join(', ') + ' · ' +
     (cue.trigger || t('cueEditor.noTrigger'))));
+  // Shortcuts dispatch the EXISTING validated toolbar actions. Selecting or
+  // editing a cue never changes NEXT GO; the explicit Set next does.
+  const quick = node('div', 'cue-inspector-quick-actions');
+  const insertAfter = node('button', 'btn primary small', t('cueEditor.insertCue'));
+  insertAfter.type = 'button';
+  insertAfter.addEventListener('click', () => $('cueInsertBtn').click());
+  const duplicate = node('button', 'btn subtle small', t('cueEditor.duplicateCue'));
+  duplicate.type = 'button';
+  duplicate.addEventListener('click', () => $('cueDuplicateBtn').click());
+  const next = node('button', 'btn subtle small', t('operator.setNext'));
+  next.type = 'button';
+  next.disabled = operatorQueue.preparedCueId === cue.id;
+  next.addEventListener('click', () => {
+    operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
+    render();
+    feedback('operator.preparedFeedback', { number: cue.number }, 'success');
+  });
+  quick.append(insertAfter, duplicate, next);
+  inspector.append(quick);
   const available = cue.actions.some(a => a.type === 'PLAY')
     ? ['details', 'audio', 'actions'] : ['details', 'actions'];
   if (!available.includes(inspectorTab)) inspectorTab = available[0];
