@@ -29,7 +29,8 @@ test('cue inspection and filtered list cannot mutate prepared operator queue', (
   assert.match(html, /id="cueSearchInput"/);
   assert.match(client, /let selectedCueId = null/);
   assert.match(client, /selectedCueId = cueId;/);
-  assert.match(client, /const visibleCues = !cueQuery/);
+  assert.match(client, /const projectedRows = projectCueRows\(show/);
+  assert.match(client, /const visibleCues = projectedRows\.map/);
   assert.match(client, /for \(const cue of visibleCues\)/);
   assert.match(client, /select\.addEventListener\('click', \(\) => selectCueForInspection\(cue\.id\)\)/);
   const selectHandler = client.match(/function selectCueForInspection\(cueId\) \{([\s\S]*?)\n\}/);

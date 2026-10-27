@@ -11,9 +11,11 @@ import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
-import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
+import { newOperatorQueue, startOperatorQueue, reconcileOperatorQueueAfterEdit, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
+import { projectCueRows } from './v3/cueSequenceModel.mjs';
+import { createWaveformFeature } from './v3/waveformFeature.mjs';
 
 const $ = (id) => document.getElementById(id);
 const sampleTexts = {
@@ -43,6 +45,10 @@ let pendingAudioCueId = null;
 let audioInFlight = false;
 let bundleInFlight = false;
 let originalAudioFiles = new Map();
+const waveformViewer = createWaveformFeature({
+  getFile: assetId => originalAudioFiles.get(assetId),
+  onSaveStart: ({cueId,assetId,startAtMs}) => saveCueWaveformIn(cueId,assetId,startAtMs),
+});
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
@@ -80,6 +86,9 @@ function refreshAudioControls() {
   }
   for (const button of document.querySelectorAll('[data-cue-audio-pick]')) {
     button.disabled = audioInFlight || auditioning;
+  }
+  for (const button of document.querySelectorAll('[data-asset-waveform]')) {
+    button.disabled = audioInFlight || !originalAudioFiles.has(button.dataset.assetWaveform);
   }
   for (const label of document.querySelectorAll('[data-cue-state]')) {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
@@ -167,8 +176,15 @@ function setWorkspace(workspace) {
     inspectorPendingChanges = false;
     renderCueInspector(); // Discard local form changes, not stored show data.
   }
+  const previousWorkspace = activeWorkspace;
   activeWorkspace = workspace;
   renderWorkspaceShell();
+  // The editor and operation use different row details and controls. Rebuild
+  // only when crossing those workspaces; never start playback by navigation.
+  if (previousWorkspace !== workspace && (workspace === 'cues' || workspace === 'operation')) {
+    renderCueList();
+    refreshAudioControls();
+  }
   return true;
 }
 
@@ -444,6 +460,7 @@ function moveScriptMatch(direction) {
 function sourceButton(lineId) {
   const button = node('button', 'btn subtle small', t('script.viewSource'));
   button.type = 'button';
+  button.disabled = !lineId;
   button.addEventListener('click', () => jumpToScriptLine(lineId));
   return button;
 }
@@ -533,6 +550,28 @@ function confirmDiscardInspectorEdits() {
   return !inspectorPendingChanges || window.confirm(t('cueEditor.discardChanges'));
 }
 
+/** Explicit operator decision: change NEXT GO only, never select for editing,
+ * and never invoke playback. May retarget while an earlier cue keeps playing.
+ * A pending asynchronous GO cannot be redirected.
+ */
+function prepareCueForNextGo(cueId) {
+  const cue = show.cues.find(item => item.id === cueId);
+  if (!cue || operatorQueue.preparedCueId === cueId) return false;
+  const status = player.getStatus();
+  if (audioInFlight || bundleInFlight || status.pendingGoCount ||
+      status.auditionPending) {
+    feedback('operator.prepareBusy', {}, 'error');
+    return false;
+  }
+  if (!confirmDiscardInspectorEdits()) return false;
+  inspectorPendingChanges = false;
+  editingCueId = null;
+  operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
+  render();
+  feedback('operator.preparedFeedback', { number: cue.number }, 'success');
+  return true;
+}
+
 function selectCueForInspection(cueId) {
   if (!show.cues.some(cue => cue.id === cueId)) return false;
   if (cueId === selectedCueId) return true;
@@ -554,14 +593,12 @@ function renderCueList({ resetScroll = false } = {}) {
   const cueList = $('cueList');
   const priorScrollTop = cueList.scrollTop;
   cueList.replaceChildren();
-  const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
-  const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
-    const matchingAssets = cue.actions.map(action =>
-      show.assets.find(asset => asset.id === action.assetId)?.name ?? '').join(' ');
-    const searchable = [cue.number, cue.label, cue.trigger, cue.notes,
-      cue.sourceLineIds.join(' '), matchingAssets].join(' ').toLocaleLowerCase();
-    return searchable.includes(cueQuery);
+  const projectedRows = projectCueRows(show, {
+    query: $('cueSearchInput').value.slice(0, 300), selectedCueId,
+    preparedCueId: operatorQueue.preparedCueId,
   });
+  const summaries = new Map(projectedRows.map(row => [row.id, row]));
+  const visibleCues = projectedRows.map(row => show.cues[row.index]);
   $('cueSearchStatus').textContent = t('workspace.matchCount', { visible: visibleCues.length, total: show.cues.length });
   if (!show.cues.length) cueList.append(node('p', 'empty', t('status.noCues')));
   else if (!visibleCues.length) cueList.append(node('p', 'empty', t('workspace.noCueMatches')));
@@ -575,15 +612,27 @@ function renderCueList({ resetScroll = false } = {}) {
     select.setAttribute('aria-label', t('cueEditor.selectCue', { number: cue.number, label: cue.label }));
     select.setAttribute('aria-pressed', String(cue.id === selectedCueId));
     const top = node('div', 'item-head cue-row-heading');
-    const cueNumber = node('span', 'cue-row-index', String(cue.number).padStart(2, '0'));
     const cueTitle = node('strong', 'cue-row-title', cue.label);
     cueTitle.title = cue.label;
-    top.append(cueNumber, cueTitle);
+    top.append(cueTitle);
     const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
     const detail = node('span', 'cue-row-meta', cue.sourceLineIds.join(', ') + ' · ' + describeCueActions(cue.actions));
-    select.append(top, detail);
+    if (activeWorkspace === 'cues') {
+      const summary = summaries.get(cue.id);
+      const source = node('span', 'cue-row-source', summary.sourceLabel);
+      source.title = summary.sourceLabel;
+      const audio = node('span', 'cue-row-audio', summary.audioLabel);
+      audio.title = summary.audioLabel;
+      select.append(top, source, audio);
+      // Preserve all original model details in a native accessible tooltip,
+      // rather than filling the 84/500-row editing table with action buttons.
+      select.title = [cue.label, summary.sourceLabel, summary.audioLabel,
+        summary.trigger].filter(Boolean).join(' · ');
+    } else {
+      select.append(top, detail);
+    }
     if (cue.trigger) select.append(node('span', 'cue-row-trigger', t('cue.trigger') + ': ' + cue.trigger));
     if (cue.id === operatorQueue.preparedCueId) {
       select.append(node('span', 'cue-row-next', t('cueEditor.nextGo')));
@@ -604,7 +653,24 @@ function renderCueList({ resetScroll = false } = {}) {
       target?.focus();
       target?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
-    card.append(select);
+    // A separate button for the number/arrow avoids nested interactive
+    // controls: clicking a name inspects, clicking the number prepares.
+    const prepareNumber = node('button', 'cue-prepare-trigger');
+    prepareNumber.type = 'button';
+    prepareNumber.dataset.cuePrepare = cue.id;
+    prepareNumber.setAttribute('aria-label', t('cueEditor.prepareCue', {
+      number: cue.number, label: cue.label,
+    }));
+    prepareNumber.title = t('cueEditor.prepareCue', {
+      number: cue.number, label: cue.label,
+    });
+    prepareNumber.setAttribute('aria-pressed', String(cue.id === operatorQueue.preparedCueId));
+    prepareNumber.append(
+      node('span', 'cue-prepare-arrow', '▶'),
+      node('span', 'cue-row-index cue-prepare-number', String(cue.number).padStart(2, '0')),
+    );
+    prepareNumber.addEventListener('click', () => prepareCueForNextGo(cue.id));
+    card.append(prepareNumber, select);
     const sourceActions = node('div', 'item-actions cue-edit-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
     card.append(sourceActions);
@@ -643,15 +709,8 @@ function renderCueList({ resetScroll = false } = {}) {
       card.append(replaceAudio);
     }
     const controls = node('div', 'item-actions cue-operation-actions');
-    const prepare = node('button', 'btn accent small', t('operator.setNext'));
-    prepare.type = 'button';
-    prepare.disabled = operatorQueue.preparedCueId === cue.id;
-    prepare.addEventListener('click', () => {
-      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
-      render();
-      feedback('operator.preparedFeedback', { number: cue.number }, 'success');
-    });
-    controls.append(prepare);
+    // The number/arrow button above prepares NEXT GO. Stop and fade remain
+    // separate controls for already playing cues. No row-level PLAY.
     // Only the global prepared-sequence GO can start playback. Row buttons stop
     // an already-running cue or intentionally reposition the next GO.
     const commands = [['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
@@ -740,7 +799,12 @@ function render() {
         feedback('audio.auditionStarted', { name: asset.name }, 'success');
       } catch (error) { showError(error); }
     });
-    row.append(label, audition);
+    const waveform = node('button', 'btn subtle small', t('waveform.open'));
+    waveform.type = 'button';
+    waveform.dataset.assetWaveform = asset.id;
+    waveform.disabled = !originalAudioFiles.has(asset.id) || audioInFlight;
+    waveform.addEventListener('click', () => { void waveformViewer.open(asset.id, asset.name); });
+    row.append(label, waveform, audition);
     list.append(row);
   }
 
@@ -971,6 +1035,27 @@ function cueActionInspector(cue) {
 }
 
 
+/** Only commit graphical IN for the exact still-existing cue and file.
+ * GO remains a separate manual operator action and cannot occur here.
+ */
+function saveCueWaveformIn(cueId, assetId, startAtMs) {
+  const cue = show.cues.find(item => item.id === cueId);
+  const state = player.getStatus();
+  if (!cue || !cue.actions.some(a => a.type === 'PLAY' && a.assetId === assetId) ||
+      !originalAudioFiles.has(assetId) ||
+      !Number.isSafeInteger(startAtMs) || startAtMs < 0 || startAtMs > 600000 ||
+      audioInFlight || bundleInFlight ||
+      state.activeCueCount || state.pendingGoCount ||
+      state.auditionActive || state.auditionPending) {
+    throw new TypeError('Cannot save cue IN during active audio or changed source');
+  }
+  const existing = normalizeCuePlayback(cue.playback);
+  show = updateCuePlayback(show, cue.id, { ...existing, startAtMs });
+  dirty = true;
+  render();
+  feedback('audioProps.saved', { number: cue.number }, 'success');
+}
+
 function cueAudioSourceControls(cue) {
   const block = node('div', 'cue-source-controls');
   const playable = cue.actions.filter(action => action.type === 'PLAY');
@@ -980,6 +1065,16 @@ function cueAudioSourceControls(cue) {
       name: asset?.name ?? playable[0].assetId,
     })));
     block.append(cueAudioPicker(cue.id, 'cueEditor.replaceAudio'));
+    const viewWaveform = node('button', 'btn subtle small', t('waveform.open'));
+    viewWaveform.type = 'button';
+    viewWaveform.disabled = !originalAudioFiles.has(playable[0].assetId);
+    viewWaveform.addEventListener('click', () => {
+      if (!setWorkspace('audio')) return;
+      void waveformViewer.open(playable[0].assetId, asset?.name ?? playable[0].assetId, {
+        cueId: cue.id, startAtMs: normalizeCuePlayback(cue.playback).startAtMs,
+      });
+    });
+    block.append(viewWaveform);
     if (show.assets.length > 1) {
       const pick = node('select');
       pick.id = 'cueReplaceLibrary';
@@ -1134,6 +1229,21 @@ function renderCueInspector() {
   inspector.append(header);
   inspector.append(node('p', 'cue-inspector-origin', cue.sourceLineIds.join(', ') + ' · ' +
     (cue.trigger || t('cueEditor.noTrigger'))));
+  // Shortcuts dispatch the EXISTING validated toolbar actions. Selecting or
+  // editing a cue never changes NEXT GO; the explicit Set next does.
+  const quick = node('div', 'cue-inspector-quick-actions');
+  const insertAfter = node('button', 'btn primary small', t('cueEditor.insertCue'));
+  insertAfter.type = 'button';
+  insertAfter.addEventListener('click', () => $('cueInsertBtn').click());
+  const duplicate = node('button', 'btn subtle small', t('cueEditor.duplicateCue'));
+  duplicate.type = 'button';
+  duplicate.addEventListener('click', () => $('cueDuplicateBtn').click());
+  const next = node('button', 'btn subtle small', t('operator.setNext'));
+  next.type = 'button';
+  next.disabled = operatorQueue.preparedCueId === cue.id;
+  next.addEventListener('click', () => prepareCueForNextGo(cue.id));
+  quick.append(insertAfter, duplicate, next);
+  inspector.append(quick);
   const available = cue.actions.some(a => a.type === 'PLAY')
     ? ['details', 'audio', 'actions'] : ['details', 'actions'];
   if (!available.includes(inspectorTab)) inspectorTab = available[0];
@@ -1249,6 +1359,7 @@ function setNewShow(project, statusKey, values = {}) {
   lastGoCueId = null;
   $('scriptSearchInput').value = '';
   player.reset();
+  waveformViewer.reset();
   originalAudioFiles.clear();
   show = project;
   resetMetaAnalysis();
@@ -1268,10 +1379,12 @@ function editCueSequence(fn) {
     return;
   }
   try {
+    const previousCues = show.cues;
+    const previousQueue = operatorQueue;
     const result = fn();
     show = result.project ?? result;
     selectedCueId = result.cueId ?? (show.cues.some(c => c.id === selectedCueId) ? selectedCueId : show.cues[0]?.id ?? null);
-    operatorQueue = startOperatorQueue(show.cues);
+    operatorQueue = reconcileOperatorQueueAfterEdit(previousQueue, previousCues, show.cues);
     lastGoCueId = null;
     inspectorPendingChanges = false;
     editingCueId = null;
@@ -1318,6 +1431,28 @@ $('checkPreflightBtn').addEventListener('click', () => {
   preflightVisible = !preflightVisible;
   renderPreflight();
 });
+// Manual keyboard GO is limited to the Operation workspace. Every focused
+// interactive element (including native <summary> menus and custom tabbable
+// controls) keeps its own Space behavior; a menu keypress must NEVER be GO.
+// Holding Space must not launch successive cues through keydown repeats.
+document.addEventListener('keydown', event => {
+  if (activeWorkspace !== 'operation' ||
+      (event.code !== 'Space' && event.key !== ' ') ||
+      event.repeat || event.isComposing ||
+      event.ctrlKey || event.altKey || event.metaKey || event.shiftKey ||
+      event.defaultPrevented) return;
+  const target = event.target;
+  if (target instanceof Element && target.closest(
+    'input, textarea, select, button, a[href], summary, [contenteditable], [tabindex], ' +
+    '[role="button"], [role="textbox"], [role="link"], [role="menuitem"], ' +
+    '[role="tab"], [role="checkbox"], [role="radio"], [role="slider"], ' +
+    '[role="combobox"], [role="switch"], [role="option"]'
+  )) return;
+  if ($('operatorGoBtn').disabled) return;
+  event.preventDefault();
+  $('operatorGoBtn').click();
+});
+
 $('operatorGoBtn').addEventListener('click', async () => {
   const id = operatorQueue.preparedCueId;
   if (!id || audioInFlight) return;
@@ -1791,6 +1926,7 @@ $('audioFileInput').addEventListener('change', async event => {
     if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
     show = nextShow;
     originalAudioFiles.set(assetId, file);
+    waveformViewer.reset();
     dirty = true;
     render();
     feedback(cueId ? 'soundPlan.fileAttachedFeedback' : 'status.audioLoaded', {

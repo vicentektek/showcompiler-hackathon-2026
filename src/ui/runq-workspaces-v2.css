@@ -405,3 +405,208 @@
  .shell[data-active-workspace="cues"] .cue-create-actions{overflow-x:auto;flex-wrap:nowrap;width:100%}
  .shell[data-active-workspace="cues"] .cue-create-actions .btn{white-space:nowrap;flex:0 0 auto}
 }
+
+
+/* V3 editor: production-oriented table, true source/asset columns and a
+   dedicated quick-action inspector. This changes no cue transport state. */
+.shell[data-active-workspace="cues"] .runq-cue-columns{
+  grid-template-columns:45px minmax(125px,1.35fr) minmax(65px,.48fr) minmax(115px,1fr) 88px;
+  width:calc(62.3% - 6px);align-items:center;column-gap:9px;
+  padding:8px 10px;letter-spacing:.07em;
+}
+.shell[data-active-workspace="cues"] .runq-cue-columns>span:last-child{text-align:right}
+.shell[data-active-workspace="cues"] .cue-row-select{
+  grid-template-columns:45px minmax(125px,1.35fr) minmax(65px,.48fr) minmax(115px,1fr) 88px;
+  grid-template-rows:minmax(22px,auto) auto;
+  column-gap:9px;row-gap:1px;min-height:42px;padding:6px 10px;
+}
+.shell[data-active-workspace="cues"] .cue-row-index,
+.shell[data-active-workspace="cues"] .cue-row-title{grid-row:1}
+.shell[data-active-workspace="cues"] .cue-row-source{
+  grid-column:3;grid-row:1;min-width:0;
+  color:#88a8b5;font-size:11px;font-family:ui-monospace,Consolas,monospace;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.shell[data-active-workspace="cues"] .cue-row-audio{
+  grid-column:4;grid-row:1;min-width:0;
+  color:#bed6d5;font-size:11px;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.shell[data-active-workspace="cues"] .cue-row-heading .state{
+  grid-column:5;grid-row:1;justify-self:end;
+}
+.shell[data-active-workspace="cues"] .cue-row-next{
+  grid-column:5;grid-row:2;justify-self:end;
+  font-size:9px;line-height:1.1;
+}
+.shell[data-active-workspace="cues"] .cue-item:has(.cue-row-select:focus-visible){
+  border-color:#a1f5dc;outline:1px solid #a1f5dc;
+}
+/* Commands still exist in Operation and the Cue Inspector, not repeated
+   500 times in the editor table. */
+.shell[data-active-workspace="cues"] #cueList .cue-edit-actions,
+.shell[data-active-workspace="cues"] #cueList .cue-audio-tools,
+.shell[data-active-workspace="cues"] #cueList .cue-operation-actions{
+  display:none;
+}
+.shell[data-active-workspace="cues"] .cue-item{overflow:hidden}
+.shell[data-active-workspace="cues"] #cueList{gap:2px;scrollbar-gutter:stable}
+.shell[data-active-workspace="cues"] .cue-inspector-quick-actions{
+  display:flex;flex-wrap:wrap;gap:6px;padding:10px 0;
+  border-bottom:1px solid #2e4a51;margin-bottom:5px;
+}
+.shell[data-active-workspace="cues"] .cue-inspector-quick-actions>.btn{
+  min-height:31px;font-size:10px;padding:5px 9px;
+}
+.shell[data-active-workspace="cues"] .cue-inspector-panel{
+  padding-bottom:22px;
+}
+.shell[data-cue-density="standard"][data-active-workspace="cues"] .cue-row-select{
+  min-height:57px;padding:11px 10px;
+}
+/* Keep source visible on wide desks, prioritize the meaningful media label
+   on 1093 px laptop viewports. */
+@media(max-width:1300px){
+  .shell[data-active-workspace="cues"] .runq-cue-columns{
+    grid-template-columns:43px minmax(100px,1.4fr) minmax(90px,1fr) 80px;
+    width:calc(59% - 5px);
+  }
+  .shell[data-active-workspace="cues"] .runq-cue-columns>span:nth-child(3),
+  .shell[data-active-workspace="cues"] .cue-row-source{display:none}
+  .shell[data-active-workspace="cues"] .cue-row-select{
+    grid-template-columns:43px minmax(100px,1.4fr) minmax(90px,1fr) 80px;
+  }
+  .shell[data-active-workspace="cues"] .cue-row-audio{grid-column:3}
+  .shell[data-active-workspace="cues"] .cue-row-heading .state,
+  .shell[data-active-workspace="cues"] .cue-row-next{grid-column:4}
+}
+@media(max-width:800px){
+  .shell[data-active-workspace="cues"] .runq-cue-columns{display:none}
+  .shell[data-active-workspace="cues"] .cue-row-select{
+    grid-template-columns:39px minmax(75px,1.45fr) minmax(70px,1fr) 72px;
+    padding:8px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .shell[data-active-workspace="cues"] .cue-item,
+  .shell[data-active-workspace="cues"] .cue-row-select{transition:none}
+}
+
+/* The full creation toolbar remains visible on short desktop windows.
+   Repeating the same shortcuts inside the inspector would hide actual audio
+   controls below the fold at 1093×614. */
+@media(max-height:700px) and (min-width:801px){
+  .shell[data-active-workspace="cues"] .cue-inspector-quick-actions{display:none}
+  .shell[data-active-workspace="cues"] .cue-inspector-origin{margin:4px 0}
+}
+
+
+/* W03: source-decoded PCM waveform preview (not a sound editor yet). */
+.shell[data-active-workspace="audio"] .runq-waveform-panel{
+  margin:12px 0 18px;padding:15px 17px;
+  border:1px solid #3d696e;border-radius:8px;
+  background:#0e202b;max-width:100%;overflow:hidden;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-head{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  margin-bottom:10px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-head h3{
+  margin:0;color:#e2fff7;font-size:16px;overflow-wrap:anywhere;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-head p{margin:5px 0}
+.shell[data-active-workspace="audio"] #waveformCanvas{
+  display:block;width:100%;height:230px;background:#10222b;
+  border:1px solid #35535c;border-radius:5px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-controls{
+  display:grid;grid-template-columns:minmax(90px,1fr) minmax(90px,1fr) auto;
+  align-items:end;gap:12px;margin:10px 0 8px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-controls .field{
+  display:flex;flex-direction:column;gap:4px;font-size:11px;margin:0;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-controls input[type=range]{
+  min-height:22px;accent-color:#49d7c2;
+}
+.shell[data-active-workspace="audio"] #waveformRuler{
+  min-width:140px;font-family:ui-monospace,Consolas,monospace;
+  color:#b7e7e5;align-self:center;text-align:right;
+}
+.shell[data-active-workspace="audio"] [data-asset-waveform]{flex:0 0 auto}
+@media(max-width:720px){
+  .shell[data-active-workspace="audio"] #waveformCanvas{height:170px}
+  .shell[data-active-workspace="audio"] .runq-waveform-controls{
+    grid-template-columns:1fr 1fr;
+  }
+  .shell[data-active-workspace="audio"] #waveformRuler{
+    grid-column:1/-1;text-align:left;
+  }
+}
+
+
+/* W04: real per-cue IN marker. Drawing it is a draft; the explicit Save
+   button is the only action that commits the engine-supported startAtMs. */
+.shell[data-active-workspace="audio"] .runq-waveform-trim{
+  display:flex;gap:14px;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;margin:12px 0 9px;padding:11px 13px;
+  background:#1a383b;border:1px solid #497d73;border-radius:7px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-trim[hidden]{display:none!important}
+.shell[data-active-workspace="audio"] .runq-waveform-trim strong{
+  font-size:13px;color:#ffe1ac;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-trim p{margin:4px 0 0}
+.shell[data-active-workspace="audio"] .runq-waveform-trim .item-actions{margin:0}
+.shell[data-active-workspace="audio"] #waveformCanvas{
+  touch-action:none;
+}
+
+
+/* Operator-safe quick positioning: a dedicated cue number/arrow is a button,
+   not nested in the inspection button. Neither control can run playback. */
+.cue-item{position:relative}
+.cue-prepare-trigger{
+  position:absolute;left:5px;top:6px;z-index:2;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;min-width:43px;min-height:37px;padding:3px 5px;
+  border:1px solid #3a6c69;border-radius:6px;
+  background:#15313a;color:#b8e9e1;
+  cursor:pointer;font:inherit;font-variant-numeric:tabular-nums;
+}
+.cue-prepare-trigger .cue-row-index,
+.shell[data-active-workspace="operation"] #cueList .cue-prepare-trigger .cue-row-index{
+  display:block;grid-column:auto;grid-row:auto;align-self:center;
+  margin:0;font-size:12px;line-height:1.1;color:inherit;
+}
+.cue-prepare-trigger .cue-prepare-arrow{
+  display:block;font-size:10px;line-height:1.1;
+  color:#80d9c9;
+}
+.cue-prepare-trigger:hover{background:#27605a;border-color:#6fdaca;color:#fff}
+.cue-prepare-trigger:focus-visible{
+  outline:2px solid #fff5cc;outline-offset:2px;
+}
+.cue-prepare-trigger[aria-pressed="true"]{
+  background:#215e50;border:2px solid #74efc9;
+  color:#fff;box-shadow:0 0 0 1px #2c7165;
+}
+.cue-prepare-trigger[aria-pressed="true"] .cue-prepare-arrow{color:#fcf4be}
+.shell[data-active-workspace="cues"] .cue-item:has(.cue-prepare-trigger:focus-visible){
+  outline:1px solid #fff5cc;
+}
+.shell[data-active-workspace="operation"] .cue-prepare-trigger{
+  top:50%;left:11px;transform:translateY(-50%);
+  min-width:44px;min-height:44px;
+}
+.shell[data-active-workspace="operation"] #cueList .cue-row-select{
+  padding-left:61px;
+}
+@media(max-width:740px){
+  .shell[data-active-workspace="operation"] .cue-prepare-trigger{
+    left:8px;min-width:40px;
+  }
+  .shell[data-active-workspace="operation"] #cueList .cue-row-select{
+    padding-left:52px;
+  }
+}

@@ -94,7 +94,22 @@ try {
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal(await page.locator('#runqEditorToolbar').count(), 1);
   assert.equal(await page.locator('#cueList .cue-row-index').count(), 3);
+  assert.equal(await page.locator('#cueList [data-cue-prepare]').count(), 3);
+  assert.equal(await page.locator('#cueList [data-cue-prepare]').first().getAttribute('aria-pressed'), 'true');
   assert.equal(await page.locator('.runq-cue-columns').count(), 1);
+  // The small number/arrow is an explicit positioning button in Cue Editor.
+  // It does not select the cue, trigger audio, or change its playback settings.
+  await page.locator('[data-cue-prepare]').nth(2).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /3\s*[·.]/);
+  assert.equal(await page.locator('[data-cue-select]').first().getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
+  await page.locator('[data-cue-prepare]').first().click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
+  assert.equal(await page.locator('.runq-cue-columns > span').count(), 5);
+  assert.equal(await page.locator('#cueList .cue-row-source').count(), 3);
+  assert.equal(await page.locator('#cueList .cue-row-audio').count(), 3);
+  assert.equal(await page.locator('#cueInspector .cue-inspector-quick-actions button').count(), 3);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'compact');
   await page.locator('#runqCueDensity').selectOption('standard');
   assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'standard');
@@ -141,6 +156,60 @@ try {
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
   assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
   await capture('05-audio-1366.png');
+  // W03: real local PCM waveform. Viewing/zooming never invokes GO or AI.
+  const audioStartsBeforeWaveform = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('[data-asset-waveform]').first().click();
+  await page.waitForFunction(
+    () => document.querySelector('#waveformStatus')?.textContent.includes('Real PCM waveform'),
+    null, { timeout: 15000 },
+  );
+  assert.equal(await page.locator('#waveformPanel').isVisible(), true);
+  const originalWaveformRange = await page.locator('#waveformRuler').innerText();
+  assert.match(originalWaveformRange, /0\.00s/);
+  await page.locator('#waveformZoom').evaluate(input => {
+    input.value='3';input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  await page.locator('#waveformPan').evaluate(input => {
+    input.value='100';input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  const zoomedRange = await page.locator('#waveformRuler').innerText();
+  assert.notEqual(zoomedRange,originalWaveformRange,'Real zoom/pan changes source-time viewport');
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), audioStartsBeforeWaveform);
+  await capture('08-audio-waveform-1366.png');
+  await page.locator('#waveformClose').click();
+  assert.equal(await page.locator('#waveformPanel').isVisible(),false);
+  // W04: cue-specific graphical IN changes the existing real playback
+  // startAtMs field only on explicit Save; no automatic sound is started.
+  await page.locator('[data-workspace-nav="cues"]').click();
+  await page.locator('#cueInspector').getByRole('button',{name:'View waveform'}).click();
+  await page.waitForFunction(
+    () => document.querySelector('#waveformStatus')?.textContent.includes('Real PCM waveform'),
+    null, {timeout:15000},
+  );
+  assert.equal(await page.locator('#waveformTrimTools').isVisible(),true);
+  // A real mouse cannot drag an offscreen canvas. Ensure visible viewport.
+  await page.locator('#waveformCanvas').scrollIntoViewIfNeeded();
+  const bounds=await page.locator('#waveformCanvas').boundingBox();
+  await page.mouse.move(bounds.x+bounds.width*.05,bounds.y+bounds.height*.45);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x+bounds.width*.28,bounds.y+bounds.height*.45);
+  await page.mouse.up();
+  const inUiDiagnostic = await page.evaluate(() => ({
+    marker: document.querySelector('#waveformInValue')?.textContent,
+    time: document.querySelector('#waveformRuler')?.textContent,
+    saveDisabled: document.querySelector('#waveformSaveIn')?.disabled,
+    toolHidden: document.querySelector('#waveformTrimTools')?.hidden,
+    zoom: document.querySelector('#waveformZoom')?.value,
+    pan: document.querySelector('#waveformPan')?.value,
+  }));
+  assert.equal(await page.locator('#waveformSaveIn').isEnabled(),true,
+    'Dragging IN must enable save: '+JSON.stringify(inUiDiagnostic));
+  await page.locator('#waveformSaveIn').click();
+  assert.match(await page.locator('#waveformStatus').innerText(),/IN point saved/);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),audioStartsBeforeWaveform);
+  await page.locator('[data-workspace-nav="cues"]').click();
+  const savedGraphicalIn=Number(await page.locator('#cuePlaybackForm [name="startAtMs"]').inputValue());
+  assert.ok(savedGraphicalIn>0,'Graphical IN must persist in actual playback settings');
   await page.locator('[data-workspace-nav="setup"]').click();
   assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
   await page.locator('[data-workspace-nav="cues"]').click();
@@ -173,11 +242,25 @@ try {
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
   // Repositioning belongs to Operation, never to a simple editor click.
-  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),0);
+  // V3 inspector has one explicit Set next control; it is not an automatic GO.
+  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),1);
   await page.locator('[data-workspace-nav="operation"]').click();
-  await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
+  assert.equal(await page.locator('#cueList .cue-row-meta').count(), 3,
+    'Operation displays its own row details after leaving Cue Editor');
+  assert.equal(await page.locator('#cueList .cue-row-audio').count(), 0);
+  await page.locator('[data-cue-prepare]').nth(1).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
+  assert.equal(await page.locator('[data-cue-prepare]').nth(1).getAttribute('aria-pressed'), 'true');
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
+  // Double-clicking the NAME is inspection only, never GO or NEXT relocation.
+  await page.locator('[data-cue-select]').nth(2).dblclick();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
+  // Enter on the numbered preparation control has the same safe semantics.
+  await page.locator('[data-cue-prepare]').nth(0).press('Enter');
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
+  await page.locator('[data-cue-prepare]').nth(1).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   await page.locator('#operatorBackBtn').click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   await page.locator('[data-workspace-nav="cues"]').click();
@@ -207,13 +290,32 @@ try {
   await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
-  await page.locator('#operatorGoBtn').click();
+  const startsBeforeTyping = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('#cueSearchInput').focus();
+  await page.keyboard.press('Space');
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), startsBeforeTyping,
+    'Space in a search field must never start GO');
+  await page.locator('#cueSearchInput').fill('');
+  // Operation Space is an explicit GO only when focused outside controls.
+  // Blur the search input explicitly; locator('body').press() may preserve
+  // focus in that input in headless Chrome and correctly suppress GO.
+  await page.evaluate(() => document.activeElement?.blur());
+  assert.equal(await page.evaluate(() => document.activeElement?.tagName), 'BODY');
+  await page.keyboard.press('Space');
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
   assert.match(await page.locator('#operatorEffectSummary').innerText(), /STOP \/ FADE: 1/);
   assert.match(await page.locator('#operatorEffectSummary').innerText(), /4\.0 s/);
   const stopsBeforeTarget = await page.evaluate(()=>window.__testAudioStops);
+  // An earlier cue is still sounding: retarget NEXT without stopping it.
+  const activeSourcesBeforePrepare = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('[data-cue-prepare]').nth(2).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /3\s*[·.]/);
+  assert.equal(await page.evaluate(() => window.__testAudioStops), stopsBeforeTarget);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), activeSourcesBeforePrepare);
+  await page.locator('[data-cue-prepare]').nth(1).click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(stops=>window.__testAudioStops>stops,stopsBeforeTarget);
   assert.ok(await page.evaluate(() => window.__testStopTimes.some(t => Math.abs(t - 5.02) < .01)));
@@ -368,6 +470,8 @@ try {
   await page.locator('#cueInsertBtn').click();
   await page.locator('#cueDuplicateBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),3);
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/,
+    'Authoring and duplicating cues preserve the original NEXT GO');
   await page.locator('#cueMoveUpBtn').click();
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual);
   page.once('dialog',dialog=>dialog.accept());
