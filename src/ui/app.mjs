@@ -732,7 +732,7 @@ $('saveBundleBtn').addEventListener('click', async () => {
     const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'showcompiler-' + canonical.id + '.showcompiler.zip';
+    anchor.download = 'showcompiler-' + canonical.id.replace(/[^A-Za-z0-9._-]/g, '-') + '.showcompiler.zip';
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
