@@ -14,6 +14,7 @@ import { inspectShowReadiness } from '../core/showPreflight.mjs';
 import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
+import { projectCueRows } from './v3/cueSequenceModel.mjs';
 
 const $ = (id) => document.getElementById(id);
 const sampleTexts = {
@@ -554,14 +555,12 @@ function renderCueList({ resetScroll = false } = {}) {
   const cueList = $('cueList');
   const priorScrollTop = cueList.scrollTop;
   cueList.replaceChildren();
-  const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
-  const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
-    const matchingAssets = cue.actions.map(action =>
-      show.assets.find(asset => asset.id === action.assetId)?.name ?? '').join(' ');
-    const searchable = [cue.number, cue.label, cue.trigger, cue.notes,
-      cue.sourceLineIds.join(' '), matchingAssets].join(' ').toLocaleLowerCase();
-    return searchable.includes(cueQuery);
+  const projectedRows = projectCueRows(show, {
+    query: $('cueSearchInput').value, selectedCueId,
+    preparedCueId: operatorQueue.preparedCueId,
   });
+  const summaries = new Map(projectedRows.map(row => [row.id, row]));
+  const visibleCues = projectedRows.map(row => show.cues[row.index]);
   $('cueSearchStatus').textContent = t('workspace.matchCount', { visible: visibleCues.length, total: show.cues.length });
   if (!show.cues.length) cueList.append(node('p', 'empty', t('status.noCues')));
   else if (!visibleCues.length) cueList.append(node('p', 'empty', t('workspace.noCueMatches')));
@@ -583,7 +582,20 @@ function renderCueList({ resetScroll = false } = {}) {
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
     const detail = node('span', 'cue-row-meta', cue.sourceLineIds.join(', ') + ' · ' + describeCueActions(cue.actions));
-    select.append(top, detail);
+    if (activeWorkspace === 'cues') {
+      const summary = summaries.get(cue.id);
+      const source = node('span', 'cue-row-source', summary.sourceLabel);
+      source.title = summary.sourceLabel;
+      const audio = node('span', 'cue-row-audio', summary.audioLabel);
+      audio.title = summary.audioLabel;
+      select.append(top, source, audio);
+      // Preserve all original model details in a native accessible tooltip,
+      // rather than filling the 84/500-row editing table with action buttons.
+      select.title = [cue.label, summary.sourceLabel, summary.audioLabel,
+        summary.trigger].filter(Boolean).join(' · ');
+    } else {
+      select.append(top, detail);
+    }
     if (cue.trigger) select.append(node('span', 'cue-row-trigger', t('cue.trigger') + ': ' + cue.trigger));
     if (cue.id === operatorQueue.preparedCueId) {
       select.append(node('span', 'cue-row-next', t('cueEditor.nextGo')));
