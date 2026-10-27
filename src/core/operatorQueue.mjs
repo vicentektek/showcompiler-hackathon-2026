@@ -43,3 +43,26 @@ export function skipPreparedCue(state, cues) {
 export function isCuePrepared(state, cueId) {
   return state.preparedCueId === cueId;
 }
+
+/**
+ * A newly opened show is positioned at its first cue without starting audio.
+ * Null is reserved for an empty show or a completed sequence, never required
+ * as a manual initial setup for a non-empty show.
+ */
+export function startOperatorQueue(cues) {
+  if (!Array.isArray(cues)) throw new TypeError('Invalid cue sequence');
+  const initial = newOperatorQueue();
+  return cues.length ? prepareOperatorCue(initial, cues, cues[0].id) : initial;
+}
+
+/** Navigate backward without performing a GO or overwriting playback state.
+ * From the finished state, Back goes to the final cue.
+ */
+export function previousOperatorCue(state, cues) {
+  if (!Array.isArray(cues)) throw new TypeError('Invalid cue sequence');
+  if (!cues.length) return state;
+  const index = state.preparedCueId === null
+    ? cues.length : cueIndex(cues, state.preparedCueId);
+  if (index <= 0) return state;
+  return prepareOperatorCue(state, cues, cues[index - 1].id);
+}

@@ -174,7 +174,13 @@ test('manual operator queue is separate from source inspection and GO is guarded
   assert.match(client, /await player\.go\(cue\)/);
   assert.match(client, /completePreparedCue\(operatorQueue, show\.cues, id\)/);
   assert.match(client, /skipPreparedCue\(operatorQueue, show\.cues\)/);
-  assert.match(client, /operatorQueue = newOperatorQueue\(\)/);
+  assert.match(client, /operatorQueue = startOperatorQueue\(project\.cues\)/);
+  assert.match(client, /lastGoCueId = id/);
+  assert.match(client, /previousOperatorCue\(operatorQueue, show\.cues\)/);
+  assert.match(html, /id="operatorBackBtn"/);
+  assert.match(html, /id="operatorTrigger"/);
+  assert.match(html, /id="operatorProgress"/);
+  assert.doesNotMatch(client, /data\.cueAction === 'go'/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
 });
 
