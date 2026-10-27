@@ -1,0 +1,19 @@
+GALA DEL PUERTO — ESC ALETA DE PRODUCCIÓN
+Duración de bloque: 4 minutos. El regidor ejecuta los GO manualmente.
+BLOQUE 1 | 00:00 | Sala preparada
+LX 01: ambiente azul sobre mesa de premios.
+VIDEO 01: mostrar logotipo estático.
+SONIDO 01: lanzar sintonía pregrabada de apertura, 15 s.
+PRESENTADORA: Buenas noches. Nos alegra veros aquí.
+SONIDO 02: bajar la sintonía de apertura con fade-out de 4 s hasta silencio.
+REGIDOR: Esperar aplauso real de público; no disparar aplausos grabados.
+BLOQUE 2 | 01:20 | Entrega
+VIDEO 02: mostrar nombre del equipo ganador.
+PRESENTADORA: El premio reconoce un trabajo colectivo.
+SONIDO 03: reproducir un acento musical de tres segundos al anunciar el premio.
+GANADORA: Gracias por la confianza.
+SONIDO 04: música de salida grabada, bucle hasta GO de fin.
+LX 09: subir luz de pasillo sin estrobo.
+SONIDO 05: parar música de salida con fade-out de 3 s.
+REGIDOR: Cambio de bloque autorizado por operador, sin AUTO GO.
+FIN DE BLOQUE
