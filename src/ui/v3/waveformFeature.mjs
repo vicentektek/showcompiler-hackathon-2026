@@ -160,7 +160,7 @@ export function createWaveformFeature({getFile,onSaveStart}){
   canvas.addEventListener('pointerdown',event=>{
     if(!editing || !peaks || event.button!==0)return;
     draggingPointer=event.pointerId;
-    canvas.setPointerCapture?.(event.pointerId);
+    try { canvas.setPointerCapture?.(event.pointerId); } catch {}
     moveMarker(event);
   });
   canvas.addEventListener('pointermove',event=>{
@@ -171,6 +171,21 @@ export function createWaveformFeature({getFile,onSaveStart}){
       if(draggingPointer===event.pointerId)draggingPointer=null;
     });
   }
+  // Accessible fine adjustment with arrow keys; works even when a pointer
+  // device is unavailable. The same explicit Save gate still applies.
+  canvas.addEventListener('keydown',event=>{
+    if(!editing || !peaks || !['ArrowLeft','ArrowRight'].includes(event.key))return;
+    event.preventDefault();
+    const step=event.shiftKey ? 100 : 10;
+    const delta=event.key==='ArrowRight'?step:-step;
+    editing.draftMs=Math.max(0,Math.min(600000,
+      Math.ceil(peaks.durationMs)-1,editing.draftMs+delta));
+    draw();
+  });
+  canvas.addEventListener('click',event=>{
+    if(!editing || !peaks || draggingPointer!==null)return;
+    moveMarker(event);
+  });
   saveIn.addEventListener('click',()=>{
     if(!editing || !peaks || editing.draftMs===editing.originalMs)return;
     try{
