@@ -499,3 +499,65 @@
   .shell[data-active-workspace="cues"] .cue-inspector-quick-actions{display:none}
   .shell[data-active-workspace="cues"] .cue-inspector-origin{margin:4px 0}
 }
+
+
+/* W03: source-decoded PCM waveform preview (not a sound editor yet). */
+.shell[data-active-workspace="audio"] .runq-waveform-panel{
+  margin:12px 0 18px;padding:15px 17px;
+  border:1px solid #3d696e;border-radius:8px;
+  background:#0e202b;max-width:100%;overflow:hidden;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-head{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  margin-bottom:10px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-head h3{
+  margin:0;color:#e2fff7;font-size:16px;overflow-wrap:anywhere;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-head p{margin:5px 0}
+.shell[data-active-workspace="audio"] #waveformCanvas{
+  display:block;width:100%;height:230px;background:#10222b;
+  border:1px solid #35535c;border-radius:5px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-controls{
+  display:grid;grid-template-columns:minmax(90px,1fr) minmax(90px,1fr) auto;
+  align-items:end;gap:12px;margin:10px 0 8px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-controls .field{
+  display:flex;flex-direction:column;gap:4px;font-size:11px;margin:0;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-controls input[type=range]{
+  min-height:22px;accent-color:#49d7c2;
+}
+.shell[data-active-workspace="audio"] #waveformRuler{
+  min-width:140px;font-family:ui-monospace,Consolas,monospace;
+  color:#b7e7e5;align-self:center;text-align:right;
+}
+.shell[data-active-workspace="audio"] [data-asset-waveform]{flex:0 0 auto}
+@media(max-width:720px){
+  .shell[data-active-workspace="audio"] #waveformCanvas{height:170px}
+  .shell[data-active-workspace="audio"] .runq-waveform-controls{
+    grid-template-columns:1fr 1fr;
+  }
+  .shell[data-active-workspace="audio"] #waveformRuler{
+    grid-column:1/-1;text-align:left;
+  }
+}
+
+
+/* W04: real per-cue IN marker. Drawing it is a draft; the explicit Save
+   button is the only action that commits the engine-supported startAtMs. */
+.shell[data-active-workspace="audio"] .runq-waveform-trim{
+  display:flex;gap:14px;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;margin:12px 0 9px;padding:11px 13px;
+  background:#1a383b;border:1px solid #497d73;border-radius:7px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-trim[hidden]{display:none!important}
+.shell[data-active-workspace="audio"] .runq-waveform-trim strong{
+  font-size:13px;color:#ffe1ac;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-trim p{margin:4px 0 0}
+.shell[data-active-workspace="audio"] .runq-waveform-trim .item-actions{margin:0}
+.shell[data-active-workspace="audio"] #waveformCanvas{
+  touch-action:none;
+}

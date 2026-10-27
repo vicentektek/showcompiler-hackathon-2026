@@ -15,6 +15,7 @@ import { newOperatorQueue, startOperatorQueue, reconcileOperatorQueueAfterEdit, 
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 import { projectCueRows } from './v3/cueSequenceModel.mjs';
+import { createWaveformFeature } from './v3/waveformFeature.mjs';
 
 const $ = (id) => document.getElementById(id);
 const sampleTexts = {
@@ -44,6 +45,10 @@ let pendingAudioCueId = null;
 let audioInFlight = false;
 let bundleInFlight = false;
 let originalAudioFiles = new Map();
+const waveformViewer = createWaveformFeature({
+  getFile: assetId => originalAudioFiles.get(assetId),
+  onSaveStart: ({cueId,assetId,startAtMs}) => saveCueWaveformIn(cueId,assetId,startAtMs),
+});
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
@@ -81,6 +86,9 @@ function refreshAudioControls() {
   }
   for (const button of document.querySelectorAll('[data-cue-audio-pick]')) {
     button.disabled = audioInFlight || auditioning;
+  }
+  for (const button of document.querySelectorAll('[data-asset-waveform]')) {
+    button.disabled = audioInFlight || !originalAudioFiles.has(button.dataset.assetWaveform);
   }
   for (const label of document.querySelectorAll('[data-cue-state]')) {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
@@ -753,7 +761,12 @@ function render() {
         feedback('audio.auditionStarted', { name: asset.name }, 'success');
       } catch (error) { showError(error); }
     });
-    row.append(label, audition);
+    const waveform = node('button', 'btn subtle small', t('waveform.open'));
+    waveform.type = 'button';
+    waveform.dataset.assetWaveform = asset.id;
+    waveform.disabled = !originalAudioFiles.has(asset.id) || audioInFlight;
+    waveform.addEventListener('click', () => { void waveformViewer.open(asset.id, asset.name); });
+    row.append(label, waveform, audition);
     list.append(row);
   }
 
@@ -984,6 +997,27 @@ function cueActionInspector(cue) {
 }
 
 
+/** Only commit graphical IN for the exact still-existing cue and file.
+ * GO remains a separate manual operator action and cannot occur here.
+ */
+function saveCueWaveformIn(cueId, assetId, startAtMs) {
+  const cue = show.cues.find(item => item.id === cueId);
+  const state = player.getStatus();
+  if (!cue || !cue.actions.some(a => a.type === 'PLAY' && a.assetId === assetId) ||
+      !originalAudioFiles.has(assetId) ||
+      !Number.isSafeInteger(startAtMs) || startAtMs < 0 || startAtMs > 600000 ||
+      audioInFlight || bundleInFlight ||
+      state.activeCueCount || state.pendingGoCount ||
+      state.auditionActive || state.auditionPending) {
+    throw new TypeError('Cannot save cue IN during active audio or changed source');
+  }
+  const existing = normalizeCuePlayback(cue.playback);
+  show = updateCuePlayback(show, cue.id, { ...existing, startAtMs });
+  dirty = true;
+  render();
+  feedback('audioProps.saved', { number: cue.number }, 'success');
+}
+
 function cueAudioSourceControls(cue) {
   const block = node('div', 'cue-source-controls');
   const playable = cue.actions.filter(action => action.type === 'PLAY');
@@ -993,6 +1027,16 @@ function cueAudioSourceControls(cue) {
       name: asset?.name ?? playable[0].assetId,
     })));
     block.append(cueAudioPicker(cue.id, 'cueEditor.replaceAudio'));
+    const viewWaveform = node('button', 'btn subtle small', t('waveform.open'));
+    viewWaveform.type = 'button';
+    viewWaveform.disabled = !originalAudioFiles.has(playable[0].assetId);
+    viewWaveform.addEventListener('click', () => {
+      if (!setWorkspace('audio')) return;
+      void waveformViewer.open(playable[0].assetId, asset?.name ?? playable[0].assetId, {
+        cueId: cue.id, startAtMs: normalizeCuePlayback(cue.playback).startAtMs,
+      });
+    });
+    block.append(viewWaveform);
     if (show.assets.length > 1) {
       const pick = node('select');
       pick.id = 'cueReplaceLibrary';
@@ -1281,6 +1325,7 @@ function setNewShow(project, statusKey, values = {}) {
   lastGoCueId = null;
   $('scriptSearchInput').value = '';
   player.reset();
+  waveformViewer.reset();
   originalAudioFiles.clear();
   show = project;
   resetMetaAnalysis();
@@ -1825,6 +1870,7 @@ $('audioFileInput').addEventListener('change', async event => {
     if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
     show = nextShow;
     originalAudioFiles.set(assetId, file);
+    waveformViewer.reset();
     dirty = true;
     render();
     feedback(cueId ? 'soundPlan.fileAttachedFeedback' : 'status.audioLoaded', {

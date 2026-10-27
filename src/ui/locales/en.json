@@ -438,5 +438,15 @@
   "cueEditor.moveDown": "Move down",
   "proposals.reviewHintsNone": "Independent check: no unaddressed SOUND/FX/AUDIO/MUSIC-labelled lines found in analyzed windows. This does not prove cue completeness.",
   "proposals.reviewHintsSummary": "Independent check: {count} labelled audio-direction line(s) have no model proposal or observation. Review the source; an audio file is NOT necessarily required.",
-  "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review."
+  "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review.",
+  "waveform.open": "View waveform",
+  "waveform.close": "Close waveform",
+  "waveform.canvas": "Original PCM audio waveform, separate channel traces",
+  "waveform.zoom": "Zoom",
+  "waveform.pan": "Scroll",
+  "waveform.disclaimer": "Library preview is read-only. IN trim can be saved only for an explicitly selected cue; OUT and region looping are not available yet.",
+  "waveform.inLabel": "IN point",
+  "waveform.inHelp": "Drag the waveform marker to select a start point. Save to change only this cue's next manual GO.",
+  "waveform.saveIn": "Save IN to cue",
+  "waveform.cancelIn": "Discard change"
 }
