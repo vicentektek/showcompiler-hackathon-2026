@@ -297,7 +297,11 @@ try {
     'Space in a search field must never start GO');
   await page.locator('#cueSearchInput').fill('');
   // Operation Space is an explicit GO only when focused outside controls.
-  await page.locator('body').press('Space');
+  // Blur the search input explicitly; locator('body').press() may preserve
+  // focus in that input in headless Chrome and correctly suppress GO.
+  await page.evaluate(() => document.activeElement?.blur());
+  assert.equal(await page.evaluate(() => document.activeElement?.tagName), 'BODY');
+  await page.keyboard.press('Space');
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
