@@ -63,7 +63,13 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const base = `http://127.0.0.1:${server.address().port}`;
   const home = await fetch(base + '/');
   assert.equal(home.status, 200);
-  assert.match(await home.text(), /SHOWCOMPILER/);
+  assert.match(await home.text(), /RunQ/);
+  const runqTheme = await fetch(base + '/src/ui/runq-theme.css');
+  assert.equal(runqTheme.status, 200);
+  assert.match(runqTheme.headers.get('content-type'), /text\/css/);
+  const runqMenu = await fetch(base + '/src/ui/runq-menu.mjs');
+  assert.equal(runqMenu.status, 200);
+  assert.match(runqMenu.headers.get('content-type'), /javascript/);
   assert.match(home.headers.get('content-security-policy'), /connect-src 'self'/);
   assert.equal(home.headers.get('access-control-allow-origin'), null);
   const module = await fetch(base + '/src/core/workspace.mjs');
