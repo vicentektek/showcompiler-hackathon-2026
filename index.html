@@ -178,6 +178,11 @@
             </div>
             <p class="caption" data-i18n="operator.disclaimer">Preparation and SKIP do not start sound. Only manual GO can play a loaded cue.</p>
           </div>
+          <div class="cue-filter-bar">
+            <label class="sr-only" for="cueSearchInput" data-i18n="workspace.searchCue">Search cues</label>
+            <input id="cueSearchInput" type="search" autocomplete="off" data-i18n-placeholder="workspace.searchCue" placeholder="Search cues by number, title, source or sound">
+            <span id="cueSearchStatus" class="caption" role="status" aria-live="polite"></span>
+          </div>
           <div class="cue-workspace-body">
             <div id="cueList" class="item-list" aria-label="Show cues"></div>
             <aside id="cueInspector" class="cue-inspector" aria-label="Selected cue details">
