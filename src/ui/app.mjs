@@ -925,7 +925,119 @@ function cueAudioSourceControls(cue) {
   } else {
     block.append(node('p', 'caption', t('cueEditor.trackEditorPending')));
   }
+  block.append(cueAdditionalTracksEditor(cue));
   return block;
+}
+
+function cueAdditionalTracksEditor(cue) {
+  const group = node('section', 'extra-audio-tracks');
+  group.append(node('h4', '', t('cueTracks.heading')));
+  group.append(node('p', 'caption', t('cueTracks.explanation')));
+  function commit(change, key) {
+    const state = player.getStatus();
+    if (audioInFlight || state.activeCueCount || state.pendingGoCount ||
+        state.auditionActive || state.auditionPending) {
+      feedback('errors.audioWhilePlaying', {}, 'error');
+      return;
+    }
+    safeOperation(() => normalizeShowProject(change()), key, { number:cue.number });
+  }
+  const tracks = cue.audioTracks ?? [];
+  for (const track of tracks) {
+    const asset = show.assets.find(item => item.id === track.assetId);
+    const wrapper = node('div', 'cue-extra-track');
+    wrapper.dataset.extraTrack = track.id;
+    const header = node('div', 'cue-track-header');
+    header.append(node('strong', '', track.id + ' · ' + (asset?.name ?? track.assetId)));
+    const remove = node('button', 'btn subtle small', t('cueTracks.remove'));
+    remove.type = 'button';
+    remove.addEventListener('click', () => {
+      if (window.confirm(t('cueTracks.removeConfirm'))) {
+        commit(() => stageRemoveCueTrack(show,cue.id,track.id),'cueTracks.removed');
+      }
+    });
+    header.append(remove);
+    wrapper.append(header);
+    const chooser = node('div', 'cue-track-library');
+    const select = node('select');
+    select.setAttribute('aria-label', t('cueTracks.replace'));
+    select.dataset.trackAsset = track.id;
+    replaceOptions(select, show.assets.map(item => [item.id,item.name]), track.assetId);
+    const replace = node('button', 'btn subtle small', t('cueTracks.replace'));
+    replace.type = 'button';
+    replace.addEventListener('click', () => commit(() =>
+      stageChangeCueTrack(show,cue.id,track.id,{assetId:select.value}),'cueTracks.changed'));
+    chooser.append(select, replace);
+    wrapper.append(chooser);
+    const details = node('details', 'cue-track-details');
+    const summary = node('summary', '', t('cueTracks.properties'));
+    details.append(summary);
+    const form = node('form', 'cue-track-form');
+    form.dataset.trackSettings = track.id;
+    const settings = normalizeCuePlayback(track.playback);
+    const fields = new Map();
+    for (const [key,min,max,step] of [
+      ['gainDb',-60,0,.5],['fadeInMs',0,10000,1],['fadeOutMs',0,10000,1],
+      ['startDelayMs',0,10000,1],['startAtMs',0,600000,1],
+      ['playbackRate',.5,2,.05],['pan',-1,1,.05],['repeatCount',1,20,1],
+    ]) {
+      const label = node('label', 'field', t('audioProps.'+key));
+      const input = node('input');
+      input.type='number';
+      input.name=key;
+      input.min=String(min); input.max=String(max); input.step=String(step);
+      input.value=String(settings[key]); input.required=true;
+      fields.set(key,input); label.append(input); form.append(label);
+    }
+    const loopLabel = node('label','cue-loop-field');
+    const loop = node('input');
+    loop.type='checkbox'; loop.name='loop'; loop.checked=settings.loop;
+    loopLabel.append(loop,node('span','',t('audioProps.loop')));
+    form.append(loopLabel);
+    function syncLoop() {
+      if (loop.checked) {
+        fields.get('repeatCount').value='1';
+        fields.get('fadeOutMs').value='0';
+      }
+      fields.get('repeatCount').disabled=loop.checked;
+      fields.get('fadeOutMs').disabled=loop.checked;
+    }
+    loop.addEventListener('change',syncLoop);
+    syncLoop();
+    const save=node('button','btn primary small',t('cueTracks.saveProperties'));
+    save.type='submit';
+    form.append(save);
+    form.addEventListener('input',()=>{inspectorPendingChanges=true;});
+    form.addEventListener('change',()=>{inspectorPendingChanges=true;});
+    form.addEventListener('submit',event=>{
+      event.preventDefault();
+      const settingsNext={loop:loop.checked};
+      for(const [key,input] of fields) settingsNext[key]=Number(input.value);
+      if(loop.checked){settingsNext.repeatCount=1;settingsNext.fadeOutMs=0;}
+      try {
+        commit(()=>stageChangeCueTrack(show,cue.id,track.id,{playback:settingsNext}),'cueTracks.savedProperties');
+        inspectorPendingChanges=false;
+      } catch(error){showError(error);}
+    });
+    details.append(form);
+    wrapper.append(details);
+    group.append(wrapper);
+  }
+  if (cue.actions.every(action=>action.type==='PLAY') && tracks.length < 11 && show.assets.length) {
+    const addRow = node('div','cue-track-library');
+    const select = node('select');
+    select.id = 'cueAddTrackSelect';
+    select.setAttribute('aria-label',t('cueTracks.choose'));
+    replaceOptions(select,show.assets.map(asset=>[asset.id,asset.name]));
+    const add = node('button','btn accent small',t('cueTracks.add'));
+    add.id='cueAddTrackBtn'; add.type='button';
+    add.addEventListener('click',()=>commit(
+      ()=>stageAddCueTrack(show,cue.id,select.value),'cueTracks.added'));
+    addRow.append(select,add);
+    group.append(addRow);
+  }
+  if (!show.assets.length) group.append(node('p','caption',t('cueTracks.libraryEmpty')));
+  return group;
 }
 
 function renderCueInspector() {
