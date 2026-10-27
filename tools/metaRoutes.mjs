@@ -164,7 +164,7 @@ export function makeMetaRoute({
       const raw = await readBoundedBody(request, MAX_PROJECT_JSON_BYTES);
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
-          Object.keys(parsed).some(key => !['project', 'scriptLanguage', 'analysisWindowStart'].includes(key)) ||
+          Object.keys(parsed).some(key => !['project', 'scriptLanguage', 'analysisWindowStart', 'designMode'].includes(key)) ||
           typeof parsed.project !== 'object') {
         answer(response, 400, { error: 'Solicitud de proyecto no válida' }, headers);
         return true;
@@ -172,12 +172,16 @@ export function makeMetaRoute({
       const project = deserializeShowProject(JSON.stringify(parsed.project));
       const scriptLanguage = normalizeScriptLanguageHint(parsed.scriptLanguage);
       const analysisWindowStart = parsed.analysisWindowStart ?? 0;
+      const designMode = parsed.designMode ?? 'balanced';
+      if (!['literal', 'balanced', 'expressive'].includes(designMode)) {
+        throw new TypeError('Unsupported Meta sound design mode');
+      }
       if (!Number.isSafeInteger(analysisWindowStart) || analysisWindowStart < 0) {
         throw new TypeError('Invalid Meta scene window start');
       }
       const result = await modelClient({
         show: project, apiKey: getKey(), model, scriptLanguage, requestId,
-        analysisWindowStart,
+        analysisWindowStart, designMode,
       });
       if (!result || result.provider !== 'META_MODEL_API' || !Array.isArray(result.proposals)) {
         throw new TypeError('Invalid Meta provider result');
