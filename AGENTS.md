@@ -23,7 +23,7 @@ This is a hackathon-specific, dependency-light browser prototype for script-link
 
 ## Working contract for coding agents
 
-1. Read docs/CODEX_EXECUTION_PLAN_2026-10-27.md and docs/QA_MATRIX_2026-10-27.md, then inspect only files required for the selected task.
+1. First read the ONE bounded assignment for the current task, plus this file; for the immediate integration use docs/CODEX_TASK_01_SAFE_INTEGRATION.md. Consult docs/DECISION_INDEX_2026-10-27.md to find optional design evidence. Do NOT bulk-read all product or QA dossiers unless the current task needs them; this wastes context and conflicts with one-task scope.
 2. Record current branch, HEAD, PR base, relevant related feature branches, and existing test commands. An open PR or passing isolated CI does not establish integration.
 3. Make one bounded change at a time; preserve backward-compatible project JSON and source provenance. Avoid unrelated refactors.
 4. First reproduce with a minimal deterministic test; implement the smallest fix; run focused tests, then npm run check:syntax and npm test.
