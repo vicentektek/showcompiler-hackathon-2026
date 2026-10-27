@@ -310,7 +310,7 @@
   "workspace.description.cues": "Review the full cue list and edit the selected cue without changing the prepared GO.",
   "workspace.description.audio": "Manage local audio files and audition them on the SAME output as GO.",
   "workspace.description.setup": "Review real browser capabilities and check show readiness before playback.",
-  "workspace.description.operation": "Operate prepared cues with explicit manual GO, STOP, FADE and STOP ALL.",
+  "workspace.description.operation": "Click the numbered arrow to prepare NEXT GO; only GO or Space outside controls plays the prepared cue.",
   "workspace.inspector": "Cue inspector",
   "workspace.noSelection": "Select a cue to inspect it without preparing or starting playback.",
   "workspace.inspect": "Inspect",
