@@ -5,6 +5,7 @@
  */
 export const DEFAULT_CUE_PLAYBACK = Object.freeze({
   gainDb: 0, fadeInMs: 0, fadeOutMs: 0, startDelayMs: 0,
+  startAtMs: 0, playbackRate: 1, pan: 0,
   loop: false, repeatCount: 1,
 });
 
@@ -23,6 +24,13 @@ export function normalizeCuePlayback(input = {}) {
       fail(key + ' must be an integer 0 to 10000 ms');
     }
   }
+  if (!Number.isSafeInteger(value.startAtMs) || value.startAtMs < 0 || value.startAtMs > 600000) {
+    fail('startAtMs must be 0–600000 ms, within the decoded file duration');
+  }
+  if (typeof value.playbackRate !== 'number' || !Number.isFinite(value.playbackRate) ||
+      value.playbackRate < 0.5 || value.playbackRate > 2) fail('playbackRate must be 0.5–2');
+  if (typeof value.pan !== 'number' || !Number.isFinite(value.pan) ||
+      value.pan < -1 || value.pan > 1) fail('pan must be -1–1');
   if (typeof value.loop !== 'boolean') fail('loop must be boolean');
   if (!Number.isSafeInteger(value.repeatCount) ||
       value.repeatCount < 1 || value.repeatCount > 20) fail('repeatCount must be 1–20');
