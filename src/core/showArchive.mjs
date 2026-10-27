@@ -29,9 +29,12 @@ async function digest(bytes) {
 }
 function audioPath(assetId, originalName) {
   if (!ASSET_ID.test(assetId) || typeof originalName !== 'string' ||
-      originalName.length > 200 || !SUPPORTED_EXT.test(originalName)) reject('invalid sound asset');
+      originalName.length > 200 || /[\\/\\\\\x00-\x1f]/.test(originalName) ||
+      !SUPPORTED_EXT.test(originalName)) reject('invalid sound asset');
   const ext = originalName.match(SUPPORTED_EXT)[1].toLowerCase();
-  return 'audio/' + assetId + '.' + ext;
+  // ':' is accepted in historical schema IDs but invalid in Windows filenames.
+  // Percent-encode it in the archive path; '%' itself is forbidden in an ID.
+  return 'audio/' + assetId.replaceAll(':', '%3A') + '.' + ext;
 }
 function readJson(bytes) {
   try { return JSON.parse(decoder.decode(bytes)); }
