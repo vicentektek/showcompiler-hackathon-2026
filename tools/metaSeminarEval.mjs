@@ -185,7 +185,9 @@ export async function runMetaSeminarEval({
     }
     const status=complete?'COMPLETE':stopped?'PARTIAL_STOPPED':'PARTIAL';
     cases.push({id:item.id,status,requests,events:allEvents.length,
-      expectedEvents:item.expected.length});
+      expectedEvents:item.expected.length,
+      // Local-only typed event trace; no full model text or script.
+      eventTrace:live?allEvents:[]});
     if(complete&&live){
       predictionsByCase[item.id]=allEvents;
       scored.push(item);
