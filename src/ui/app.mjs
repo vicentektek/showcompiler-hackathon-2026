@@ -543,6 +543,25 @@ function confirmDiscardInspectorEdits() {
   return !inspectorPendingChanges || window.confirm(t('cueEditor.discardChanges'));
 }
 
+/** Explicit operator decision: change NEXT GO only, never select for editing,
+ * and never invoke playback. May retarget while an earlier cue keeps playing.
+ * A pending asynchronous GO cannot be redirected.
+ */
+function prepareCueForNextGo(cueId) {
+  const cue = show.cues.find(item => item.id === cueId);
+  if (!cue || operatorQueue.preparedCueId === cueId) return false;
+  const status = player.getStatus();
+  if (audioInFlight || bundleInFlight || status.pendingGoCount ||
+      status.auditionPending) return false;
+  if (!confirmDiscardInspectorEdits()) return false;
+  inspectorPendingChanges = false;
+  editingCueId = null;
+  operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
+  render();
+  feedback('operator.preparedFeedback', { number: cue.number }, 'success');
+  return true;
+}
+
 function selectCueForInspection(cueId) {
   if (!show.cues.some(cue => cue.id === cueId)) return false;
   if (cueId === selectedCueId) return true;
@@ -583,10 +602,9 @@ function renderCueList({ resetScroll = false } = {}) {
     select.setAttribute('aria-label', t('cueEditor.selectCue', { number: cue.number, label: cue.label }));
     select.setAttribute('aria-pressed', String(cue.id === selectedCueId));
     const top = node('div', 'item-head cue-row-heading');
-    const cueNumber = node('span', 'cue-row-index', String(cue.number).padStart(2, '0'));
     const cueTitle = node('strong', 'cue-row-title', cue.label);
     cueTitle.title = cue.label;
-    top.append(cueNumber, cueTitle);
+    top.append(cueTitle);
     const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
@@ -625,7 +643,24 @@ function renderCueList({ resetScroll = false } = {}) {
       target?.focus();
       target?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
-    card.append(select);
+    // A separate button for the number/arrow avoids nested interactive
+    // controls: clicking a name inspects, clicking the number prepares.
+    const prepareNumber = node('button', 'cue-prepare-trigger');
+    prepareNumber.type = 'button';
+    prepareNumber.dataset.cuePrepare = cue.id;
+    prepareNumber.setAttribute('aria-label', t('cueEditor.prepareCue', {
+      number: cue.number, label: cue.label,
+    }));
+    prepareNumber.title = t('cueEditor.prepareCue', {
+      number: cue.number, label: cue.label,
+    });
+    prepareNumber.setAttribute('aria-pressed', String(cue.id === operatorQueue.preparedCueId));
+    prepareNumber.append(
+      node('span', 'cue-prepare-arrow', '▶'),
+      node('span', 'cue-prepare-number', String(cue.number).padStart(2, '0')),
+    );
+    prepareNumber.addEventListener('click', () => prepareCueForNextGo(cue.id));
+    card.append(prepareNumber, select);
     const sourceActions = node('div', 'item-actions cue-edit-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
     card.append(sourceActions);
@@ -664,15 +699,8 @@ function renderCueList({ resetScroll = false } = {}) {
       card.append(replaceAudio);
     }
     const controls = node('div', 'item-actions cue-operation-actions');
-    const prepare = node('button', 'btn accent small', t('operator.setNext'));
-    prepare.type = 'button';
-    prepare.disabled = operatorQueue.preparedCueId === cue.id;
-    prepare.addEventListener('click', () => {
-      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
-      render();
-      feedback('operator.preparedFeedback', { number: cue.number }, 'success');
-    });
-    controls.append(prepare);
+    // The number/arrow button above prepares NEXT GO. Stop and fade remain
+    // separate controls for already playing cues. No row-level PLAY.
     // Only the global prepared-sequence GO can start playback. Row buttons stop
     // an already-running cue or intentionally reposition the next GO.
     const commands = [['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
@@ -1203,11 +1231,7 @@ function renderCueInspector() {
   const next = node('button', 'btn subtle small', t('operator.setNext'));
   next.type = 'button';
   next.disabled = operatorQueue.preparedCueId === cue.id;
-  next.addEventListener('click', () => {
-    operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
-    render();
-    feedback('operator.preparedFeedback', { number: cue.number }, 'success');
-  });
+  next.addEventListener('click', () => prepareCueForNextGo(cue.id));
   quick.append(insertAfter, duplicate, next);
   inspector.append(quick);
   const available = cue.actions.some(a => a.type === 'PLAY')
