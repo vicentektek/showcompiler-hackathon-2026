@@ -193,13 +193,20 @@
             <ul id="preflightIssues"></ul>
           </div>
           <div class="operator-queue" aria-label="Manual cue transport">
-            <p id="preparedCueStatus" class="operator-prepared" role="status" aria-live="polite" data-i18n="operator.nonePrepared">No cue prepared</p>
-            <div class="operator-queue-controls">
-              <button id="operatorGoBtn" class="btn primary" type="button" disabled data-i18n="operator.goPrepared">GO PREPARED</button>
-              <button id="operatorSkipBtn" class="btn subtle" type="button" disabled data-i18n="operator.skip">SKIP</button>
-              <button id="operatorResetBtn" class="btn subtle" type="button" data-i18n="operator.reset">Reset position</button>
+            <div class="operator-next">
+              <span class="operator-kicker" data-i18n="operator.nextGo">NEXT GO</span>
+              <p id="preparedCueStatus" class="operator-prepared" role="status" aria-live="polite" data-i18n="operator.noCues">No cues in this show</p>
+              <p id="operatorTrigger" class="operator-trigger"></p>
+              <span id="operatorProgress" class="operator-progress" role="status" aria-live="polite"></span>
             </div>
-            <p class="caption" data-i18n="operator.disclaimer">Preparation and SKIP do not start sound. Only manual GO can play a loaded cue.</p>
+            <div class="operator-queue-controls">
+              <button id="operatorGoBtn" class="btn primary" type="button" disabled data-i18n="operator.singleGo">GO</button>
+              <button id="operatorBackBtn" class="btn subtle" type="button" disabled data-i18n="operator.back">Previous</button>
+              <button id="operatorSkipBtn" class="btn subtle" type="button" disabled data-i18n="operator.skipClear">Skip cue (no sound)</button>
+              <button id="operatorResetBtn" class="btn subtle" type="button" data-i18n="operator.restart">Restart from first</button>
+            </div>
+            <p id="operatorLastGo" class="caption" role="status" aria-live="polite"></p>
+            <p class="caption" data-i18n="operator.explanation">The first cue is ready automatically. GO runs it once and positions the next cue. Previous, Skip and Set next only change position; they never start sound.</p>
           </div>
           <div class="cue-filter-bar">
             <label class="sr-only" for="cueSearchInput" data-i18n="workspace.searchCue">Search cues</label>
