@@ -57,6 +57,17 @@ try {
     }
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
+  // New visual shell must be present and its menus only navigate, never play.
+  assert.equal(await page.locator('.runq-menu').count(), 6);
+  const railBounds = await page.locator('.workspace-nav').boundingBox();
+  const contentBounds = await page.locator('main').boundingBox();
+  assert.ok(railBounds && contentBounds && contentBounds.x > railBounds.x + railBounds.width - 2,
+    'Desktop workspace rail is beside, not above, the editor');
+  await page.locator('.runq-menu').nth(2).locator('summary').click();
+  await page.locator('.runq-menu').nth(2).locator('button').filter({hasText:'Script'}).click();
+  assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  await page.locator('[data-workspace-nav="home"]').click();
   assert.equal(await page.locator('[data-workspace-nav="home"]').getAttribute('aria-pressed'), 'true');
   await page.locator('#homeDemoBtn').click();
   try {
@@ -192,6 +203,7 @@ try {
   await page.locator('#uiLocaleSelect').selectOption('es');
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
+  assert.equal(await page.locator('.runq-menu').first().locator('summary').innerText(),'Archivo');
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();
