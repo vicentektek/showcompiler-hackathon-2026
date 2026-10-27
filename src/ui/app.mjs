@@ -11,7 +11,7 @@ import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
-import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
+import { newOperatorQueue, startOperatorQueue, reconcileOperatorQueueAfterEdit, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 import { projectCueRows } from './v3/cueSequenceModel.mjs';
@@ -1280,10 +1280,12 @@ function editCueSequence(fn) {
     return;
   }
   try {
+    const previousCues = show.cues;
+    const previousQueue = operatorQueue;
     const result = fn();
     show = result.project ?? result;
     selectedCueId = result.cueId ?? (show.cues.some(c => c.id === selectedCueId) ? selectedCueId : show.cues[0]?.id ?? null);
-    operatorQueue = startOperatorQueue(show.cues);
+    operatorQueue = reconcileOperatorQueueAfterEdit(previousQueue, previousCues, show.cues);
     lastGoCueId = null;
     inspectorPendingChanges = false;
     editingCueId = null;
