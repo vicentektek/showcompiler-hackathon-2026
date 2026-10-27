@@ -71,6 +71,16 @@
         "qa:meta:plan"
       ],
       "problemMatcher": []
+    },
+    {
+      "label": "RunQ: Systematic Meta test plan (FREE)",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "qa:systematic"
+      ],
+      "problemMatcher": []
     }
   ]
 }
