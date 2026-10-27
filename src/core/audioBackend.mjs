@@ -20,11 +20,13 @@ export const BROWSER_AUDIO_CAPABILITIES = Object.freeze({
   hasMultichannelRouting: false,
   supportsAsio: false,
   hasPersistentAudioFiles: false,
+  hasSameOutputAudition: true,
   professionallyCertified: false,
 });
 
 const REQUIRED_METHODS = Object.freeze([
   'loadFile', 'go', 'stopCue', 'stopAll', 'reset', 'hasAsset',
+  'auditionAsset', 'stopAudition', 'isAuditioning',
   'isPlaying', 'isStopping', 'getStatus',
 ]);
 
@@ -48,6 +50,9 @@ export function createBrowserAudioBackend(options = {}) {
     capabilities: BROWSER_AUDIO_CAPABILITIES,
     loadFile: (file, assetId) => engine.loadFile(file, assetId),
     go: cue => engine.go(cue),
+    auditionAsset: assetId => engine.auditionAsset(assetId),
+    stopAudition: () => engine.stopAudition(),
+    isAuditioning: () => engine.isAuditioning(),
     stopCue: (cueId, fadeMs = 0) => engine.stopCue(cueId, fadeMs),
     stopAll: () => engine.stopAll(),
     reset: () => engine.reset(),
@@ -57,6 +62,8 @@ export function createBrowserAudioBackend(options = {}) {
     getStatus: () => Object.freeze({
       activeCueCount: engine.activeCueCount(),
       pendingGoCount: engine.pending.size,
+      auditionActive: engine.auditionVoice !== null,
+      auditionPending: engine.auditionPending,
     }),
   }));
 }
