@@ -260,6 +260,15 @@ const cases=[
     }
     assert.equal(await started(p),0);
   }],
+  ['Transport safety','Space on a focused menu must not silently fire GO',async p=>{
+    await demo(p);await goTo(p,'operation');
+    const menu=p.locator('.runq-menu summary').first();
+    await menu.focus();
+    assert.equal(await menu.evaluate(e=>document.activeElement===e),true);
+    await p.keyboard.press('Space');
+    assert.equal(await started(p),0,
+      'Space on a menu header should open the menu, NEVER execute a cue');
+  }],
   ['AI safety','Unconfigured providers cannot generate or play anything',async p=>{
     await demo(p);await goTo(p,'ai');
     for(const value of ['baseten','meta']){
