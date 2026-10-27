@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNewShow, replaceShowScript, addAudioReference, addMockProposal, decideProposal, nextAvailableId } from '../src/core/workspace.mjs';
+import { createNewShow, replaceShowScript, addAudioReference, addMockProposal, decideProposal, nextAvailableId, updateCueAutomation } from '../src/core/workspace.mjs';
 import { serializeShowProject, deserializeShowProject } from '../src/core/projectPersistence.mjs';
 
 function prepared() {
@@ -73,4 +73,34 @@ test('identifiers are unique even after importing projects with gaps', () => {
 test('refuses invalid identifiers and unknown proposals', () => {
   assert.throws(() => nextAvailableId('../bad', []));
   assert.throws(() => decideProposal(prepared(), 'unknown', 'APPROVE'));
+});
+
+test('operator can configure fades and loop without modifying approved AI proposal', () => {
+  const initial = decideProposal(prepared(), 'proposal-1', 'APPROVE');
+  const changed = updateCueAutomation(initial, 'cue-1', { fadeInMs: 1500, fadeOutMs: 2200, loop: true });
+  assert.equal(changed.cues[0].automation.fadeInMs, 1500);
+  assert.equal(changed.cues[0].automation.fadeOutMs, 2200);
+  assert.equal(changed.cues[0].automation.loop, true);
+  assert.deepEqual(changed.proposals, initial.proposals);
+  assert.deepEqual(changed.cues[0].sourceLineIds, initial.cues[0].sourceLineIds);
+  assert.equal(initial.cues[0].automation, undefined);
+  assert.deepEqual(deserializeShowProject(serializeShowProject(changed)), changed);
+});
+test('editor rejects invalid automation and cannot silently alter unknown cues', () => {
+  const initial = decideProposal(prepared(), 'proposal-1', 'APPROVE');
+  assert.throws(() => updateCueAutomation(initial, 'missing', { loop: true }), /not editable/);
+  assert.throws(() => updateCueAutomation(initial, 'cue-1', { volume: 2 }), /Unknown/);
+  assert.throws(() => updateCueAutomation(initial, 'cue-1', { fadeInMs: -100 }));
+  assert.throws(() => updateCueAutomation(initial, 'cue-1', { stopCueIds: ['cue-1'] }));
+  assert.throws(() => updateCueAutomation(initial, 'cue-1', { mode: 'AUTO_FOLLOW' }), /Invalid show project/);
+});
+test('changing follow mode back to manual clears delayed auto follow', () => {
+  let show = prepared();
+  show = addMockProposal(show, { lineId: 'L1', assetId: 'asset-1', label: 'Segundo' });
+  show = decideProposal(show, 'proposal-1', 'APPROVE');
+  show = decideProposal(show, 'proposal-2', 'APPROVE');
+  show = updateCueAutomation(show, 'cue-1', { mode: 'AUTO_CONTINUE', delayMs: 1000 });
+  assert.equal(show.cues[0].automation.delayMs, 1000);
+  show = updateCueAutomation(show, 'cue-1', { mode: 'MANUAL' });
+  assert.equal(show.cues[0].automation.delayMs, 0);
 });
