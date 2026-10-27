@@ -294,5 +294,8 @@
   "workspace.automation": "AUTO FOLLOW",
   "workspace.unwired": "Not connected to playback",
   "workspace.readiness": "Show readiness",
-  "workspace.goOperation": "Open operation workspace"
+  "workspace.goOperation": "Open operation workspace",
+  "workspace.searchCue": "Search cues by number, label, source or audio",
+  "workspace.matchCount": "{visible} of {total} cues",
+  "workspace.noCueMatches": "No cues match this search. The prepared GO has not changed."
 }
