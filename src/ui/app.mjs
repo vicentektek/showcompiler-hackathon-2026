@@ -37,6 +37,7 @@ let metaInFlight = false;
 let metaActivity = null;
 let metaActivityTimer = null;
 let metaCoverage = null;
+let metaIndependentReview = null; // Transient, bounded operator-only hints; never saved in the show.
 let metaProposalDetails = new Map();
 let pendingAudioCueId = null;
 let audioInFlight = false;
@@ -259,10 +260,30 @@ function refreshMetaMessage() {
           duplicates: metaCoverage.duplicates,
         });
   }
+  const hintPanel = $('metaIndependentReview');
+  hintPanel.hidden = baseten || metaIndependentReview === null;
+  if (!hintPanel.hidden) {
+    $('metaIndependentReviewSummary').textContent = t(
+      metaIndependentReview.totalUnreviewed
+        ? 'proposals.reviewHintsSummary' : 'proposals.reviewHintsNone',
+      { count: metaIndependentReview.totalUnreviewed },
+    );
+    const target = $('metaIndependentReviewLines');
+    target.replaceChildren();
+    for (const lineId of metaIndependentReview.lineIds) {
+      target.append(node('span', 'caption', lineId), sourceButton(lineId));
+    }
+    if (metaIndependentReview.totalUnreviewed > metaIndependentReview.lineIds.size) {
+      target.append(node('span', 'caption', t('proposals.reviewHintsMore', {
+        shown: metaIndependentReview.lineIds.size,
+      })));
+    }
+  }
 }
 
 function resetMetaAnalysis() {
   metaCoverage = null;
+  metaIndependentReview = null;
   metaProposalDetails = new Map();
 }
 
@@ -321,6 +342,25 @@ function applyMetaCoverage(value, observations, duplicates) {
   metaCoverage.observations += observations;
   metaCoverage.duplicates += duplicates;
 }
+function applyMetaIndependentReview(value, coverage) {
+  if (coverage.batchStartWindow === 0) metaIndependentReview = null;
+  // Older mock or Baseten responses did not implement independent review.
+  if (value === undefined) return;
+  const allowed = new Set(coverage.analyzedLineIds);
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      !Array.isArray(value.reviewFlags) || value.reviewFlags.length > 16 ||
+      !Number.isSafeInteger(value.totalUnreviewed) ||
+      value.totalUnreviewed < value.reviewFlags.length ||
+      value.totalUnreviewed > coverage.analyzedLines ||
+      value.reviewFlags.some(id => typeof id !== 'string' || !/^L[1-9]\\d*$/.test(id) || !allowed.has(id)) ||
+      new Set(value.reviewFlags).size !== value.reviewFlags.length) {
+    throw uiError('errors.metaResponse');
+  }
+  if (!metaIndependentReview) metaIndependentReview = { lineIds: new Set(), totalUnreviewed: 0 };
+  for (const id of value.reviewFlags) metaIndependentReview.lineIds.add(id);
+  metaIndependentReview.totalUnreviewed += value.totalUnreviewed;
+}
+
 function switchUiLocale(locale) {
   if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) {
     $('uiLocaleSelect').value = uiLocale;
@@ -1677,6 +1717,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
       const normalizedDetails = details.map(safeProposalDetail);
       if (normalizedDetails.some(detail => !detail)) throw uiError('errors.metaResponse');
       applyMetaCoverage(result.coverage, observations.length, duplicates);
+      applyMetaIndependentReview(result.independentReview, result.coverage);
       created.forEach((proposal, index) => {
         if (normalizedDetails[index]) metaProposalDetails.set(proposal.id, normalizedDetails[index]);
       });
