@@ -7,7 +7,7 @@
  */
 const copy = {
   en: {
-    sequence:"SHOW SEQUENCE", cue:"CUE", detail:"NAME / SOURCE", state:"STATUS",
+    sequence:"SHOW SEQUENCE", cue:"CUE", detail:"CUE NAME", source:"SOURCE",media:"AUDIO / TRACKS", state:"STATUS",
     density:"Density", compact:"Compact", standard:"Comfort",
     audio:"Audio library", script:"Script", ready:"Media ready",
     assets:"Assets", output:"Output", shared:"System output",
@@ -20,7 +20,7 @@ const copy = {
     viewAudio:"Audio library", viewScript:"Open script"
   },
   es: {
-    sequence:"SECUENCIA DEL SHOW",cue:"CUE",detail:"NOMBRE / ORIGEN",state:"ESTADO",
+    sequence:"SECUENCIA DEL SHOW",cue:"CUE",detail:"NOMBRE",source:"GUION",media:"AUDIO / PISTAS",state:"ESTADO",
     density:"Densidad",compact:"Compacto",standard:"Cómodo",
     audio:"Biblioteca de audio",script:"Guion",ready:"Medios disponibles",
     assets:"Recursos",output:"Salida",shared:"Salida del sistema",
@@ -87,7 +87,7 @@ function createEditorEnhancements(){
   tools.append(info,actions);
   filter.before(tools);
   const header=elt('div','runq-cue-columns');
-  for(const key of ['cue','detail','state']){
+  for(const key of ['cue','detail','source','media','state']){
     const span=elt('span','',t(key));span.dataset.rqText=key;header.append(span);
   }
   // Header stays OUTSIDE the two-column editor grid; cue list re-renders replace its children.
