@@ -51,6 +51,26 @@
         "qa:codex"
       ],
       "problemMatcher": []
+    },
+    {
+      "label": "RunQ: Seminar benchmark (offline)",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "qa:seminar"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "RunQ: Meta seminar plan (NO API)",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "qa:meta:plan"
+      ],
+      "problemMatcher": []
     }
   ]
 }

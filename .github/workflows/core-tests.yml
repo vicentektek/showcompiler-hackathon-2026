@@ -31,6 +31,13 @@ jobs:
           path: artifacts/cue-qa/report.*
           if-no-files-found: error
           retention-days: 14
+      - name: Upload original seminar corpus contract QA (OFFLINE)
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-seminar-contract-qa
+          path: artifacts/seminar-qa/contract.*
+          if-no-files-found: error
+          retention-days: 14
       - name: Build original demo with three real WAV cues
         run: npm run demo:package
       - name: Verify standard ZIP format independently
