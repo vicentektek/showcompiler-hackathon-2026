@@ -3,7 +3,8 @@
  * calls and billing acknowledgment. This tool does not read secrets or fetch.
  */
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
+import {join,resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {readSeminarCorpus} from './seminarCorpus.mjs';
 import {compareProviderReports,renderProviderComparisonReport} from './basetenSeminarEval.mjs';
 
@@ -102,7 +103,7 @@ export async function runQualityReview({root=ROOT,corpusReader=readSeminarCorpus
   await writer(join(root,'review.md'),renderQualityEvidence(report),'utf8');
   return report;
 }
-if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1].replace(/\\/g,'/')).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
   try{
     if(process.argv.length!==2&&!(process.argv.length===3&&process.argv[2]==='--review'))
       throw new TypeError('Only --review supported');
