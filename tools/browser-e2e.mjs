@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createAppServer } from './dev-server.mjs';
+import { readZipStore } from '../src/core/zipStore.mjs';
 import { chromium } from 'playwright-core';
 
 const server = createAppServer();
@@ -119,6 +120,9 @@ try {
   assert.ok(download.suggestedFilename().endsWith('.showcompiler.zip'));
   const zip = await readFile(await download.path());
   assert.ok(zip.length > 1000);
+  const exportedProject = JSON.parse(new TextDecoder().decode(readZipStore(new Uint8Array(zip)).get('project.json')));
+  const editedCueIndex = exportedProject.cues.findIndex(cue => cue.playback?.fadeInMs === 250);
+  assert.ok(editedCueIndex >= 0, 'Edited playback is serialized in complete show ZIP');
   const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#bundleFileInput').setInputFiles({
@@ -130,6 +134,7 @@ try {
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), startsBeforeZipOpen);
   await page.locator('[data-workspace-nav="cues"]').click();
+  await page.getByRole('button', {name:'Inspect',exact:true}).nth(editedCueIndex).click();
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
   await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
