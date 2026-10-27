@@ -1003,6 +1003,14 @@ function cueAudioSourceControls(cue) {
       name: asset?.name ?? playable[0].assetId,
     })));
     block.append(cueAudioPicker(cue.id, 'cueEditor.replaceAudio'));
+    const viewWaveform = node('button', 'btn subtle small', t('waveform.open'));
+    viewWaveform.type = 'button';
+    viewWaveform.disabled = !originalAudioFiles.has(playable[0].assetId);
+    viewWaveform.addEventListener('click', () => {
+      if (!setWorkspace('audio')) return;
+      void waveformViewer.open(playable[0].assetId, asset?.name ?? playable[0].assetId);
+    });
+    block.append(viewWaveform);
     if (show.assets.length > 1) {
       const pick = node('select');
       pick.id = 'cueReplaceLibrary';
