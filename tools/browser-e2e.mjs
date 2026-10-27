@@ -177,6 +177,8 @@ try {
     null, {timeout:15000},
   );
   assert.equal(await page.locator('#waveformTrimTools').isVisible(),true);
+  // A real mouse cannot drag an offscreen canvas. Ensure visible viewport.
+  await page.locator('#waveformCanvas').scrollIntoViewIfNeeded();
   const bounds=await page.locator('#waveformCanvas').boundingBox();
   await page.mouse.move(bounds.x+bounds.width*.05,bounds.y+bounds.height*.45);
   await page.mouse.down();
