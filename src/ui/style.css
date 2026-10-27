@@ -323,3 +323,12 @@ main{padding:24px 26px 34px}
 .cue-source-controls .caption{width:100%;line-height:1.5}
 .cue-source-controls select{flex:1 1 160px;min-width:0}
 @media(max-width:500px){.cue-stop-option{grid-template-columns:20px minmax(0,1fr)}.cue-stop-fade{grid-column:2;width:120px}}
+
+.cue-create-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cue-create-actions .btn{min-height:38px;font-weight:720}
+.cue-create-actions #cueAddBtn{background:#247b70;color:white;border-color:#4bb3a5}
+.cue-create-actions #cueAddBtn:hover{background:#329a8b}
+.cue-create-actions #cueDeleteBtn{border-color:#804552;color:#ffc0c7}
+.cue-create-actions #cueDeleteBtn:hover:not(:disabled){background:#5b2e3c}
+.cue-create-actions .btn:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:850px){.cue-create-actions{width:100%}.cue-create-actions .btn{flex:1 1 auto}}
