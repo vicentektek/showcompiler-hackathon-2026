@@ -65,7 +65,9 @@ function createEditorEnhancements(){
   const desc=elt('span','',t('activeState'));desc.dataset.rqText='activeState';
   info.append(heading,desc);
   const actions=elt('div','runq-editor-shortcuts');
-  const densityLabel=elt('label','runq-density-label',t('density'));densityLabel.dataset.rqText='density';
+  const densityLabel=elt('label','runq-density-label');
+  const densityCaption=elt('span','',t('density'));densityCaption.dataset.rqText='density';
+  densityLabel.append(densityCaption);
   const select=elt('select','runq-density-select');
   select.id='runqCueDensity';select.setAttribute('aria-label',t('density'));
   for(const value of ['compact','standard']){
