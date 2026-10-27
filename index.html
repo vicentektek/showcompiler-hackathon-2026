@@ -9,11 +9,16 @@
   <script src="/src/ui/app.mjs" type="module"></script>
 </head>
 <body>
-  <div class="shell">
+  <div class="shell" data-active-workspace="home">
     <header class="topbar">
       <div class="brand">
         <span class="brand-icon" aria-hidden="true">◫</span>
         <div><strong>SHOWCOMPILER</strong><span data-i18n="brand.prototype">HACKATHON 2026 · PROTOTYPE</span></div>
+      </div>
+      <div class="project-identity" aria-live="polite">
+        <span data-i18n="workspace.currentShow">ACTIVE SHOW</span>
+        <strong id="activeShowTitle">New show</strong>
+        <small id="saveState" data-i18n="workspace.saved">Saved</small>
       </div>
       <div class="top-actions">
         <label class="sr-only" for="uiLocaleSelect" data-i18n="top.languageAria">Interface language</label>
@@ -31,12 +36,22 @@
       </div>
     </header>
 
+    <nav id="workspaceNav" class="workspace-nav" aria-label="Workspaces">
+      <button type="button" class="workspace-tab" data-workspace-nav="home" aria-pressed="true" data-i18n="workspace.home">Home</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="script" aria-pressed="false" data-i18n="workspace.script">Script</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="ai" aria-pressed="false" data-i18n="workspace.ai">AI &amp; Review</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="cues" aria-pressed="false" data-i18n="workspace.cues">Cue Editor</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="audio" aria-pressed="false" data-i18n="workspace.audio">Audio</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="setup" aria-pressed="false" data-i18n="workspace.setup">Setup</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="operation" aria-pressed="false" data-i18n="workspace.operation">Operation</button>
+      <div class="workspace-mode"><span data-i18n="workspace.mode">MODE</span><strong data-i18n="workspace.design">DESIGN · MANUAL</strong></div>
+    </nav>
     <main>
-      <section class="intro">
+      <section class="intro workspace-intro">
         <div>
           <p class="eyebrow" data-i18n="intro.eyebrow">Build for Your World / Theatre and live events</p>
-          <h1 data-i18n="intro.title">From script to approved cue</h1>
-          <p data-i18n="intro.description">Import a script, approve cues and play local audio with manual GO. Suggestions can be simulated or generated with Meta AI only after you configure the API and explicitly authorize sending an excerpt.</p>
+          <h1 id="workspaceTitle" data-i18n="workspace.home">Home</h1>
+          <p id="workspaceDescription" data-i18n="workspace.description.home">Create a show, open a complete ZIP or start from an original audio demo.</p>
         </div>
         <div class="countbox">
           <div><strong id="linesCount">0</strong><span data-i18n="stats.lines">Lines</span></div>
@@ -47,7 +62,29 @@
 
       <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
       <div class="layout">
-        <section class="panel" aria-labelledby="scriptHeading">
+        <section class="panel home-panel" data-workspaces="home" aria-labelledby="homeHeading">
+          <div class="panel-head"><div><span class="step">00</span><h2 id="homeHeading" data-i18n="workspace.homeTitle">Start your show</h2></div></div>
+          <div class="home-tiles">
+            <button id="homeNewBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeNew">Create a new show</strong>
+              <span data-i18n="workspace.homeNewDetail">Begin with a clean, empty project and import your script.</span>
+            </button>
+            <button id="homeOpenZipBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeOpenZip">Open complete show ZIP</strong>
+              <span data-i18n="workspace.homeOpenZipDetail">Restore the original audio, script and approved cues together.</span>
+            </button>
+            <button id="homeImportScriptBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeImport">Import a TXT script</strong>
+              <span data-i18n="workspace.homeImportDetail">Keep your original text and add sound suggestions afterward.</span>
+            </button>
+            <button id="homeDemoBtn" class="home-tile featured" type="button">
+              <strong data-i18n="workspace.homeDemo">Try original audio demo</strong>
+              <span data-i18n="workspace.homeDemoDetail">Three original WAV effects and three manually approved cues, offline.</span>
+            </button>
+          </div>
+          <p class="home-disclaimer" data-i18n="workspace.noRecent">This browser does not maintain a permanent recent-project library. Save a complete ZIP to keep every original audio file.</p>
+        </section>
+        <section class="panel" data-workspaces="script" aria-labelledby="scriptHeading">
           <div class="panel-head">
             <div><span class="step">01</span><h2 id="scriptHeading" data-i18n="script.heading">Script</h2></div>
             <div class="item-actions"><button id="audibleExampleBtn" type="button" class="btn accent small" data-i18n="bundle.tryDemo">Try with real sounds</button><button id="exampleBtn" type="button" class="btn subtle small" data-i18n="script.example">Example</button></div>
@@ -70,7 +107,13 @@
           </div>
           <p id="scriptSearchStatus" class="caption" role="status" aria-live="polite"></p>
           <div id="scriptPreview" class="script-view" data-i18n-aria="script.linesAria" aria-label="Script lines"></div>
-          <div class="separator"></div>
+        </section>
+
+        <section class="panel" data-workspaces="audio" aria-labelledby="audioWorkspaceHeading">
+          <div class="panel-head">
+            <div><span class="step">04</span><h2 id="audioWorkspaceHeading" data-i18n="workspace.audio">Audio</h2></div>
+            <span class="label-draft" data-i18n="script.audioCaption">Local only · never uploaded</span>
+          </div>
           <div class="subheading">
             <span data-i18n="script.audioHeading">Audio files</span>
             <span class="caption" data-i18n="script.audioCaption">Local only · never uploaded</span>
@@ -89,7 +132,7 @@
           <div id="assetList" class="tags" data-i18n-aria="script.assetsAria" aria-label="Registered audio references"></div>
         </section>
 
-        <section class="panel" aria-labelledby="proposalsHeading">
+        <section class="panel" data-workspaces="ai" aria-labelledby="proposalsHeading">
           <div class="panel-head">
             <div><span class="step">02</span><h2 id="proposalsHeading" data-i18n="proposals.heading">Proposals</h2></div>
             <span class="label-mock" data-i18n="proposals.origin">SOURCE TRACKED</span>
@@ -135,7 +178,7 @@
           <div id="proposalList" class="item-list"></div>
         </section>
 
-        <section class="panel" aria-labelledby="cuesHeading">
+        <section class="panel" data-workspaces="cues operation" aria-labelledby="cuesHeading">
           <div class="panel-head">
             <div><span class="step">03</span><h2 id="cuesHeading" data-i18n="cues.heading">Cue list</h2></div>
             <span class="label-draft" data-i18n="cues.manual">MANUAL GO</span>
@@ -158,12 +201,39 @@
             </div>
             <p class="caption" data-i18n="operator.disclaimer">Preparation and SKIP do not start sound. Only manual GO can play a loaded cue.</p>
           </div>
-          <div id="cueList" class="item-list"></div>
+          <div class="cue-filter-bar">
+            <label class="sr-only" for="cueSearchInput" data-i18n="workspace.searchCue">Search cues</label>
+            <input id="cueSearchInput" type="search" autocomplete="off" data-i18n-placeholder="workspace.searchCue" placeholder="Search cues by number, title, source or sound">
+            <span id="cueSearchStatus" class="caption" role="status" aria-live="polite"></span>
+          </div>
+          <div class="cue-workspace-body">
+            <div id="cueList" class="item-list" aria-label="Show cues"></div>
+            <aside id="cueInspector" class="cue-inspector" aria-label="Selected cue details">
+              <h3 data-i18n="workspace.inspector">Cue inspector</h3>
+              <p class="empty" data-i18n="workspace.noSelection">Select a cue to inspect its details without preparing GO.</p>
+            </aside>
+          </div>
           <div id="transportStatus" class="caption" role="status" aria-live="polite" data-i18n="cues.transportInitial">Transport stopped.</div>
           <div class="info">
             <strong data-i18n="cues.scopeHeading">Prototype scope</strong>
             <p data-i18n="cues.scopeBody">TXT import, human review, local GO/STOP/FADE/STOP ALL and JSON export/import. Reload your audio files after closing or refreshing the page: audio is not embedded in JSON.</p>
           </div>
+        </section>
+
+        <section class="panel setup-panel" data-workspaces="setup" aria-labelledby="setupHeading">
+          <div class="panel-head"><div><span class="step">05</span><h2 id="setupHeading" data-i18n="workspace.setup">Setup</h2></div></div>
+          <p class="help" data-i18n="workspace.setupInfo">Real browser audio through the current system output. No device patching, independent preview bus or native hardware integration.</p>
+          <div class="setup-grid">
+            <div><span data-i18n="workspace.backend">AUDIO ENGINE</span><strong>Web Audio · local browser</strong></div>
+            <div><span data-i18n="workspace.output">OUTPUT</span><strong data-i18n="workspace.systemOutput">System default · shared with audition</strong></div>
+            <div><span data-i18n="workspace.lights">LIGHT / VIDEO</span><strong data-i18n="workspace.unavailable">Not configured · no commands sent</strong></div>
+            <div><span data-i18n="workspace.automation">AUTO FOLLOW</span><strong data-i18n="workspace.unwired">Not connected to playback</strong></div>
+          </div>
+          <div class="separator"></div>
+          <h3 data-i18n="workspace.readiness">Show readiness</h3>
+          <strong id="setupReadinessSummary" role="status" aria-live="polite"></strong>
+          <ul id="setupReadinessIssues" class="setup-issues"></ul>
+          <button type="button" id="setupOpenOperationBtn" class="btn accent" data-i18n="workspace.goOperation">Open operation workspace</button>
         </section>
       </div>
     </main>

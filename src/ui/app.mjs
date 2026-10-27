@@ -40,6 +40,9 @@ let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
 let editingCueId = null;
+let selectedCueId = null; // Selection inspects only; it never changes the GO queue.
+let activeWorkspace = 'home';
+const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'setup', 'operation']);
 let operatorQueue = newOperatorQueue();
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
@@ -92,6 +95,47 @@ function refreshAudioControls() {
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
     button.disabled = button.dataset.cueAction === 'go' ? audioInFlight || auditioning || !ready || playing : !playing || stopping;
+  }
+}
+
+function renderWorkspaceShell() {
+  document.querySelector('.shell').dataset.activeWorkspace = activeWorkspace;
+  for (const panel of document.querySelectorAll('[data-workspaces]')) {
+    panel.hidden = !panel.dataset.workspaces.split(' ').includes(activeWorkspace);
+  }
+  for (const button of document.querySelectorAll('[data-workspace-nav]')) {
+    const selected = button.dataset.workspaceNav === activeWorkspace;
+    button.setAttribute('aria-pressed', String(selected));
+    button.classList.toggle('is-current', selected);
+  }
+  $('workspaceTitle').textContent = t('workspace.' + activeWorkspace);
+  $('workspaceDescription').textContent = t('workspace.description.' + activeWorkspace);
+  $('activeShowTitle').textContent = show.name;
+  $('saveState').textContent = t(dirty ? 'workspace.unsaved' : 'workspace.saved');
+}
+
+function setWorkspace(workspace) {
+  if (!availableWorkspaces.includes(workspace)) throw new RangeError('Unknown workspace');
+  activeWorkspace = workspace;
+  renderWorkspaceShell();
+}
+
+function renderSetupReadiness() {
+  const report = inspectShowReadiness(show, assetId => player.hasAsset(assetId), { audioLoading: audioInFlight });
+  $('setupReadinessSummary').textContent = t(report.ready ? 'preflight.ready' : 'preflight.blocked', {
+    ready: report.readyCues, total: report.totalCues,
+    blockers: report.blockerCount, warnings: report.warningCount,
+  });
+  const issues = $('setupReadinessIssues');
+  issues.replaceChildren();
+  if (!report.issues.length) issues.append(node('li', '', t('preflight.noIssues')));
+  for (const issue of report.issues.slice(0, 12)) {
+    const name = show.assets.find(asset => asset.id === issue.assetId)?.name ?? issue.assetId ?? '';
+    issues.append(node('li', issue.severity === 'BLOCKER' ? 'preflight-blocker' : 'preflight-warning',
+      t('preflight.issue.' + issue.code, { number: issue.cueNumber ?? '', id: issue.proposalId ?? '', name })));
+  }
+  if (report.issues.length > 12) {
+    issues.append(node('li', '', t('workspace.moreIssues', { count: report.issues.length - 12 })));
   }
 }
 
@@ -256,6 +300,7 @@ function cueAudioPicker(cueId, translationKey) {
 function jumpToScriptLine(lineId) {
   if (!lineId) return;
   scriptFocusLineId = lineId;
+  setWorkspace('script');
   render();
   const target = [...$('scriptPreview').querySelectorAll('[data-script-line-id]')]
     .find(item => item.dataset.scriptLineId === lineId);
@@ -342,6 +387,8 @@ function cueDetailsEditor(cue) {
 
 function render() {
   const lines = parseScript(show.scriptText);
+  if (!show.cues.some(cue => cue.id === selectedCueId)) selectedCueId = show.cues[0]?.id ?? null;
+  if (!show.cues.some(cue => cue.id === editingCueId)) editingCueId = null;
   $('showName').value = show.name;
   $('linesCount').textContent = show.scriptText ? String(lines.length) : '0';
   $('proposalsCount').textContent = String(show.proposals.length);
@@ -442,9 +489,20 @@ function render() {
 
   const cueList = $('cueList');
   cueList.replaceChildren();
-  if (show.cues.length === 0) cueList.append(node('p', 'empty', t('status.noCues')));
-  for (const cue of show.cues) {
+  const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
+  const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
+    const matchingAssets = cue.actions.map(action =>
+      show.assets.find(asset => asset.id === action.assetId)?.name ?? '').join(' ');
+    const searchable = [cue.number, cue.label, cue.trigger, cue.notes,
+      cue.sourceLineIds.join(' '), matchingAssets].join(' ').toLocaleLowerCase();
+    return searchable.includes(cueQuery);
+  });
+  $('cueSearchStatus').textContent = t('workspace.matchCount', { visible: visibleCues.length, total: show.cues.length });
+  if (!show.cues.length) cueList.append(node('p', 'empty', t('status.noCues')));
+  else if (!visibleCues.length) cueList.append(node('p', 'empty', t('workspace.noCueMatches')));
+  for (const cue of visibleCues) {
     const card = node('article', 'item cue-item');
+    if (cue.id === selectedCueId) card.classList.add('cue-selected');
     if (cue.id === operatorQueue.preparedCueId) card.classList.add('cue-prepared');
     const top = node('div', 'item-head');
     top.append(node('strong', '', `${cue.number}. ${cue.label}`), node('span', 'state', t('status.draft')));
@@ -454,9 +512,19 @@ function render() {
     card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', describeCueActions(cue.actions)));
     const sourceActions = node('div', 'item-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
+    const inspect = node('button', 'btn subtle small', t('workspace.inspect'));
+    inspect.type = 'button';
+    inspect.setAttribute('aria-pressed', String(selectedCueId === cue.id));
+    inspect.addEventListener('click', () => {
+      selectedCueId = cue.id;
+      editingCueId = null;
+      render();
+    });
+    sourceActions.append(inspect);
     const edit = node('button', 'btn subtle small', t('cue.editDetails'));
     edit.type = 'button';
     edit.addEventListener('click', () => {
+      selectedCueId = cue.id;
       editingCueId = editingCueId === cue.id ? null : cue.id;
       render();
     });
@@ -464,7 +532,7 @@ function render() {
     card.append(sourceActions);
     if (cue.trigger) card.append(node('p', 'item-detail', t('cue.trigger') + ': ' + cue.trigger));
     if (cue.notes) card.append(node('p', 'item-detail cue-technical-notes', t('cue.notes') + ': ' + cue.notes));
-    if (editingCueId === cue.id) card.append(cueDetailsEditor(cue));
+    // Editing belongs to the inspector, not to the scrolling cue list.
     const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
     if (plan) {
       const resolve = node('div', 'item-actions');
@@ -536,10 +604,52 @@ function render() {
     card.append(controls);
     cueList.append(card);
   }
+  renderCueInspector();
+  renderSetupReadiness();
+  renderWorkspaceShell();
   refreshMetaMessage();
   refreshAudioControls();
   renderPreflight();
 }
+
+function renderCueInspector() {
+  const inspector = $('cueInspector');
+  inspector.replaceChildren(node('h3', '', t('workspace.inspector')));
+  const cue = show.cues.find(item => item.id === selectedCueId);
+  if (!cue) {
+    inspector.append(node('p', 'empty', t('workspace.noSelection')));
+    return;
+  }
+  const header = node('div', 'inspector-title');
+  header.append(node('strong', '', cue.number + '. ' + cue.label),
+    node('span', 'state', cue.id === operatorQueue.preparedCueId
+      ? t('workspace.prepared') : t('workspace.selected')));
+  inspector.append(header);
+  inspector.append(node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')));
+  if (cue.trigger) inspector.append(node('p', 'item-detail', t('cue.trigger') + ': ' + cue.trigger));
+  if (cue.notes) inspector.append(node('p', 'item-detail cue-technical-notes', t('cue.notes') + ': ' + cue.notes));
+  inspector.append(node('h4', 'inspector-section-heading', t('workspace.actions')));
+  for (const action of cue.actions) {
+    const isPlay = action.type === 'PLAY';
+    const label = isPlay
+      ? 'PLAY · ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
+      : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved');
+    inspector.append(node('div', 'inspector-action', label));
+  }
+  inspector.append(node('p', 'caption', t('workspace.engineNote')));
+  if (cue.automation && cue.automation.mode !== 'MANUAL') {
+    inspector.append(node('p', 'inspector-warning', t('workspace.autoNotWired')));
+  }
+  const actions = node('div', 'item-actions');
+  actions.append(sourceButton(cue.sourceLineIds[0]));
+  const edit = node('button', 'btn accent small', t('cue.editDetails'));
+  edit.type = 'button';
+  edit.addEventListener('click', () => { editingCueId = cue.id; render(); });
+  actions.append(edit);
+  inspector.append(actions);
+  if (editingCueId === cue.id) inspector.append(cueDetailsEditor(cue));
+}
+
 function userAllowsReplacement() {
   if (!dirty && !show.scriptText && !show.proposals.length && !show.assets.length) return true;
   return window.confirm(t('status.replaceConfirm'));
@@ -592,6 +702,7 @@ function setNewShow(project, statusKey, values = {}) {
   scriptMatchIndex = 0;
   preflightVisible = false;
   editingCueId = null;
+  selectedCueId = null;
   operatorQueue = newOperatorQueue();
   $('scriptSearchInput').value = '';
   player.reset();
@@ -605,6 +716,15 @@ function setNewShow(project, statusKey, values = {}) {
 }
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
+$('cueSearchInput').addEventListener('input', () => render());
+for (const button of document.querySelectorAll('[data-workspace-nav]')) {
+  button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
+}
+$('setupOpenOperationBtn').addEventListener('click', () => setWorkspace('operation'));
+$('homeNewBtn').addEventListener('click', () => $('newShowBtn').click());
+$('homeOpenZipBtn').addEventListener('click', () => $('openBundleBtn').click());
+$('homeImportScriptBtn').addEventListener('click', () => $('scriptFileInput').click());
+$('homeDemoBtn').addEventListener('click', () => $('audibleExampleBtn').click());
 $('scriptSearchInput').addEventListener('input', () => {
   scriptMatchIndex = 0;
   const matches = findScriptMatches(parseScript(show.scriptText), $('scriptSearchInput').value);
@@ -675,6 +795,7 @@ $('newShowBtn').addEventListener('click', () => {
   if (!userAllowsReplacement()) return;
   setNewShow(createNewShow({ name: t('script.showNamePlaceholder') }), 'status.newShow');
   dirty = false;
+  setWorkspace('script');
 });
 $('importScriptBtn').addEventListener('click', () => $('scriptFileInput').click());
 $('scriptFileInput').addEventListener('change', async event => {
@@ -686,6 +807,7 @@ $('scriptFileInput').addEventListener('change', async event => {
     const text = await readTextFile(file, limitScriptBytes);
     const name = file.name.replace(/\.txt$/i, '').slice(0, 120).trim() || t('script.showNamePlaceholder');
     setNewShow(createNewShow({ name, scriptText: text }), 'status.scriptImported', { name: file.name });
+    setWorkspace('script');
   } catch (error) { showError(error); }
 });
 $('assetForm').addEventListener('submit', event => {
@@ -791,6 +913,7 @@ async function loadCompleteZip(inputBytes) {
     originalAudioFiles = decoded;
     committed = true;
     dirty = false;
+    setWorkspace('cues');
     render();
     feedback('bundle.opened', { name: show.name, count: decoded.size }, 'success');
     void previousPlayer.dispose().catch(() => {});
@@ -847,6 +970,7 @@ $('projectFileInput').addEventListener('change', async event => {
     const restored = deserializeShowProject(text);
     setNewShow(restored, 'status.projectOpened', { name: restored.name });
     dirty = false;
+    setWorkspace(restored.cues.length ? 'cues' : 'script');
   } catch (error) { showError(error); }
 });
 

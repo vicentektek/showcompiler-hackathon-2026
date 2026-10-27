@@ -32,6 +32,30 @@ Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface
 - Use either the first-party Meta Model API or the Baseten-hosted Muse Spark Open fallback. Keys stay in the local Node process; WAV/MP3 bytes are never sent.
 - Measure offline exact-line precision, recall, F1, forbidden triggers, duplicate proposals, and hallucinated source references with rights-clear synthetic fixtures.
 
+## Navigable professional-workspace prototype (PR #23, draft)
+
+A separate browser UI branch introduces six functional workspaces without changing the validated audio backend, show schema or provider safety:
+
+- **Script:** original source text, TXT import and stable L# navigation.
+- **AI & Review:** simulated/opt-in Meta proposals, explicit approval and source evidence.
+- **Cue Editor:** full cue list, independent selection, read-only inspector and editable operator label/trigger/notes; search never changes the prepared GO.
+- **Audio:** local library, file loading and same-output audition.
+- **Setup:** truthful browser engine capabilities and live readiness checks; does not arm a professional live mode.
+- **Operation:** prepared queue, manual GO/STOP/FADE, STOP ALL, and active cue cards.
+
+Current modes are labelled **DESIGN · MANUAL** only. No automatic cue-follow, separate PFL, physical device routing, lighting output, native executable or safe live arming is implied. Saved cue automation metadata is not engine-executed. No filesystem-backed recent-project library exists yet. All workspaces use the same single in-memory active show; only explicit export saves it to disk.
+
+To try the new interface in a separate worktree rather than switching the already checked-out integration branch:
+
+```powershell
+git fetch origin
+git worktree add "..\\showcompiler-hackathon-2026-ui-2026-10-27" origin/feat/workspace-navigation-inspector-2026-10-27
+cd "..\\showcompiler-hackathon-2026-ui-2026-10-27"
+npm run dev
+```
+
+This checks out the remote feature branch in detached-HEAD mode (safe for local testing); do not make commits there without explicitly creating a local branch. Use another terminal or stop any prior local server to free port 5173. Check [PR #23](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/23) and its CI before relying on this interface.
+
 ## Integrated portable-show demo (draft branch)
 
 On the integration branch (PR #22), the browser has a self-contained `.showcompiler.zip` format with original WAV bytes, checksum validation and transactionally staged import. Select **Try with real sounds** for an 11-line example with three synthesized WAVs and three manually approved DRAFT cues; playback starts only after operator GO. A synthetic demo package can also be built offline using `npm run demo:package`.

@@ -53,7 +53,8 @@ try {
     }
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
-  await page.locator('#audibleExampleBtn').click();
+  assert.equal(await page.locator('[data-workspace-nav="home"]').getAttribute('aria-pressed'), 'true');
+  await page.locator('#homeDemoBtn').click();
   try {
     await page.waitForFunction(() => document.querySelector('#cuesCount')?.textContent === '3', null, { timeout: 10000 });
   } catch (error) {
@@ -69,7 +70,25 @@ try {
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal((await page.locator('#operatorGoBtn').isDisabled()), true);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'true');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
+  await page.locator('[data-workspace-nav="setup"]').click();
+  assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
+  await page.locator('[data-workspace-nav="cues"]').click();
   await page.getByRole('button', { name: 'Prepare', exact: true }).first().click();
+  const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
+  await page.locator('#cueSearchInput').fill('nonexistent-cue-xyz');
+  assert.equal(await page.locator('#cueList .cue-item').count(), 0);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('#cueSearchInput').fill('');
+  assert.equal(await page.locator('#cueList .cue-item').count(), 3);
+  await page.getByRole('button', { name: 'Inspect', exact: true }).nth(1).click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('[data-workspace-nav="script"]').click();
+  assert.equal(await page.locator('#scriptPreview').isVisible(), true);
+  await page.locator('[data-workspace-nav="operation"]').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
