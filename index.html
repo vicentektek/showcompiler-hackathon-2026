@@ -134,6 +134,26 @@
           <p class="caption" data-i18n="audio.auditionWarning">Audition uses the SAME audio output as GO. Not a private headphone bus; confirm speakers are safe.</p>
           <button id="stopAuditionBtn" class="btn subtle small" type="button" disabled data-i18n="audio.stopAudition">Stop audition</button>
           <div id="assetList" class="tags" data-i18n-aria="script.assetsAria" aria-label="Registered audio references"></div>
+          <section id="waveformPanel" class="runq-waveform-panel" hidden aria-labelledby="waveformTitle">
+            <div class="runq-waveform-head">
+              <div>
+                <h3 id="waveformTitle"></h3>
+                <p id="waveformStatus" class="caption" role="status" aria-live="polite"></p>
+              </div>
+              <button id="waveformClose" class="btn subtle small" type="button" data-i18n="waveform.close">Close waveform</button>
+            </div>
+            <canvas id="waveformCanvas" width="1200" height="240" role="img" data-i18n-aria="waveform.canvas" aria-label="PCM audio waveform"></canvas>
+            <div class="runq-waveform-controls">
+              <label class="field" for="waveformZoom"><span data-i18n="waveform.zoom">Zoom</span>
+                <input id="waveformZoom" type="range" min="1" max="8" step="1" value="1">
+              </label>
+              <label class="field" for="waveformPan"><span data-i18n="waveform.pan">Scroll</span>
+                <input id="waveformPan" type="range" min="0" max="100" step="1" value="0" disabled>
+              </label>
+              <output id="waveformRuler" class="caption" aria-live="polite"></output>
+            </div>
+            <p class="caption" data-i18n="waveform.disclaimer">Visual preview only: no trim, fade or loop edit is saved from this canvas yet. No audio is played.</p>
+          </section>
         </section>
 
         <section class="panel" data-workspaces="ai" aria-labelledby="proposalsHeading">
