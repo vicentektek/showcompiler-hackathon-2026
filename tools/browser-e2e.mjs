@@ -5,7 +5,7 @@
  * CI installs pinned playwright-core transiently, without changing project deps.
  */
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import { createAppServer } from './dev-server.mjs';
 import { readZipStore } from '../src/core/zipStore.mjs';
 import { chromium } from 'playwright-core';
@@ -23,6 +23,12 @@ try {
   const page = await context.newPage();
   const scriptErrors = [];
   page.on('pageerror', err => scriptErrors.push(err.message));
+  const captureRunq = process.env.RUNQ_CAPTURE_UI === '1';
+  const capture = async name => {
+    if (!captureRunq) return;
+    await mkdir('artifacts/runq-ui', { recursive: true });
+    await page.screenshot({ path: 'artifacts/runq-ui/' + name, fullPage: false });
+  };
   await page.addInitScript(() => {
     window.__testAudioStarts = 0;
     window.__testAudioStops = 0;
@@ -57,6 +63,18 @@ try {
     }
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
+  // New visual shell must be present and its menus only navigate, never play.
+  assert.equal(await page.locator('.runq-menu').count(), 6);
+  await capture('01-home-1366.png');
+  const railBounds = await page.locator('.workspace-nav').boundingBox();
+  const contentBounds = await page.locator('main').boundingBox();
+  assert.ok(railBounds && contentBounds && contentBounds.x > railBounds.x + railBounds.width - 2,
+    'Desktop workspace rail is beside, not above, the editor');
+  await page.locator('.runq-menu').nth(2).locator('summary').click();
+  await page.locator('.runq-menu').nth(2).locator('button').filter({hasText:'Script'}).click();
+  assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  await page.locator('[data-workspace-nav="home"]').click();
   assert.equal(await page.locator('[data-workspace-nav="home"]').getAttribute('aria-pressed'), 'true');
   await page.locator('#homeDemoBtn').click();
   try {
@@ -72,6 +90,14 @@ try {
     throw error;
   }
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  const workspaceStates = await page.locator('[data-workspace-nav]').evaluateAll(buttons =>
+    buttons.map(button => ({ name: button.dataset.workspaceNav,
+      pressed: button.getAttribute('aria-pressed'), current: button.classList.contains('is-current') })));
+  assert.deepEqual(workspaceStates.filter(state => state.pressed === 'true').map(state => state.name), ['cues'],
+    'Exactly one workspace should be pressed when Cue Editor is active');
+  assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
+    'Exactly one workspace should carry the current class');
+  await capture('02-editor-1366.png');
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
@@ -127,6 +153,7 @@ try {
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
   await page.locator('[data-workspace-nav="operation"]').click();
+  await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   await page.locator('#operatorGoBtn').click();
@@ -203,6 +230,9 @@ try {
   await page.locator('#uiLocaleSelect').selectOption('es');
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
+  assert.equal(await page.locator('.runq-menu').first().locator('summary').innerText(),'Archivo');
+  await page.setViewportSize({ width: 1093, height: 614 });
+  await capture('04-operation-1093.png');
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();
