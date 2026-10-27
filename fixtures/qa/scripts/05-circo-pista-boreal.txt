@@ -1,0 +1,17 @@
+PISTA BOREAL — GUION DE REGIDURÍA
+Pista circular, dúo de malabaristas y presentador.
+BLOQUE 1 | 00:00 | ENTRADA
+REGIDOR: PREVENIR SONIDO 11, no ejecutar hasta confirmación.
+PRESENTADOR: Señoras y señores, bienvenidos.
+REGIDOR: GO SONIDO 11 — música grabada de entrada de pista.
+[Dos malabaristas hacen girar platos metálicos reales. El ruido es práctico.]
+REGIDOR: STANDBY LUCES 04 — seguimiento, no sonido.
+PRESENTADOR: Atención al salto final.
+[El presentador golpea con una varilla un tambor real sobre pista.]
+REGIDOR: GO SONIDO 12 — efecto grabado de viento corto para el salto.
+[La pista se ilumina en blanco, sin flash estroboscópico.]
+REGIDOR: GO SONIDO 13 — bajar música de entrada hasta silencio en 2 segundos.
+PRESENTADOR: Una ovación para nuestro equipo.
+(Los aplausos son del público en la sala, no reproducción.)
+REGIDOR: Esperar despeje del artista antes del próximo GO.
+FIN
