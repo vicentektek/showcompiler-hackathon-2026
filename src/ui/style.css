@@ -77,3 +77,11 @@ footer{padding:20px 34px;border-top:1px solid #263149;color:#73839f;text-align:c
 .cue-details-editor textarea{display:block;width:100%;min-height:80px;resize:vertical;color:#eff5ff;background:#0f1829;border:1px solid #354660;border-radius:8px;padding:9px 11px;font:inherit}
 .cue-details-editor textarea:focus-visible{outline:2px solid #71adff;outline-offset:2px}
 .cue-technical-notes{white-space:pre-wrap}
+
+/* Sequenced operator transport: preparing is independent of cue inspection. */
+.operator-queue{border:1px solid #405f85;background:#192b44;border-radius:10px;padding:12px;margin:0 0 14px}
+.operator-prepared{color:#c5e2ff;font-size:13px;font-weight:700;line-height:1.5;margin:0 0 10px;overflow-wrap:anywhere}
+.operator-queue-controls{display:flex;flex-wrap:wrap;gap:7px}
+.operator-queue-controls #operatorGoBtn{font-size:14px;padding:11px 18px}
+.operator-queue .caption{display:block;margin:9px 0 0}
+.cue-item.cue-prepared{border-color:#87bdff;box-shadow:inset 0 0 0 1px #87bdff70}
