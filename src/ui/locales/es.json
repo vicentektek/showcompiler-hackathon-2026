@@ -438,5 +438,11 @@
   "cueEditor.moveDown": "Bajar",
   "proposals.reviewHintsNone": "Comprobación independiente: no se han detectado líneas SONIDO/FX/AUDIO/MÚSICA sin abordar en las ventanas analizadas. Esto no garantiza que se hayan encontrado todos los cues.",
   "proposals.reviewHintsSummary": "Comprobación independiente: {count} línea(s) de instrucciones técnicas de audio sin propuesta ni observación del modelo. Revisa el guion; no implica necesariamente reproducir un archivo.",
-  "proposals.reviewHintsMore": "Mostrando las primeras {shown} líneas; las restantes requieren revisión manual."
+  "proposals.reviewHintsMore": "Mostrando las primeras {shown} líneas; las restantes requieren revisión manual.",
+  "waveform.open": "Ver onda",
+  "waveform.close": "Cerrar onda",
+  "waveform.canvas": "Onda PCM original con canales independientes",
+  "waveform.zoom": "Zoom",
+  "waveform.pan": "Desplazar",
+  "waveform.disclaimer": "Vista previa solamente: este gráfico todavía no guarda recortes, fades ni bucles y nunca reproduce audio."
 }
