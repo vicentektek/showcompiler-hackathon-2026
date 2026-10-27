@@ -158,3 +158,6 @@ artifacts/cue-qa/
 # Original test scripts in fixtures/ are public-source-safe; live outputs never commit.
 artifacts/seminar-qa/
 artifacts/seminar-live/
+
+# Local cumulative Meta lab spending ledger/lock; NEVER commit this to GitHub
+.runq-local/
