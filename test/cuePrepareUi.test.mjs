@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const app=readFileSync(new URL('../src/ui/app.mjs',import.meta.url),'utf8');
 const en=JSON.parse(readFileSync(new URL('../src/ui/locales/en.json',import.meta.url),'utf8'));
-const es=JSON.parse(readFileSync(new URL('../src/ui/locales/es.json',import.meta.url),'utf8');
+const es=JSON.parse(readFileSync(new URL('../src/ui/locales/es.json',import.meta.url),'utf8'));
 
 test('cue number/arrow is a separate accessible button, not nested inside inspector selection',()=>{
   assert.match(app,/const prepareNumber = node\('button', 'cue-prepare-trigger'\)/);
