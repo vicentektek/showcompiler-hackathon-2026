@@ -326,5 +326,20 @@
   "operator.restart": "Volver al primer cue",
   "operator.explanation": "El primer cue aparece automáticamente como siguiente. GO lo ejecuta una vez y avanza. Anterior, Saltar y Fijar siguiente nunca disparan sonido.",
   "operator.setNext": "Fijar siguiente",
-  "operator.stopBeforeRestart": "Detén el audio activo y la preescucha antes de reiniciar la posición."
+  "operator.stopBeforeRestart": "Detén el audio activo y la preescucha antes de reiniciar la posición.",
+  "operator.emergencyStop": "PARAR TODO EL AUDIO",
+  "operator.emergencyStopAria": "Parada de emergencia: silenciar inmediatamente todo el audio local",
+  "audioProps.heading": "Propiedades de reproducción · audio real",
+  "audioProps.gainDb": "Atenuación (dB)",
+  "audioProps.gainHelp": "0 dB conserva el nivel seguro actual (-6 dB reales). Solo permite atenuar.",
+  "audioProps.fadeInMs": "Fundido de entrada (ms)",
+  "audioProps.fadeOutMs": "Fundido final de salida (ms)",
+  "audioProps.startDelayMs": "Retardo tras GO (ms)",
+  "audioProps.repeatCount": "Repeticiones",
+  "audioProps.repeatHelp": "Entre 1 y 20 reproducciones seguidas. Loop repite sin límite.",
+  "audioProps.loop": "Repetir en bucle hasta detenerlo",
+  "audioProps.noAuto": "Estos ajustes se aplican en el siguiente GO manual. Nunca disparan automáticamente otro cue. El fade final solo funciona en reproducciones finitas.",
+  "audioProps.save": "Guardar ajustes de audio",
+  "audioProps.saved": "Ajustes guardados en el cue {number}. No se ha reproducido sonido.",
+  "audioProps.currentLimits": "Audio real por cue: atenuación, retardo, fade de entrada/salida y loop/repeticiones. Faltan preescucha independiente, panorama, velocidad, regiones, salidas por pista y seguimiento automático."
 }
