@@ -177,8 +177,11 @@ export async function evaluateStageScriptCorpus(root=ROOT) {
       // Measure the REAL deterministic verifier independently of fake model
       // responses: can it flag these required audio events if Meta omits all?
       const coldReview=reviewExplicitAudioDirections(prepared.scope,[]);
-      const hinted=expected.filter(e=>coldReview.reviewFlags.includes(e.lineId)).length;
-      const unwantedHints=coldReview.reviewFlags.filter(l=>!expected.some(e=>e.lineId===l)).length;
+      const detectedLines=expected.filter(e=>coldReview.reviewFlags.includes(e.lineId)).map(e=>e.lineId);
+      const missedLines=expected.filter(e=>!coldReview.reviewFlags.includes(e.lineId)).map(e=>e.lineId);
+      const falseFlagLines=coldReview.reviewFlags.filter(l=>!expected.some(e=>e.lineId===l));
+      const hinted=detectedLines.length;
+      const unwantedHints=falseFlagLines.length;
       reviewDetected+=hinted;
       reviewFalseFlags+=unwantedHints;
       const excess=failureForWindow(expected);
@@ -203,7 +206,8 @@ export async function evaluateStageScriptCorpus(root=ROOT) {
         explicitGold:expected.length,packetCount:fake.length,
         capacityExcess:excess,reviewFlags:checked.reviewFlags,
         verifierDetected:hinted,verifierMissing:expected.length-hinted,
-        verifierFalseFlags:unwantedHints,
+        verifierMissingLineIds:missedLines,
+        verifierFalseFlags:unwantedHints,verifierFalseFlagLineIds:falseFlagLines,
         playableSuggestions:classified.proposals.length,
         nonPlayableObservations:classified.observations.length,
       });
@@ -303,7 +307,8 @@ export function renderStageScriptReport(output) {
       lines.push('- '+w.id+' '+w.start+'–'+w.end+'; required '+w.explicitGold+
         '; synthetic packet '+w.packetCount+'; over cap '+w.capacityExcess+
         '; reviewer detected '+w.verifierDetected+'/'+w.explicitGold+
-        '; reviewer false flags '+w.verifierFalseFlags+
+        '; missed L#: '+(w.verifierMissingLineIds.join(', ')||'none')+
+        '; irrelevant warnings L#: '+(w.verifierFalseFlagLineIds.join(', ')||'none')+
         '; PLAY '+w.playableSuggestions+'; observations '+w.nonPlayableObservations);
     }
     lines.push('');
@@ -332,6 +337,9 @@ if (process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1]))
       ' strictly validated window packets.');
     console.log('Known capacity ceiling: '+output.totals.capacityExcess+
       ' events exceed 8-per-request in deliberately overfilled scenario.');
+    console.log('Independent acoustic reviewer on synthetic gold: '+output.totals.verifierDetected+
+      '/'+output.totals.expectedEvents+' detected, '+output.totals.verifierMissed+
+      ' missed, '+output.totals.verifierFalseFlags+' non-gold warning flags.');
     console.log('NO provider calls, no real-model accuracy claims. Report: '+OUT+'/report.md');
   }catch(error){
     console.error(error instanceof Error ? error.message : 'Unknown script corpus error');
