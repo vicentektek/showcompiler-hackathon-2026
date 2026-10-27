@@ -310,7 +310,7 @@
   "workspace.description.cues": "Revisa la lista completa y edita el cue seleccionado sin cambiar el preparado para GO.",
   "workspace.description.audio": "Gestiona archivos locales y preescúchalos por la MISMA salida que GO.",
   "workspace.description.setup": "Consulta las capacidades reales del navegador y comprueba el estado del espectáculo.",
-  "workspace.description.operation": "Ejecuta cues preparados mediante GO, STOP, FADE y PARAR TODO de forma manual.",
+  "workspace.description.operation": "Pulsa la flecha numerada para preparar SIGUIENTE GO; solo GO o Espacio fuera de los controles ejecuta el cue preparado.",
   "workspace.inspector": "Inspector de cues",
   "workspace.noSelection": "Selecciona un cue para verlo sin prepararlo ni reproducirlo.",
   "workspace.inspect": "Inspeccionar",
