@@ -12,7 +12,7 @@ ShowCompiler uses the official Meta Model API Chat Completions surface:
 - `developer` and `user` messages
 - `response_format: { type: "json_schema", json_schema: { strict: true, … } }`
 - `reasoning_effort: "low"`
-- `max_completion_tokens: 4096`
+- `max_completion_tokens: 8192` for theatrical requests; legacy smoke contract remains at 4096
 - `stream: false` and explicit `store: false`
 
 See Meta's [Chat Completions guide](https://dev.meta.ai/docs/protocols/chat-completions), [schema reference](https://dev.meta.ai/docs/api-reference/chat-completions/schemas), [structured output guide](https://dev.meta.ai/docs/structured-output), and [error handling](https://dev.meta.ai/docs/error-handling).
@@ -40,7 +40,7 @@ Never paste the key into code, project JSON, a GitHub issue, PR, screenshot, rec
 
 ## Scene/window request boundary
 
-The deterministic planner divides the unchanged script into scenes and 60-line core windows, with up to three read-only context lines before and after. One confirmed request contains at most two windows and asks for at most eight `CueSuggestionV2` records. A later batch requires another click and confirmation.
+The deterministic planner divides the unchanged script into scenes and 60-line core windows, with up to three read-only context lines before and after. One confirmed request contains one window and asks for at most eight `CueSuggestionV2` records. A later batch requires another click and confirmation.
 
 The external request contains:
 

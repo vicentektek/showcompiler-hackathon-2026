@@ -71,8 +71,16 @@ export function planScriptAnalysis(scriptText, options = {}) {
   const lines = parseScript(scriptText);
 
   const sceneStarts = [0];
+  let hasFirstHeading = isSceneHeading(lines[0]?.text ?? '');
   for (let index = 1; index < lines.length; index += 1) {
-    if (isSceneHeading(lines[index].text)) sceneStarts.push(index);
+    if (!isSceneHeading(lines[index].text)) continue;
+    if (!hasFirstHeading) {
+      // Titles, character lists and scenic setup are context for the FIRST
+      // theatrical scene, not a billable "scene zero" with no real cues.
+      hasFirstHeading = true;
+      continue;
+    }
+    sceneStarts.push(index);
   }
 
   const scenes = [];
@@ -82,6 +90,8 @@ export function planScriptAnalysis(scriptText, options = {}) {
     const sceneStart = sceneStarts[sceneIndex];
     const sceneEnd = (sceneStarts[sceneIndex + 1] ?? lines.length) - 1;
     const sceneId = `S${sceneIndex + 1}`;
+    const heading = lines.slice(sceneStart, sceneEnd + 1)
+      .find(line => isSceneHeading(line.text)) ?? null;
     const windowIds = [];
     let sceneWindowIndex = 0;
 
@@ -96,7 +106,7 @@ export function planScriptAnalysis(scriptText, options = {}) {
       windows.push({
         id: windowId,
         sceneId,
-        headingLineId: isSceneHeading(lines[sceneStart].text) ? lines[sceneStart].id : null,
+        headingLineId: heading?.id ?? null,
         startLineId: coreLines[0].id,
         endLineId: coreLines.at(-1).id,
         coreLines,
@@ -106,7 +116,6 @@ export function planScriptAnalysis(scriptText, options = {}) {
       sceneWindowIndex += 1;
     }
 
-    const heading = isSceneHeading(lines[sceneStart].text) ? lines[sceneStart] : null;
     scenes.push({
       id: sceneId,
       headingLineId: heading?.id ?? null,

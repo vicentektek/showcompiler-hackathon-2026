@@ -22,7 +22,7 @@ const sampleTexts = {
 };
 const limitScriptBytes = 1_000_000;
 const maximumShownLines = 300;
-const metaWindowsPerRequest = 2;
+const metaWindowsPerRequest = 1; // Keep browser preview in sync with bounded server request.
 let uiStorage;
 try { uiStorage = window.localStorage; } catch { uiStorage = null; }
 let uiLocale = readPreferredUiLocale(uiStorage);

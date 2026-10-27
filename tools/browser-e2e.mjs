@@ -306,7 +306,7 @@ try {
     sentDocumentKind = request.documentKind;
     const plan = planScriptAnalysis(request.project.scriptText);
     const start = request.analysisWindowStart ?? 0;
-    const selected = plan.windows.slice(start, start + 2);
+    const selected = plan.windows.slice(start, start + 1);
     const end = start + selected.length;
     const ids = selected.flatMap(window => window.coreLines.map(line => line.id));
     await new Promise(resolve => setTimeout(resolve, 1200));
