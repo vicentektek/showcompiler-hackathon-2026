@@ -106,6 +106,10 @@ export function assignAudioToCue(project, cueId, assetId) {
   }
   if (!current.assets.some(asset => asset.id === assetId)) throw new TypeError('Unknown audio asset');
   if (cue.actions.length !== 1) throw new TypeError('Multi-action cue resolution is not supported yet');
+  if (cue.origin === 'MANUAL') {
+    return normalizeShowProject({...current,cues:current.cues.map(item=>item.id===cueId
+      ? {...item,actions:[{type:'PLAY',assetId}]} : item)});
+  }
   const parent = current.proposals.find(proposal => proposal.id === cue.sourceProposalId);
   if (!parent || parent.status !== 'APPROVED') throw new TypeError('Approved parent is missing');
   const action = { type: 'PLAY', assetId };
@@ -152,6 +156,10 @@ export function replaceCueAudioAsset(project, cueId, assetId) {
     throw new TypeError('Cue has no replaceable PLAY action');
   }
   if (!current.assets.some(asset => asset.id === assetId)) throw new TypeError('Unknown audio asset');
+  if (cue.origin === 'MANUAL') {
+    return normalizeShowProject({...current,cues:current.cues.map(item=>item.id===cueId
+      ? {...item,actions:[{type:'PLAY',assetId}]} : item)});
+  }
   const parent = current.proposals.find(item => item.id === cue.sourceProposalId);
   if (!parent || parent.status !== 'APPROVED') throw new TypeError('Approved parent is missing');
   const action = { type: 'PLAY', assetId };

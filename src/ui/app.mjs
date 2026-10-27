@@ -2,6 +2,7 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
+import { insertManualCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue } from '../core/manualCues.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
@@ -606,6 +607,11 @@ function renderCueList({ resetScroll = false } = {}) {
 }
 
 function render() {
+  $('cueDeleteBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueInsertBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueDuplicateBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueMoveUpBtn').disabled = !selectedCueId || show.cues.findIndex(c => c.id === selectedCueId) < 1;
+  $('cueMoveDownBtn').disabled = !selectedCueId || show.cues.findIndex(c => c.id === selectedCueId) >= show.cues.length - 1;
   const lines = parseScript(show.scriptText);
   if (!show.cues.some(cue => cue.id === selectedCueId)) selectedCueId = show.cues[0]?.id ?? null;
   if (!show.cues.some(cue => cue.id === editingCueId)) editingCueId = null;
@@ -1067,6 +1073,36 @@ function setNewShow(project, statusKey, values = {}) {
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
 $('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScroll:true }); refreshAudioControls(); });
+function editCueSequence(fn) {
+  if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) return;
+  const status = player.getStatus();
+  if (audioInFlight || status.activeCueCount || status.pendingGoCount || status.auditionActive || status.auditionPending) {
+    feedback('cueEditor.stopBeforeEdit', {}, 'error');
+    return;
+  }
+  try {
+    const result = fn();
+    show = result.project ?? result;
+    selectedCueId = result.cueId ?? (show.cues.some(c => c.id === selectedCueId) ? selectedCueId : show.cues[0]?.id ?? null);
+    operatorQueue = startOperatorQueue(show.cues);
+    lastGoCueId = null;
+    inspectorPendingChanges = false;
+    editingCueId = null;
+    $('cueSearchInput').value = '';
+    dirty = true;
+    render();
+    feedback('cueEditor.sequenceChanged', {}, 'success');
+  } catch(error) { showError(error); }
+}
+$('cueAddBtn').addEventListener('click', () => editCueSequence(() => insertManualCue(show)));
+$('cueInsertBtn').addEventListener('click', () => editCueSequence(() => insertManualCue(show,{afterCueId:selectedCueId})));
+$('cueDuplicateBtn').addEventListener('click', () => editCueSequence(() => duplicateOperatorCue(show,selectedCueId)));
+$('cueMoveUpBtn').addEventListener('click', () => editCueSequence(() => moveOperatorCue(show,selectedCueId,-1)));
+$('cueMoveDownBtn').addEventListener('click', () => editCueSequence(() => moveOperatorCue(show,selectedCueId,1)));
+$('cueDeleteBtn').addEventListener('click', () => {
+  if (!selectedCueId || !window.confirm(t('cueEditor.confirmDelete'))) return;
+  editCueSequence(() => deleteOperatorCue(show, selectedCueId));
+});
 for (const button of document.querySelectorAll('[data-workspace-nav]')) {
   button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
 }

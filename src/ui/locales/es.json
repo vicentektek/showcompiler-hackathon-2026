@@ -104,7 +104,7 @@
   "scriptLanguage.help": "Independiente del idioma de la interfaz. El guion original no se modifica.",
   "cues.heading": "Lista de cues",
   "cues.manual": "GO MANUAL",
-  "cues.help": "Solo aparecen propuestas aprobadas expresamente. GO reproduce el audio cargado; STOP y FADE 1,5 s detienen la reproducción. El operador mantiene el control.",
+  "cues.help": "Crea y edita cues libremente. La IA es opcional. Seleccionar un cue nunca reproduce audio.",
   "cues.transportInitial": "Transporte detenido.",
   "cues.scopeHeading": "Alcance del prototipo",
   "cues.scopeBody": "Importación TXT, revisión humana, GO/STOP/FADE/PARAR TODO locales y exportación/importación JSON. Tras cerrar o recargar, vuelve a cargar los audios: no se incluyen en el JSON.",
@@ -376,5 +376,14 @@
   "cueEditor.chooseLibraryAudio": "Seleccionar sustituto de la biblioteca",
   "cueEditor.useLibraryAudio": "Usar audio de biblioteca",
   "cueEditor.libraryReplaced": "Audio sustituido para el cue {number}. No se ha reproducido sonido.",
-  "cueEditor.trackEditorPending": "La edición de archivos admite de momento una sola pista PLAY por cue. El editor multipista es una función independiente."
+  "cueEditor.trackEditorPending": "La edición de archivos admite de momento una sola pista PLAY por cue. El editor multipista es una función independiente.",
+  "cueEditor.addCue": "+ Añadir cue",
+  "cueEditor.insertCue": "Insertar después",
+  "cueEditor.deleteCue": "Eliminar cue",
+  "cueEditor.confirmDelete": "¿Eliminar el cue seleccionado? Se quitarán sus referencias activas. No se puede deshacer.",
+  "cueEditor.stopBeforeEdit": "Detén todo el audio antes de cambiar la secuencia.",
+  "cueEditor.sequenceChanged": "Secuencia actualizada. El siguiente GO se ha colocado en el primer cue.",
+  "cueEditor.duplicateCue": "Duplicar",
+  "cueEditor.moveUp": "Subir",
+  "cueEditor.moveDown": "Bajar"
 }
