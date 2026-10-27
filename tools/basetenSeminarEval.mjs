@@ -37,7 +37,7 @@ export function parseBasetenEvalOptions(argv=[]){
   if(o.live!==o.ackPaid||!Number.isSafeInteger(o.maxRequests)||o.maxRequests<1||o.maxRequests>MAX_REQUESTS||
     !['literal','balanced','expressive'].includes(o.mode)||
     (o.caseId!==null&&!/^[a-z][a-z0-9-]{1,60}$/.test(o.caseId))||
-    !/^artifacts\/[a-z0-9-]{1,60}$/.test(o.output))throw new TypeError('Invalid bounded evaluation options');
+    !/^artifacts\/[a-z0-9-]{1,60}(?:\/[a-z0-9-]{1,60})?$/.test(o.output))throw new TypeError('Invalid bounded evaluation options');
   return o;
 }
 
