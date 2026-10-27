@@ -1,0 +1,15 @@
+LAS DOS FRECUENCIAS
+Obra original de sala de control para dos actrices.
+ESCENA 1 — CONTROL
+[SONIDO 31: iniciar un pulso electrónico grave grabado en bucle.]
+NEREA: La frecuencia uno está estable.
+[SONIDO 32: iniciar un soplido de viento grabado en bucle, superpuesto al pulso.]
+IRIA: La frecuencia dos también.
+[El pulso electrónico grave continúa, sin reiniciarlo.]
+NEREA: Baja únicamente el viento.
+[SONIDO 33: detener el viento grabado con fade de dos segundos; el pulso sigue.]
+IRIA: El pulso sigue en el altavoz izquierdo.
+(IRIA gira físicamente una rueda de utilería.)
+[SONIDO 34: detener el pulso electrónico grave con fade de cinco segundos.]
+NEREA: Ahora las dos fuentes están detenidas.
+FIN
