@@ -29,7 +29,8 @@ async function digest(bytes) {
 }
 function audioPath(assetId, originalName) {
   if (!ASSET_ID.test(assetId) || typeof originalName !== 'string' ||
-      originalName.length > 200 || /[\\/\\\\\x00-\x1f]/.test(originalName) ||
+      originalName.length > 200 || originalName.includes('/') || originalName.includes('\\') ||
+      [...originalName].some(character => character.charCodeAt(0) < 32) ||
       !SUPPORTED_EXT.test(originalName)) reject('invalid sound asset');
   const ext = originalName.match(SUPPORTED_EXT)[1].toLowerCase();
   // ':' is accepted in historical schema IDs but invalid in Windows filenames.
