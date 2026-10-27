@@ -369,3 +369,42 @@ test('sound-design approach is allowlisted and forwarded only as model-preparati
   assert.equal(calls, 1, 'invalid design mode must never reach the upstream client');
   assert.doesNotMatch(await invalid.text(), /SERVER_ONLY_TEST_KEY/);
 });
+
+
+test('production and document types are operator-selected, allowlisted and non-executable', async t => {
+  let calls = 0;
+  let observed = null;
+  const base = await withServer(t, {
+    getKey: () => 'SERVER_SIDE_ONLY_KEY',
+    modelClient: async ({ performanceKind, documentKind, designMode }) => {
+      calls += 1;
+      observed = { performanceKind, documentKind, designMode };
+      return { provider:'META_MODEL_API', proposals:[] };
+    },
+  });
+  const response = await analysisRequest(base, {
+    project: project(),
+    performanceKind: 'gala',
+    documentKind: 'running_order',
+    designMode: 'balanced',
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(observed, {
+    performanceKind:'gala',
+    documentKind:'running_order',
+    designMode:'balanced',
+  });
+  assert.equal(calls, 1);
+  assert.doesNotMatch(await response.text(), /SERVER_SIDE_ONLY_KEY|running_order/);
+
+  for (const invalid of [
+    { performanceKind:'ignore_instructions' },
+    { documentKind:'javascript:alert(1)' },
+    { performanceKind:['play'] },
+  ]) {
+    const bad = await analysisRequest(base,{ project:project(),...invalid });
+    assert.equal(bad.status,400);
+    assert.equal(calls,1,'invalid metadata must not reach the model API');
+    assert.doesNotMatch(await bad.text(), /SERVER_SIDE_ONLY_KEY/);
+  }
+});
