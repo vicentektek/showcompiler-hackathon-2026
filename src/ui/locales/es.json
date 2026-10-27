@@ -247,5 +247,14 @@
   "errors.metaOutputRefused": "Meta rechazó o filtró la salida solicitada. No se importaron cues.",
   "errors.metaOutputFinish": "Meta terminó con un motivo no compatible. No se importaron cues.",
   "errors.metaOutputSemantic": "Meta devolvió un resultado estructuralmente válido que falló la validación teatral o de fuentes local.",
-  "errors.metaBadReferences": "Meta propuso una referencia de línea o audio que no superó la validación. Se rechazaron todas las propuestas."
+  "errors.metaBadReferences": "Meta propuso una referencia de línea o audio que no superó la validación. Se rechazaron todas las propuestas.",
+  "bundle.open": "Abrir espectáculo ZIP",
+  "bundle.save": "Guardar ZIP completo",
+  "bundle.saving": "Empaquetando el guion, cues y audios originales...",
+  "bundle.importing": "Verificando e importando el ZIP; el espectáculo actual permanece intacto...",
+  "bundle.saved": "ZIP completo descargado con {count} archivos de audio. Conserva este archivo para recuperar el espectáculo.",
+  "bundle.opened": "Espectáculo «{name}» recuperado con {count} audios reales. GO sigue siendo manual.",
+  "bundle.failed": "No se pudo completar el paquete ZIP: {reason}",
+  "bundle.invalidFile": "Selecciona un archivo .zip de SHOWCOMPILER (máximo 64 MB).",
+  "bundle.busy": "Finaliza la operación de audio o ZIP antes de cambiar el espectáculo."
 }
