@@ -31,6 +31,12 @@ export function inspectShowReadiness(project, hasAudio, { audioLoading = false }
         cueReady = false;
       }
     }
+    for (const track of cue.audioTracks ?? []) {
+      if (!hasAudio(track.assetId)) {
+        issues.push({code:'FILE_NOT_LOADED',severity:'BLOCKER',cueId:cue.id,cueNumber:cue.number,assetId:track.assetId});
+        cueReady = false;
+      }
+    }
     if (cueReady) readyCues++;
   }
   return {
