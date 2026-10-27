@@ -37,8 +37,11 @@ try {
           linearRampToValueAtTime(v) { this.value = v; } };
         return { gain, connect() {}, disconnect() {} };
       }
+      createStereoPanner() {
+        return {pan:{value:0},connect(){},disconnect(){}};
+      }
       createBufferSource() {
-        return { buffer: null, onended: null, connect() {}, disconnect() {},
+        return { buffer: null, onended: null, playbackRate:{value:1}, connect() {}, disconnect() {},
           start() { window.__testAudioStarts += 1; },
           stop() { window.__testAudioStops += 1; } };
       }
@@ -85,6 +88,9 @@ try {
   await inspector.locator('[name="fadeInMs"]').fill('250');
   await inspector.locator('[name="fadeOutMs"]').fill('500');
   await inspector.locator('[name="startDelayMs"]').fill('400');
+  await inspector.locator('[name="startAtMs"]').fill('125');
+  await inspector.locator('[name="playbackRate"]').fill('1.25');
+  await inspector.locator('[name="pan"]').fill('-0.5');
   await inspector.getByRole('button', {name:'Save playback settings'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
@@ -124,6 +130,9 @@ try {
   const exportedProject = JSON.parse(new TextDecoder().decode(readZipStore(new Uint8Array(zip)).get('project.json')));
   const editedCueIndex = exportedProject.cues.findIndex(cue => cue.playback?.fadeInMs === 250);
   assert.ok(editedCueIndex >= 0, 'Edited playback is serialized in complete show ZIP');
+  assert.equal(exportedProject.cues[editedCueIndex].playback.pan,-0.5);
+  assert.equal(exportedProject.cues[editedCueIndex].playback.playbackRate,1.25);
+  assert.equal(exportedProject.cues[editedCueIndex].playback.startAtMs,125);
   const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#bundleFileInput').setInputFiles({
