@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "provenance": "HAND_AUTHORED_ILLUSTRATIVE_PREDICTIONS_NOT_META_OUTPUT",
+  "predictionsByCase": {
+    "telephone-state": [
+      {
+        "sourceLineId": "L2",
+        "transport": "PLAY",
+        "cueKind": "FX",
+        "basis": "EXPLICIT"
+      },
+      {
+        "sourceLineId": "L3",
+        "transport": "PLAY",
+        "cueKind": "AMBIENCE",
+        "basis": "EXPLICIT"
+      },
+      {
+        "sourceLineId": "L4",
+        "transport": "CONTINUE",
+        "cueKind": "FX",
+        "basis": "EXPLICIT"
+      }
+    ],
+    "physical-prop": [
+      {
+        "sourceLineId": "L2",
+        "transport": "PLAY",
+        "cueKind": "FX",
+        "basis": "SUGGESTED"
+      }
+    ],
+    "gala-escaleta": [
+      {
+        "sourceLineId": "L2",
+        "transport": "PLAY",
+        "cueKind": "MUSIC",
+        "basis": "EXPLICIT"
+      }
+    ],
+    "live-song-versus-file": [
+      {
+        "sourceLineId": "L2",
+        "transport": "PLAY",
+        "cueKind": "MUSIC",
+        "basis": "EXPLICIT"
+      },
+      {
+        "sourceLineId": "L3",
+        "transport": "PLAY",
+        "cueKind": "FX",
+        "basis": "EXPLICIT"
+      }
+    ],
+    "silence-and-memory": [
+      {
+        "sourceLineId": "L2",
+        "transport": "SILENCE",
+        "cueKind": "SILENCE",
+        "basis": "EXPLICIT"
+      }
+    ],
+    "optional-ambience": [
+      {
+        "sourceLineId": "L2",
+        "transport": "PLAY",
+        "cueKind": "AMBIENCE",
+        "basis": "SUGGESTED"
+      }
+    ]
+  }
+}
