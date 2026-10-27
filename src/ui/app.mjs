@@ -660,9 +660,9 @@ function cuePlaybackEditor(cue) {
     return input;
   }
   numericField('gainDb', -60, 0, 0.5, 'audioProps.gainHelp');
-  numericField('fadeInMs', 0, 10000, 100);
-  const fadeOut = numericField('fadeOutMs', 0, 10000, 100);
-  numericField('startDelayMs', 0, 10000, 100);
+  numericField('fadeInMs', 0, 10000, 1);
+  const fadeOut = numericField('fadeOutMs', 0, 10000, 1);
+  numericField('startDelayMs', 0, 10000, 1);
   const repeats = numericField('repeatCount', 1, 20, 1, 'audioProps.repeatHelp');
   const loopLabel = node('label', 'cue-loop-field');
   const loop = node('input');
