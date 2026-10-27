@@ -32,15 +32,16 @@ Only work created in this repository during the Meta Global AI Developer Hackath
 | [#11](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/11) Editable cue title, trigger and operator notes | JSON persistence and UI tests | Editing changes approved cue metadata, not model output |
 | [#12](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/12) Manual prepared-cue GO, SKIP and next-cue position | Pure queue and operation tests | Preparation does not execute sound automatically |
 | [#13](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/13) Same-output audio audition and STOP ALL interlocks | Audio mock and UI tests | Audition uses the same speakers as GO; no PFL hardware bus |
-| [#14](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/14) Self-contained ZIP with script, cues and original audio; staged import, manifest SHA-256 and CRC32 | ZIP corruption/roundtrip/interop tests; original three-WAV demonstration; [CI run 224/224 passing](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40427926064) | Portable data package implemented; manual browser acceptance still pending |
+| [#14](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/14) Self-contained ZIP with script, cues and original audio; staged import, manifest SHA-256 and CRC32 | ZIP corruption/roundtrip/interop tests; original three-WAV demonstration; [CI run 224/224 passing](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40428477729) | Portable data package implemented; manual browser acceptance still pending |
 | [#14](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/14) Fix stale pre-audition tests and individual pending-GO STOP cancellation | Tests for asynchronous GO, duplicate activation, STOP ALL and independent pending cues | Race prevention tested with fake Web Audio contexts, not real device latency |
+| [#14](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/14) One-click offline original three-WAV demo inside the browser | Shared pure source generator, browser wiring and [CI 225/225 success](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40428477729) | Browser demo button implemented; audible hardware acceptance pending |
 
 ## Current verification
 
 - Working branch: `feat/portable-show-archive-2026-10-27`, stacked after the separate draft PRs through #13. Default `main` is unchanged.
-- **224/224 automated tests passed, 0 failures, 0 cancellations**, including ZIP integrity and the local-browser pending-GO cancellation cases: [GitHub Actions run](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40427926064).
+- **225/225 automated tests passed, 0 failures, 0 cancellations**, including ZIP integrity and the local-browser pending-GO cancellation cases: [GitHub Actions run](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40427926064).
 - `npm run check:syntax`, `npm test`, `npm run demo:package`, and independent `unzip -t` completed successfully in that CI run.
-- CI publishes a downloadable `showcompiler-full-demo-zip` with three original synthetic WAV files and three explicitly approved MANUAL_MOCK cues. No copyrighted sound was downloaded or uploaded.
+- The browser can generate the same original three-WAV show with one click; CI also publishes a downloadable `showcompiler-full-demo-zip` with three explicitly approved MANUAL_MOCK cues. No copyrighted sound was downloaded or uploaded.
 - Source code and CI use no external Meta/Baseten token. A previous guarded first-party Meta smoke was recorded in the repository README; **it was not repeated by this work**.
 - Native WASAPI/ASIO show-control, Tauri install, multichannel buses, output selection, and audio generation are **not integrated**. Portable ZIP is a data package, not a desktop EXE.
 
