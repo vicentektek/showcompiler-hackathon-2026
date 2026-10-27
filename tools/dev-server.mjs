@@ -17,6 +17,7 @@ const allowed = new Map([
   ['/src/ui/runq-workspaces-v2.css', ['src/ui/runq-workspaces-v2.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-workspaces-v2.mjs', ['src/ui/runq-workspaces-v2.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/i18n.mjs', ['src/ui/i18n.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/v3/cueSequenceModel.mjs', ['src/ui/v3/cueSequenceModel.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/locales/en.json', ['src/ui/locales/en.json', 'application/json; charset=utf-8']],
   ['/src/ui/locales/es.json', ['src/ui/locales/es.json', 'application/json; charset=utf-8']],
   ['/src/core/scriptLanguage.mjs', ['src/core/scriptLanguage.mjs', 'text/javascript; charset=utf-8']],
