@@ -86,6 +86,11 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const operatorModule = await fetch(base + '/src/core/operatorQueue.mjs');
   assert.equal(operatorModule.status, 200);
   assert.match(await operatorModule.text(), /prepareOperatorCue/);
+  const automationModel = await fetch(base + '/src/core/cueAutomation.mjs');
+  assert.equal(automationModel.status, 200);
+  assert.match(await automationModel.text(), /normalizeCueAutomation/);
+  const automationRuntime = await fetch(base + '/src/core/cueAutomationRuntime.mjs');
+  assert.equal(automationRuntime.status, 404); // Not exposed until a safe runtime is wired.
   const preflightModule = await fetch(base + '/src/core/showPreflight.mjs');
   assert.equal(preflightModule.status, 200);
   assert.match(await preflightModule.text(), /inspectShowReadiness/);
