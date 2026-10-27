@@ -382,5 +382,8 @@
   "cueEditor.deleteCue": "Delete selected",
   "cueEditor.confirmDelete": "Delete the selected cue? Its active references will be removed. This cannot be undone.",
   "cueEditor.stopBeforeEdit": "Stop all audio before changing the cue sequence.",
-  "cueEditor.sequenceChanged": "Cue sequence updated. Next GO is positioned at the first cue."
+  "cueEditor.sequenceChanged": "Cue sequence updated. Next GO is positioned at the first cue.",
+  "cueEditor.duplicateCue": "Duplicate",
+  "cueEditor.moveUp": "Move up",
+  "cueEditor.moveDown": "Move down"
 }
