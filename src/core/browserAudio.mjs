@@ -3,6 +3,8 @@
  * Plays operator-approved DRAFT cues only after an explicit GO.
  * No AI call, external I/O, server audio upload, or professional audio guarantee.
  */
+import { normalizeCuePlayback } from './cuePlayback.mjs';
+
 export class BrowserAudioEngine {
   constructor({ contextFactory = () => new AudioContext(), onStateChange = () => {}, onCueNaturalEnd = () => {} } = {}) {
     if (typeof contextFactory !== 'function' || typeof onStateChange !== 'function' || typeof onCueNaturalEnd !== 'function') {
@@ -140,6 +142,7 @@ export class BrowserAudioEngine {
           typeof action.assetId !== 'string' || !this.hasAsset(action.assetId))) {
       throw new Error('Cue inválido o sin todos sus audios cargados.');
     }
+    const playback = normalizeCuePlayback(cue.playback);
     if (this.isAuditioning()) throw new Error('Detén la preescucha antes de GO.');
     if (this.isPlaying(cue.id)) throw new Error('Este cue ya está reproduciéndose.');
     this.pending.add(cue.id);
@@ -153,15 +156,30 @@ export class BrowserAudioEngine {
         throw new Error('GO cancelado por STOP o PARAR TODO.');
       }
       if (ctx.state === 'suspended') throw new Error('El navegador ha bloqueado el audio.');
-      const startAt = ctx.currentTime + 0.02;
+      const startAt = ctx.currentTime + 0.02 + playback.startDelayMs / 1000;
+      const targetGain = 0.5 * 10 ** (playback.gainDb / 20);
       voices = cue.actions.map(action => {
         const source = ctx.createBufferSource();
         const gain = ctx.createGain();
         source.buffer = this.buffers.get(action.assetId);
-        gain.gain.value = 0.5; // -6 dB initial gain for safer preview.
+        // Web Audio loop is continuous; finite repeats are stopped at a
+        // deterministic buffer-duration boundary. No JS timer is required.
+        source.loop = playback.loop || playback.repeatCount > 1;
+        const duration = source.buffer.duration * playback.repeatCount;
+        const fadeIn = Math.min(playback.fadeInMs / 1000, duration);
+        const fadeOut = playback.loop ? 0 : Math.min(playback.fadeOutMs / 1000, Math.max(0, duration - fadeIn));
+        gain.gain.value = fadeIn ? 0 : targetGain;
+        if (fadeIn) {
+          gain.gain.setValueAtTime(0, startAt);
+          gain.gain.linearRampToValueAtTime(targetGain, startAt + fadeIn);
+        }
+        if (fadeOut) {
+          gain.gain.setValueAtTime(targetGain, startAt + duration - fadeOut);
+          gain.gain.linearRampToValueAtTime(0, startAt + duration);
+        }
         source.connect(gain);
         gain.connect(ctx.destination);
-        return { source, gain };
+        return { source, gain, duration, repeatCount: playback.repeatCount };
       });
       const run = { voices: new Set(voices), stopping: false };
       this.playing.set(cue.id, run);
@@ -179,7 +197,12 @@ export class BrowserAudioEngine {
           this.notify();
         };
       }
-      for (const voice of voices) voice.source.start(startAt);
+      for (const voice of voices) {
+        voice.source.start(startAt);
+        if (!playback.loop && voice.repeatCount > 1) {
+          voice.source.stop(startAt + voice.duration);
+        }
+      }
       this.notify();
       return true;
     } catch (error) {
