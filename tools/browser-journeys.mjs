@@ -282,6 +282,38 @@ const cases=[
       assert.equal(await started(p),0,'Space must never GO from '+selector);
     }
   }],
+  ['AI human review','Simulated Baseten proposal requires explicit operator approval',async p=>{
+    await demo(p);await goTo(p,'ai');
+    let calls=0;
+    await p.route('**/api/baseten/status',route=>route.fulfill({
+      status:200,contentType:'application/json',body:JSON.stringify({
+        configured:true,provider:'BASETEN_MUSE_SPARK_OPEN',model:'offline-test'
+      })
+    }));
+    await p.route('**/api/baseten/proposals',route=>{
+      calls++;
+      const payload=route.request().postDataJSON();
+      assert.equal(payload.scriptLanguage,'auto');
+      return route.fulfill({
+        status:200,contentType:'application/json',body:JSON.stringify({
+          provider:'BASETEN_MUSE_SPARK_OPEN',
+          proposals:[{lineId:'L2',assetId:'asset-1',label:'Mocked Baseten ambience'}]
+        })
+      });
+    });
+    await p.locator('#modelProviderSelect').selectOption('baseten');
+    await wait(p,()=>document.querySelector('#analyzeMetaBtn')?.disabled===false);
+    dialog(p,true);
+    await p.locator('#analyzeMetaBtn').click();
+    await wait(p,()=>document.querySelector('#proposalList')?.textContent.includes('Mocked Baseten ambience'));
+    assert.equal(calls,1);
+    assert.equal(await p.locator('#cuesCount').innerText(),'3',
+      'Model suggestion must not create a cue before approval');
+    assert.equal(await started(p),0);
+    await p.locator('#proposalList').getByRole('button',{name:'Approve'}).click();
+    assert.equal(await p.locator('#cuesCount').innerText(),'4');
+    assert.equal(await started(p),0);
+  }],
   ['AI safety','Unconfigured providers cannot generate or play anything',async p=>{
     await demo(p);await goTo(p,'ai');
     for(const value of ['baseten','meta']){
@@ -374,4 +406,4 @@ await writeFile(OUT+'/report.json',JSON.stringify({
 },null,2)+'\n');
 await writeFile(OUT+'/report.md',md.join('\n'));
 console.log('JOURNEYS_SUMMARY '+passed+'/'+total);
-if(passed!==total)process.exitCode=1;
+if(passed!==total || blockedExternal>0)process.exitCode=1;
