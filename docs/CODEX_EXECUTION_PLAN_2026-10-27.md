@@ -77,7 +77,7 @@ Acceptance: C1 tests remain green and specific runtime/DOM unit or browser tests
 Objective: prove contract and performance without spending inference credits.
 
 - Reuse src/core/cueEvaluation.mjs and test/theatreCueAnalysis.test.mjs; extend, do not replace existing tests.
-- Add rights-clear fixture manifests with original source lines, positive/forbidden line IDs, expected intent (PLAY/CONTINUE/STOP/SILENCE), explicit vs suggested status, repeats, evidence substring, expected unbound-asset prompt, language and reviewer note. Keep fixtures authored for this project only.
+- The initial rights-clear multilingual gold corpus is ALREADY authored at fixtures/theatre-gold-v1.json (eight scenarios including a 142-line script). Do not spend coding-agent time inventing a second set. Verify its format/source IDs, use or adapt a small test adapter for the existing evaluator, and add ONLY missing focused cases. Extend per-intent observations or acoustic brief grading after a human reviewer confirms the gold labels; do not invent a model response.
 - Include Spanish, English, French, Portuguese and German, diacritics, long scenes (>120 lines), cross-window context, dialogue mentions of sounds not happening, repeated ambience, sound cues in directions, silence and no-cue scripts.
 - Test Meta and fallback providers with HTTP mock responses (success, non-JSON, truncation, HTTP 401/429/500, timeout, invalid refs, unknown asset, model refusal, prompt-injection text in script, malicious HTML text, duplicate cues, quota exhaustion). Assert one request max, no retry, sanitized failures, strict local validation, no raw payload/keys in logs and no cost-incurring test.
 - Freeze a labelled offline gold set. Report exact-line TP/FP/FN, precision, recall, F1, duplicate rate, forbidden triggers, hallucinated line refs, cue-kind/intent confusion and invalid-output count. Do not claim these scores represent quality of a real model when the provider is mocked.
@@ -105,6 +105,14 @@ Objective: one reproducible jury-facing demo; no unverified marketing claims.
 - Prepare a 3-minute run-of-show: 0:00 problem/scene; 0:20 script import; 0:40 validated AI suggestion (or clearly labelled recorded output); 1:20 approval/attach; 1:50 GO/fade/stop; 2:20 ZIP/reopen offline; 2:45 safety/summary.
 - Review public files for private research, proprietary names, inherited pre-event code, secrets and copyrighted assets. Do not change repository visibility until separately approved.
 Acceptance: live-feasible sequence from one tested commit, source and audio provenance, honest demonstration notes. Do not treat CI as a substitute for human listening.
+
+## Recommended execution order when the budget is tight
+
+Mandatory: C1 integration -> C1-M human browser/audio acceptance -> C3 offline evaluation and one operator-gated model-quality demonstration -> C4 ONE real browser E2E -> C5 final proof/publication checks.
+
+Conditional: C2 automated follow and advanced sound control ONLY if mandatory gates are green and there is remaining budget. A safer manual GO demo plus genuinely demonstrated model reasoning ranks ahead of a partially integrated AUTO UI. Keep the long-term requirements documented instead of erasing them.
+
+Reserve the final allocation for defects and deliverable preparation. A step that can be completed by reviewing GitHub, writing fixture JSON, or product-design specification should not be delegated to Codex.
 
 ## Deferred beyond core demo
 
