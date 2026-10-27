@@ -347,5 +347,7 @@
   "audioProps.playbackRate": "Playback speed (0.5×–2×)",
   "audioProps.rateHelp": "1.0× preserves pitch/speed behavior; changing speed changes pitch in this browser.",
   "audioProps.pan": "Stereo pan (-1 to +1)",
-  "audioProps.panHelp": "-1 left, 0 center, +1 right. Depends on browser stereo output."
+  "audioProps.panHelp": "-1 left, 0 center, +1 right. Depends on browser stereo output.",
+  "audioProps.stopTargets": "On GO: stop other active cues",
+  "audioProps.stopTargetsHelp": "Select up to 20 cues to stop or fade before this cue starts. The target cue's saved fade-out duration is used if set; otherwise STOP is immediate. No auto-GO."
 }
