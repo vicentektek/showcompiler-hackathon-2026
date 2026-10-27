@@ -28,6 +28,9 @@ test('prototype labels mock AI, real local audio and incomplete JSON packaging',
   assert.match(html, /id="scriptLanguageSelect"/);
   assert.match(html, /audio is not embedded in JSON/);
   assert.match(html, /id="stopAllBtn"/);
+  assert.match(html, /id="operatorPanicBtn"/);
+  assert.match(client, /emergencyStopAllAudio/);
+  assert.match(client, /player\.stopAll\(\)/);
   assert.match(html, /id="audioFileInput"/);
   assert.match(css, /@media/);
 });
@@ -69,6 +72,9 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const audioModule = await fetch(base + '/src/core/browserAudio.mjs');
   assert.equal(audioModule.status, 200);
   assert.match(await audioModule.text(), /class BrowserAudioEngine/);
+  const playbackModule = await fetch(base + '/src/core/cuePlayback.mjs');
+  assert.equal(playbackModule.status, 200);
+  assert.match(await playbackModule.text(), /normalizeCuePlayback/);
   const enLocale = await fetch(base + '/src/ui/locales/en.json');
   assert.equal(enLocale.status, 200);
   assert.match(enLocale.headers.get('content-type'), /application\/json/);
