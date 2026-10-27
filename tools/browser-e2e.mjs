@@ -96,12 +96,15 @@ try {
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
-  // Moving to a different cue is deliberate, and never triggers audio.
+  // Repositioning belongs to Operation, never to a simple editor click.
+  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),0);
+  await page.locator('[data-workspace-nav="operation"]').click();
   await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   await page.locator('#operatorBackBtn').click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('[data-workspace-nav="cues"]').click();
   await page.locator('#cueSearchInput').fill('nonexistent-cue-xyz');
   assert.equal(await page.locator('#cueList .cue-item').count(), 0);
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
