@@ -2,6 +2,7 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
+import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
@@ -32,6 +33,8 @@ let metaCoverage = null;
 let metaProposalDetails = new Map();
 let pendingAudioCueId = null;
 let audioInFlight = false;
+let bundleInFlight = false;
+let originalAudioFiles = new Map();
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
@@ -40,7 +43,7 @@ let operatorQueue = newOperatorQueue();
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
-const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
+let player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
 function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
@@ -53,7 +56,9 @@ function refreshAudioControls() {
       : t('status.transportStopped');
   $('stopAllBtn').disabled = active === 0 && pending === 0 && !auditioning;
   $('stopAuditionBtn').disabled = !auditioning;
-  $('loadAudioBtn').disabled = audioInFlight || auditioning;
+  $('loadAudioBtn').disabled = audioInFlight || auditioning || bundleInFlight;
+  $('openBundleBtn').disabled = bundleInFlight || audioInFlight;
+  $('saveBundleBtn').disabled = bundleInFlight || audioInFlight;
   for (const button of document.querySelectorAll('[data-asset-audition]')) {
     button.disabled = !player.hasAsset(button.dataset.assetAudition) || audioInFlight || auditioning || active > 0 || pending > 0;
   }
@@ -589,6 +594,7 @@ function setNewShow(project, statusKey, values = {}) {
   operatorQueue = newOperatorQueue();
   $('scriptSearchInput').value = '';
   player.reset();
+  originalAudioFiles.clear();
   show = project;
   resetMetaAnalysis();
   dirty = true;
@@ -919,6 +925,7 @@ $('audioFileInput').addEventListener('change', async event => {
     const info = await player.loadFile(file, assetId);
     if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
     show = nextShow;
+    originalAudioFiles.set(assetId, file);
     dirty = true;
     render();
     feedback(cueId ? 'soundPlan.fileAttachedFeedback' : 'status.audioLoaded', {
