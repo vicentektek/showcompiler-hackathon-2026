@@ -14,7 +14,7 @@ npm run check:syntax
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface; Spanish is selectable. `npm run demo:core` runs the terminal-only review demonstration.
+Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface; Spanish is selectable. `npm run demo:core` runs the terminal-only review demonstration. `npm run demo:package` creates a complete, rights-clear show ZIP with three original WAVs that can be reopened directly in the app.
 
 ## Implemented
 
@@ -28,6 +28,7 @@ Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface
 - Load a supported local file directly from an approved cue, automatically register/link the audio, or replace its file while retaining cue number, approval and source references. No network call is made for audio attachment.
 - Run approved `PLAY` cues using local Web Audio with manual **GO**, **STOP**, **FADE 1.5 s**, and **STOP ALL**. Playback performs no AI or network call.
 - Export and reopen strict versioned project JSON. Audio bytes, UI locale, analysis coverage, provider diagnostics, and transient `CueSuggestionV2` fields are deliberately excluded.
+- Export and reopen a **complete SHOWCOMPILER ZIP** containing the exact project, every original local audio file, a manifest and SHA-256 checks. Restore is staged and validated before replacing the current show; it never triggers GO.
 - Use either the first-party Meta Model API or the Baseten-hosted Muse Spark Open fallback. Keys stay in the local Node process; WAV/MP3 bytes are never sent.
 - Measure offline exact-line precision, recall, F1, forbidden triggers, duplicate proposals, and hallucinated source references with rights-clear synthetic fixtures.
 
@@ -48,11 +49,12 @@ Do not run it merely to execute the test suite. A timeout may still have consume
 - Provider errors are reduced to safe categories, a local request ID, status, phase, latency, finish reason, token counts, and allowlisted error `type`/`param`/`code`. Keys, full scripts, upstream messages, and raw provider bodies are never logged or returned.
 - No inference request is automatic and no request is automatically retried.
 - Project JSON remains schema v1. It supports both executable `PLAY` and unresolved `PLAN_AUDIO`; older builds may reject v1 files containing the later action.
-- Browser audio is a local prototype, not certified professional show control. Native WASAPI/ASIO, portable media packages, hardware routing, desktop installation, and paid sound generation remain future work.
-- First-party Meta smoke and one browser analysis/approval were verified by the user. Baseten live inference and direct audio-link/replacement still need manual verification; browser audio also needs audible acceptance. There is no independent preview bus or bundled media package.
+- Browser audio is a local prototype, not certified professional show control. Native WASAPI/ASIO show-control integration, hardware routing, desktop installation, and paid sound generation remain future work. A bounded portable media ZIP is now implemented and automated tests pass; manual browser acceptance remains pending.
+- First-party Meta smoke and one browser analysis/approval were verified by the user. Baseten live inference and direct audio-link/replacement still need manual verification; browser audio also needs audible acceptance. Audition is implemented through the **same** output as GO, not an independent preview/headphones bus. A bounded bundled-media ZIP now exists but requires manual import/export and audible acceptance.
 
 ## Documentation
 
+- [Portable show ZIP with original audio, limits and ready-made demo](docs/PORTABLE_SHOW_ARCHIVE.md)
 - [Meta Model API contract and setup](docs/META_MODEL_API.md)
 - [Technical research and evaluation record](docs/META_API_TECHNICAL_RESEARCH_AND_EVAL_2026-10-26.md)
 - [Theatre cue evaluation](docs/THEATRE_CUE_EVALUATION.md)
