@@ -444,5 +444,9 @@
   "waveform.canvas": "Onda PCM original con canales independientes",
   "waveform.zoom": "Zoom",
   "waveform.pan": "Desplazar",
-  "waveform.disclaimer": "Vista previa solamente: este gráfico todavía no guarda recortes, fades ni bucles y nunca reproduce audio."
+  "waveform.disclaimer": "La vista de biblioteca es de solo lectura. El IN se guarda únicamente para un cue seleccionado; OUT y bucles por región todavía no están disponibles.",
+  "waveform.inLabel": "Punto IN",
+  "waveform.inHelp": "Arrastra el marcador de la onda para definir el inicio. Guarda para modificar únicamente el próximo GO manual de este cue.",
+  "waveform.saveIn": "Guardar IN del cue",
+  "waveform.cancelIn": "Descartar cambio"
 }
