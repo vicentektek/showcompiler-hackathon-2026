@@ -405,3 +405,89 @@
  .shell[data-active-workspace="cues"] .cue-create-actions{overflow-x:auto;flex-wrap:nowrap;width:100%}
  .shell[data-active-workspace="cues"] .cue-create-actions .btn{white-space:nowrap;flex:0 0 auto}
 }
+
+
+/* V3 editor: production-oriented table, true source/asset columns and a
+   dedicated quick-action inspector. This changes no cue transport state. */
+.shell[data-active-workspace="cues"] .runq-cue-columns{
+  grid-template-columns:45px minmax(125px,1.35fr) minmax(65px,.48fr) minmax(115px,1fr) 88px;
+  width:calc(62.3% - 6px);align-items:center;column-gap:9px;
+  padding:8px 10px;letter-spacing:.07em;
+}
+.shell[data-active-workspace="cues"] .runq-cue-columns>span:last-child{text-align:right}
+.shell[data-active-workspace="cues"] .cue-row-select{
+  grid-template-columns:45px minmax(125px,1.35fr) minmax(65px,.48fr) minmax(115px,1fr) 88px;
+  grid-template-rows:minmax(22px,auto) auto;
+  column-gap:9px;row-gap:1px;min-height:42px;padding:6px 10px;
+}
+.shell[data-active-workspace="cues"] .cue-row-index,
+.shell[data-active-workspace="cues"] .cue-row-title{grid-row:1}
+.shell[data-active-workspace="cues"] .cue-row-source{
+  grid-column:3;grid-row:1;min-width:0;
+  color:#88a8b5;font-size:11px;font-family:ui-monospace,Consolas,monospace;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.shell[data-active-workspace="cues"] .cue-row-audio{
+  grid-column:4;grid-row:1;min-width:0;
+  color:#bed6d5;font-size:11px;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.shell[data-active-workspace="cues"] .cue-row-heading .state{
+  grid-column:5;grid-row:1;justify-self:end;
+}
+.shell[data-active-workspace="cues"] .cue-row-next{
+  grid-column:5;grid-row:2;justify-self:end;
+  font-size:9px;line-height:1.1;
+}
+.shell[data-active-workspace="cues"] .cue-item:has(.cue-row-select:focus-visible){
+  border-color:#a1f5dc;outline:1px solid #a1f5dc;
+}
+/* Commands still exist in Operation and the Cue Inspector, not repeated
+   500 times in the editor table. */
+.shell[data-active-workspace="cues"] #cueList .cue-edit-actions,
+.shell[data-active-workspace="cues"] #cueList .cue-audio-tools,
+.shell[data-active-workspace="cues"] #cueList .cue-operation-actions{
+  display:none;
+}
+.shell[data-active-workspace="cues"] .cue-item{overflow:hidden}
+.shell[data-active-workspace="cues"] #cueList{gap:2px;scrollbar-gutter:stable}
+.shell[data-active-workspace="cues"] .cue-inspector-quick-actions{
+  display:flex;flex-wrap:wrap;gap:6px;padding:10px 0;
+  border-bottom:1px solid #2e4a51;margin-bottom:5px;
+}
+.shell[data-active-workspace="cues"] .cue-inspector-quick-actions>.btn{
+  min-height:31px;font-size:10px;padding:5px 9px;
+}
+.shell[data-active-workspace="cues"] .cue-inspector-panel{
+  padding-bottom:22px;
+}
+.shell[data-cue-density="standard"][data-active-workspace="cues"] .cue-row-select{
+  min-height:57px;padding:11px 10px;
+}
+/* Keep source visible on wide desks, prioritize the meaningful media label
+   on 1093 px laptop viewports. */
+@media(max-width:1300px){
+  .shell[data-active-workspace="cues"] .runq-cue-columns{
+    grid-template-columns:43px minmax(100px,1.4fr) minmax(90px,1fr) 80px;
+    width:calc(59% - 5px);
+  }
+  .shell[data-active-workspace="cues"] .runq-cue-columns>span:nth-child(3),
+  .shell[data-active-workspace="cues"] .cue-row-source{display:none}
+  .shell[data-active-workspace="cues"] .cue-row-select{
+    grid-template-columns:43px minmax(100px,1.4fr) minmax(90px,1fr) 80px;
+  }
+  .shell[data-active-workspace="cues"] .cue-row-audio{grid-column:3}
+  .shell[data-active-workspace="cues"] .cue-row-heading .state,
+  .shell[data-active-workspace="cues"] .cue-row-next{grid-column:4}
+}
+@media(max-width:800px){
+  .shell[data-active-workspace="cues"] .runq-cue-columns{display:none}
+  .shell[data-active-workspace="cues"] .cue-row-select{
+    grid-template-columns:39px minmax(75px,1.45fr) minmax(70px,1fr) 72px;
+    padding:8px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .shell[data-active-workspace="cues"] .cue-item,
+  .shell[data-active-workspace="cues"] .cue-row-select{transition:none}
+}
