@@ -76,8 +76,8 @@ test('tampered audio rejected even if attacker recomputes standard ZIP CRC', asy
 test('ZIP corruption and truncated central directory are rejected', async () => {
   const zip = await exportPortableShow(aShow(), new Map([['asset-1', soundFile('campana.wav')]]));
   const changed = zip.slice();
-  changed[40] ^= 0xff;
-  assert.throws(() => readZipStore(changed), /mismatch/);
+  changed[44] ^= 0xff; // Corrupt project.json's first data byte (not a filename).
+  assert.throws(() => readZipStore(changed), /CRC mismatch/);
   assert.throws(() => readZipStore(zip.subarray(0, zip.length - 6)), /invalid ZIP end record/);
 });
 
@@ -114,6 +114,8 @@ test('ZIP reader does not trust central offsets, renamed local files or overlapp
   const changed = z.slice();
   const end = changed.length-22;
   const central = new DataView(changed.buffer).getUint32(end+16,true);
-  new DataView(changed.buffer).setUint32(central+42,0,true);
+  // The second central entry must not reuse the first local-header offset.
+  const second = central + 46 + 'project.json'.length;
+  new DataView(changed.buffer).setUint32(second+42,0,true);
   assert.throws(() => readZipStore(changed), /mismatched|overlapping|hidden/);
 });
