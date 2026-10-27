@@ -8,6 +8,7 @@
 import { normalizeShowProject } from './projectPersistence.mjs';
 import { normalizeScriptLanguageHint } from './scriptLanguage.mjs';
 import { planScriptAnalysis } from './sceneAnalysis.mjs';
+import { annotateDramaticStructure } from './dramaticStructure.mjs';
 import { buildProductionGuidance, validateProductionContext } from './performanceKnowledge.mjs';
 
 export const THEATRE_ANALYSIS_WINDOWS_PER_REQUEST = 2;
@@ -31,11 +32,14 @@ const ITEM_FIELDS = Object.freeze([
   'fadeInSeconds', 'fadeOutSeconds', 'confidence', 'reason',
 ]);
 
-function boundedLine(line) {
+function boundedLine(line, structuresById) {
+  const structure = structuresById.get(line.id);
   return {
     lineId: line.id,
     text: line.text.slice(0, THEATRE_MAX_LINE_CHARS),
     truncated: line.text.length > THEATRE_MAX_LINE_CHARS,
+    role: structure?.role ?? 'UNMARKED_TEXT',
+    speaker: structure?.speaker ?? null,
   };
 }
 
@@ -120,6 +124,8 @@ function makeResponseFormat(windowIds, lineIds, assetIds) {
 const DEVELOPER_INSTRUCTIONS = [
   'You are an experienced theatre sound designer preparing proposals for a human operator, never controlling live playback.',
   'Analyze each supplied scene window separately. Propose only sourceLineId values from that window core; contextBefore and contextAfter are read-only context.',
+  'Each source line includes conservative role and speaker hints: SPEAKER_LABEL marks the beginning of dialogue on following lines, while STAGE_DIRECTION and TECHNICAL_DIRECTION distinguish directions from speech. These labels help with reading, but are not evidence that an audio file is needed.',
+  'A line that identifies a character alone is NOT a soundtrack event. Stage setting, cast descriptions and character emotions are not automatically sound playback cues.',
   'Classify an audible stage direction as basis EXPLICIT. A location or mood that could benefit from atmosphere is basis SUGGESTED and must be described honestly as a creative option.',
   'A character merely mentioning or remembering a sound is not an audible event: omit it unless the scene itself calls for sound.',
   'When ambience is already running and a later line says it continues, use transport CONTINUE, not PLAY. Do not create another GO.',
@@ -147,6 +153,7 @@ export function prepareTheatricalCueAnalysis(show, options = {}) {
   if (!project.scriptText.trim()) throw new TypeError('Import a script before analysis');
 
   const plan = planScriptAnalysis(project.scriptText);
+  const structuresById = new Map(annotateDramaticStructure(project.scriptText).lines.map(line => [line.lineId, line]));
   if (windowStart >= plan.windows.length) throw new RangeError('Theatre analysis windowStart is outside the script');
   const batchEndWindowExclusive = Math.min(
     plan.windows.length,
@@ -192,9 +199,9 @@ export function prepareTheatricalCueAnalysis(show, options = {}) {
         windowId: window.id,
         sceneId: window.sceneId,
         headingLineId: window.headingLineId,
-        contextBefore: window.contextBefore.map(boundedLine),
-        coreLines: window.coreLines.map(boundedLine),
-        contextAfter: window.contextAfter.map(boundedLine),
+        contextBefore: window.contextBefore.map(line => boundedLine(line, structuresById)),
+        coreLines: window.coreLines.map(line => boundedLine(line, structuresById)),
+        contextAfter: window.contextAfter.map(line => boundedLine(line, structuresById)),
       })),
     },
     availableAudio,
