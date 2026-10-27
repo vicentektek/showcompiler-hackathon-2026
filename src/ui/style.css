@@ -247,3 +247,67 @@ main{padding:24px 26px 34px}
 
 .operator-effect-summary{color:#ffdca0;font-size:12px;line-height:1.55;font-weight:720;margin:7px 0 10px;overflow-wrap:anywhere}
 .operator-effect-summary:empty{display:none}
+
+
+/* Dense editor: selectable cue rows and a stable master-detail inspector. */
+.shell[data-active-workspace="cues"] .operator-queue,
+.shell[data-active-workspace="cues"] .cue-operation-actions,
+.shell[data-active-workspace="cues"] .cue-edit-actions,
+.shell[data-active-workspace="cues"] .cue-audio-tools,
+.shell[data-active-workspace="cues"] .preflight-toolbar,
+.shell[data-active-workspace="cues"] #preflightReport,
+.shell[data-active-workspace="cues"] #transportStatus,
+.shell[data-active-workspace="cues"] .panel>.info {display:none!important}
+.shell[data-active-workspace="cues"] .layout>.panel[data-workspaces~="cues"]{padding:16px 20px;min-height:0}
+.shell[data-active-workspace="cues"] .layout>.panel[data-workspaces~="cues"]>.panel-head{margin-bottom:10px}
+.shell[data-active-workspace="cues"] .layout>.panel[data-workspaces~="cues"]>.help{margin-bottom:10px;font-size:12px}
+.shell[data-active-workspace="cues"] .cue-workspace-body{grid-template-columns:minmax(0,1.35fr) minmax(330px,1fr);gap:12px;min-height:60vh}
+.shell[data-active-workspace="cues"] #cueList{display:flex;flex-direction:column;gap:3px;max-height:calc(100vh - 292px);min-height:420px;overflow-y:auto;overscroll-behavior:contain;padding:3px 8px 3px 0;align-content:stretch}
+.cue-item{min-width:0}
+.cue-row-select{display:block;min-width:0;width:100%;padding:12px 14px;text-align:left;border:0;border-radius:8px;color:#eaf2ff;background:transparent;font:inherit;cursor:pointer}
+.cue-row-select:hover{background:#273a55}
+.cue-row-select:focus-visible{outline:2px solid #a5cfff;outline-offset:-2px;background:#233e61}
+.cue-row-heading{justify-content:space-between;align-items:center;gap:12px}
+.cue-row-title{min-width:0;flex:1;font-size:13px;font-weight:730;line-height:1.4;overflow-wrap:anywhere}
+.cue-row-heading .state{flex:0 0 auto;font-size:10px}
+.cue-row-meta,.cue-row-trigger{display:block;font-size:11px;color:#9db2d2;margin-top:5px;line-height:1.35;overflow-wrap:anywhere}
+.cue-row-trigger{color:#d4dfec}
+.cue-row-next{display:inline-block;font-size:10px;letter-spacing:.06em;font-weight:800;color:#b6f0e9;margin-top:5px}
+.shell[data-active-workspace="cues"] .cue-item{border:1px solid #33465e;border-left:3px solid transparent;border-radius:8px;background:#142033;box-shadow:none;padding:0;margin:0}
+.shell[data-active-workspace="cues"] .cue-item.cue-selected{border-left-color:#88b9f7;background:#20334d;border-color:#658bad}
+.shell[data-active-workspace="cues"] .cue-item.cue-selected .cue-row-select{background:#1d3655}
+.shell[data-active-workspace="cues"] .cue-item.cue-prepared{border-right:3px solid #6ac3ae}
+.shell[data-active-workspace="cues"] .cue-inspector{top:122px;max-height:calc(100vh - 292px);min-height:420px;overflow:auto;overscroll-behavior:contain;padding:16px 17px;background:#101c2e;border:1px solid #364f70}
+.cue-inspector-title{min-width:0}
+.cue-inspector-origin{color:#a8bdd7;font-size:11px;line-height:1.4;margin:9px 0 14px;overflow-wrap:anywhere}
+.cue-inspector-tabs{display:flex;gap:3px;margin:10px 0 13px;border-bottom:1px solid #3a506e}
+.cue-inspector-tab{flex:1;min-width:0;padding:10px 4px;font:inherit;font-size:12px;font-weight:700;color:#b2c7e2;border:0;border-bottom:3px solid transparent;background:transparent;cursor:pointer}
+.cue-inspector-tab[aria-selected="true"]{color:#fff;border-bottom-color:#78b9ec;background:#213955}
+.cue-inspector-tab:hover{background:#27415e}
+.cue-inspector-tab:focus-visible{outline:2px solid #a5d0ff;outline-offset:-2px}
+.cue-inspector-panel{min-width:0}
+.cue-inspector-panel .cue-details-editor{padding:3px 0;background:none;border:0}
+.cue-inspector-panel .cue-playback-editor{margin:0 0 12px;padding:9px 2px;border:0;background:transparent;gap:5px 10px}
+.cue-inspector-panel .cue-playback-editor h4{margin:8px 0 0}
+.cue-inspector-panel .cue-playback-editor .field input{padding:10px}
+.cue-inspector-panel .cue-playback-editor>.btn{margin-top:8px}
+.cue-inspector-audio-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.cue-inspector-audio-tools select{flex:1 1 150px;min-width:0}
+.cue-target-stop-editor{display:grid;gap:10px;margin-top:18px}
+.cue-target-stop-editor .cue-stop-options{max-height:280px}
+.cue-target-stop-editor .btn{justify-self:start}
+.cue-inspector-panel>.btn{margin-top:12px}
+.cue-editor-hint{font-size:11px;color:#9cb5d6;margin:0 0 10px}
+@media(max-width:1020px){
+ .shell[data-active-workspace="cues"] .cue-workspace-body{grid-template-columns:minmax(0,1fr) minmax(305px,.95fr)}
+ .shell[data-active-workspace="cues"] .cue-inspector,.shell[data-active-workspace="cues"] #cueList{max-height:67vh}
+}
+@media(max-width:760px){
+ .shell[data-active-workspace="cues"] .cue-workspace-body{grid-template-columns:1fr}
+ .shell[data-active-workspace="cues"] #cueList{min-height:160px;max-height:32vh}
+ .shell[data-active-workspace="cues"] .cue-inspector{position:static;min-height:0;max-height:none}
+}
+.shell[data-active-workspace="operation"] .cue-row-select{padding:10px 12px}
+.shell[data-active-workspace="operation"] .cue-item>.cue-operation-actions{grid-column:2;grid-row:1}
+.shell[data-active-workspace="operation"] .cue-item{gap:4px}
+@media(max-width:700px){.shell[data-active-workspace="operation"] .cue-item>.cue-operation-actions{grid-column:1;grid-row:auto}}
