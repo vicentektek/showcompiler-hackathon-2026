@@ -241,4 +241,12 @@ export class BrowserAudioEngine {
     this.buffers.clear();
     this.notify();
   }
+
+  /** Release audio hardware resources when discarding a staged ZIP or show. */
+  async dispose() {
+    this.reset();
+    const context = this.context;
+    this.context = null;
+    if (context && typeof context.close === 'function') await context.close();
+  }
 }
