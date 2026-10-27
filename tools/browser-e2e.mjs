@@ -86,6 +86,7 @@ try {
   await inspector.locator('[name="fadeOutMs"]').fill('500');
   await inspector.locator('[name="startDelayMs"]').fill('400');
   await inspector.getByRole('button', {name:'Save playback settings'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
