@@ -2,7 +2,7 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
-import { insertManualCue, deleteOperatorCue } from '../core/manualCues.mjs';
+import { insertManualCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue } from '../core/manualCues.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
@@ -609,6 +609,9 @@ function renderCueList({ resetScroll = false } = {}) {
 function render() {
   $('cueDeleteBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
   $('cueInsertBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueDuplicateBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueMoveUpBtn').disabled = !selectedCueId || show.cues.findIndex(c => c.id === selectedCueId) < 1;
+  $('cueMoveDownBtn').disabled = !selectedCueId || show.cues.findIndex(c => c.id === selectedCueId) >= show.cues.length - 1;
   const lines = parseScript(show.scriptText);
   if (!show.cues.some(cue => cue.id === selectedCueId)) selectedCueId = show.cues[0]?.id ?? null;
   if (!show.cues.some(cue => cue.id === editingCueId)) editingCueId = null;
@@ -1093,6 +1096,9 @@ function editCueSequence(fn) {
 }
 $('cueAddBtn').addEventListener('click', () => editCueSequence(() => insertManualCue(show)));
 $('cueInsertBtn').addEventListener('click', () => editCueSequence(() => insertManualCue(show,{afterCueId:selectedCueId})));
+$('cueDuplicateBtn').addEventListener('click', () => editCueSequence(() => duplicateOperatorCue(show,selectedCueId)));
+$('cueMoveUpBtn').addEventListener('click', () => editCueSequence(() => moveOperatorCue(show,selectedCueId,-1)));
+$('cueMoveDownBtn').addEventListener('click', () => editCueSequence(() => moveOperatorCue(show,selectedCueId,1)));
 $('cueDeleteBtn').addEventListener('click', () => {
   if (!selectedCueId || !window.confirm(t('cueEditor.confirmDelete'))) return;
   editCueSequence(() => deleteOperatorCue(show, selectedCueId));
