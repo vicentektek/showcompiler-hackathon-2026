@@ -23,6 +23,12 @@ node tools/run-baseten-seminar-eval.mjs --live --ack-paid --case <fixture-id> --
 node tools/compare-provider-seminar.mjs
 ```
 
+Equivalent offline package commands are `npm run qa:baseten:plan` and
+`npm run qa:compare-providers`. The paired command writes both
+`artifacts/seminar-compare/report.json` and a concise `report.md`.
+
 The comparison recalculates precision, recall, F1, invalid references, forbidden PLAY, wrong event types, duplicates, dimensions and semantic alternatives **on the intersection of fully completed cases only**. Without overlapping cases, the comparison explicitly says it is unavailable. The corpus gold requires human review, and no model quality certification is claimed.
+
+Sanitized request telemetry includes latency plus prompt, completion, reasoning and cached tokens when the provider returns them. Missing usage remains missing rather than being guessed. Baseten monetary cost remains unavailable until an authoritative price or dashboard charge is supplied.
 
 Your VS Code local environment is not accessible from this GitHub patch: no live Baseten/Meta calls have been executed by this PR. Avoid running Codex and OpenCode edits simultaneously in the same worktree.

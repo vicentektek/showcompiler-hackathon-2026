@@ -40,6 +40,8 @@ test('full dry-run grid makes no provider requests, creates only synthetic repor
   assert.equal(summary.runs.length,4);
   assert.equal(summary.analysis.completed,0);
   assert.equal(summary.analysis.comparisons.length,0);
+  assert.ok(summary.measurements.requests>0);
+  assert.equal(summary.measurements.tokens.prompt,0);
   const report=await readFile(join(folder,'summary.md'),'utf8');
   assert.match(report,/No matched pair/);
   assert.match(await readFile(join(folder,'codex-next-task.md'),'utf8'),/Never make Meta requests/);
@@ -62,10 +64,14 @@ test('typed event trace keeps only source reference and transport, not full mode
         sourceLineId:'L5',transport:'SILENCE',cueKind:'SILENCE',basis:'EXPLICIT',
       }],
       coverage:{analyzedWindowIds:['S1-W1'],nextWindowStart:null},
-      diagnostics:{finishReason:'stop',usage:{promptTokens:1000,completionTokens:2000}},
+      diagnostics:{finishReason:'stop',durationMs:321,
+        usage:{promptTokens:1000,completionTokens:2000,reasoningTokens:400,cachedPromptTokens:100}},
     }),
   });
   assert.equal(report.cases[0].eventTrace.length,4);
+  assert.equal(report.measurements.latencyMs.total,321);
+  assert.deepEqual(report.measurements.tokens,{requestsWithUsage:1,prompt:1000,
+    completion:2000,reasoning:400,cachedPrompt:100});
   assert.deepEqual(report.cases[0].eventTrace.find(x=>x.sourceLineId==='L5'),
     {sourceLineId:'L5',transport:'SILENCE',cueKind:'SILENCE',basis:'EXPLICIT'});
   const written=await readFile(join(dir,'sample','report.json'),'utf8');

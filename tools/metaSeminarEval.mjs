@@ -13,6 +13,7 @@ import { createNewShow } from '../src/core/workspace.mjs';
 import { prepareTheatricalCueAnalysis } from '../src/core/theatreCueAnalysis.mjs';
 import { callMetaCueModel } from '../src/core/metaCueProvider.mjs';
 import { evaluateStageEventCases, renderStageEventReport } from '../src/core/stageCueQa.mjs';
+import { summarizeEvaluationRequests } from './evalMeasurements.mjs';
 
 export const MUSE_STANDARD_PRICING=Object.freeze({inputPerMillion:1.25,cachedInputPerMillion:0.15,outputPerMillion:4.25});
 export const MAX_EXPERIMENT_BUDGET_USD=2;
@@ -181,6 +182,7 @@ export async function runMetaSeminarEval({
           allEvents.push(typedEvent(event));
         }
         requests.push({...lineInfo,status:'COMPLETED',finishReason:result.diagnostics?.finishReason,
+          durationMs:result.diagnostics?.durationMs,
           usage:usage??null,estimatedActualUsd:billed,
           recognizedEvents:result.details.length+result.observations.length,
           omittedExplicitPrefixReviewFlags:result.independentReview?.totalUnreviewed??null});
@@ -209,6 +211,7 @@ export async function runMetaSeminarEval({
     evaluateStageEventCases({version:1,provenance:corpus.provenance,
       cases:scored},{version:1,provenance:'LOCAL_LIVE_META_CAPTURE_NOT_HUMAN_VERIFIED',
         predictionsByCase}):null;
+  const measurements=summarizeEvaluationRequests(cases);
   const report={
     kind:live?'LOCAL_LIVE_META_EXPERIMENT':'OFFLINE_META_REQUEST_PLAN',
     realInferenceExecuted:live&&authorizations>0,
@@ -220,7 +223,7 @@ export async function runMetaSeminarEval({
     conservativeReservedUsd:spentReserveUsd,
     observedUsageEstimatedUsd:live?estimatedActualUsd:null,
     haltReason,corpus:corpus.corpus,
-    cases,score:score?score.summary:null,
+    cases,score:score?score.summary:null,measurements,
     scoredCases:scored.length,
     note:'Budget is per-run software preflight only, not a guaranteed provider-side billing cap. Human-review gold before claims about Muse.',
   };
