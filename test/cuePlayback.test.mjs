@@ -78,7 +78,7 @@ test('manual GO executes trim, delayed start and real fade-in and end fade-out',
   await x.engine.go(x.cue({gainDb:-6,fadeInMs:500,fadeOutMs:900,startDelayMs:1200}));
   const at=6.22;
   assert.equal(x.sources[0].startTime,at);
-  assert.ok(Math.abs(x.gains[0].gain.value-0)<1e-9);
+  assert.ok(x.actions.some(a=>a[0]==='setGain'&&a[1]===0&&Math.abs(a[2]-at)<1e-9));
   assert.ok(x.actions.some(a=>a[0]==='ramp'&&Math.abs(a[1]-0.5*10**(-6/20))<1e-9&&Math.abs(a[2]-(at+0.5))<1e-9));
   assert.ok(x.actions.some(a=>a[0]==='ramp'&&a[1]===0&&Math.abs(a[2]-(at+3))<1e-9));
   x.sources[0].end();
