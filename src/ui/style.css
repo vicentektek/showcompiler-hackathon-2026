@@ -332,3 +332,5 @@ main{padding:24px 26px 34px}
 .cue-create-actions #cueDeleteBtn:hover:not(:disabled){background:#5b2e3c}
 .cue-create-actions .btn:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:850px){.cue-create-actions{width:100%}.cue-create-actions .btn{flex:1 1 auto}}
+
+.shell[data-active-workspace="operation"] .cue-create-actions{display:none!important}
