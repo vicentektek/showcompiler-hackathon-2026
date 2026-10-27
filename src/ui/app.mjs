@@ -407,9 +407,10 @@ function cueDetailsEditor(cue) {
   save.type = 'submit';
   const cancel = node('button', 'btn subtle small', t('cue.cancelDetails'));
   cancel.type = 'button';
-  cancel.addEventListener('click', () => { editingCueId = null; render(); });
+  cancel.addEventListener('click', () => { inspectorPendingChanges = false; editingCueId = null; render(); });
   controls.append(save, cancel);
   form.append(labelCaption, triggerCaption, notesCaption, controls);
+  form.addEventListener('input', () => { inspectorPendingChanges = true; });
   form.addEventListener('submit', event => {
     event.preventDefault();
     try {
@@ -417,6 +418,7 @@ function cueDetailsEditor(cue) {
         label: labelInput.value, trigger: triggerInput.value, notes: notesInput.value,
       });
       dirty = true;
+      inspectorPendingChanges = false;
       editingCueId = null;
       render();
       feedback('status.cueDetailsSaved', { number: cue.number }, 'success');
@@ -737,26 +739,6 @@ function cuePlaybackEditor(cue) {
   loop.checked = settings.loop;
   loopLabel.append(loop, node('span', '', t('audioProps.loop')));
   form.append(loopLabel);
-  const others = show.cues.filter(item => item.id !== cue.id);
-  let stopTargets = null;
-  if (others.length) {
-    stopTargets = node('fieldset', 'cue-stop-targets');
-    stopTargets.append(node('legend', '', t('audioProps.stopTargets')));
-    stopTargets.append(node('p', 'caption', t('audioProps.stopTargetsHelp')));
-    const choices = node('div', 'cue-stop-options');
-    for (const item of others) {
-      const label = node('label', 'cue-stop-option');
-      const check = node('input');
-      check.type = 'checkbox';
-      check.value = item.id;
-      check.checked = (cue.automation?.stopCueIds ?? []).includes(item.id);
-      check.dataset.stopTarget = item.id;
-      label.append(check, node('span', '', item.number + ' · ' + item.label));
-      choices.append(label);
-    }
-    stopTargets.append(choices);
-    form.append(stopTargets);
-  }
   function syncLoop() {
     if (loop.checked) {
       repeats.value = '1';
@@ -771,6 +753,8 @@ function cuePlaybackEditor(cue) {
   const save = node('button', 'btn primary small', t('audioProps.save'));
   save.type = 'submit';
   form.append(save);
+  form.addEventListener('input', () => { inspectorPendingChanges = true; });
+  form.addEventListener('change', () => { inspectorPendingChanges = true; });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = { loop: loop.checked };
@@ -779,12 +763,8 @@ function cuePlaybackEditor(cue) {
     }
     if (loop.checked) { next.repeatCount = 1; next.fadeOutMs = 0; }
     try {
-      let staged = updateCuePlayback(show, cue.id, next);
-      if (stopTargets) {
-        const stopCueIds = [...stopTargets.querySelectorAll('input:checked')].map(input => input.value);
-        staged = updateCueAutomation(staged, cue.id, { stopCueIds });
-      }
-      show = staged; // Commit atomically only after both validators pass.
+      show = updateCuePlayback(show, cue.id, next);
+      inspectorPendingChanges = false;
       dirty = true;
       render();
       feedback('audioProps.saved', { number: cue.number }, 'success');
