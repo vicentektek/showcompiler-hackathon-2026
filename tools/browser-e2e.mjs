@@ -122,6 +122,7 @@ try {
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
+  assert.match(await page.locator('#operatorEffectSummary').innerText(), /STOP \/ FADE: 1/);
   const stopsBeforeTarget = await page.evaluate(()=>window.__testAudioStops);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(stops=>window.__testAudioStops>stops,stopsBeforeTarget);
