@@ -261,3 +261,45 @@ test('sound-design modes preserve bounded request scope while separating optiona
   assert.throws(() => prepareTheatricalCueAnalysis(show, { designMode:'autoplay' }), TypeError);
   assert.throws(() => prepareTheatricalCueAnalysis(show, { designMode:123 }), TypeError);
 });
+
+
+test('a two-scene 90-line sound-heavy play is analyzed over two explicit requests', () => {
+  const lines = Array.from({ length: 90 }, (_, i) =>
+    i === 0 ? 'PROTOCOLO SUBMARINO' :
+    i === 8 ? 'ESCENA 1 — SEÑAL' :
+    i === 47 ? 'ESCENA 2 — RESPUESTA' :
+    i === 9 ? '[Un pulso electrónico se repite cada cuatro segundos.]' :
+    i === 15 ? '[Señal breve de radio entre pulsos.]' :
+    i === 33 ? '[Tres golpes sordos al fondo.]' :
+    i === 52 ? '[Se oyen tres tonos de alarma.]' :
+    i === 75 ? '[La alarma se silencia.]' :
+    i === 89 ? '[El pulso termina en negro.]' : 'PERSONAJE: Frase neutra ' + (i+1) + '.'
+  );
+  const scriptText = lines.join('\n');
+  const source = project(scriptText);
+  const one = prepareTheatricalCueAnalysis(source, { windowStart: 0, scriptLanguage: 'es', performanceKind: 'play' });
+  const two = prepareTheatricalCueAnalysis(source, { windowStart: 1, scriptLanguage: 'es', performanceKind: 'play' });
+  assert.equal(one.coverage.totalLines, 90);
+  assert.equal(one.coverage.totalWindows, 2);
+  assert.equal(one.coverage.batchEndWindowExclusive, 1);
+  assert.equal(one.coverage.nextWindowStart, 1);
+  assert.equal(one.coverage.complete, false);
+  assert.equal(two.coverage.batchEndWindowExclusive, 2);
+  assert.equal(two.coverage.complete, true);
+  assert.equal(two.coverage.nextWindowStart, null);
+  assert.equal(one.request.max_completion_tokens, 8192);
+  assert.equal(two.request.max_completion_tokens, 8192);
+  assert.equal(one.request.reasoning_effort, 'low');
+  assert.equal(two.request.reasoning_effort, 'low');
+  assert.equal(one.request.response_format.json_schema.schema.properties.proposals.maxItems, 8);
+  assert.equal(one.coverage.analyzedLines + two.coverage.analyzedLines, 90);
+  assert.equal(new Set([...one.coverage.analyzedLineIds, ...two.coverage.analyzedLineIds]).size, 90);
+  assert.equal(source.scriptText, scriptText);
+  const payload1 = JSON.parse(one.request.messages[1].content);
+  const payload2 = JSON.parse(two.request.messages[1].content);
+  assert.equal(payload1.batch.windows.length, 1);
+  assert.equal(payload2.batch.windows.length, 1);
+  assert.equal(payload1.batch.windows[0].coreLines.some(line=>line.text.includes('pulso electrónico')),true);
+  assert.equal(payload2.batch.windows[0].coreLines.some(line=>line.text.includes('alarma')),true);
+  assert.notEqual(payload1.batch.windows[0].windowId, payload2.batch.windows[0].windowId);
+});
