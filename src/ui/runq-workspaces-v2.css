@@ -370,3 +370,26 @@
   .runq-audio-metrics{grid-template-columns:repeat(2,1fr)}
   .runq-audio-metric.output{grid-column:1/-1}
 }
+
+
+/* Short desktop windows keep the inspector genuinely usable, not just the transport. */
+@media(max-height:700px) and (min-width:801px){
+  .shell[data-active-workspace="cues"] .workspace-intro{display:none}
+  .shell[data-active-workspace="cues"] .layout>.panel[data-workspaces~="cues"]>.panel-head{display:none}
+  .shell[data-active-workspace="cues"] main{padding-top:8px;padding-bottom:9px}
+  .shell[data-active-workspace="cues"] .operator-queue{
+    min-height:57px;padding:6px 9px!important;margin-bottom:5px!important;
+  }
+  .shell[data-active-workspace="cues"] .operator-queue-controls #operatorGoBtn,
+  .shell[data-active-workspace="cues"] .operator-queue-controls #operatorPanicBtn{min-height:37px}
+  .shell[data-active-workspace="cues"] .operator-queue-controls #operatorBackBtn,
+  .shell[data-active-workspace="cues"] .operator-queue-controls #operatorSkipBtn,
+  .shell[data-active-workspace="cues"] .operator-queue-controls #operatorResetBtn{min-height:19px;font-size:9px}
+  .shell[data-active-workspace="cues"] .runq-editor-toolbar{
+    min-height:34px;padding:1px 0 5px;margin-bottom:4px;
+  }
+  .shell[data-active-workspace="cues"] .cue-filter-bar{min-height:30px;margin-bottom:3px}
+  .shell[data-active-workspace="cues"] .runq-cue-columns{padding:5px 13px}
+  .shell[data-active-workspace="cues"] .cue-inspector{padding-top:9px}
+  .shell[data-active-workspace="cues"] .cue-inspector-tabs{top:-9px}
+}
