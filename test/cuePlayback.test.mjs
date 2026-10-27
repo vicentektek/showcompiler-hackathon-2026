@@ -16,13 +16,19 @@ function audioFixture() {
   const actions = [];
   const sources = [];
   const gains = [];
+  const panners = [];
   const ctx = {
     currentTime: 5, state: 'running', destination: {},
     resume: async () => {}, decodeAudioData: async () => ({ duration: 3, numberOfChannels: 1 }),
+    createStereoPanner() {
+      const panner = { pan: { value:0 }, connect(){}, disconnect(){} };
+      panners.push(panner);
+      return panner;
+    },
     createBufferSource() {
-      const source = { buffer:null, loop:false, onended:null,
+      const source = { buffer:null, loop:false, playbackRate:{value:1}, onended:null,
         connect() {}, disconnect() {},
-        start(t) { actions.push(['start',t]); source.startTime=t; },
+        start(t, offset=0) { actions.push(['start',t,offset]); source.startTime=t; source.startOffset=offset; },
         stop(t) { actions.push(['stop',t]); source.stopTime=t; },
         end() { source.onended?.(); },
       };
@@ -43,7 +49,7 @@ function audioFixture() {
   const file = { name:'sound.wav',size:1000,arrayBuffer:async()=>new ArrayBuffer(1000) };
   const cue = (settings)=>({id:'cue-1',status:'DRAFT',actions:[{type:'PLAY',assetId:'asset-1'}],
     ...(settings===undefined?{}:{playback:settings})});
-  return { engine,ctx,actions,sources,gains,ended,file,cue };
+  return { engine,ctx,actions,sources,gains,panners,ended,file,cue };
 }
 
 test('strict settings keep legacy levels and reject dangerous or ambiguous combinations', () => {
@@ -53,6 +59,8 @@ test('strict settings keep legacy levels and reject dangerous or ambiguous combi
     { repeatCount:21 }, { loop:true,repeatCount:2 }, { loop:true,fadeOutMs:100 },
     { fadeInMs:10001 }, { fadeOutMs:-1 }, { startDelayMs:1.1 },
     { unauthorized:true }, { __protoKey__:true },
+    { startAtMs:600001 }, { playbackRate:3 }, { playbackRate:0.1 },
+    { pan:-1.1 }, { pan:1.1 },
   ]) assert.throws(()=>normalizeCuePlayback(v),/Invalid cue playback/);
 });
 
@@ -122,4 +130,22 @@ test('emergency stop silences a scheduled delayed cue before its future start', 
   assert.equal(x.sources[0].stopTime,5);
   x.sources[0].end();
   assert.deepEqual(x.ended,[]);
+});
+
+test('manual GO executes trim from file offset, speed and stereo pan with accurate repeat boundary', async () => {
+  const x=audioFixture();
+  await x.engine.loadFile(x.file,'asset-1');
+  await x.engine.go(x.cue({startAtMs:500,playbackRate:2,pan:-0.4,repeatCount:2}));
+  assert.equal(x.sources[0].startTime,5.02);
+  assert.equal(x.sources[0].startOffset,0.5);
+  assert.equal(x.sources[0].playbackRate.value,2);
+  assert.equal(x.panners[0].pan.value,-0.4);
+  assert.equal(x.sources[0].stopTime,7.77);
+  x.engine.stopAll();
+});
+test('rejects offset at or beyond decoded file boundary before starting audio', async () => {
+  const x=audioFixture();
+  await x.engine.loadFile(x.file,'asset-1');
+  await assert.rejects(x.engine.go(x.cue({startAtMs:3000})),/dentro de cada archivo/);
+  assert.equal(x.sources.length,0);
 });
