@@ -90,6 +90,14 @@ try {
     throw error;
   }
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  assert.equal(await page.locator('#runqEditorToolbar').count(), 1);
+  assert.equal(await page.locator('#cueList .cue-row-index').count(), 3);
+  assert.equal(await page.locator('.runq-cue-columns').count(), 1);
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'compact');
+  await page.locator('#runqCueDensity').selectOption('standard');
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'standard');
+  await page.locator('#runqCueDensity').selectOption('compact');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts), 0);
   const workspaceStates = await page.locator('[data-workspace-nav]').evaluateAll(buttons =>
     buttons.map(button => ({ name: button.dataset.workspaceNav,
       pressed: button.getAttribute('aria-pressed'), current: button.classList.contains('is-current') })));
@@ -104,6 +112,10 @@ try {
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'true');
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
+  assert.equal(await page.locator('#runqAudioOverview').count(), 1);
+  assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
+  assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
+  await capture('05-audio-1366.png');
   await page.locator('[data-workspace-nav="setup"]').click();
   assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
   await page.locator('[data-workspace-nav="cues"]').click();
@@ -141,6 +153,8 @@ try {
   assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
+  assert.equal(await page.locator('#runqScriptContext').count(), 1);
+  await capture('06-script-1366.png');
   await page.locator('[data-workspace-nav="operation"]').click();
   await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
@@ -220,6 +234,9 @@ try {
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
   assert.equal(await page.locator('.runq-menu').first().locator('summary').innerText(),'Archivo');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('#runqAudioOverview .runq-audio-introduction strong').innerText(),'Espacio de recursos');
+  await page.locator('[data-workspace-nav="operation"]').click();
   await page.setViewportSize({ width: 1093, height: 614 });
   await capture('04-operation-1093.png');
   assert.deepEqual(scriptErrors, []);
