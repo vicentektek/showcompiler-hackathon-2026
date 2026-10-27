@@ -16,6 +16,15 @@ jobs:
           node-version: '22'
       - run: npm run check:syntax
       - run: npm test
+      - name: Offline cue event QA (synthetic illustrative predictions; no providers)
+        run: npm run qa:cues
+      - name: Upload cue QA report for developer and Codex review
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-offline-cue-qa
+          path: artifacts/cue-qa/report.*
+          if-no-files-found: error
+          retention-days: 14
       - name: Build original demo with three real WAV cues
         run: npm run demo:package
       - name: Verify standard ZIP format independently
