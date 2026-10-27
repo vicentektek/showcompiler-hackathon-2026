@@ -77,6 +77,16 @@ try {
   await page.locator('[data-workspace-nav="setup"]').click();
   assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
   await page.locator('[data-workspace-nav="cues"]').click();
+  // Real cue-editor settings never execute audio merely by being saved.
+  const inspector = page.locator('#cuePlaybackForm');
+  assert.equal(await inspector.count(), 1);
+  await inspector.locator('[name="gainDb"]').fill('-9');
+  await inspector.locator('[name="fadeInMs"]').fill('250');
+  await inspector.locator('[name="fadeOutMs"]').fill('500');
+  await inspector.locator('[name="startDelayMs"]').fill('400');
+  await inspector.getByRole('button', {name:'Save playback settings'}).click();
+  assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
   // Moving to a different cue is deliberate, and never triggers audio.
   await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
@@ -100,7 +110,8 @@ try {
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
-  await page.locator('#stopAllBtn').click();
+  assert.equal(await page.locator('#operatorPanicBtn').isEnabled(), true);
+  await page.locator('#operatorPanicBtn').click();
   await page.waitForFunction(() => window.__testAudioStops >= 1);
   const downloadWait = page.waitForEvent('download');
   await page.locator('#saveBundleBtn').click();
@@ -118,10 +129,13 @@ try {
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), startsBeforeZipOpen);
+  await page.locator('[data-workspace-nav="cues"]').click();
+  assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
+  await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
   const directStop = page.locator('[data-cue-action="stop"]').first();
   assert.equal((await directStop.isDisabled()), true);
-  assert.equal((await page.locator('#stopAllBtn').isDisabled()), true);
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
   const startsBeforeDirectGo = await page.evaluate(() => window.__testAudioStarts);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(starts => window.__testAudioStarts > starts, startsBeforeDirectGo);
@@ -129,7 +143,7 @@ try {
   assert.equal((await directStop.isEnabled()), true);
   assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
   await directStop.click();
-  assert.equal((await page.locator('#stopAllBtn').isDisabled()), true);
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
   const beforeCorrupt = await page.evaluate(() => ({
     name: document.querySelector('#showName')?.value,
     script: document.querySelector('#scriptPreview')?.textContent,
