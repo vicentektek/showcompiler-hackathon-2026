@@ -38,3 +38,22 @@ test('UI branding keeps original project/runtime identifiers unchanged', async (
   assert.match(html, /id="uiLocaleSelect"/);
   assert.match(html, /id="saveBundleBtn"/);
 });
+
+test('RunQ workspace v2 keeps dense editor and library independent of execution', async () => {
+  const [html, server, css, enhancement] = await Promise.all([
+    read('index.html'),read('tools/dev-server.mjs'),
+    read('src/ui/runq-workspaces-v2.css'),read('src/ui/runq-workspaces-v2.mjs')
+  ]);
+  assert.match(html,/runq-workspaces-v2\.css/);
+  assert.match(html,/runq-workspaces-v2\.mjs/);
+  assert.match(server,/runq-workspaces-v2\.css/);
+  assert.match(server,/runq-workspaces-v2\.mjs/);
+  assert.match(css,/runq-cue-columns/);
+  assert.match(css,/runq-audio-overview/);
+  assert.match(css,/data-cue-density="standard"/);
+  assert.match(enhancement,/function createAudioEnhancements/);
+  assert.match(enhancement,/function createEditorEnhancements/);
+  assert.match(enhancement,/function translateEnhancements/);
+  assert.doesNotMatch(enhancement,/operatorGoBtn|operatorPanicBtn|\.go\(|\.play\(/);
+  assert.match(enhancement,/MutationObserver\(updateCounts\)/);
+});

@@ -90,6 +90,14 @@ try {
     throw error;
   }
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  assert.equal(await page.locator('#runqEditorToolbar').count(), 1);
+  assert.equal(await page.locator('#cueList .cue-row-index').count(), 3);
+  assert.equal(await page.locator('.runq-cue-columns').count(), 1);
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'compact');
+  await page.locator('#runqCueDensity').selectOption('standard');
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'standard');
+  await page.locator('#runqCueDensity').selectOption('compact');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts), 0);
   const workspaceStates = await page.locator('[data-workspace-nav]').evaluateAll(buttons =>
     buttons.map(button => ({ name: button.dataset.workspaceNav,
       pressed: button.getAttribute('aria-pressed'), current: button.classList.contains('is-current') })));
@@ -98,12 +106,39 @@ try {
   assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
     'Exactly one workspace should carry the current class');
   await capture('02-editor-1366.png');
+  const readEditorGeometry = () => page.evaluate(() => {
+    const left=document.getElementById('cueList').getBoundingClientRect();
+    const right=document.getElementById('cueInspector').getBoundingClientRect();
+    const go=document.getElementById('operatorGoBtn').getBoundingClientRect();
+    const stop=document.getElementById('operatorPanicBtn').getBoundingClientRect();
+    return {left:{x:left.x,right:left.right,width:left.width},right:{x:right.x,width:right.width},
+      go:{top:go.top,bottom:go.bottom},stop:{top:stop.top,bottom:stop.bottom}};
+  });
+  const editorGeometry = await readEditorGeometry();
+  assert.ok(editorGeometry.right.x >= editorGeometry.left.right-2, 'Inspector is right of cue list, not a third-row item');
+  assert.ok(editorGeometry.left.width >= 280 && editorGeometry.right.width >= 250, 'Both panes remain usable');
+  await page.setViewportSize({width:1093,height:614});
+  await capture('07-editor-1093.png');
+  const compactGeometry=await readEditorGeometry();
+  assert.ok(compactGeometry.right.x >= compactGeometry.left.right-2,'Compact inspector stays next to cue list');
+  assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
+    'Compact GO and STOP ALL remain visible without scrolling');
+  const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
+  assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
+    'Compact inspector must show real editable audio settings without page scroll');
+  await page.setViewportSize({width:1366,height:768});
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'true');
   await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('[data-workspace-nav="audio"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
   assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
+  assert.equal(await page.locator('#runqAudioOverview').count(), 1);
+  assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
+  assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
+  await capture('05-audio-1366.png');
   await page.locator('[data-workspace-nav="setup"]').click();
   assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
   await page.locator('[data-workspace-nav="cues"]').click();
@@ -123,24 +158,31 @@ try {
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
   // Moving to a different cue is deliberate, and never triggers audio.
+  await page.locator('[data-workspace-nav="operation"]').click();
   await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   await page.locator('#operatorBackBtn').click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('[data-workspace-nav="cues"]').click();
   await page.locator('#cueSearchInput').fill('nonexistent-cue-xyz');
   assert.equal(await page.locator('#cueList .cue-item').count(), 0);
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   await page.locator('#cueSearchInput').fill('');
   assert.equal(await page.locator('#cueList .cue-item').count(), 3);
-  await page.getByRole('button', { name: 'Inspect', exact: true }).nth(1).click();
+  await page.locator('#cueList [data-cue-select]').nth(1).click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
-  await page.locator('#cuePlaybackForm [data-stop-target="cue-1"]').check();
-  await page.locator('#cuePlaybackForm').getByRole('button',{name:'Save playback settings'}).click();
-  assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
+  await page.locator('#cueInspector [data-inspector-tab="actions"]').click();
+  await page.locator('#cueTargetStopForm [data-stop-target="cue-1"]').check();
+  await page.locator('#cueTargetStopForm').getByRole('button',{name:'Save target actions'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Target-stop actions saved/);
   await page.locator('[data-workspace-nav="script"]').click();
+  assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
+  assert.equal(await page.locator('#runqScriptContext').count(), 1);
+  await capture('06-script-1366.png');
   await page.locator('[data-workspace-nav="operation"]').click();
   await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
@@ -181,7 +223,8 @@ try {
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), startsBeforeZipOpen);
   await page.locator('[data-workspace-nav="cues"]').click();
-  await page.getByRole('button', {name:'Inspect',exact:true}).nth(editedCueIndex).click();
+  await page.locator('#cueList [data-cue-select]').nth(editedCueIndex).click();
+  await page.locator('#cueInspector [data-inspector-tab="audio"]').click();
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
   await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
@@ -220,6 +263,9 @@ try {
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
   assert.equal(await page.locator('.runq-menu').first().locator('summary').innerText(),'Archivo');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('#runqAudioOverview .runq-audio-introduction strong').innerText(),'Espacio de recursos');
+  await page.locator('[data-workspace-nav="operation"]').click();
   await page.setViewportSize({ width: 1093, height: 614 });
   await capture('04-operation-1093.png');
   assert.deepEqual(scriptErrors, []);
