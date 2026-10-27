@@ -352,7 +352,7 @@ function applyMetaIndependentReview(value, coverage) {
       !Number.isSafeInteger(value.totalUnreviewed) ||
       value.totalUnreviewed < value.reviewFlags.length ||
       value.totalUnreviewed > coverage.analyzedLines ||
-      value.reviewFlags.some(id => typeof id !== 'string' || !/^L[1-9]\\d*$/.test(id) || !allowed.has(id)) ||
+      value.reviewFlags.some(id => typeof id !== 'string' || !/^L[1-9]\d*$/.test(id) || !allowed.has(id)) ||
       new Set(value.reviewFlags).size !== value.reviewFlags.length) {
     throw uiError('errors.metaResponse');
   }
