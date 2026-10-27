@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal} from '../src/core/workspace.mjs';
-import {insertManualCue,deleteOperatorCue} from '../src/core/manualCues.mjs';
+import {insertManualCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue} from '../src/core/manualCues.mjs';
 import {serializeShowProject,deserializeShowProject} from '../src/core/projectPersistence.mjs';
 
 test('new show allows manual cues without script, proposals or Meta permission',()=>{
@@ -42,4 +42,20 @@ test('invalid cue positions and missing delete IDs are rejected',()=>{
   const show=createNewShow();
   assert.throws(()=>insertManualCue(show,{afterCueId:'bad'}),/position/);
   assert.throws(()=>deleteOperatorCue(show,'missing'),/not found/);
+});
+
+test('duplicate copies operator cue without creating synthetic AI approval; move up/down preserves identity',()=>{
+  let show=createNewShow({id:'manual-sequence'});
+  const first=insertManualCue(show,{label:'Ambient'});show=first.project;
+  const second=insertManualCue(show,{label:'Door'});show=second.project;
+  const duplicate=duplicateOperatorCue(show,first.cueId);show=duplicate.project;
+  assert.deepEqual(show.cues.map(c=>c.label),['Ambient','Ambient copy','Door']);
+  assert.equal(show.cues[1].origin,'MANUAL');
+  assert.equal(show.proposals.length,0);
+  show=moveOperatorCue(show,second.cueId,-1);
+  assert.deepEqual(show.cues.map(c=>c.label),['Ambient','Door','Ambient copy']);
+  assert.deepEqual(show.cues.map(c=>c.number),[1,2,3]);
+  assert.deepEqual(deserializeShowProject(serializeShowProject(show)),show);
+  assert.deepEqual(moveOperatorCue(show,first.cueId,-1),show);
+  assert.throws(()=>moveOperatorCue(show,first.cueId,5),/move direction/);
 });
