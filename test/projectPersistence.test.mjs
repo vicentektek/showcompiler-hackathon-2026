@@ -99,3 +99,21 @@ test('rejects script and cue count limits', () => {
   rejected(s => { s.scriptText = 'A'.repeat(500_001); });
   rejected(s => { s.cues[0].number = 10001; });
 });
+
+test('optional automation settings survive v1 JSON roundtrip without changing legacy shows', () => {
+  const legacy = show();
+  assert.deepEqual(deserializeShowProject(serializeShowProject(legacy)), legacy);
+  const updated = show();
+  updated.cues[0].automation = { mode: 'MANUAL', fadeInMs: 700, fadeOutMs: 1200, loop: true };
+  const restored = deserializeShowProject(serializeShowProject(updated));
+  assert.deepEqual(restored.cues[0].automation, {
+    mode: 'MANUAL', delayMs: 0, fadeInMs: 700, fadeOutMs: 1200, loop: true, stopCueIds: [],
+  });
+});
+test('rejects malformed automation and references to missing cues', () => {
+  rejected(s => { s.cues[0].automation = { fadeInMs: -1 }; });
+  rejected(s => { s.cues[0].automation = { stopCueIds: ['not-in-show'] }; });
+  rejected(s => { s.cues[0].automation = { stopCueIds: ['cue-1'] }; });
+  rejected(s => { s.cues[0].automation = { mode: 'AUTO_CONTINUE', delayMs: 100 }; });
+  rejected(s => { s.cues[0].automation = { mode: 'MANUAL', unknown: true }; });
+});
