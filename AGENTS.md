@@ -41,3 +41,8 @@ This is a hackathon-specific, dependency-light browser prototype for script-link
 ## Offline theatre cue QA (opt-in coding workflow)
 
 For tasks about cue precision, consult `docs/CODEX_CUE_QA_LOOP.md`, run `npm run qa:cues`, and inspect `artifacts/cue-qa/report.md`. Default fixtures and predictions are illustrative and **do not measure the Meta model**. Treat `artifacts/cue-qa/` as private/local output: never commit it. A successful CI report verifies the evaluator pipeline only. Change one variable per iteration, require a regression test, review all cue behavior with a human, never run billable model calls or merge unrequested work.
+
+
+## Automated Codex regression gate (Meta-inspired independent review)
+
+For coding/QA tasks on cue interpretation, read `docs/CODEX_AUTOMATED_TEST_PLAN_2026-10-27.md`, and run `npm run qa:codex` before reporting completion. The command performs only offline syntax, unit/integration regression tests and synthetic cue-event QA; it writes `artifacts/codex-qa/summary.md` and `artifacts/cue-qa/report.md` for local review. These reports explicitly DO NOT measure Muse accuracy. The independent audio review is heuristic; showing a source-line warning must never auto-create, approve or trigger playback. GitHub CI runs the same gate for PRs. No secret access, billable requests, automatic main merges or claims of professional live certification.
