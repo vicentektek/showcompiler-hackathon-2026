@@ -154,3 +154,6 @@ demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
 
 # Reports may be generated from user-private material; never commit local reports.
 artifacts/cue-qa/
+
+# Offline original-theatre-script QA report; do not commit local runs or private captures.
+artifacts/stage-script-qa/
