@@ -18,7 +18,9 @@
     "qa:meta:live": "node tools/run-meta-seminar-eval.mjs --live --ack-paid --budget-usd 2 --max-requests 13 --mode literal",
     "qa:systematic": "node tools/runq-systematic-lab.mjs",
     "qa:baseten:plan": "node tools/run-baseten-seminar-eval.mjs",
-    "qa:compare-providers": "node tools/compare-provider-seminar.mjs"
+    "qa:compare-providers": "node tools/compare-provider-seminar.mjs",
+    "qa:three-case:plan": "node tools/threeCaseQualityLab.mjs",
+    "qa:three-case:review": "node tools/threeCaseQualityLab.mjs --review"
   },
   "engines": {
     "node": ">=20"
