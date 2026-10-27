@@ -3,6 +3,7 @@ import { parseScript } from './script.mjs';
 import { validateCueProposals } from './proposals.mjs';
 import { reviewCueProposal } from './review.mjs';
 import { normalizeShowProject, PROJECT_SCHEMA_VERSION } from './projectPersistence.mjs';
+import { normalizeCuePlayback } from './cuePlayback.mjs';
 
 export function createNewShow({ id = 'show-1', name = 'Nuevo espectáculo', scriptText = '' } = {}) {
   return normalizeShowProject({
@@ -180,6 +181,26 @@ export function updateCueOperatorDetails(project, cueId, { label, trigger = '', 
   return normalizeShowProject({
     ...current,
     cues: current.cues.map(item => item.id === cueId ? updated : item),
+  });
+}
+
+/**
+ * Save operator playback settings separately from evidence/proposals.
+ * Only committed GO reads these settings; editing never plays sound.
+ */
+export function updateCuePlayback(project, cueId, changes) {
+  const current = normalizeShowProject(project);
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || cue.status !== 'DRAFT' || !cue.actions.some(a => a.type === 'PLAY')) {
+    throw new TypeError('Cue must contain playable audio');
+  }
+  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) {
+    throw new TypeError('Playback changes must be an object');
+  }
+  const playback = normalizeCuePlayback({ ...(cue.playback ?? {}), ...changes });
+  return normalizeShowProject({
+    ...current,
+    cues: current.cues.map(item => item.id === cueId ? { ...item, playback } : item),
   });
 }
 
