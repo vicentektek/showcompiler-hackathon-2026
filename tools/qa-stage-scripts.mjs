@@ -41,7 +41,7 @@ function arrayEqual(left,right) {
   return left.length===right.length && left.every((x,i)=>x===right[i]);
 }
 function mapEvent(e) {
-  return {sourceLineId:e.lineId,transport:e.transport,cueKind:e.cueKind,basis:e.basis};
+  return {sourceLineId:e.sourceLineId ?? e.lineId,transport:e.transport,cueKind:e.cueKind,basis:e.basis};
 }
 function makeFakeProposal(gold,core,windowId) {
   const originalLine=core.find(x=>x.id===gold.lineId);
