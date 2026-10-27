@@ -213,6 +213,21 @@ try {
   await page.locator('#uiLocaleSelect').selectOption('es');
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
+  // Independent manual show authoring: no AI, no script and no permission.
+  await page.locator('[data-workspace-nav="home"]').click();
+  await page.locator('#homeNewBtn').click();
+  await page.locator('[data-workspace-nav="cues"]').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),0);
+  await page.locator('#cueAddBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),1);
+  assert.equal(await page.locator('#cuesCount').innerText(),'1');
+  await page.locator('#cueInsertBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),2);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),startsBeforeDirectGo+2);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#cueDeleteBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),1);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), '1 · New cue');
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();
