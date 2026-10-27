@@ -43,9 +43,9 @@ test('all gold source spans are covered by exactly one model core window, withou
   assert.equal(report.totals.scripts,9);
   assert.equal(report.totals.expectedEvents,49);
   assert.equal(report.totals.forbiddenPlay,43);
-  assert.equal(report.totals.windows,10);
+  assert.equal(report.totals.windows,13);
   assert.ok(report.cases.find(c=>c.id==='umbra-long').windowCount>1);
-  assert.ok(report.cases.find(c=>c.id==='delta-signal').windowCount===1);
+  assert.ok(report.cases.find(c=>c.id==='delta-signal').windowCount===2);
   assert.ok(report.cases.every(c=>c.windows.every(w=>w.outputTokenBudget===8192)));
   assert.ok(report.cases.every(c=>c.windows.every(w=>w.maximumSuggestionItems===8)));
 });
@@ -105,7 +105,7 @@ test('reserve is conservative and usage pricing distinguishes cached input token
   assert.throws(()=>estimateMetaRequestReserve({...p.request,model:'muse-spark-1.3-contributor'}),TypeError);
 });
 
-test('default dry-run plans all 10 windows without key, billing, fetch or model calls',async t=>{
+test('default dry-run plans all 13 windows without key, billing, fetch or model calls',async t=>{
   let calls=0;
   const report=await runMetaSeminarEval({output:await tempOutput(t),
     modelCaller:async()=>{calls++;throw Error('SHOULD_NOT_CALL')},
@@ -113,7 +113,7 @@ test('default dry-run plans all 10 windows without key, billing, fetch or model 
   assert.equal(calls,0);
   assert.equal(report.realInferenceExecuted,false);
   assert.equal(report.submittedRequests,0);
-  assert.equal(report.plannedRequests,10);
+  assert.equal(report.plannedRequests,13);
   assert.equal(report.scoredCases,0);
   assert.equal(report.conservativeReservedUsd<2,true);
   assert.equal(report.cases.length,9);
