@@ -27,7 +27,7 @@ The implementation sends one `POST` to `https://api.meta.ai/v1/chat/completions`
 - one high-precedence `developer` instruction and one `user` data message;
 - Chat Completions `response_format.type: "json_schema"`, not the Responses API `text.format` shape;
 - `json_schema.strict: true`, every object using `additionalProperties: false`, and every property listed as required;
-- `reasoning_effort: "low"`, `max_completion_tokens: 4096`, `stream: false`, and explicit `store: false`;
+- `reasoning_effort: "low"`, `max_completion_tokens: 8192` for theatre analysis (legacy smoke: 4096), `stream: false`, and explicit `store: false`;
 - no unsupported reasoning-model parameters and no client-controlled endpoint;
 - at most one fetch attempt and no automatic retry.
 
@@ -55,7 +55,7 @@ The browser may receive a local correlation ID, phase, stable code, upstream sta
 
 The deterministic parser first creates stable source lines and conservative scene boundaries. A long scene is split into windows of 60 core lines with up to three preceding and following lines as read-only context. Every source line belongs to exactly one core window, so coverage is reproducible and context overlap cannot silently create a second authoritative location.
 
-One explicit UI confirmation authorizes **one** external Meta request containing at most two windows. A later batch requires another click and confirmation. The response limit is eight rich suggestions per request. Coverage is visible as submitted window IDs and exact line totals; coverage state is transient and resets when the project changes.
+One explicit UI confirmation authorizes **one** external Meta request containing one window. A later batch requires another click and confirmation. The response limit is eight rich suggestions per request. Coverage is visible as submitted window IDs and exact line totals; coverage state is transient and resets when the project changes.
 
 The analysis DTO, `CueSuggestionV2`, is not the show JSON format. Its strict fields are:
 
