@@ -28,6 +28,13 @@ test('seminar corpus has 9 rights-clear original scripts with precise immutable 
   assert.equal(c.cases.reduce((n,x)=>n+x.forbiddenPlayLineIds.length,0),43);
   assert.equal(c.cases.some(x=>x.tags.includes('prompt-injection')),true);
   assert.equal(c.cases.some(x=>x.tags.includes('long-script')),true);
+  const gala=c.cases.find(x=>x.id==='gala-rundown');
+  assert.deepEqual(gala.expected.filter(event=>['L13','L15','L16'].includes(event.lineId))
+    .map(event=>event.cueKind),['AMBIENCE','AMBIENCE','AMBIENCE']);
+  assert.equal(gala.alternativeAnnotations.length,3);
+  assert.ok(gala.alternativeAnnotations.every(annotation=>
+    annotation.alternative.cueKind==='MUSIC'&&
+    annotation.reviewStatus==='PENDING_HUMAN_REVIEW'));
   for(const item of c.cases){
     const lines=new Set(Array.from({length:item.scriptText.replace(/\r\n?/g,'\n').split('\n').length},(_,i)=>'L'+(i+1)));
     assert.ok(item.expected.every(x=>lines.has(x.lineId)));
@@ -82,6 +89,51 @@ test('full original gold predictions would score perfectly; mismatches are detec
   const mismatch=evaluateStageEventCases(corpus,predictions);
   assert.ok(mismatch.summary.precision<1);
   assert.equal(mismatch.summary.forbiddenPlay,1);
+});
+
+test('gala MUSIC versus AMBIENCE mismatch is isolated from location, transport and basis',async()=>{
+  const corpus=await readSeminarCorpus();
+  const gala=corpus.cases.find(c=>c.id==='gala-rundown');
+  const instrumentalLines=new Set(['L13','L15','L16']);
+  const predictions=gala.expected.map(event=>({sourceLineId:event.lineId,
+    transport:event.transport,
+    cueKind:instrumentalLines.has(event.lineId)?'MUSIC':event.cueKind,
+    basis:event.basis}));
+  const strict=evaluateStageEventCases({version:1,cases:[{...gala,alternativeAnnotations:[]}]},
+    {version:1,predictionsByCase:{'gala-rundown':predictions}});
+  assert.equal(strict.summary.precision,4/7);
+  assert.equal(strict.summary.recall,4/7);
+  assert.equal(strict.summary.dimensions.localization.f1,1);
+  assert.equal(strict.summary.dimensions.transport.f1,1);
+  assert.equal(strict.summary.dimensions.basis.f1,1);
+  assert.equal(strict.summary.dimensions.soundClassification.f1,4/7);
+  assert.equal(strict.summary.wrongAction,3);
+
+  const reviewed=evaluateStageEventCases({version:1,cases:[gala]},
+    {version:1,predictionsByCase:{'gala-rundown':predictions}});
+  assert.equal(reviewed.summary.precision,strict.summary.precision);
+  assert.equal(reviewed.summary.recall,strict.summary.recall);
+  assert.equal(reviewed.summary.semanticAlternativesPending,3);
+  assert.equal(reviewed.summary.wrongAction,0);
+  assert.equal(reviewed.prioritizedCases[0].issues.filter(
+    issue=>issue.type==='SEMANTIC_ALTERNATIVE_REVIEW').length,3);
+});
+
+test('hotel-door balanced-style optional suggestion remains human review, not exact-score inflation',async()=>{
+  const corpus=await readSeminarCorpus();
+  const hotel=corpus.cases.find(c=>c.id==='hotel-door');
+  const predictions=hotel.expected.map(event=>({sourceLineId:event.lineId,
+    transport:event.transport,cueKind:event.cueKind,basis:event.basis}));
+  predictions.push({sourceLineId:'L5',transport:'SILENCE',cueKind:'SILENCE',basis:'SUGGESTED'});
+  const scored=evaluateStageEventCases({version:1,cases:[hotel]},
+    {version:1,predictionsByCase:{'hotel-door':predictions}});
+  assert.equal(scored.summary.precision,1);
+  assert.equal(scored.summary.recall,1);
+  assert.equal(scored.summary.creativeAwaitingReview,1);
+  assert.equal(scored.summary.dimensions.localization.f1,1);
+  assert.equal(scored.summary.dimensions.transport.f1,1);
+  assert.equal(scored.summary.dimensions.soundClassification.f1,1);
+  assert.equal(scored.summary.dimensions.basis.f1,1);
 });
 
 test('paid mode requires explicit CLI pair; refuses unknown options and budget above $2',()=>{
@@ -150,6 +202,46 @@ test('explicitly-authorized, mocked single-case live run scores PLAY, STOP and i
   const markdown=await readFile(join(output,'report.md'),'utf8');
   assert.doesNotMatch(markdown,/MOCK_TEST_KEY/);
   assert.doesNotMatch(markdown,/¿Quién ha dejado/);
+});
+
+test('hotel-door diagnostics retain only typed event fields without inferring L5 as PLAY',async t=>{
+  const corpus=await readSeminarCorpus();
+  const sample=corpus.cases.find(c=>c.id==='hotel-door');
+  const expected=sample.expected.map(e=>({sourceLineId:e.lineId,
+    transport:e.transport,cueKind:e.cueKind,basis:e.basis}));
+  const extra={sourceLineId:'L5',transport:'SILENCE',cueKind:'SILENCE',basis:'EXPLICIT',
+    label:'PRIVATE LABEL',sourceEvidence:'PRIVATE SOURCE TEXT',reason:'PRIVATE REASON',
+    soundPrompt:'PRIVATE PROMPT',rawResponse:'PRIVATE RESPONSE BODY',apiKey:'PRIVATE KEY'};
+  const fake=async({show,analysisWindowStart})=>{
+    const prepared=prepareTheatricalCueAnalysis(show,{windowStart:analysisWindowStart});
+    return {details:expected.filter(x=>x.transport==='PLAY'),
+      observations:[...expected.filter(x=>x.transport!=='PLAY'),extra],
+      coverage:prepared.coverage,
+      diagnostics:{finishReason:'stop',usage:{promptTokens:1000,completionTokens:2000}},
+      independentReview:{totalUnreviewed:0}};
+  };
+  const output=await tempOutput(t);
+  const report=await runMetaSeminarEval({live:true,ackPaid:true,apiKey:'PRIVATE KEY',
+    modelCaller:fake,caseId:'hotel-door',budgetUsd:0.15,maxRequests:1,output});
+  assert.equal(report.score.truePositives,3);
+  assert.equal(report.score.falsePositives,1);
+  assert.equal(report.score.precision,.75);
+  assert.equal(report.score.recall,1);
+  assert.equal(report.score.invalidReferences,0);
+  assert.equal(report.score.dimensions.localization.precision,.75);
+  assert.equal(report.score.dimensions.localization.recall,1);
+  assert.equal(report.score.dimensions.transport.precision,.75);
+  assert.equal(report.score.dimensions.soundClassification.precision,.75);
+  assert.equal(report.score.dimensions.basis.precision,.75);
+  assert.deepEqual(report.cases[0].typedEvents.at(-1),{
+    sourceLineId:'L5',transport:'SILENCE',cueKind:'SILENCE',basis:'EXPLICIT',
+  });
+  assert.ok(report.cases[0].typedEvents.every(event=>
+    JSON.stringify(Object.keys(event).sort())===JSON.stringify(['basis','cueKind','sourceLineId','transport'])));
+  const json=await readFile(join(output,'report.json'),'utf8');
+  const markdown=await readFile(join(output,'report.md'),'utf8');
+  assert.match(markdown,/L5 \/ SILENCE \/ SILENCE \/ EXPLICIT/);
+  assert.doesNotMatch(json+markdown,/PRIVATE|rawResponse|sourceEvidence|soundPrompt|apiKey/);
 });
 
 test('truncated Meta reply stops batch and retains no partial cues or secret',async t=>{

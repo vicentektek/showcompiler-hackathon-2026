@@ -154,6 +154,7 @@ demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
 
 # Reports may be generated from user-private material; never commit local reports.
 artifacts/cue-qa/
+artifacts/codex-qa/
 
 # Original test scripts in fixtures/ are public-source-safe; live outputs never commit.
 artifacts/seminar-qa/
@@ -161,3 +162,6 @@ artifacts/seminar-live/
 
 # Local cumulative Meta lab spending ledger/lock; NEVER commit this to GitHub
 .runq-local/
+
+# Local systematic A/B Muse experiments and private typed traces.
+artifacts/systematic-eval/

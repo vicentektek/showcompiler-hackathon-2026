@@ -19,9 +19,22 @@ export const MAX_EXPERIMENT_BUDGET_USD=2;
 const INPUT_OVERHEAD_TOKENS=16384;
 const MAX_REQUEST_BODY_BYTES=80000;
 const CAP_REQUESTS=20;
+const EVENT_TRANSPORTS=new Set(['PLAY','CONTINUE','STOP','SILENCE']);
+const EVENT_KINDS=new Set(['FX','AMBIENCE','MUSIC','VOICE','SILENCE','TRANSITION']);
+const EVENT_BASES=new Set(['EXPLICIT','SUGGESTED']);
 
 function finitePositive(n,max){return typeof n==='number'&&Number.isFinite(n)&&n>0&&n<=max}
 function USD(n){return Number(n.toFixed(6))}
+function typedEvent(event){
+  if(!event||typeof event!=='object'||
+     typeof event.sourceLineId!=='string'||!/^L[1-9]\d*$/.test(event.sourceLineId)||
+     !EVENT_TRANSPORTS.has(event.transport)||!EVENT_KINDS.has(event.cueKind)||
+     !EVENT_BASES.has(event.basis)){
+    throw new TypeError('Invalid validated event diagnostic');
+  }
+  return {sourceLineId:event.sourceLineId,transport:event.transport,
+    cueKind:event.cueKind,basis:event.basis};
+}
 export function estimateMetaRequestReserve(request){
   const body=JSON.stringify(request);
   const bodyBytes=Buffer.byteLength(body,'utf8');
@@ -165,8 +178,7 @@ export async function runMetaSeminarEval({
           throw new TypeError('Invalid validated model client result');
         }
         for(const event of [...result.details,...result.observations]){
-          allEvents.push({sourceLineId:event.sourceLineId,
-            transport:event.transport,cueKind:event.cueKind,basis:event.basis});
+          allEvents.push(typedEvent(event));
         }
         requests.push({...lineInfo,status:'COMPLETED',finishReason:result.diagnostics?.finishReason,
           usage:usage??null,estimatedActualUsd:billed,
@@ -185,6 +197,8 @@ export async function runMetaSeminarEval({
     }
     const status=complete?'COMPLETE':stopped?'PARTIAL_STOPPED':'PARTIAL';
     cases.push({id:item.id,status,requests,events:allEvents.length,
+      typedEvents:allEvents.map(event=>({...event})),
+      eventTrace:live?allEvents.map(event=>({...event})):[],
       expectedEvents:item.expected.length});
     if(complete&&live){
       predictionsByCase[item.id]=allEvents;
@@ -230,7 +244,9 @@ export async function runMetaSeminarEval({
       ...c.requests.map(x=>'- '+x.windowId+': '+x.status+
         ' / '+(x.finishReason??x.code??'not applicable')+
         ' / reserve $'+x.estimatedReserveUsd.toFixed(4)+
-        ' / completion '+(x.usage?.completionTokens??'n/a')+' tokens')]),
+        ' / completion '+(x.usage?.completionTokens??'n/a')+' tokens'),
+      ...(c.typedEvents.length?c.typedEvents.map(event=>'- event '+event.sourceLineId+
+        ' / '+event.transport+' / '+event.cueKind+' / '+event.basis):['- events: none'])]),
     '',
     'Never let Codex change GO/STOP or retry API calls solely because a fixture score is low.',
   ];
