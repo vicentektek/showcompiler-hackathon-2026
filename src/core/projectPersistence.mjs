@@ -125,23 +125,28 @@ export function normalizeShowProject(input) {
 
   const cues = limitedArray(input.cues, MAX_CUES, 'cues').map((cue, index) => {
     const at = "cues[" + index + "]";
-    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes', 'automation', 'playback', 'stopFadeOverrides', 'audioTracks'], at);
+    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes', 'automation', 'playback', 'stopFadeOverrides', 'audioTracks', 'origin'], at);
     const cueId = identifier(cue.id, at + ".id");
     if (!Number.isSafeInteger(cue.number) || cue.number < 1 || cue.number > MAX_CUE_NUMBER) invalid(at + ".number is invalid");
     if (cue.status !== 'DRAFT') invalid(at + ".status must be DRAFT");
-    const refs = lineRefs(cue.sourceLineIds, sourceLines, at + ".sourceLineIds");
+    const manual = cue.origin === 'MANUAL';
+    if (cue.origin !== undefined && !manual) invalid(at + '.origin is invalid');
+    const refs = manual && Array.isArray(cue.sourceLineIds) && cue.sourceLineIds.length === 0
+      ? [] : lineRefs(cue.sourceLineIds, sourceLines, at + '.sourceLineIds');
     const cueActions = actions(cue.actions, knownAssets, at + ".actions");
-    const sourceProposalId = identifier(cue.sourceProposalId, at + ".sourceProposalId");
-    const parent = proposalIndex.get(sourceProposalId);
-    if (!parent || parent.status !== 'APPROVED') invalid(at + " must reference an approved proposal");
-    if (!matchesArray(refs, parent.sourceLineIds) || !matchesActions(cueActions, parent.actions)) invalid(at + " diverges from its approved proposal");
+    const sourceProposalId = manual ? undefined : identifier(cue.sourceProposalId, at + '.sourceProposalId');
+    if (!manual) {
+      const parent = proposalIndex.get(sourceProposalId);
+      if (!parent || parent.status !== 'APPROVED') invalid(at + ' must reference an approved proposal');
+      if (!matchesArray(refs, parent.sourceLineIds) || !matchesActions(cueActions, parent.actions)) invalid(at + ' diverges from its approved proposal');
+    }
     return {
       id: cueId,
       number: cue.number,
       label: requiredString(cue.label, 200, at + ".label"),
       ...(optionalText(cue.trigger, 300, at + '.trigger') === undefined ? {} : { trigger: optionalText(cue.trigger, 300, at + '.trigger') }),
       ...(optionalText(cue.notes, 1500, at + '.notes') === undefined ? {} : { notes: optionalText(cue.notes, 1500, at + '.notes') }),
-      sourceProposalId,
+      ...(manual ? { origin: 'MANUAL' } : { sourceProposalId }),
       sourceLineIds: refs,
       actions: cueActions,
       status: 'DRAFT',
@@ -153,7 +158,8 @@ export function normalizeShowProject(input) {
   });
   uniqueId(cues, 'cues');
   if (new Set(cues.map(c => c.number)).size !== cues.length) invalid('cues contain duplicate numbers');
-  if (new Set(cues.map(c => c.sourceProposalId)).size !== cues.length) invalid('approved proposals are used by more than one cue');
+  const approvedSourceIds = cues.filter(c => c.sourceProposalId).map(c => c.sourceProposalId);
+  if (new Set(approvedSourceIds).size !== approvedSourceIds.length) invalid('approved proposals are used by more than one cue');
 
   // Existing schema-v1 files remain valid; automation is optional and operator-owned.
   // Validate cross-cue references only after all cue identifiers are known.
