@@ -256,5 +256,7 @@
   "bundle.opened": "Espectáculo «{name}» recuperado con {count} audios reales. GO sigue siendo manual.",
   "bundle.failed": "No se pudo completar el paquete ZIP: {reason}",
   "bundle.invalidFile": "Selecciona un archivo .zip de SHOWCOMPILER (máximo 64 MB).",
-  "bundle.busy": "Finaliza la operación de audio o ZIP antes de cambiar el espectáculo."
+  "bundle.busy": "Finaliza la operación de audio o ZIP antes de cambiar el espectáculo.",
+  "bundle.tryDemo": "Probar con sonidos reales",
+  "bundle.preparingDemo": "Generando el espectáculo y sus WAV originales en este navegador..."
 }
