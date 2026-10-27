@@ -249,7 +249,8 @@ test('STOP of a pending cue does not inadvertently cancel another cue GO', async
   const x=fixture();
   await x.engine.loadFile(x.file,'audio-1');
   let unblock;
-  x.context.resume = () => new Promise(resolve => { unblock ??= resolve; });
+  const resumed = new Promise(resolve => { unblock = resolve; });
+  x.context.resume = () => resumed;
   const first=x.engine.go(x.cue('cue-1'));
   const second=x.engine.go(x.cue('cue-2'));
   await Promise.resolve();
