@@ -31,9 +31,6 @@ function boundedArray(a, max, name) {
   if (!Array.isArray(a) || a.length > max) throw new TypeError('Invalid ' + name);
   return a;
 }
-function scoreSafe(count, denominator) {
-  return denominator ? count / denominator : 1;
-}
 
 export function evaluateStageEventCases(gold, predictions) {
   if (!gold || gold.version !== 1 || !Array.isArray(gold.cases) ||
@@ -97,6 +94,11 @@ export function evaluateStageEventCases(gold, predictions) {
       } else if (expectedKeys.has(id)) {
         matched.add(id);
         scoredPredictions++;
+      } else if (event.basis==='SUGGESTED' && expected.some(x=>x.lineId===event.lineId)) {
+        // An explicit required action cannot be hidden from QA by relabeling
+        // the prediction as an optional creative treatment.
+        fp++; scoredPredictions++; wrongAction++;
+        issues.push({type:'WRONG_EVENT_TYPE',lineId:event.lineId});
       } else if (event.basis==='SUGGESTED') {
         creative++;
         issues.push({type:'CREATIVE_REVIEW_REQUIRED',lineId:event.lineId});
@@ -133,7 +135,7 @@ export function evaluateStageEventCases(gold, predictions) {
     }
   }
 
-  const precision=scoreSafe(totals.truePositives,totals.evaluatedPredictions);
+  const precision=totals.evaluatedPredictions ? totals.truePositives/totals.evaluatedPredictions : totals.expectedEvents===0 ? 1 : 0;
   const recall=scoreSafe(totals.truePositives,totals.expectedEvents);
   const f1=precision+recall?2*precision*recall/(precision+recall):0;
   const warnings=[];
@@ -147,7 +149,8 @@ export function evaluateStageEventCases(gold, predictions) {
     mode:'OFFLINE_HUMAN_GOLD_COMPARISON',
     goldProvenance:gold.provenance ?? 'UNDECLARED_GOLD_PROVENANCE',
     predictionProvenance:predictions.provenance ?? 'UNDECLARED_PREDICTION_PROVENANCE',
-    modelQualityMeasured:/REAL_PROVIDER_CAPTURE_REVIEWED/.test(predictions.provenance??''),
+    // Provenance is user-declared; offline tooling never verifies Meta quality.
+    modelQualityMeasured:false,
     summary:{...totals,precision,recall,f1},
     prioritizedCases:cases.sort((a,b)=>b.priorityScore-a.priorityScore||a.id.localeCompare(b.id)),
     warnings,
@@ -161,7 +164,7 @@ export function renderStageEventReport(report) {
   const rows=[
     '# RunQ — Cue QA Report',
     '',
-    '**Assessment:** '+(report.modelQualityMeasured?'REVIEWED provider capture':'Illustrative/offline predictions — NOT measured Meta accuracy'),
+    '**Assessment:** offline case comparison only. Prediction provenance is user-declared and is NOT proof of measured model accuracy.',
     '**Gold source:** '+report.goldProvenance,
     '**Prediction source:** '+report.predictionProvenance,
     '',
