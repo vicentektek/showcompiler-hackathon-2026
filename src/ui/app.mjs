@@ -1,6 +1,6 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
@@ -674,6 +674,26 @@ function cuePlaybackEditor(cue) {
   loop.checked = settings.loop;
   loopLabel.append(loop, node('span', '', t('audioProps.loop')));
   form.append(loopLabel);
+  const others = show.cues.filter(item => item.id !== cue.id);
+  let stopTargets = null;
+  if (others.length) {
+    stopTargets = node('fieldset', 'cue-stop-targets');
+    stopTargets.append(node('legend', '', t('audioProps.stopTargets')));
+    stopTargets.append(node('p', 'caption', t('audioProps.stopTargetsHelp')));
+    const choices = node('div', 'cue-stop-options');
+    for (const item of others) {
+      const label = node('label', 'cue-stop-option');
+      const check = node('input');
+      check.type = 'checkbox';
+      check.value = item.id;
+      check.checked = (cue.automation?.stopCueIds ?? []).includes(item.id);
+      check.dataset.stopTarget = item.id;
+      label.append(check, node('span', '', item.number + ' · ' + item.label));
+      choices.append(label);
+    }
+    stopTargets.append(choices);
+    form.append(stopTargets);
+  }
   function syncLoop() {
     if (loop.checked) {
       repeats.value = '1';
@@ -696,7 +716,12 @@ function cuePlaybackEditor(cue) {
     }
     if (loop.checked) { next.repeatCount = 1; next.fadeOutMs = 0; }
     try {
-      show = updateCuePlayback(show, cue.id, next);
+      let staged = updateCuePlayback(show, cue.id, next);
+      if (stopTargets) {
+        const stopCueIds = [...stopTargets.querySelectorAll('input:checked')].map(input => input.value);
+        staged = updateCueAutomation(staged, cue.id, { stopCueIds });
+      }
+      show = staged; // Commit atomically only after both validators pass.
       dirty = true;
       render();
       feedback('audioProps.saved', { number: cue.number }, 'success');
@@ -847,6 +872,12 @@ $('operatorGoBtn').addEventListener('click', async () => {
   const cue = normalizeShowProject(show).cues.find(item => item.id === id);
   if (!cue) return;
   try {
+    // Operator-authored stop targets execute before this cue's PLAY; an AI
+    // proposal cannot insert stop targets or start automatic following.
+    for (const targetId of cue.automation?.stopCueIds ?? []) {
+      const target = show.cues.find(item => item.id === targetId);
+      player.stopCue(targetId, target?.playback?.fadeOutMs ?? 0);
+    }
     await player.go(cue);
     if (generation !== projectGeneration) return; // The previous show must not move the new playhead.
     lastGoCueId = id;
