@@ -12,6 +12,7 @@ import { planScriptAnalysis } from '../src/core/sceneAnalysis.mjs';
 import { prepareTheatricalCueAnalysis } from '../src/core/theatreCueAnalysis.mjs';
 import { MetaOutputError } from '../src/core/metaCueProvider.mjs';
 import { evaluateStageEventCases } from '../src/core/stageCueQa.mjs';
+import { acquireMetaBudgetLedger } from '../tools/metaBudgetLedger.mjs';
 
 const tempOutput=async t=>{
   const path=await mkdtemp(join(tmpdir(),'runq-seminar-'));
@@ -178,4 +179,42 @@ test('$2 budget guard refuses a request before any model call when reserve excee
   assert.equal(calls,0);
   assert.equal(report.submittedRequests,0);
   assert.equal(report.haltReason,'BUDGET_ESTIMATE_REACHED');
+});
+
+
+test('persistent Meta budget survives separate runs and rejects concurrent process',async t=>{
+  const dir=await tempOutput(t);
+  const path=join(dir,'meta-ledger.json');
+  const one=await acquireMetaBudgetLedger({file:path,limitUsd:2});
+  assert.equal(one.remainingUsd(),2);
+  assert.equal(await one.reserve(0.7),true);
+  assert.equal(one.remainingUsd(),1.3);
+  await assert.rejects(acquireMetaBudgetLedger({file:path,limitUsd:2}),/LEDGER_LOCKED/);
+  await one.close();
+  const two=await acquireMetaBudgetLedger({file:path,limitUsd:2});
+  assert.equal(two.committedReserveUsd(),0.7);
+  assert.equal(await two.reserve(1.3),true);
+  assert.equal(two.remainingUsd(),0);
+  assert.equal(await two.reserve(0.0001),false);
+  await two.close();
+  const raw=await readFile(path,'utf8');
+  assert.doesNotMatch(raw,/api[_-]?key|secret|script|authorization/i);
+});
+
+test('live batch stops at cumulative ledger ceiling, without paid network calls',async t=>{
+  const dir=await tempOutput(t);
+  const ledger=await acquireMetaBudgetLedger({file:join(dir,'budget.json'),limitUsd:0.065});
+  let calls=0;
+  try{
+    const result=await runMetaSeminarEval({
+      live:true,ackPaid:true,apiKey:'MOCK',
+      budgetUsd:2,maxRequests:13,output:join(dir,'out'),ledger,
+      modelCaller:async()=>{calls++;return {details:[],observations:[],
+        coverage:{analyzedWindowIds:['S1-W1'],nextWindowStart:null},
+        diagnostics:{finishReason:'stop',usage:{promptTokens:100,completionTokens:200}}}},
+    });
+    assert.equal(result.haltReason,'GLOBAL_BUDGET_REACHED');
+    assert.ok(calls<=1);
+    assert.ok(ledger.committedReserveUsd()<=0.065);
+  }finally{await ledger.close()}
 });
