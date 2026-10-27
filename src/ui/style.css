@@ -236,3 +236,11 @@ main{padding:24px 26px 34px}
 .cue-playback-editor .btn{justify-self:start}
 @media(max-width:800px){.operator-queue-controls{max-width:none}.operator-queue-controls #operatorGoBtn,.operator-queue-controls #operatorPanicBtn{min-height:76px}}
 @media(max-width:500px){.operator-queue-controls #operatorPanicBtn{font-size:14px}.operator-queue-controls #operatorGoBtn{font-size:26px}.cue-playback-editor{grid-template-columns:1fr}}
+
+.cue-stop-targets{grid-column:1/-1;min-width:0;padding:12px;border:1px solid #485b74;border-radius:8px;margin:8px 0}
+.cue-stop-targets legend{font-size:12px;font-weight:740;padding:0 6px;color:#cce3fa}
+.cue-stop-targets .caption{margin:0 0 10px;font-size:11px}
+.cue-stop-options{max-height:144px;overflow-y:auto;display:grid;gap:4px}
+.cue-stop-option{display:flex;align-items:center;gap:9px;padding:6px;color:#d1dfef;cursor:pointer;font-size:12px;overflow-wrap:anywhere}
+.cue-stop-option:hover{background:#27405a}
+.cue-stop-option input{width:17px;min-height:17px;flex:0 0 17px;accent-color:#70babc}
