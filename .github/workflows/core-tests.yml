@@ -56,7 +56,7 @@ jobs:
         env:
           RUNQ_CAPTURE_UI: '1'
         run: node tools/browser-e2e.mjs
-      - name: Full RunQ operator workflows (13 isolated Chrome journeys)
+      - name: Full RunQ operator workflows (15 isolated Chrome journeys)
         run: npm run qa:journeys
       - name: Publish full-flow QA matrix and failure screenshots
         if: always()
