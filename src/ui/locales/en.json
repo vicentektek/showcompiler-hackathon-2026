@@ -326,5 +326,20 @@
   "operator.restart": "Restart from first",
   "operator.explanation": "The first cue is positioned automatically. GO executes it once, then moves to the next. Previous, Skip and Set next never start sound.",
   "operator.setNext": "Set next",
-  "operator.stopBeforeRestart": "Stop all active audio or audition before restarting the sequence position."
+  "operator.stopBeforeRestart": "Stop all active audio or audition before restarting the sequence position.",
+  "operator.emergencyStop": "STOP ALL AUDIO",
+  "operator.emergencyStopAria": "Emergency stop: silence all local audio immediately",
+  "audioProps.heading": "Playback properties · real audio",
+  "audioProps.gainDb": "Level trim (dB)",
+  "audioProps.gainHelp": "0 dB is the existing safe -6 dB output. Only attenuation is available.",
+  "audioProps.fadeInMs": "Fade-in (ms)",
+  "audioProps.fadeOutMs": "End fade-out (ms)",
+  "audioProps.startDelayMs": "Start delay after GO (ms)",
+  "audioProps.repeatCount": "Repetitions",
+  "audioProps.repeatHelp": "1 to 20 consecutive plays. A loop repeats indefinitely.",
+  "audioProps.loop": "Loop continuously until stopped",
+  "audioProps.noAuto": "These settings apply on the next manual GO. They never start a cue automatically. An end fade only applies to finite playback.",
+  "audioProps.save": "Save playback settings",
+  "audioProps.saved": "Playback settings saved for cue {number}. No audio was started.",
+  "audioProps.currentLimits": "Manual cue audio: trim, start delay, fade-in, end fade-out and looping/repeats are active. Independent PFL, pan, speed, regions, per-track output and automatic follow are not implemented yet."
 }
