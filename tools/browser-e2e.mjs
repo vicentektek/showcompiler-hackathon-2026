@@ -53,7 +53,8 @@ try {
     }
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
-  await page.locator('#audibleExampleBtn').click();
+  assert.equal(await page.locator('[data-workspace-nav="home"]').getAttribute('aria-pressed'), 'true');
+  await page.locator('#homeDemoBtn').click();
   try {
     await page.waitForFunction(() => document.querySelector('#cuesCount')?.textContent === '3', null, { timeout: 10000 });
   } catch (error) {
