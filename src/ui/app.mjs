@@ -614,7 +614,7 @@ function render() {
             player.stopCue(cue.id);
             feedback('status.audioStopped', { number: cue.number }, 'success');
           } else {
-            player.stopCue(cue.id, 1500);
+            player.stopCue(cue.id, cue.playback?.fadeOutMs || 1500);
             feedback('status.audioFaded', { number: cue.number }, 'success');
           }
         } catch (error) { showError(error, resolveErrorKey(error) === 'errors.generic' ? 'errors.invalidAudio' : undefined); }
