@@ -359,7 +359,7 @@
   "operator.back": "Previous",
   "operator.skipClear": "Skip cue · no sound",
   "operator.restart": "Restart from first",
-  "operator.explanation": "The first cue is positioned automatically. GO executes it once, then moves to the next. Previous, Skip and Set next never start sound.",
+  "operator.explanation": "Click a cue number/arrow to prepare NEXT GO, or select its name to inspect. Only GO starts the prepared cue. Skip, Back and Set next never play sound.",
   "operator.setNext": "Set next",
   "operator.stopBeforeRestart": "Stop all active audio or audition before restarting the sequence position.",
   "operator.emergencyStop": "STOP ALL AUDIO",
@@ -401,7 +401,7 @@
   "cueEditor.assetSection": "Sound actions",
   "cueEditor.saveActions": "Save target actions",
   "cueEditor.actionsSaved": "Target-stop actions saved for cue {number}. No sound was started.",
-  "cueEditor.listHelp": "Click a cue row to edit it. ↑ ↓ Home End navigate. Inspection never changes NEXT GO.",
+  "cueEditor.listHelp": "Click a cue name to inspect it; click its number/arrow to prepare NEXT GO. Double-click never plays sound. ↑ ↓ Home End move inspection.",
   "cueEditor.hint": "Edit cue properties on the right. GO and emergency STOP remain in Operation.",
   "cueEditor.saveEditsFirst": "Save or discard the cue's pending inspector edits before exporting JSON or ZIP.",
   "cueEditor.stopFadeSeconds": "Fade out (s) · 0 = immediate",
@@ -432,7 +432,7 @@
   "cueEditor.deleteCue": "Delete selected",
   "cueEditor.confirmDelete": "Delete the selected cue? Its active references will be removed. This cannot be undone.",
   "cueEditor.stopBeforeEdit": "Stop all audio before changing the cue sequence.",
-  "cueEditor.sequenceChanged": "Cue sequence updated. Next GO is positioned at the first cue.",
+  "cueEditor.sequenceChanged": "Cue sequence updated. NEXT GO position preserved where possible.",
   "cueEditor.duplicateCue": "Duplicate",
   "cueEditor.moveUp": "Move up",
   "cueEditor.moveDown": "Move down",
@@ -448,5 +448,7 @@
   "waveform.inLabel": "IN point",
   "waveform.inHelp": "Drag the waveform marker to select a start point. Save to change only this cue's next manual GO.",
   "waveform.saveIn": "Save IN to cue",
-  "waveform.cancelIn": "Discard change"
+  "waveform.cancelIn": "Discard change",
+  "cueEditor.prepareCue": "Prepare cue {number}: {label} as NEXT GO; no sound plays",
+  "operator.prepareBusy": "Finish the pending GO or audio import before preparing a different cue."
 }
