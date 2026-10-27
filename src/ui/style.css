@@ -359,3 +359,13 @@ main{padding:24px 26px 34px}
 @keyframes ai-working-spin{to{transform:rotate(360deg)}}
 @keyframes ai-working-travel{from{transform:translateX(-105%)}to{transform:translateX(260%)}}
 @media (prefers-reduced-motion:reduce){.ai-analysis-spinner,.ai-analysis-indeterminate{animation:none}.ai-analysis-spinner{border-top-color:#8be5e6}.ai-analysis-indeterminate{width:100%;background:#416c7b}}
+
+
+/* Genre and document context are advisory analysis controls, never transport state. */
+.ai-production-context{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;row-gap:9px;margin:12px 0 7px;max-width:880px}
+.ai-production-context[hidden]{display:none!important}
+.ai-production-context>div{min-width:0}
+.ai-production-context .field{display:block;margin-bottom:5px}
+.ai-production-context select{max-width:100%;width:100%}
+#metaProductionHelp[hidden]{display:none!important}
+@media(max-width:660px){.ai-production-context{grid-template-columns:1fr}}
