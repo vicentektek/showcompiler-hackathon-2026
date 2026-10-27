@@ -135,17 +135,19 @@ try {
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
   // Moving to a different cue is deliberate, and never triggers audio.
+  await page.locator('[data-workspace-nav="operation"]').click();
   await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   await page.locator('#operatorBackBtn').click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('[data-workspace-nav="cues"]').click();
   await page.locator('#cueSearchInput').fill('nonexistent-cue-xyz');
   assert.equal(await page.locator('#cueList .cue-item').count(), 0);
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   await page.locator('#cueSearchInput').fill('');
   assert.equal(await page.locator('#cueList .cue-item').count(), 3);
-  await page.getByRole('button', { name: 'Inspect', exact: true }).nth(1).click();
+  await page.locator('#cueList [data-cue-select]').nth(1).click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
   await page.locator('#cuePlaybackForm [data-stop-target="cue-1"]').check();
