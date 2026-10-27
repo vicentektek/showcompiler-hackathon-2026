@@ -10,6 +10,15 @@ import {BASETEN_MODEL} from '../src/core/basetenCueProvider.mjs';
 
 const prepared=()=>prepareTheatricalCueAnalysis(createNewShow({name:'test',scriptText:'A bell rings in the distance.'}),{designMode:'literal'});
 
+test('safe nested local report outputs are allowed without accepting traversal or absolute paths',()=>{
+  const ok=parseBasetenEvalOptions(['--case','hotel-door','--output','artifacts/three-case-quality/baseten-hotel-door']);
+  assert.equal(ok.output,'artifacts/three-case-quality/baseten-hotel-door');
+  for(const unsafe of ['../outside','artifacts/../outside','artifacts/three-case-quality/../../outside',
+    'C:\\\\secrets','artifacts/three-case-quality/too/deep','artifacts/three-case-quality\\\\bad']){
+    assert.throws(()=>parseBasetenEvalOptions(['--output',unsafe]),/Invalid bounded/);
+  }
+});
+
 test('default is offline, paid mode needs both switches, bounded requests',()=>{
   assert.equal(parseBasetenEvalOptions([]).live,false);
   assert.throws(()=>parseBasetenEvalOptions(['--live']),/Invalid bounded/);
