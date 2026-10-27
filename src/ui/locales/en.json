@@ -435,5 +435,8 @@
   "cueEditor.sequenceChanged": "Cue sequence updated. Next GO is positioned at the first cue.",
   "cueEditor.duplicateCue": "Duplicate",
   "cueEditor.moveUp": "Move up",
-  "cueEditor.moveDown": "Move down"
+  "cueEditor.moveDown": "Move down",
+  "proposals.reviewHintsNone": "Independent check: no unaddressed SOUND/FX/AUDIO/MUSIC-labelled lines found in analyzed windows. This does not prove cue completeness.",
+  "proposals.reviewHintsSummary": "Independent check: {count} labelled audio-direction line(s) have no model proposal or observation. Review the source; an audio file is NOT necessarily required.",
+  "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review."
 }
