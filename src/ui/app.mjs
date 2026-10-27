@@ -7,7 +7,7 @@ import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
-import { newOperatorQueue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
+import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 
@@ -43,7 +43,8 @@ let editingCueId = null;
 let selectedCueId = null; // Selection inspects only; it never changes the GO queue.
 let activeWorkspace = 'home';
 const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'setup', 'operation']);
-let operatorQueue = newOperatorQueue();
+let operatorQueue = startOperatorQueue(show.cues);
+let lastGoCueId = null;
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
@@ -79,22 +80,37 @@ function refreshAudioControls() {
     label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
   const prepared = show.cues.find(cue => cue.id === operatorQueue.preparedCueId);
+  const preparedIndex = show.cues.findIndex(cue => cue.id === operatorQueue.preparedCueId);
   $('preparedCueStatus').textContent = prepared
-    ? t('operator.prepared', { number: prepared.number, label: prepared.label })
-    : t('operator.nonePrepared');
-  $('operatorGoBtn').disabled = !prepared || audioInFlight || auditioning ||
+    ? t('operator.nextCue', { number: prepared.number, label: prepared.label })
+    : t(show.cues.length ? 'operator.sequenceFinished' : 'operator.noCues');
+  const source = prepared?.sourceLineIds[0]
+    ? getScriptLine(parseScript(show.scriptText), prepared.sourceLineIds[0])?.text ?? ''
+    : '';
+  $('operatorTrigger').textContent = prepared
+    ? t('operator.triggerText', { trigger: (prepared.trigger?.trim() || source || t('operator.noTrigger')).slice(0, 240) })
+    : '';
+  $('operatorProgress').textContent = prepared
+    ? t('operator.progress', { current: preparedIndex + 1, total: show.cues.length })
+    : show.cues.length ? t('operator.progressFinished', { total: show.cues.length }) : '';
+  const last = show.cues.find(cue => cue.id === lastGoCueId);
+  $('operatorLastGo').textContent = last
+    ? t('operator.lastGo', { number: last.number, label: last.label })
+    : t('operator.noLastGo');
+  $('operatorGoBtn').disabled = !prepared || audioInFlight || auditioning || pending > 0 ||
     prepared.actions.some(action => action.type !== 'PLAY' || !player.hasAsset(action.assetId)) ||
     player.isPlaying(prepared.id);
-  $('operatorSkipBtn').disabled = !prepared || audioInFlight;
-  $('operatorResetBtn').disabled = !operatorQueue.preparedCueId &&
-    !operatorQueue.completedCueIds.length && !operatorQueue.skippedCueIds.length;
+  $('operatorBackBtn').disabled = !show.cues.length || audioInFlight || pending > 0 ||
+    preparedIndex === 0;
+  $('operatorSkipBtn').disabled = !prepared || audioInFlight || pending > 0;
+  $('operatorResetBtn').disabled = !show.cues.length || audioInFlight || pending > 0 ||
+    (preparedIndex === 0 && !operatorQueue.completedCueIds.length && !operatorQueue.skippedCueIds.length);
   for (const button of document.querySelectorAll('[data-cue-action]')) {
     const cue = show.cues.find(item => item.id === button.dataset.cueId);
     if (!cue) continue;
-    const ready = cue.actions.every(action => player.hasAsset(action.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
-    button.disabled = button.dataset.cueAction === 'go' ? audioInFlight || auditioning || !ready || playing : !playing || stopping;
+    button.disabled = !playing || stopping;
   }
 }
 
@@ -256,8 +272,13 @@ function switchUiLocale(locale) {
 }
 function safeOperation(operation, successKey, values = {}) {
   try {
+    const beforeCount = show.cues.length;
     const next = operation();
     if (next) show = next;
+    // First approved cue becomes the NEXT GO automatically, not an audio action.
+    if (!beforeCount && show.cues.length && !operatorQueue.preparedCueId) {
+      operatorQueue = startOperatorQueue(show.cues);
+    }
     dirty = true;
     render();
     feedback(successKey, values, 'success');
@@ -510,7 +531,7 @@ function render() {
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
     card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', describeCueActions(cue.actions)));
-    const sourceActions = node('div', 'item-actions');
+    const sourceActions = node('div', 'item-actions cue-edit-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
     const inspect = node('button', 'btn subtle small', t('workspace.inspect'));
     inspect.type = 'button';
@@ -535,7 +556,7 @@ function render() {
     // Editing belongs to the inspector, not to the scrolling cue list.
     const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
     if (plan) {
-      const resolve = node('div', 'item-actions');
+      const resolve = node('div', 'item-actions cue-audio-tools');
       const deferred = node('button', 'btn subtle small', t('soundPlan.defer'));
       deferred.type = 'button';
       deferred.disabled = plan.resolution === 'DEFER';
@@ -562,12 +583,12 @@ function render() {
       }
       card.append(resolve);
     } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
-      const replaceAudio = node('div', 'item-actions');
+      const replaceAudio = node('div', 'item-actions cue-audio-tools');
       replaceAudio.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
       card.append(replaceAudio);
     }
-    const controls = node('div', 'item-actions');
-    const prepare = node('button', 'btn accent small', t('operator.prepare'));
+    const controls = node('div', 'item-actions cue-operation-actions');
+    const prepare = node('button', 'btn accent small', t('operator.setNext'));
     prepare.type = 'button';
     prepare.disabled = operatorQueue.preparedCueId === cue.id;
     prepare.addEventListener('click', () => {
@@ -576,7 +597,9 @@ function render() {
       feedback('operator.preparedFeedback', { number: cue.number }, 'success');
     });
     controls.append(prepare);
-    const commands = [['go', t('actions.go'), 'btn primary small'], ['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
+    // Only the global prepared-sequence GO can start playback. Row buttons stop
+    // an already-running cue or intentionally reposition the next GO.
+    const commands = [['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
     for (const [action, title, style] of commands) {
       const button = node('button', style, title);
       button.type = 'button';
@@ -584,13 +607,7 @@ function render() {
       button.dataset.cueId = cue.id;
       button.addEventListener('click', async () => {
         try {
-          if (action === 'go') {
-            const checked = normalizeShowProject(show);
-            const currentCue = checked.cues.find(item => item.id === cue.id);
-            if (!currentCue) throw new Error('Cue not found');
-            await player.go(currentCue);
-            feedback('status.goStarted', { number: currentCue.number }, 'success');
-          } else if (action === 'stop') {
+          if (action === 'stop') {
             player.stopCue(cue.id);
             feedback('status.audioStopped', { number: cue.number }, 'success');
           } else {
@@ -703,7 +720,8 @@ function setNewShow(project, statusKey, values = {}) {
   preflightVisible = false;
   editingCueId = null;
   selectedCueId = null;
-  operatorQueue = newOperatorQueue();
+  operatorQueue = startOperatorQueue(project.cues);
+  lastGoCueId = null;
   $('scriptSearchInput').value = '';
   player.reset();
   originalAudioFiles.clear();
@@ -748,10 +766,13 @@ $('checkPreflightBtn').addEventListener('click', () => {
 $('operatorGoBtn').addEventListener('click', async () => {
   const id = operatorQueue.preparedCueId;
   if (!id || audioInFlight) return;
+  const generation = projectGeneration;
   const cue = normalizeShowProject(show).cues.find(item => item.id === id);
   if (!cue) return;
   try {
     await player.go(cue);
+    if (generation !== projectGeneration) return; // The previous show must not move the new playhead.
+    lastGoCueId = id;
     if (operatorQueue.preparedCueId === id) {
       operatorQueue = completePreparedCue(operatorQueue, show.cues, id);
     }
@@ -769,8 +790,20 @@ $('operatorSkipBtn').addEventListener('click', () => {
     feedback('operator.skippedFeedback', { number: cue.number }, 'success');
   } catch (error) { showError(error); }
 });
+$('operatorBackBtn').addEventListener('click', () => {
+  operatorQueue = previousOperatorCue(operatorQueue, show.cues);
+  render();
+});
 $('operatorResetBtn').addEventListener('click', () => {
-  operatorQueue = newOperatorQueue();
+  const transport = player.getStatus();
+  if (transport.pendingGoCount || audioInFlight) return;
+  // Restart is a position reset, not a hidden STOP; require silence first.
+  if (transport.activeCueCount || transport.auditionActive || transport.auditionPending) {
+    feedback('operator.stopBeforeRestart', {}, 'error');
+    return;
+  }
+  operatorQueue = startOperatorQueue(show.cues);
+  lastGoCueId = null;
   render();
   feedback('operator.resetFeedback', {}, 'success');
 });
