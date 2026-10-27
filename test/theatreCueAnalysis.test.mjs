@@ -4,6 +4,8 @@ import {
   classifyTheatricalSuggestions,
   parseTheatricalCueContent,
   prepareTheatricalCueAnalysis,
+  THEATRE_ANALYSIS_WINDOWS_PER_REQUEST,
+  THEATRE_COMPLETION_TOKEN_BUDGET,
   TheatricalCueValidationError,
 } from '../src/core/theatreCueAnalysis.mjs';
 import { addAudioReference, createNewShow } from '../src/core/workspace.mjs';
@@ -55,7 +57,9 @@ test('prepares a strict official request with dynamic core and asset enums', () 
   assert.match(request.messages[0].content, /intentional silence/);
   assert.match(request.messages[0].content, /untrusted theatrical material/);
   assert.equal(request.reasoning_effort, 'low');
-  assert.equal(request.max_completion_tokens, 4096);
+  assert.equal(request.max_completion_tokens, THEATRE_COMPLETION_TOKEN_BUDGET);
+  assert.equal(THEATRE_COMPLETION_TOKEN_BUDGET, 8192);
+  assert.equal(THEATRE_ANALYSIS_WINDOWS_PER_REQUEST, 1);
   assert.equal(request.stream, false);
   assert.equal(request.store, false);
 
@@ -89,12 +93,16 @@ test('batches scripts beyond 120 lines with exact visible coverage', () => {
   const first = prepareTheatricalCueAnalysis(project(source), { scriptLanguage: 'es', windowStart: 0 });
   assert.equal(first.coverage.totalLines, 130);
   assert.equal(first.coverage.totalWindows, 3);
-  assert.deepEqual(first.coverage.analyzedWindowIds, ['S1-W1', 'S1-W2']);
+  assert.deepEqual(first.coverage.analyzedWindowIds, ['S1-W1']);
   assert.equal(first.coverage.analyzedLineIds[0], 'L1');
-  assert.equal(first.coverage.analyzedLineIds.at(-1), 'L120');
-  assert.equal(first.coverage.analyzedLines, 120);
-  assert.equal(first.coverage.nextWindowStart, 2);
+  assert.equal(first.coverage.analyzedLineIds.at(-1), 'L60');
+  assert.equal(first.coverage.analyzedLines, 60);
+  assert.equal(first.coverage.nextWindowStart, 1);
   assert.equal(first.coverage.complete, false);
+  const middle = prepareTheatricalCueAnalysis(project(source), { scriptLanguage: 'es', windowStart: 1 });
+  assert.deepEqual(middle.coverage.analyzedWindowIds, ['S1-W2']);
+  assert.equal(middle.coverage.analyzedLines, 60);
+  assert.equal(middle.coverage.nextWindowStart, 2);
 
   const last = prepareTheatricalCueAnalysis(project(source), { scriptLanguage: 'es', windowStart: 2 });
   assert.deepEqual(last.coverage.analyzedLineIds, Array.from({ length: 10 }, (_, i) => `L${121 + i}`));
