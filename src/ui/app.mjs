@@ -1103,8 +1103,9 @@ function renderCueInspector() {
     panel.append(cueDetailsEditor(cue));
     panel.append(sourceButton(cue.sourceLineIds[0]));
   } else if (inspectorTab === 'audio') {
-    panel.append(cueAudioSourceControls(cue));
+    // Keep essential playback controls visible on short desktop viewports.
     panel.append(cuePlaybackEditor(cue));
+    panel.append(cueAudioSourceControls(cue));
     panel.append(node('p', 'caption', t('audioProps.currentLimits')));
   } else {
     panel.append(cueActionInspector(cue));
