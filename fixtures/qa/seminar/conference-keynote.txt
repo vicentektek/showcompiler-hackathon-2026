@@ -1,0 +1,14 @@
+FORO DE CIENCIA — HOJA DE CUES ORIGINAL
+08:55 PRESET: microfonía lista. No disparar sonido.
+09:00 GO VIDEO 01: mostrar identidad del evento, vídeo mudo.
+09:00 GO AUDIO 01: reproducir cortinilla de seis segundos.
+09:01 GO LX 01: subir luz de atril.
+09:02 PONENTE: Bienvenidos al foro.
+09:10 OPERADOR: revisar el nivel del micrófono, sin audio nuevo.
+09:12 GO SOUND 02: sonido de notificación grabada, único.
+09:12 PONENTE: Este sonido me recuerda la presentación anterior.
+09:15 GO AUDIO 03: iniciar cama ambiental discreta en bucle.
+09:20 HOLD AUDIO 03: mantener ambiente; no disparar otro archivo.
+09:25 STOP AUDIO 03: apagar ambiente con fade de cinco segundos.
+09:26 GO VIDEO 02: demo de laboratorio sin sonido.
+09:30 FIN DEL BLOQUE.
