@@ -561,3 +561,52 @@
 .shell[data-active-workspace="audio"] #waveformCanvas{
   touch-action:none;
 }
+
+
+/* Operator-safe quick positioning: a dedicated cue number/arrow is a button,
+   not nested in the inspection button. Neither control can run playback. */
+.cue-item{position:relative}
+.cue-prepare-trigger{
+  position:absolute;left:5px;top:6px;z-index:2;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;min-width:43px;min-height:37px;padding:3px 5px;
+  border:1px solid #3a6c69;border-radius:6px;
+  background:#15313a;color:#b8e9e1;
+  cursor:pointer;font:inherit;font-variant-numeric:tabular-nums;
+}
+.cue-prepare-trigger .cue-row-index,
+.shell[data-active-workspace="operation"] #cueList .cue-prepare-trigger .cue-row-index{
+  display:block;grid-column:auto;grid-row:auto;align-self:center;
+  margin:0;font-size:12px;line-height:1.1;color:inherit;
+}
+.cue-prepare-trigger .cue-prepare-arrow{
+  display:block;font-size:10px;line-height:1.1;
+  color:#80d9c9;
+}
+.cue-prepare-trigger:hover{background:#27605a;border-color:#6fdaca;color:#fff}
+.cue-prepare-trigger:focus-visible{
+  outline:2px solid #fff5cc;outline-offset:2px;
+}
+.cue-prepare-trigger[aria-pressed="true"]{
+  background:#215e50;border:2px solid #74efc9;
+  color:#fff;box-shadow:0 0 0 1px #2c7165;
+}
+.cue-prepare-trigger[aria-pressed="true"] .cue-prepare-arrow{color:#fcf4be}
+.shell[data-active-workspace="cues"] .cue-item:has(.cue-prepare-trigger:focus-visible){
+  outline:1px solid #fff5cc;
+}
+.shell[data-active-workspace="operation"] .cue-prepare-trigger{
+  top:50%;left:11px;transform:translateY(-50%);
+  min-width:44px;min-height:44px;
+}
+.shell[data-active-workspace="operation"] #cueList .cue-row-select{
+  padding-left:61px;
+}
+@media(max-width:740px){
+  .shell[data-active-workspace="operation"] .cue-prepare-trigger{
+    left:8px;min-width:40px;
+  }
+  .shell[data-active-workspace="operation"] #cueList .cue-row-select{
+    padding-left:52px;
+  }
+}
