@@ -123,6 +123,9 @@ try {
   assert.ok(compactGeometry.right.x >= compactGeometry.left.right-2,'Compact inspector stays next to cue list');
   assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
     'Compact GO and STOP ALL remain visible without scrolling');
+  const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
+  assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
+    'Compact inspector must show real editable audio settings without page scroll');
   await page.setViewportSize({width:1366,height:768});
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
