@@ -489,8 +489,18 @@ function render() {
 
   const cueList = $('cueList');
   cueList.replaceChildren();
-  if (show.cues.length === 0) cueList.append(node('p', 'empty', t('status.noCues')));
-  for (const cue of show.cues) {
+  const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
+  const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
+    const matchingAssets = cue.actions.map(action =>
+      show.assets.find(asset => asset.id === action.assetId)?.name ?? '').join(' ');
+    const searchable = [cue.number, cue.label, cue.trigger, cue.notes,
+      cue.sourceLineIds.join(' '), matchingAssets].join(' ').toLocaleLowerCase();
+    return searchable.includes(cueQuery);
+  });
+  $('cueSearchStatus').textContent = t('workspace.matchCount', { visible: visibleCues.length, total: show.cues.length });
+  if (!show.cues.length) cueList.append(node('p', 'empty', t('status.noCues')));
+  else if (!visibleCues.length) cueList.append(node('p', 'empty', t('workspace.noCueMatches')));
+  for (const cue of visibleCues) {
     const card = node('article', 'item cue-item');
     if (cue.id === selectedCueId) card.classList.add('cue-selected');
     if (cue.id === operatorQueue.preparedCueId) card.classList.add('cue-prepared');
@@ -706,6 +716,7 @@ function setNewShow(project, statusKey, values = {}) {
 }
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
+$('cueSearchInput').addEventListener('input', () => render());
 for (const button of document.querySelectorAll('[data-workspace-nav]')) {
   button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
 }
