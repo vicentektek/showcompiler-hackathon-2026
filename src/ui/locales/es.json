@@ -382,5 +382,8 @@
   "cueEditor.deleteCue": "Eliminar cue",
   "cueEditor.confirmDelete": "¿Eliminar el cue seleccionado? Se quitarán sus referencias activas. No se puede deshacer.",
   "cueEditor.stopBeforeEdit": "Detén todo el audio antes de cambiar la secuencia.",
-  "cueEditor.sequenceChanged": "Secuencia actualizada. El siguiente GO se ha colocado en el primer cue."
+  "cueEditor.sequenceChanged": "Secuencia actualizada. El siguiente GO se ha colocado en el primer cue.",
+  "cueEditor.duplicateCue": "Duplicar",
+  "cueEditor.moveUp": "Subir",
+  "cueEditor.moveDown": "Bajar"
 }
