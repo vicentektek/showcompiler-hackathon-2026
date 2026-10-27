@@ -136,7 +136,7 @@ export function evaluateStageEventCases(gold, predictions) {
   }
 
   const precision=totals.evaluatedPredictions ? totals.truePositives/totals.evaluatedPredictions : totals.expectedEvents===0 ? 1 : 0;
-  const recall=scoreSafe(totals.truePositives,totals.expectedEvents);
+  const recall=totals.expectedEvents ? totals.truePositives/totals.expectedEvents : 1;
   const f1=precision+recall?2*precision*recall/(precision+recall):0;
   const warnings=[];
   if(totals.falseNegatives)warnings.push('MISSED_EXPLICIT_OR_DIRECTED_EVENTS');
