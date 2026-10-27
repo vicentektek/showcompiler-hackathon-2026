@@ -37,3 +37,7 @@ This is a hackathon-specific, dependency-light browser prototype for script-link
 - Meta: src/core/metaCueProvider.mjs, theatreCueAnalysis.mjs, sceneAnalysis.mjs; tools/metaRoutes.mjs and tools/meta-smoke.mjs.
 - Browser: src/ui/app.mjs; i18n: src/ui/i18n.mjs and locales.
 - The complete-show ZIP and original synthesized-audio demo live on a SEPARATE feature branch from the cue-automation editor. Inspect the branch graph before trying to use or modify these features together.
+
+## Offline theatre cue QA (opt-in coding workflow)
+
+For tasks about cue precision, consult `docs/CODEX_CUE_QA_LOOP.md`, run `npm run qa:cues`, and inspect `artifacts/cue-qa/report.md`. Default fixtures and predictions are illustrative and **do not measure the Meta model**. Treat `artifacts/cue-qa/` as private/local output: never commit it. A successful CI report verifies the evaluator pipeline only. Change one variable per iteration, require a regression test, review all cue behavior with a human, never run billable model calls or merge unrequested work.
