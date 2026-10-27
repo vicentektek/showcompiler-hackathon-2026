@@ -5,6 +5,7 @@
 import { deserializeShowProject, MAX_PROJECT_JSON_BYTES } from '../src/core/projectPersistence.mjs';
 import { addMetaProposals } from '../src/core/workspace.mjs';
 import { normalizeScriptLanguageHint } from '../src/core/scriptLanguage.mjs';
+import { validateProductionContext } from '../src/core/performanceKnowledge.mjs';
 import {
   callMetaCueModel,
   createMetaRequestId,
@@ -164,7 +165,7 @@ export function makeMetaRoute({
       const raw = await readBoundedBody(request, MAX_PROJECT_JSON_BYTES);
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
-          Object.keys(parsed).some(key => !['project', 'scriptLanguage', 'analysisWindowStart', 'designMode'].includes(key)) ||
+          Object.keys(parsed).some(key => !['project', 'scriptLanguage', 'analysisWindowStart', 'designMode', 'performanceKind', 'documentKind'].includes(key)) ||
           typeof parsed.project !== 'object') {
         answer(response, 400, { error: 'Solicitud de proyecto no válida' }, headers);
         return true;
@@ -173,6 +174,11 @@ export function makeMetaRoute({
       const scriptLanguage = normalizeScriptLanguageHint(parsed.scriptLanguage);
       const analysisWindowStart = parsed.analysisWindowStart ?? 0;
       const designMode = parsed.designMode ?? 'balanced';
+      const productionContext = {
+        performanceKind: parsed.performanceKind ?? 'auto',
+        documentKind: parsed.documentKind ?? 'auto',
+      };
+      validateProductionContext(productionContext);
       if (!['literal', 'balanced', 'expressive'].includes(designMode)) {
         throw new TypeError('Unsupported Meta sound design mode');
       }
@@ -181,7 +187,7 @@ export function makeMetaRoute({
       }
       const result = await modelClient({
         show: project, apiKey: getKey(), model, scriptLanguage, requestId,
-        analysisWindowStart, designMode,
+        analysisWindowStart, designMode, ...productionContext,
       });
       if (!result || result.provider !== 'META_MODEL_API' || !Array.isArray(result.proposals)) {
         throw new TypeError('Invalid Meta provider result');
