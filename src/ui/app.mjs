@@ -33,6 +33,8 @@ let dirty = false;
 let projectGeneration = 0;
 let metaAvailable = false;
 let metaInFlight = false;
+let metaActivity = null;
+let metaActivityTimer = null;
 let metaCoverage = null;
 let metaProposalDetails = new Map();
 let pendingAudioCueId = null;
@@ -202,6 +204,24 @@ function feedback(key, values = {}, tone = 'info') {
 function showError(error, key) {
   feedback(key ?? resolveErrorKey(error), error?.uiValues ?? {}, 'error');
 }
+function refreshMetaActivity() {
+  const activity = $('aiAnalysisActivity');
+  activity.hidden = !metaInFlight;
+  $('analyzeMetaBtn').setAttribute('aria-busy', String(metaInFlight));
+  if (!metaInFlight || !metaActivity) return;
+  $('aiAnalysisActiveTitle').textContent = t('proposals.analysisRunning');
+  $('aiAnalysisScope').textContent = metaActivity.provider === 'meta'
+    ? t('proposals.analysisScopeMeta', {
+        startWindow: metaActivity.startWindow,
+        endWindow: metaActivity.endWindow,
+        totalWindows: metaActivity.totalWindows,
+        lineCount: metaActivity.lineCount,
+      })
+    : t('proposals.analysisScopeBaseten');
+  $('aiAnalysisElapsed').textContent = t('proposals.analysisElapsed', {
+    seconds: Math.max(0, Math.floor((Date.now() - metaActivity.startedAt) / 1000)),
+  });
+}
 function refreshMetaMessage() {
   const provider = selectedModelProvider();
   const baseten = provider === 'baseten';
@@ -212,9 +232,13 @@ function refreshMetaMessage() {
       : metaConnection.state === 'error'
         ? (baseten ? 'status.basetenOffline' : 'status.metaOffline')
         : (baseten ? 'status.basetenChecking' : 'proposals.metaChecking'));
-  $('analyzeMetaBtn').textContent = t(baseten ? 'proposals.basetenButton'
-    : metaCoverage?.complete ? 'proposals.metaCompleteButton'
-      : metaCoverage?.nextWindowStart ? 'proposals.metaNextButton' : 'proposals.metaButton');
+  $('analyzeMetaBtn').textContent = metaInFlight ? t('proposals.analysisButtonBusy')
+    : t(baseten ? 'proposals.basetenButton'
+      : metaCoverage?.complete ? 'proposals.metaRepeatButton'
+        : metaCoverage?.nextWindowStart ? 'proposals.metaNextButton' : 'proposals.metaButton');
+  $('metaDesignModeField').hidden = baseten;
+  $('metaDesignMode').disabled = metaInFlight;
+  refreshMetaActivity();
   $('modelProviderDisclaimer').textContent = t(baseten ? 'proposals.basetenDisclaimer' : 'proposals.metaDisclaimer');
   $('metaCoverage').hidden = baseten;
   if (!baseten) {
@@ -673,8 +697,7 @@ function render() {
   replaceOptions($('lineSelect'), show.scriptText ? lines.slice(0, 1000).map(line => [line.id, `${line.id} · ${line.text.slice(0, 90) || t('status.emptyLine')}`]) : [], $('lineSelect').value);
   replaceOptions($('assetSelect'), [['', t('soundPlan.defer')], ...show.assets.map(asset => [asset.id, `${asset.id} · ${asset.name}`])], $('assetSelect').value);
   $('createProposalBtn').disabled = !show.scriptText;
-  $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim() ||
-    (selectedModelProvider() === 'meta' && metaCoverage?.complete === true);
+  $('analyzeMetaBtn').disabled = !metaAvailable || metaInFlight || !show.scriptText.trim();
   $('modelProviderSelect').disabled = metaInFlight;
 
   const proposalList = $('proposalList');
@@ -1549,22 +1572,34 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
   } catch (error) { showError(error); return; }
   const provider = selectedModelProvider();
   let analysisWindowStart;
+  let activityScope = { provider, startedAt: 0 };
+  const isRepeat = provider === 'meta' && metaCoverage?.complete === true;
+  const designMode = provider === 'meta' ? $('metaDesignMode').value : null;
   if (provider === 'meta') {
     const plan = planScriptAnalysis(show.scriptText);
     analysisWindowStart = metaCoverage?.nextWindowStart ?? 0;
     const batch = plan.windows.slice(analysisWindowStart, analysisWindowStart + metaWindowsPerRequest);
     if (!batch.length) { showError(uiError('errors.metaResponse')); return; }
     const lineCount = batch.reduce((sum, window) => sum + window.coreLines.length, 0);
+    activityScope = {
+      provider, startedAt: 0, lineCount,
+      startWindow: analysisWindowStart + 1,
+      endWindow: analysisWindowStart + batch.length,
+      totalWindows: plan.windows.length,
+    };
     if (!window.confirm(t('status.confirmMeta', {
       windowCount: batch.length,
       lineCount,
       startWindow: analysisWindowStart + 1,
       endWindow: analysisWindowStart + batch.length,
       totalWindows: plan.windows.length,
-    }))) return;
+    }) + (isRepeat ? '\n\n' + t('status.confirmMetaRepeat') : ''))) return;
   } else if (!window.confirm(t('status.confirmBaseten'))) return;
   const generation = projectGeneration;
+  metaActivity = { ...activityScope, startedAt: Date.now() };
   metaInFlight = true;
+  if (metaActivityTimer !== null) window.clearInterval(metaActivityTimer);
+  metaActivityTimer = window.setInterval(() => refreshMetaActivity(), 1000);
   render();
   feedback(provider === 'baseten' ? 'status.basetenInProgress' : 'status.metaInProgress');
   try {
@@ -1574,7 +1609,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
       body: JSON.stringify({
         project: JSON.parse(snapshot),
         scriptLanguage,
-        ...(provider === 'meta' ? { analysisWindowStart } : {}),
+        ...(provider === 'meta' ? { analysisWindowStart, designMode } : {}),
       }),
     });
     const result = await response.json();
@@ -1611,6 +1646,9 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
   } catch (error) {
     showError(error);
   } finally {
+    if (metaActivityTimer !== null) window.clearInterval(metaActivityTimer);
+    metaActivityTimer = null;
+    metaActivity = null;
     metaInFlight = false;
     render();
   }
