@@ -181,6 +181,38 @@
               </select>
               <p class="caption" data-i18n="proposals.designModeHelp">Optional ideas are marked SUGGESTED; they are not obligations or automatic GO actions.</p>
             </div>
+            <div id="metaProductionContext" class="ai-production-context">
+              <div>
+                <label class="field" for="performanceKindSelect" data-i18n="proposals.performanceKindLabel">Type of show</label>
+                <select id="performanceKindSelect">
+                  <option value="auto" data-i18n="proposals.performanceAuto">Automatic / not specified</option>
+                  <option value="play" data-i18n="proposals.performancePlay">Theatre / play</option>
+                  <option value="musical" data-i18n="proposals.performanceMusical">Musical theatre</option>
+                  <option value="dance" data-i18n="proposals.performanceDance">Dance</option>
+                  <option value="opera" data-i18n="proposals.performanceOpera">Opera</option>
+                  <option value="gala" data-i18n="proposals.performanceGala">Gala / awards</option>
+                  <option value="concert" data-i18n="proposals.performanceConcert">Concert / festival</option>
+                  <option value="circus" data-i18n="proposals.performanceCircus">Circus / variety</option>
+                  <option value="corporate" data-i18n="proposals.performanceCorporate">Corporate event</option>
+                </select>
+              </div>
+              <div>
+                <label class="field" for="documentKindSelect" data-i18n="proposals.documentKindLabel">Document type</label>
+                <select id="documentKindSelect">
+                  <option value="auto" data-i18n="proposals.documentAuto">Automatic / not specified</option>
+                  <option value="dramatic_script" data-i18n="proposals.documentScript">Dramatic script</option>
+                  <option value="libretto" data-i18n="proposals.documentLibretto">Libretto</option>
+                  <option value="running_order" data-i18n="proposals.documentRundown">Running order / escaleta</option>
+                  <option value="technical_script" data-i18n="proposals.documentTechnical">Technical script</option>
+                  <option value="calling_script" data-i18n="proposals.documentCalling">Stage-manager calling script</option>
+                  <option value="cue_sheet" data-i18n="proposals.documentCuesheet">Cue sheet</option>
+                  <option value="score" data-i18n="proposals.documentScore">Score / musical annotations</option>
+                  <option value="setlist" data-i18n="proposals.documentSetlist">Setlist</option>
+                  <option value="other" data-i18n="proposals.documentOther">Other / mixed</option>
+                </select>
+              </div>
+            </div>
+            <p id="metaProductionHelp" class="caption" data-i18n="proposals.productionHelp">These settings guide interpretation only. Automatic infers from evidence; explicit selection is more reliable for mixed documents.</p>
             <button id="analyzeMetaBtn" type="button" class="btn primary block" disabled data-i18n="proposals.metaButton">Generate proposals with Meta AI</button>
             <div id="aiAnalysisActivity" class="ai-analysis-activity" hidden aria-live="polite" aria-atomic="true" role="status">
               <div class="ai-analysis-summary">
