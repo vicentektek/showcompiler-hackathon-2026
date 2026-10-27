@@ -1,0 +1,39 @@
+# Repository execution guidance (27 October 2026)
+
+This is a hackathon-specific, dependency-light browser prototype for script-linked, human-reviewed sound cues. Its CURRENT runtime is Node >=20, browser ES modules, local HTTP tooling and Web Audio, not a React/TypeScript/Vite or native desktop application. Read package.json and the current checkout before assuming commands or architecture.
+
+## Product and safety invariants
+
+- Import and preserve original script text and stable L# references. Never fabricate source references or overwrite the source with a translation.
+- Generative models propose ideas in design/review only. A person approves proposals before they become DRAFT cues. Neither model output nor page navigation can execute a cue.
+- The operator-selected item, prepared cue, running sound instances, audition state and pending automatic advances are different states. Reading/editing/searching never advances prepared GO.
+- GO, STOP, FADE and STOP ALL are deterministic local transport operations. No network or AI calls may be added to GO or STOP paths.
+- STOP ALL, project replacement, dispose, cue interruption and explicit cancel must invalidate pending delayed GO callbacks and late asynchronous results. Never restart automatically after an error.
+- Missing, undecoded or unresolved audio cannot play. Audition uses the same output as GO; do not describe it as isolated PFL.
+- No claim of professional live-show certification, reliable multichannel routing, native installer, real ASIO, real voice-following or hardware integration without separate objective validation.
+
+## Cost, security and provenance
+
+- npm test, syntax checks and CI are OFFLINE. No provider calls, automatic retries, external billing or new secrets in tests.
+- A live Meta request requires explicit authorization by the operator, one bounded request, no retries, sanitized diagnostics and confirmed spend policy. Never launch a billable smoke test opportunistically.
+- No credential, model raw response, private theatre script, copyrighted media, personal information or proprietary external research in source, tests, logs, CI artifacts, pull requests or docs.
+- Preserve dates and contribution evidence. Do not represent earlier research or pre-event implementations as new contest work.
+- Do not modify or merge main automatically. No unrequested release or public status change.
+- No new dependencies or architecture rewrite unless there is a demonstrable test or delivery need and it is explained in the PR.
+
+## Working contract for coding agents
+
+1. Read docs/CODEX_EXECUTION_PLAN_2026-10-27.md and docs/QA_MATRIX_2026-10-27.md, then inspect only files required for the selected task.
+2. Record current branch, HEAD, PR base, relevant related feature branches, and existing test commands. An open PR or passing isolated CI does not establish integration.
+3. Make one bounded change at a time; preserve backward-compatible project JSON and source provenance. Avoid unrelated refactors.
+4. First reproduce with a minimal deterministic test; implement the smallest fix; run focused tests, then npm run check:syntax and npm test.
+5. Report exact commands, observed results, changed files, meaningful gaps, CI URL, and what still requires browser/hardware/manual approval.
+6. Stop at the task acceptance criteria. Do not cascade into the next phase, merge, run paid models, or assume passing tests means real audio was heard.
+
+## Current technical orientation
+
+- Tests: test/*.test.mjs through node --test; CI: .github/workflows/core-tests.yml.
+- Core: src/core/workspace.mjs, projectPersistence.mjs, browserAudio.mjs, cueAutomation.mjs, cueAutomationRuntime.mjs, operatorQueue.mjs.
+- Meta: src/core/metaCueProvider.mjs, theatreCueAnalysis.mjs, sceneAnalysis.mjs; tools/metaRoutes.mjs and tools/meta-smoke.mjs.
+- Browser: src/ui/app.mjs; i18n: src/ui/i18n.mjs and locales.
+- The complete-show ZIP and original synthesized-audio demo live on a SEPARATE feature branch from the cue-automation editor. Inspect the branch graph before trying to use or modify these features together.
