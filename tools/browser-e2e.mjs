@@ -111,6 +111,8 @@ try {
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'true');
   await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('[data-workspace-nav="audio"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
   assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
   assert.equal(await page.locator('#runqAudioOverview').count(), 1);
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
@@ -155,6 +157,8 @@ try {
   await page.locator('#cueTargetStopForm').getByRole('button',{name:'Save target actions'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Target-stop actions saved/);
   await page.locator('[data-workspace-nav="script"]').click();
+  assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
   assert.equal(await page.locator('#runqScriptContext').count(), 1);
   await capture('06-script-1366.png');
