@@ -61,7 +61,7 @@ Live commands remain separate and require explicit paid acknowledgement. No live
 - Gold annotations remain provisional; exact scores are regression metrics, not professional certification.
 - No real browser/speaker acceptance was performed.
 - Modal model cold-start, VRAM use, generation quality, WAV normalization and actual cost require a separately authorized pilot.
-- No commit, push, draft PR or merge is performed by this audit without a final reviewed diff.
+- Reviewed implementation commit `630a33b` was pushed and draft PR #61 was opened against the PR #59 branch. No merge or `main` change was performed.
 
 ## Final offline validation
 
