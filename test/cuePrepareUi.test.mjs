@@ -26,6 +26,9 @@ test('Space is operation-only, blocks auto-repeat and focused interactive contro
   assert.match(key[1],/activeWorkspace !== 'operation'/);
   assert.match(key[1],/event\.repeat/);
   assert.match(key[1],/input, textarea, select, button/);
+  assert.match(key[1],/summary/,'Native summary menu Space must not GO');
+  assert.match(key[1],/a\[href\]/,'Focused links must not GO');
+  assert.match(key[1],/\[tabindex\]/,'Custom focusable widgets must not GO');
   assert.match(key[1],/\$\('operatorGoBtn'\)\.disabled/);
   assert.match(key[1],/event\.preventDefault\(\)/);
 });

@@ -1431,9 +1431,10 @@ $('checkPreflightBtn').addEventListener('click', () => {
   preflightVisible = !preflightVisible;
   renderPreflight();
 });
-// Manual keyboard GO is limited to the Operation workspace. Focused buttons
-// and editable fields keep their normal Space behavior. Holding Space must not
-// launch successive cues through repeated keydown events.
+// Manual keyboard GO is limited to the Operation workspace. Every focused
+// interactive element (including native <summary> menus and custom tabbable
+// controls) keeps its own Space behavior; a menu keypress must NEVER be GO.
+// Holding Space must not launch successive cues through keydown repeats.
 document.addEventListener('keydown', event => {
   if (activeWorkspace !== 'operation' ||
       (event.code !== 'Space' && event.key !== ' ') ||
@@ -1442,7 +1443,10 @@ document.addEventListener('keydown', event => {
       event.defaultPrevented) return;
   const target = event.target;
   if (target instanceof Element && target.closest(
-    'input, textarea, select, button, [contenteditable], [role="button"], [role="textbox"]'
+    'input, textarea, select, button, a[href], summary, [contenteditable], [tabindex], ' +
+    '[role="button"], [role="textbox"], [role="link"], [role="menuitem"], ' +
+    '[role="tab"], [role="checkbox"], [role="radio"], [role="slider"], ' +
+    '[role="combobox"], [role="switch"], [role="option"]'
   )) return;
   if ($('operatorGoBtn').disabled) return;
   event.preventDefault();
