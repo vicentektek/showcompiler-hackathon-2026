@@ -51,6 +51,16 @@
         "qa:codex"
       ],
       "problemMatcher": []
+    },
+    {
+      "label": "RunQ: Original theatrical scenarios (offline)",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "qa:scripts"
+      ],
+      "problemMatcher": []
     }
   ]
 }

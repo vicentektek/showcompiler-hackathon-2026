@@ -1,0 +1,17 @@
+EL RELOJ DE LOS DOCE
+Ensayo técnico original: doce avisos grabados en una misma escena.
+ESCENA 1 — PRUEBA DE SECUENCIA
+SONIDO 01: reproducir pitido de prueba grabado número 1.
+SONIDO 02: reproducir pitido de prueba grabado número 2.
+SONIDO 03: reproducir pitido de prueba grabado número 3.
+SONIDO 04: reproducir pitido de prueba grabado número 4.
+SONIDO 05: reproducir pitido de prueba grabado número 5.
+SONIDO 06: reproducir pitido de prueba grabado número 6.
+SONIDO 07: reproducir pitido de prueba grabado número 7.
+SONIDO 08: reproducir pitido de prueba grabado número 8.
+SONIDO 09: reproducir pitido de prueba grabado número 9.
+SONIDO 10: reproducir pitido de prueba grabado número 10.
+SONIDO 11: reproducir pitido de prueba grabado número 11.
+SONIDO 12: reproducir pitido de prueba grabado número 12.
+REGIDOR: Final de prueba. Ningún pitido debe autoejecutarse.
+FIN

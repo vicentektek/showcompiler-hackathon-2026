@@ -1,0 +1,16 @@
+FORO DE INVESTIGACIÓN — GUION TÉCNICO
+Tres ponentes con micrófonos reales en directo.
+BLOQUE APERTURA | 00:00
+VIDEO: pantalla de bienvenida sin pista sonora.
+SONIDO: reproducir cortinilla musical grabada de siete segundos.
+REGIDOR: Esperar final de cortinilla; no disparar GO sin confirmación.
+MODERADOR: Buenos días. Empezamos la mesa redonda.
+(El moderador toca la mesa con un lápiz de verdad.)
+PONENTE 1: En mi laboratorio estudiamos el ruido ambiental.
+PONENTE 2: Yo recuerdo que ayer sonó una alarma muy fuerte.
+SONIDO: reproducir voz locutada grabada: «Pausa de cinco minutos».
+VIDEO: proyectar una diapositiva con resultados, sin vídeo sonoro.
+MODERADOR: Gracias, volvemos en seguida.
+SONIDO: cortinilla musical de salida grabada.
+LUCES: pasar a luz de trabajo en escena.
+FIN

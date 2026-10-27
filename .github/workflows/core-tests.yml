@@ -24,6 +24,13 @@ jobs:
           path: artifacts/codex-qa/summary.*
           if-no-files-found: warn
           retention-days: 14
+      - name: Upload original-script regression report
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-original-theatre-scenarios
+          path: artifacts/stage-script-qa/report.*
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload cue QA report for developer and Codex review
         uses: actions/upload-artifact@v4
         with:

@@ -1,0 +1,80 @@
+TORRE DE SAL
+Thriller original en una estación costera. Tres intérpretes y una voz pregrabada.
+Personajes: AMALIA, TOMÁS, EVA, FARO (voz grabada).
+Montaje: luz fija y consola de utilería. Todos los GO los decide una persona.
+ESCENA 1 — EL FARO
+[SONIDO 41: comienza un ambiente grabado de mar lejano en bucle.]
+TOMÁS: He comprobado el panel 1; no hay avería.
+EVA: El registro 2 coincide con la última ronda.
+AMALIA: El indicador 3 sigue encendido; registrad la lectura.
+TOMÁS: He comprobado el panel 4; no hay avería.
+EVA: El registro 5 coincide con la última ronda.
+[SONIDO 42: suena un aviso de radio grabado de dos segundos.]
+TOMÁS: He comprobado el panel 7; no hay avería.
+EVA: El registro 8 coincide con la última ronda.
+AMALIA: El indicador 9 sigue encendido; registrad la lectura.
+TOMÁS: He comprobado el panel 10; no hay avería.
+EVA: El registro 11 coincide con la última ronda.
+[El ambiente grabado de mar continúa sin reiniciarse.]
+TOMÁS: He comprobado el panel 13; no hay avería.
+EVA: El registro 14 coincide con la última ronda.
+AMALIA: El indicador 15 sigue encendido; registrad la lectura.
+TOMÁS: He comprobado el panel 16; no hay avería.
+EVA: El registro 17 coincide con la última ronda.
+(TOMÁS golpea un barandilla real; ruido práctico, no archivo.)
+TOMÁS: He comprobado el panel 19; no hay avería.
+EVA: El registro 20 coincide con la última ronda.
+AMALIA: El indicador 21 sigue encendido; registrad la lectura.
+TOMÁS: He comprobado el panel 22; no hay avería.
+EVA: El registro 23 coincide con la última ronda.
+[SONIDO 43: detener solo el aviso de radio, no el ambiente de mar.]
+TOMÁS: He comprobado el panel 25; no hay avería.
+EVA: El registro 26 coincide con la última ronda.
+AMALIA: El indicador 27 sigue encendido; registrad la lectura.
+TOMÁS: He comprobado el panel 28; no hay avería.
+EVA: El registro 29 coincide con la última ronda.
+[SONIDO 44: reproducir la voz grabada del FARO: «Viento de fuerza seis».]
+TOMÁS: He comprobado el panel 31; no hay avería.
+EVA: El registro 32 coincide con la última ronda.
+AMALIA: El indicador 33 sigue encendido; registrad la lectura.
+TOMÁS: He comprobado el panel 34; no hay avería.
+EVA: El registro 35 coincide con la última ronda.
+AMALIA: El indicador 36 sigue encendido; registrad la lectura.
+ESCENA 2 — LA ÚLTIMA TRANSMISIÓN
+[El ambiente grabado de mar sigue activo desde la escena anterior; CONTINUE, no PLAY.]
+TOMÁS: Confirmada; seguimos el protocolo 1.
+EVA: Queda una página por cerrar en el libro 2.
+AMALIA: ¿Confirmas la transmisión 3 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 4.
+[SONIDO 45: comienza una señal de baja frecuencia grabada en bucle.]
+AMALIA: ¿Confirmas la transmisión 6 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 7.
+EVA: Queda una página por cerrar en el libro 8.
+AMALIA: ¿Confirmas la transmisión 9 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 10.
+[SONIDO 46: detener la señal de baja frecuencia y mantener el mar.]
+AMALIA: ¿Confirmas la transmisión 12 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 13.
+EVA: Queda una página por cerrar en el libro 14.
+AMALIA: ¿Confirmas la transmisión 15 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 16.
+EVA: Queda una página por cerrar en el libro 17.
+[SONIDO 47: detener ambiente de mar con fade de seis segundos.]
+TOMÁS: Confirmada; seguimos el protocolo 19.
+EVA: Queda una página por cerrar en el libro 20.
+AMALIA: ¿Confirmas la transmisión 21 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 22.
+EVA: Queda una página por cerrar en el libro 23.
+[Silencio completo durante una respiración; no lanzar archivos.]
+TOMÁS: Confirmada; seguimos el protocolo 25.
+EVA: Queda una página por cerrar en el libro 26.
+AMALIA: ¿Confirmas la transmisión 27 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 28.
+[La luz de torre se apaga sin audio adicional.]
+AMALIA: ¿Confirmas la transmisión 30 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 31.
+EVA: Queda una página por cerrar en el libro 32.
+AMALIA: ¿Confirmas la transmisión 33 para el archivo?
+TOMÁS: Confirmada; seguimos el protocolo 34.
+EVA: Queda una página por cerrar en el libro 35.
+FIN

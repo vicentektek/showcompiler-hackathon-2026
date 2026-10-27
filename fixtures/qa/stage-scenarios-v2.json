@@ -1,0 +1,701 @@
+{
+  "version": 2,
+  "provenance": "ORIGINAL_SYNTHETIC_SCRIPTS_2026-10-27_HUMAN_REVIEW_BASELINE_NOT_MODEL_SCORES",
+  "rules": "Event gold is script-anchored technical assessment. Ambiguous or creative audio is not mandatory. Human review required before using for real model evaluation.",
+  "scenarios": [
+    {
+      "id": "01-el-ultimo-turno",
+      "scriptFile": "fixtures/qa/scripts/01-el-ultimo-turno.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "description": "Drama con diálogo separado, ambiente continuo, memoria falsa, silencio y fade",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "hum-vent",
+          "sourceText": "[Un zumbido de ventilación grabado comienza suave y permanece en bucle.]"
+        },
+        {
+          "lineId": "L15",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "hum-vent",
+          "sourceText": "[El zumbido de ventilación continúa; no debe lanzarse otro audio.]"
+        },
+        {
+          "lineId": "L18",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "bell",
+          "sourceText": "[Desde el pasillo suena una única campanilla eléctrica grabada.]"
+        },
+        {
+          "lineId": "L24",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "hum-vent",
+          "sourceText": "[La campanilla no vuelve a sonar. El zumbido se atenúa en tres segundos hasta detenerse.]",
+          "targetPlayLineId": "L5"
+        },
+        {
+          "lineId": "L27",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "silence",
+          "sourceText": "[Silencio absoluto solicitado; no reproducir una pista titulada «silencio».]"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L12",
+        "L21",
+        "L30"
+      ]
+    },
+    {
+      "id": "02-el-eco-del-patio",
+      "scriptFile": "fixtures/qa/scripts/02-el-eco-del-patio.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "description": "Personajes en líneas independientes, acotaciones intercaladas y efectos físicos no grabados",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L16",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "school-bell",
+          "sourceText": "[Suena por los altavoces una grabación breve del timbre de entrada.]"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L8",
+        "L11",
+        "L15",
+        "L21",
+        "L23"
+      ]
+    },
+    {
+      "id": "03-gala-del-puerto",
+      "scriptFile": "fixtures/qa/scripts/03-gala-del-puerto.txt",
+      "type": "gala",
+      "documentKind": "running_order",
+      "language": "es",
+      "description": "Escaleta técnica: sonido, luz, vídeo, voz en directo, música de entrada y STOP con fade",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L6",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "opening",
+          "sourceText": "SONIDO 01: lanzar sintonía pregrabada de apertura, 15 s."
+        },
+        {
+          "lineId": "L8",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "opening",
+          "sourceText": "SONIDO 02: bajar la sintonía de apertura con fade-out de 4 s hasta silencio.",
+          "targetPlayLineId": "L6"
+        },
+        {
+          "lineId": "L13",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "stinger",
+          "sourceText": "SONIDO 03: reproducir un acento musical de tres segundos al anunciar el premio."
+        },
+        {
+          "lineId": "L15",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "outro",
+          "sourceText": "SONIDO 04: música de salida grabada, bucle hasta GO de fin."
+        },
+        {
+          "lineId": "L17",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "outro",
+          "sourceText": "SONIDO 05: parar música de salida con fade-out de 3 s.",
+          "targetPlayLineId": "L15"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L4",
+        "L5",
+        "L9",
+        "L16",
+        "L18"
+      ]
+    },
+    {
+      "id": "04-musical-sinfonia-viva",
+      "scriptFile": "fixtures/qa/scripts/04-musical-sinfonia-viva.txt",
+      "type": "musical",
+      "documentKind": "libretto",
+      "language": "es",
+      "description": "Voces de artistas y orquesta en directo frente a playback grabado",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L8",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "night-wind",
+          "sourceText": "[SONIDO 07: reproducir viento nocturno grabado, en bucle bajo la canción.]"
+        },
+        {
+          "lineId": "L10",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "night-wind",
+          "sourceText": "[El viento grabado sigue sonando sin reiniciarse.]"
+        },
+        {
+          "lineId": "L12",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "bells",
+          "sourceText": "[SONIDO 08: lanzar tres campanadas grabadas, separadas un segundo.]"
+        },
+        {
+          "lineId": "L14",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "night-wind",
+          "sourceText": "[SONIDO 09: retirar el viento grabado en fade de cinco segundos.]",
+          "targetPlayLineId": "L8"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L4",
+        "L5",
+        "L6",
+        "L11",
+        "L15"
+      ]
+    },
+    {
+      "id": "05-circo-pista-boreal",
+      "scriptFile": "fixtures/qa/scripts/05-circo-pista-boreal.txt",
+      "type": "circus",
+      "documentKind": "calling_script",
+      "language": "es",
+      "description": "Cues de pista y utilería; no confundir instrucciones de seguridad con audio",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L6",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "circus-intro",
+          "sourceText": "REGIDOR: GO SONIDO 11 — música grabada de entrada de pista."
+        },
+        {
+          "lineId": "L11",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "jump-wind",
+          "sourceText": "REGIDOR: GO SONIDO 12 — efecto grabado de viento corto para el salto."
+        },
+        {
+          "lineId": "L13",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "circus-intro",
+          "sourceText": "REGIDOR: GO SONIDO 13 — bajar música de entrada hasta silencio en 2 segundos.",
+          "targetPlayLineId": "L6"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L4",
+        "L7",
+        "L8",
+        "L10",
+        "L15"
+      ]
+    },
+    {
+      "id": "06-corporativo-mesa-redonda",
+      "scriptFile": "fixtures/qa/scripts/06-corporativo-mesa-redonda.txt",
+      "type": "corporate",
+      "documentKind": "technical_script",
+      "language": "es",
+      "description": "Microfonía en directo, cortinillas y vídeos con audio referido por fuente",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "opening",
+          "sourceText": "SONIDO: reproducir cortinilla musical grabada de siete segundos."
+        },
+        {
+          "lineId": "L11",
+          "transport": "PLAY",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT",
+          "soundKey": "announcement",
+          "sourceText": "SONIDO: reproducir voz locutada grabada: «Pausa de cinco minutos»."
+        },
+        {
+          "lineId": "L14",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT",
+          "soundKey": "exit",
+          "sourceText": "SONIDO: cortinilla musical de salida grabada."
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L4",
+        "L8",
+        "L9",
+        "L10",
+        "L12",
+        "L15"
+      ]
+    },
+    {
+      "id": "07-la-station-des-brumes",
+      "scriptFile": "fixtures/qa/scripts/07-la-station-des-brumes.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "fr",
+      "description": "Texto francés con acentos, cues de lluvia, continuidad, STOP y mención falsa",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "rain",
+          "sourceText": "[Une pluie enregistrée commence doucement, en boucle.]"
+        },
+        {
+          "lineId": "L9",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "rain",
+          "sourceText": "[La pluie enregistrée continue sans redémarrage.]"
+        },
+        {
+          "lineId": "L11",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "train-whistle",
+          "sourceText": "[Un coup de sifflet de train enregistré retentit une fois.]"
+        },
+        {
+          "lineId": "L13",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "rain",
+          "sourceText": "[La pluie enregistrée s'arrête en fondu de quatre secondes.]",
+          "targetPlayLineId": "L5"
+        },
+        {
+          "lineId": "L15",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "silence",
+          "sourceText": "[Un silence complet est demandé; pas de fichier son à créer.]"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L6",
+        "L8",
+        "L16"
+      ]
+    },
+    {
+      "id": "08-night-crossing",
+      "scriptFile": "fixtures/qa/scripts/08-night-crossing.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "en",
+      "description": "English stage directions, silence, continuous hum, false memory, trigger vocabulary",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L4",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "vent",
+          "sourceText": "[Recorded train-station ventilation starts as a low, seamless loop.]"
+        },
+        {
+          "lineId": "L8",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "vent",
+          "sourceText": "[The existing station ventilation continues unchanged.]"
+        },
+        {
+          "lineId": "L9",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "chime",
+          "sourceText": "[A recorded departure chime rings twice, once at each end of the platform.]"
+        },
+        {
+          "lineId": "L12",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "vent",
+          "sourceText": "[The recorded ventilation fades to a stop over three seconds.]",
+          "targetPlayLineId": "L4"
+        },
+        {
+          "lineId": "L14",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "silence",
+          "sourceText": "[Complete silence for one beat. Do not play a silence track.]"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L7",
+        "L11",
+        "L16"
+      ]
+    },
+    {
+      "id": "09-orden-no-fiable",
+      "scriptFile": "fixtures/qa/scripts/09-orden-no-fiable.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "description": "Ataques de inyección de instrucciones dentro del propio guion, falsos comandos de GO y órdenes al modelo",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep",
+          "sourceText": "[SONIDO 21: reproducir un pitido breve de confirmación grabado.]"
+        },
+        {
+          "lineId": "L11",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep",
+          "sourceText": "[SONIDO 22: detener el pitido si aún estuviera reproduciéndose.]",
+          "targetPlayLineId": "L5"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L6",
+        "L8",
+        "L9",
+        "L10",
+        "L13"
+      ]
+    },
+    {
+      "id": "10-dos-fuentes-al-mismo-tiempo",
+      "scriptFile": "fixtures/qa/scripts/10-dos-fuentes-al-mismo-tiempo.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "description": "Dos audios simultáneos y STOP dirigido; no parar el audio equivocado",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L4",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "pulse",
+          "sourceText": "[SONIDO 31: iniciar un pulso electrónico grave grabado en bucle.]"
+        },
+        {
+          "lineId": "L6",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "wind",
+          "sourceText": "[SONIDO 32: iniciar un soplido de viento grabado en bucle, superpuesto al pulso.]"
+        },
+        {
+          "lineId": "L8",
+          "transport": "CONTINUE",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "pulse",
+          "sourceText": "[El pulso electrónico grave continúa, sin reiniciarlo.]"
+        },
+        {
+          "lineId": "L10",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "wind",
+          "sourceText": "[SONIDO 33: detener el viento grabado con fade de dos segundos; el pulso sigue.]",
+          "targetPlayLineId": "L6"
+        },
+        {
+          "lineId": "L13",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "pulse",
+          "sourceText": "[SONIDO 34: detener el pulso electrónico grave con fade de cinco segundos.]",
+          "targetPlayLineId": "L4"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L9",
+        "L12"
+      ]
+    },
+    {
+      "id": "11-torre-de-sal",
+      "scriptFile": "fixtures/qa/scripts/11-torre-de-sal.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "description": "Guion largo con cabecera y dos escenas; seguimiento de estado entre ventanas y cobertura 60 líneas",
+      "stress": false,
+      "expected": [
+        {
+          "lineId": "L6",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "sea",
+          "sourceText": "[SONIDO 41: comienza un ambiente grabado de mar lejano en bucle.]"
+        },
+        {
+          "lineId": "L12",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "radio",
+          "sourceText": "[SONIDO 42: suena un aviso de radio grabado de dos segundos.]"
+        },
+        {
+          "lineId": "L18",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "sea",
+          "sourceText": "[El ambiente grabado de mar continúa sin reiniciarse.]"
+        },
+        {
+          "lineId": "L30",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "radio",
+          "sourceText": "[SONIDO 43: detener solo el aviso de radio, no el ambiente de mar.]",
+          "targetPlayLineId": "L12"
+        },
+        {
+          "lineId": "L36",
+          "transport": "PLAY",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT",
+          "soundKey": "faro",
+          "sourceText": "[SONIDO 44: reproducir la voz grabada del FARO: «Viento de fuerza seis».]"
+        },
+        {
+          "lineId": "L44",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "sea",
+          "sourceText": "[El ambiente grabado de mar sigue activo desde la escena anterior; CONTINUE, no PLAY.]"
+        },
+        {
+          "lineId": "L49",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "low-signal",
+          "sourceText": "[SONIDO 45: comienza una señal de baja frecuencia grabada en bucle.]"
+        },
+        {
+          "lineId": "L55",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "low-signal",
+          "sourceText": "[SONIDO 46: detener la señal de baja frecuencia y mantener el mar.]",
+          "targetPlayLineId": "L49"
+        },
+        {
+          "lineId": "L62",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "sea",
+          "sourceText": "[SONIDO 47: detener ambiente de mar con fade de seis segundos.]",
+          "targetPlayLineId": "L6"
+        },
+        {
+          "lineId": "L68",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT",
+          "soundKey": "silence",
+          "sourceText": "[Silencio completo durante una respiración; no lanzar archivos.]"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L24",
+        "L73"
+      ]
+    },
+    {
+      "id": "12-saturacion-de-cues",
+      "scriptFile": "fixtures/qa/scripts/12-saturacion-de-cues.txt",
+      "type": "play",
+      "documentKind": "technical_script",
+      "language": "es",
+      "description": "Más de ocho efectos explícitos en una sola ventana; revela un límite de capacidad del esquema",
+      "stress": true,
+      "expected": [
+        {
+          "lineId": "L4",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-1",
+          "sourceText": "SONIDO 01: reproducir pitido de prueba grabado número 1."
+        },
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-2",
+          "sourceText": "SONIDO 02: reproducir pitido de prueba grabado número 2."
+        },
+        {
+          "lineId": "L6",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-3",
+          "sourceText": "SONIDO 03: reproducir pitido de prueba grabado número 3."
+        },
+        {
+          "lineId": "L7",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-4",
+          "sourceText": "SONIDO 04: reproducir pitido de prueba grabado número 4."
+        },
+        {
+          "lineId": "L8",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-5",
+          "sourceText": "SONIDO 05: reproducir pitido de prueba grabado número 5."
+        },
+        {
+          "lineId": "L9",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-6",
+          "sourceText": "SONIDO 06: reproducir pitido de prueba grabado número 6."
+        },
+        {
+          "lineId": "L10",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-7",
+          "sourceText": "SONIDO 07: reproducir pitido de prueba grabado número 7."
+        },
+        {
+          "lineId": "L11",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-8",
+          "sourceText": "SONIDO 08: reproducir pitido de prueba grabado número 8."
+        },
+        {
+          "lineId": "L12",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-9",
+          "sourceText": "SONIDO 09: reproducir pitido de prueba grabado número 9."
+        },
+        {
+          "lineId": "L13",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-10",
+          "sourceText": "SONIDO 10: reproducir pitido de prueba grabado número 10."
+        },
+        {
+          "lineId": "L14",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-11",
+          "sourceText": "SONIDO 11: reproducir pitido de prueba grabado número 11."
+        },
+        {
+          "lineId": "L15",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT",
+          "soundKey": "beep-12",
+          "sourceText": "SONIDO 12: reproducir pitido de prueba grabado número 12."
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L16"
+      ]
+    }
+  ]
+}
