@@ -7,7 +7,7 @@ const client = readFileSync(new URL('../src/ui/app.mjs', import.meta.url), 'utf8
 const css = readFileSync(new URL('../src/ui/style.css', import.meta.url), 'utf8');
 const en = JSON.parse(readFileSync(new URL('../src/ui/locales/en.json', import.meta.url), 'utf8'));
 const es = JSON.parse(readFileSync(new URL('../src/ui/locales/es.json', import.meta.url), 'utf8'));
-const workspaces = ['script', 'ai', 'cues', 'audio', 'setup', 'operation'];
+const workspaces = ['home', 'script', 'ai', 'cues', 'audio', 'setup', 'operation'];
 
 test('one navigable workspace shell preserves live top-level transport controls', () => {
   for (const name of workspaces) {
