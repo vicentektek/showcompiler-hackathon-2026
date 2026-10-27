@@ -2,6 +2,7 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
+import { insertManualCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue } from '../core/manualCues.mjs';
 import { stageAddCueTrack, stageChangeCueTrack, stageRemoveCueTrack } from '../core/cueTracks.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
@@ -21,7 +22,7 @@ const sampleTexts = {
 };
 const limitScriptBytes = 1_000_000;
 const maximumShownLines = 300;
-const metaWindowsPerRequest = 2;
+const metaWindowsPerRequest = 1; // Keep browser preview in sync with bounded server request.
 let uiStorage;
 try { uiStorage = window.localStorage; } catch { uiStorage = null; }
 let uiLocale = readPreferredUiLocale(uiStorage);
@@ -36,6 +37,7 @@ let metaInFlight = false;
 let metaActivity = null;
 let metaActivityTimer = null;
 let metaCoverage = null;
+let metaIndependentReview = null; // Transient, bounded operator-only hints; never saved in the show.
 let metaProposalDetails = new Map();
 let pendingAudioCueId = null;
 let audioInFlight = false;
@@ -258,10 +260,30 @@ function refreshMetaMessage() {
           duplicates: metaCoverage.duplicates,
         });
   }
+  const hintPanel = $('metaIndependentReview');
+  hintPanel.hidden = baseten || metaIndependentReview === null;
+  if (!hintPanel.hidden) {
+    $('metaIndependentReviewSummary').textContent = t(
+      metaIndependentReview.totalUnreviewed
+        ? 'proposals.reviewHintsSummary' : 'proposals.reviewHintsNone',
+      { count: metaIndependentReview.totalUnreviewed },
+    );
+    const target = $('metaIndependentReviewLines');
+    target.replaceChildren();
+    for (const lineId of metaIndependentReview.lineIds) {
+      target.append(node('span', 'caption', lineId), sourceButton(lineId));
+    }
+    if (metaIndependentReview.totalUnreviewed > metaIndependentReview.lineIds.size) {
+      target.append(node('span', 'caption', t('proposals.reviewHintsMore', {
+        shown: metaIndependentReview.lineIds.size,
+      })));
+    }
+  }
 }
 
 function resetMetaAnalysis() {
   metaCoverage = null;
+  metaIndependentReview = null;
   metaProposalDetails = new Map();
 }
 
@@ -320,6 +342,25 @@ function applyMetaCoverage(value, observations, duplicates) {
   metaCoverage.observations += observations;
   metaCoverage.duplicates += duplicates;
 }
+function applyMetaIndependentReview(value, coverage) {
+  if (coverage.batchStartWindow === 0) metaIndependentReview = null;
+  // Older mock or Baseten responses did not implement independent review.
+  if (value === undefined) return;
+  const allowed = new Set(coverage.analyzedLineIds);
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      !Array.isArray(value.reviewFlags) || value.reviewFlags.length > 16 ||
+      !Number.isSafeInteger(value.totalUnreviewed) ||
+      value.totalUnreviewed < value.reviewFlags.length ||
+      value.totalUnreviewed > coverage.analyzedLines ||
+      value.reviewFlags.some(id => typeof id !== 'string' || !/^L[1-9]\d*$/.test(id) || !allowed.has(id)) ||
+      new Set(value.reviewFlags).size !== value.reviewFlags.length) {
+    throw uiError('errors.metaResponse');
+  }
+  if (!metaIndependentReview) metaIndependentReview = { lineIds: new Set(), totalUnreviewed: 0 };
+  for (const id of value.reviewFlags) metaIndependentReview.lineIds.add(id);
+  metaIndependentReview.totalUnreviewed += value.totalUnreviewed;
+}
+
 function switchUiLocale(locale) {
   if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) {
     $('uiLocaleSelect').value = uiLocale;
@@ -641,6 +682,11 @@ function renderCueList({ resetScroll = false } = {}) {
 }
 
 function render() {
+  $('cueDeleteBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueInsertBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueDuplicateBtn').disabled = !selectedCueId || !show.cues.some(c => c.id === selectedCueId);
+  $('cueMoveUpBtn').disabled = !selectedCueId || show.cues.findIndex(c => c.id === selectedCueId) < 1;
+  $('cueMoveDownBtn').disabled = !selectedCueId || show.cues.findIndex(c => c.id === selectedCueId) >= show.cues.length - 1;
   const lines = parseScript(show.scriptText);
   if (!show.cues.some(cue => cue.id === selectedCueId)) selectedCueId = show.cues[0]?.id ?? null;
   if (!show.cues.some(cue => cue.id === editingCueId)) editingCueId = null;
@@ -1214,6 +1260,36 @@ function setNewShow(project, statusKey, values = {}) {
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
 $('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScroll:true }); refreshAudioControls(); });
+function editCueSequence(fn) {
+  if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) return;
+  const status = player.getStatus();
+  if (audioInFlight || status.activeCueCount || status.pendingGoCount || status.auditionActive || status.auditionPending) {
+    feedback('cueEditor.stopBeforeEdit', {}, 'error');
+    return;
+  }
+  try {
+    const result = fn();
+    show = result.project ?? result;
+    selectedCueId = result.cueId ?? (show.cues.some(c => c.id === selectedCueId) ? selectedCueId : show.cues[0]?.id ?? null);
+    operatorQueue = startOperatorQueue(show.cues);
+    lastGoCueId = null;
+    inspectorPendingChanges = false;
+    editingCueId = null;
+    $('cueSearchInput').value = '';
+    dirty = true;
+    render();
+    feedback('cueEditor.sequenceChanged', {}, 'success');
+  } catch(error) { showError(error); }
+}
+$('cueAddBtn').addEventListener('click', () => editCueSequence(() => insertManualCue(show)));
+$('cueInsertBtn').addEventListener('click', () => editCueSequence(() => insertManualCue(show,{afterCueId:selectedCueId})));
+$('cueDuplicateBtn').addEventListener('click', () => editCueSequence(() => duplicateOperatorCue(show,selectedCueId)));
+$('cueMoveUpBtn').addEventListener('click', () => editCueSequence(() => moveOperatorCue(show,selectedCueId,-1)));
+$('cueMoveDownBtn').addEventListener('click', () => editCueSequence(() => moveOperatorCue(show,selectedCueId,1)));
+$('cueDeleteBtn').addEventListener('click', () => {
+  if (!selectedCueId || !window.confirm(t('cueEditor.confirmDelete'))) return;
+  editCueSequence(() => deleteOperatorCue(show, selectedCueId));
+});
 for (const button of document.querySelectorAll('[data-workspace-nav]')) {
   button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
 }
@@ -1641,6 +1717,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
       const normalizedDetails = details.map(safeProposalDetail);
       if (normalizedDetails.some(detail => !detail)) throw uiError('errors.metaResponse');
       applyMetaCoverage(result.coverage, observations.length, duplicates);
+      applyMetaIndependentReview(result.independentReview, result.coverage);
       created.forEach((proposal, index) => {
         if (normalizedDetails[index]) metaProposalDetails.set(proposal.id, normalizedDetails[index]);
       });

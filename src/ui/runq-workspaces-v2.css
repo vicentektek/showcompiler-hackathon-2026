@@ -393,3 +393,15 @@
   .shell[data-active-workspace="cues"] .cue-inspector{padding-top:9px}
   .shell[data-active-workspace="cues"] .cue-inspector-tabs{top:-9px}
 }
+
+/* Modern layout must not hide operator-authored cue creation controls. */
+.shell[data-active-workspace="cues"] .layout>.panel[data-workspaces~="cues"]>.panel-head{
+ display:flex;flex-wrap:wrap;gap:7px;align-items:center;min-height:44px;margin-bottom:6px
+}
+.shell[data-active-workspace="cues"] .layout>.panel[data-workspaces~="cues"]>.panel-head>div:first-child{display:none}
+.shell[data-active-workspace="cues"] .cue-create-actions{display:flex;flex-wrap:wrap;gap:5px}
+.shell[data-active-workspace="cues"] .cue-create-actions .btn{min-height:30px;padding:5px 9px;font-size:11px}
+@media(max-width:850px){
+ .shell[data-active-workspace="cues"] .cue-create-actions{overflow-x:auto;flex-wrap:nowrap;width:100%}
+ .shell[data-active-workspace="cues"] .cue-create-actions .btn{white-space:nowrap;flex:0 0 auto}
+}

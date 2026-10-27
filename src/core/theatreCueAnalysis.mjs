@@ -8,9 +8,13 @@
 import { normalizeShowProject } from './projectPersistence.mjs';
 import { normalizeScriptLanguageHint } from './scriptLanguage.mjs';
 import { planScriptAnalysis } from './sceneAnalysis.mjs';
+import { annotateDramaticStructure } from './dramaticStructure.mjs';
 import { buildProductionGuidance, validateProductionContext } from './performanceKnowledge.mjs';
 
-export const THEATRE_ANALYSIS_WINDOWS_PER_REQUEST = 2;
+// The 16-field JSON proposal contract is verbose, and reasoning tokens share
+// the output budget. Never combine unrelated scene windows in one completion.
+export const THEATRE_ANALYSIS_WINDOWS_PER_REQUEST = 1;
+export const THEATRE_COMPLETION_TOKEN_BUDGET = 8192;
 export const THEATRE_MAX_SUGGESTIONS = 8;
 export const THEATRE_MAX_LINE_CHARS = 250;
 
@@ -31,11 +35,14 @@ const ITEM_FIELDS = Object.freeze([
   'fadeInSeconds', 'fadeOutSeconds', 'confidence', 'reason',
 ]);
 
-function boundedLine(line) {
+function boundedLine(line, structuresById) {
+  const structure = structuresById.get(line.id);
   return {
     lineId: line.id,
     text: line.text.slice(0, THEATRE_MAX_LINE_CHARS),
     truncated: line.text.length > THEATRE_MAX_LINE_CHARS,
+    role: structure?.role ?? 'UNMARKED_TEXT',
+    speaker: structure?.speaker ?? null,
   };
 }
 
@@ -120,6 +127,8 @@ function makeResponseFormat(windowIds, lineIds, assetIds) {
 const DEVELOPER_INSTRUCTIONS = [
   'You are an experienced theatre sound designer preparing proposals for a human operator, never controlling live playback.',
   'Analyze each supplied scene window separately. Propose only sourceLineId values from that window core; contextBefore and contextAfter are read-only context.',
+  'Each source line includes conservative role and speaker hints: SPEAKER_LABEL marks the beginning of dialogue on following lines, while STAGE_DIRECTION and TECHNICAL_DIRECTION distinguish directions from speech. These labels help with reading, but are not evidence that an audio file is needed.',
+  'A line that identifies a character alone is NOT a soundtrack event. Stage setting, cast descriptions and character emotions are not automatically sound playback cues.',
   'Classify an audible stage direction as basis EXPLICIT. A location or mood that could benefit from atmosphere is basis SUGGESTED and must be described honestly as a creative option.',
   'A character merely mentioning or remembering a sound is not an audible event: omit it unless the scene itself calls for sound.',
   'When ambience is already running and a later line says it continues, use transport CONTINUE, not PLAY. Do not create another GO.',
@@ -128,7 +137,8 @@ const DEVELOPER_INSTRUCTIONS = [
   'For one-shots describe onset, distance, texture and decay. For ambience describe layers, evolution, duration, loop seam and exclusions such as no voices or music.',
   'Copy sourceEvidence exactly from the referenced source line. Preserve source language and exact line IDs; do not translate or rewrite the script.',
   'Write concise labels, acoustic briefs and reasons in the source language where feasible. Never name an audio-generation provider.',
-  'Return at most 8 meaningful items for the current batch. Avoid redundant cues but do not suppress legitimate optional creative suggestions merely because there are no explicit audio directions.',
+  'Return at most 8 meaningful items for the current scene window. Prioritize explicit script-required acoustic actions before optional creative ideas if more than 8 candidates exist. Avoid redundant cues but do not suppress legitimate optional creative suggestions merely because there are no explicit audio directions.',
+  'Complete the entire strict JSON response before ending; use concise labels and sound prompts (ideally one sentence), and a short factual reason. Do not repeat script lines in the reason or verbose narrative. Never omit mandatory JSON fields.',
   'A physical stage action such as a door slam, breathing, cup placement or footsteps may be performed by the actor or a practical prop. It is NOT necessarily a sound-file playback cue. Treat replacement with recorded audio only as an explicit or clearly motivated design choice.',
   'Silence is a dramatic decision: report it as SILENCE rather than generating a fake playable audio file. A proposed fade/stop needs a separate existing-sound target approved by the operator.',
   'Locate optional atmosphere at its first meaningful introduction and a later transition at the line where the stage situation changes, not on arbitrary dialogue discussing a sound.',
@@ -147,6 +157,7 @@ export function prepareTheatricalCueAnalysis(show, options = {}) {
   if (!project.scriptText.trim()) throw new TypeError('Import a script before analysis');
 
   const plan = planScriptAnalysis(project.scriptText);
+  const structuresById = new Map(annotateDramaticStructure(project.scriptText).lines.map(line => [line.lineId, line]));
   if (windowStart >= plan.windows.length) throw new RangeError('Theatre analysis windowStart is outside the script');
   const batchEndWindowExclusive = Math.min(
     plan.windows.length,
@@ -192,9 +203,9 @@ export function prepareTheatricalCueAnalysis(show, options = {}) {
         windowId: window.id,
         sceneId: window.sceneId,
         headingLineId: window.headingLineId,
-        contextBefore: window.contextBefore.map(boundedLine),
-        coreLines: window.coreLines.map(boundedLine),
-        contextAfter: window.contextAfter.map(boundedLine),
+        contextBefore: window.contextBefore.map(line => boundedLine(line, structuresById)),
+        coreLines: window.coreLines.map(line => boundedLine(line, structuresById)),
+        contextAfter: window.contextAfter.map(line => boundedLine(line, structuresById)),
       })),
     },
     availableAudio,
@@ -210,7 +221,7 @@ export function prepareTheatricalCueAnalysis(show, options = {}) {
       ],
       response_format: makeResponseFormat(analyzedWindowIds, analyzedLineIds, scope.assetIds),
       reasoning_effort: 'low',
-      max_completion_tokens: 4096,
+      max_completion_tokens: THEATRE_COMPLETION_TOKEN_BUDGET,
       stream: false,
       store: false,
     },

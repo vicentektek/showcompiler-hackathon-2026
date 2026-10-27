@@ -71,3 +71,23 @@ test('validates planner options before producing windows', () => {
   assert.throws(() => planScriptAnalysis('x', { contextLines: -1 }), RangeError);
   assert.throws(() => planScriptAnalysis('x', { contextLines: 11 }), RangeError);
 });
+
+
+test('preamble is folded into the first headed scene without creating a billable dummy window', () => {
+  const text = [
+    'PROTOCOLO FICTICIO', 'Thriller de tres actores', 'Reparto: ALMA, RUIZ, SISTEMA',
+    'Sala de mando con botón de utilería.', '', 'ESCENA 1 — EL AVISO',
+    '[Suena una señal grave.]', 'SISTEMA: Mensaje recibido.',
+    '', 'ESCENA 2 — LA RESPUESTA', '[Se escucha una alarma.]', 'FIN',
+  ].join('\n');
+  const plan = planScriptAnalysis(text);
+  assert.equal(plan.coverage.totalLines, 12);
+  assert.equal(plan.coverage.sceneCount, 2);
+  assert.equal(plan.coverage.windowCount, 2);
+  assert.deepEqual(plan.scenes.map(scene => scene.headingLineId), ['L6','L10']);
+  assert.deepEqual(plan.windows.map(window => [window.startLineId,window.endLineId]), [
+    ['L1','L9'],['L10','L12'],
+  ]);
+  assert.deepEqual(plan.coverage.uncoveredLineIds, []);
+  assert.equal(plan.coverage.coveredLines, 12);
+});

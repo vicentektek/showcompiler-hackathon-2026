@@ -4,6 +4,8 @@ import {
   classifyTheatricalSuggestions,
   parseTheatricalCueContent,
   prepareTheatricalCueAnalysis,
+  THEATRE_ANALYSIS_WINDOWS_PER_REQUEST,
+  THEATRE_COMPLETION_TOKEN_BUDGET,
   TheatricalCueValidationError,
 } from '../src/core/theatreCueAnalysis.mjs';
 import { addAudioReference, createNewShow } from '../src/core/workspace.mjs';
@@ -55,7 +57,9 @@ test('prepares a strict official request with dynamic core and asset enums', () 
   assert.match(request.messages[0].content, /intentional silence/);
   assert.match(request.messages[0].content, /untrusted theatrical material/);
   assert.equal(request.reasoning_effort, 'low');
-  assert.equal(request.max_completion_tokens, 4096);
+  assert.equal(request.max_completion_tokens, THEATRE_COMPLETION_TOKEN_BUDGET);
+  assert.equal(THEATRE_COMPLETION_TOKEN_BUDGET, 8192);
+  assert.equal(THEATRE_ANALYSIS_WINDOWS_PER_REQUEST, 1);
   assert.equal(request.stream, false);
   assert.equal(request.store, false);
 
@@ -89,12 +93,16 @@ test('batches scripts beyond 120 lines with exact visible coverage', () => {
   const first = prepareTheatricalCueAnalysis(project(source), { scriptLanguage: 'es', windowStart: 0 });
   assert.equal(first.coverage.totalLines, 130);
   assert.equal(first.coverage.totalWindows, 3);
-  assert.deepEqual(first.coverage.analyzedWindowIds, ['S1-W1', 'S1-W2']);
+  assert.deepEqual(first.coverage.analyzedWindowIds, ['S1-W1']);
   assert.equal(first.coverage.analyzedLineIds[0], 'L1');
-  assert.equal(first.coverage.analyzedLineIds.at(-1), 'L120');
-  assert.equal(first.coverage.analyzedLines, 120);
-  assert.equal(first.coverage.nextWindowStart, 2);
+  assert.equal(first.coverage.analyzedLineIds.at(-1), 'L60');
+  assert.equal(first.coverage.analyzedLines, 60);
+  assert.equal(first.coverage.nextWindowStart, 1);
   assert.equal(first.coverage.complete, false);
+  const middle = prepareTheatricalCueAnalysis(project(source), { scriptLanguage: 'es', windowStart: 1 });
+  assert.deepEqual(middle.coverage.analyzedWindowIds, ['S1-W2']);
+  assert.equal(middle.coverage.analyzedLines, 60);
+  assert.equal(middle.coverage.nextWindowStart, 2);
 
   const last = prepareTheatricalCueAnalysis(project(source), { scriptLanguage: 'es', windowStart: 2 });
   assert.deepEqual(last.coverage.analyzedLineIds, Array.from({ length: 10 }, (_, i) => `L${121 + i}`));
@@ -252,4 +260,46 @@ test('sound-design modes preserve bounded request scope while separating optiona
   assert.match(prepareTheatricalCueAnalysis(show, { designMode:'expressive' }).request.messages[0].content, /EXPRESSIVE sound design/);
   assert.throws(() => prepareTheatricalCueAnalysis(show, { designMode:'autoplay' }), TypeError);
   assert.throws(() => prepareTheatricalCueAnalysis(show, { designMode:123 }), TypeError);
+});
+
+
+test('a two-scene 90-line sound-heavy play is analyzed over two explicit requests', () => {
+  const lines = Array.from({ length: 90 }, (_, i) =>
+    i === 0 ? 'PROTOCOLO SUBMARINO' :
+    i === 8 ? 'ESCENA 1 — SEÑAL' :
+    i === 47 ? 'ESCENA 2 — RESPUESTA' :
+    i === 9 ? '[Un pulso electrónico se repite cada cuatro segundos.]' :
+    i === 15 ? '[Señal breve de radio entre pulsos.]' :
+    i === 33 ? '[Tres golpes sordos al fondo.]' :
+    i === 52 ? '[Se oyen tres tonos de alarma.]' :
+    i === 75 ? '[La alarma se silencia.]' :
+    i === 89 ? '[El pulso termina en negro.]' : 'PERSONAJE: Frase neutra ' + (i+1) + '.'
+  );
+  const scriptText = lines.join('\n');
+  const source = project(scriptText);
+  const one = prepareTheatricalCueAnalysis(source, { windowStart: 0, scriptLanguage: 'es', performanceKind: 'play' });
+  const two = prepareTheatricalCueAnalysis(source, { windowStart: 1, scriptLanguage: 'es', performanceKind: 'play' });
+  assert.equal(one.coverage.totalLines, 90);
+  assert.equal(one.coverage.totalWindows, 2);
+  assert.equal(one.coverage.batchEndWindowExclusive, 1);
+  assert.equal(one.coverage.nextWindowStart, 1);
+  assert.equal(one.coverage.complete, false);
+  assert.equal(two.coverage.batchEndWindowExclusive, 2);
+  assert.equal(two.coverage.complete, true);
+  assert.equal(two.coverage.nextWindowStart, null);
+  assert.equal(one.request.max_completion_tokens, 8192);
+  assert.equal(two.request.max_completion_tokens, 8192);
+  assert.equal(one.request.reasoning_effort, 'low');
+  assert.equal(two.request.reasoning_effort, 'low');
+  assert.equal(one.request.response_format.json_schema.schema.properties.proposals.maxItems, 8);
+  assert.equal(one.coverage.analyzedLines + two.coverage.analyzedLines, 90);
+  assert.equal(new Set([...one.coverage.analyzedLineIds, ...two.coverage.analyzedLineIds]).size, 90);
+  assert.equal(source.scriptText, scriptText);
+  const payload1 = JSON.parse(one.request.messages[1].content);
+  const payload2 = JSON.parse(two.request.messages[1].content);
+  assert.equal(payload1.batch.windows.length, 1);
+  assert.equal(payload2.batch.windows.length, 1);
+  assert.equal(payload1.batch.windows[0].coreLines.some(line=>line.text.includes('pulso electrónico')),true);
+  assert.equal(payload2.batch.windows[0].coreLines.some(line=>line.text.includes('alarma')),true);
+  assert.notEqual(payload1.batch.windows[0].windowId, payload2.batch.windows[0].windowId);
 });

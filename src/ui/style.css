@@ -369,3 +369,13 @@ main{padding:24px 26px 34px}
 .ai-production-context select{max-width:100%;width:100%}
 #metaProductionHelp[hidden]{display:none!important}
 @media(max-width:660px){.ai-production-context{grid-template-columns:1fr}}
+
+/* Unified manual authoring actions coexist with modern RunQ workspace shell. */
+.cue-create-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cue-create-actions .btn{min-height:38px;font-weight:720}
+.cue-create-actions #cueAddBtn{background:#247b70;color:#fff;border-color:#4bb3a5}
+.cue-create-actions #cueAddBtn:hover{background:#329a8b}
+.cue-create-actions #cueDeleteBtn{border-color:#804552;color:#ffc0c7}
+.cue-create-actions .btn:disabled{opacity:.4;cursor:not-allowed}
+.shell[data-active-workspace="operation"] .cue-create-actions{display:none!important}
+@media(max-width:850px){.cue-create-actions{width:100%}.cue-create-actions .btn{flex:1 1 auto}}

@@ -306,7 +306,7 @@ try {
     sentDocumentKind = request.documentKind;
     const plan = planScriptAnalysis(request.project.scriptText);
     const start = request.analysisWindowStart ?? 0;
-    const selected = plan.windows.slice(start, start + 2);
+    const selected = plan.windows.slice(start, start + 1);
     const end = start + selected.length;
     const ids = selected.flatMap(window => window.coreLines.map(line => line.id));
     await new Promise(resolve => setTimeout(resolve, 1200));
@@ -356,6 +356,23 @@ try {
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.setViewportSize({ width: 1093, height: 614 });
   await capture('04-operation-1093.png');
+  // A manual-only show needs neither source script nor an AI analysis request.
+  await page.locator('[data-workspace-nav="home"]').click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#homeNewBtn').click();
+  await page.locator('[data-workspace-nav="cues"]').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),0);
+  const beforeManual = await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('#cueAddBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),1);
+  await page.locator('#cueInsertBtn').click();
+  await page.locator('#cueDuplicateBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),3);
+  await page.locator('#cueMoveUpBtn').click();
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#cueDeleteBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),2);
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();

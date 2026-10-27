@@ -42,7 +42,7 @@ test('frontend imports backend facade, never Web Audio engine directly', () => {
 });
 
 test('scene coverage is transient and each Meta batch remains explicitly authorized', () => {
-  assert.match(client, /metaWindowsPerRequest\s*=\s*2/);
+  assert.match(client, /metaWindowsPerRequest\s*=\s*1/);
   assert.match(client, /analysisWindowStart/);
   assert.match(client, /window\.confirm\(t\('status\.confirmMeta'/);
   assert.doesNotMatch(client, /show\s*=\s*\{[^}]*metaCoverage/s);
@@ -228,4 +228,13 @@ test('same-output audition controls are distinct from GO and disclose routing li
   assert.match(client, /transport\.auditionActive \|\| transport\.auditionPending/);
   assert.match(client, /\!prepared \|\| audioInFlight \|\| auditioning/);
   assert.doesNotMatch(client, /\.innerHTML\s*=/);
+});
+
+
+test('Meta independent verifier is a transient, review-only UI with source links', () => {
+  assert.match(html, /id="metaIndependentReview"/);
+  assert.match(html, /id="metaIndependentReviewLines"/);
+  assert.match(client, /applyMetaIndependentReview\(result\.independentReview, result\.coverage\)/);
+  assert.match(client, /sourceButton\(lineId\)/);
+  assert.doesNotMatch(client, /metaIndependentReview\s*=\s*show/);
 });
