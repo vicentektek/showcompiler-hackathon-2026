@@ -105,7 +105,7 @@ export async function runMetaSeminarEval({
   live=false,ackPaid=false,budgetUsd=2,maxRequests=13,
   mode='literal',caseId=null,output='artifacts/seminar-live',
   apiKey,modelCaller=callMetaCueModel,fetchImpl=globalThis.fetch,
-  fixtures=readSeminarCorpus,
+  fixtures=readSeminarCorpus,ledger=null,
 }={}){
   if(live!==ackPaid)throw new TypeError('A live test requires an explicit batch billing acknowledgement');
   if(!finitePositive(budgetUsd,2)||!Number.isSafeInteger(maxRequests)||
@@ -144,6 +144,10 @@ export async function runMetaSeminarEval({
       }
       // Reserve BEFORE making the request. Failed/truncated/unbilled responses
       // keep their full reserve, to discourage repeated blind retries.
+      if(ledger){
+        const ledgerAccepted=await ledger.reserve(reserve);
+        if(!ledgerAccepted){haltReason='GLOBAL_BUDGET_REACHED';stopped=true;break}
+      }
       authorizations++;
       spentReserveUsd=USD(spentReserveUsd+reserve);
       try{
