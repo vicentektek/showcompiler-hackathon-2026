@@ -172,7 +172,28 @@
             <label class="sr-only" for="scriptLanguageCustom" data-i18n="scriptLanguage.customAria">Script language code</label>
             <input id="scriptLanguageCustom" type="text" maxlength="35" data-i18n-placeholder="scriptLanguage.customPlaceholder" placeholder="e.g. ja, ar, zh-Hans" hidden>
             <p class="caption" data-i18n="scriptLanguage.help">Independent of interface language. Keeps the original script unchanged.</p>
+            <div id="metaDesignModeField" class="ai-design-mode-field">
+              <label class="field" for="metaDesignMode" data-i18n="proposals.designModeLabel">Sound design approach</label>
+              <select id="metaDesignMode">
+                <option value="literal" data-i18n="proposals.designLiteral">Literal · only strong requirements</option>
+                <option value="balanced" data-i18n="proposals.designBalanced" selected>Balanced · technical + optional creativity</option>
+                <option value="expressive" data-i18n="proposals.designExpressive">Expressive · more creative proposals</option>
+              </select>
+              <p class="caption" data-i18n="proposals.designModeHelp">Optional ideas are marked SUGGESTED; they are not obligations or automatic GO actions.</p>
+            </div>
             <button id="analyzeMetaBtn" type="button" class="btn primary block" disabled data-i18n="proposals.metaButton">Generate proposals with Meta AI</button>
+            <div id="aiAnalysisActivity" class="ai-analysis-activity" hidden aria-live="polite" aria-atomic="true" role="status">
+              <div class="ai-analysis-summary">
+                <span class="ai-analysis-spinner" aria-hidden="true"></span>
+                <div class="ai-analysis-summary-text">
+                  <strong id="aiAnalysisActiveTitle"></strong>
+                  <span id="aiAnalysisScope"></span>
+                </div>
+                <span id="aiAnalysisElapsed" class="ai-analysis-elapsed"></span>
+              </div>
+              <div class="ai-analysis-track" aria-hidden="true"><div class="ai-analysis-indeterminate"></div></div>
+              <p class="caption" data-i18n="proposals.analysisActivityHelp">Waiting for the provider response and validation. Progress is indeterminate; no cue will play automatically.</p>
+            </div>
             <p id="metaStatus" class="caption" role="status" aria-live="polite" data-i18n="proposals.metaChecking">Checking local Meta AI connection...</p>
             <p id="metaCoverage" class="caption" role="status" aria-live="polite" data-i18n="proposals.coverageNone">No scene-analysis coverage yet.</p>
             <p id="modelProviderDisclaimer" class="caption" data-i18n="proposals.metaDisclaimer">Each confirmation sends one bounded scene batch and up to 80 audio filenames to Meta. No audio binaries are uploaded.</p>
