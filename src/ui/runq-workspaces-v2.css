@@ -543,3 +543,21 @@
     grid-column:1/-1;text-align:left;
   }
 }
+
+
+/* W04: real per-cue IN marker. Drawing it is a draft; the explicit Save
+   button is the only action that commits the engine-supported startAtMs. */
+.shell[data-active-workspace="audio"] .runq-waveform-trim{
+  display:flex;gap:14px;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;margin:12px 0 9px;padding:11px 13px;
+  background:#1a383b;border:1px solid #497d73;border-radius:7px;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-trim[hidden]{display:none!important}
+.shell[data-active-workspace="audio"] .runq-waveform-trim strong{
+  font-size:13px;color:#ffe1ac;
+}
+.shell[data-active-workspace="audio"] .runq-waveform-trim p{margin:4px 0 0}
+.shell[data-active-workspace="audio"] .runq-waveform-trim .item-actions{margin:0}
+.shell[data-active-workspace="audio"] #waveformCanvas{
+  touch-action:none;
+}

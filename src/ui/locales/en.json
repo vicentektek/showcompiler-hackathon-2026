@@ -444,5 +444,9 @@
   "waveform.canvas": "Original PCM audio waveform, separate channel traces",
   "waveform.zoom": "Zoom",
   "waveform.pan": "Scroll",
-  "waveform.disclaimer": "Visual preview only: this canvas does not yet save trim, fade or loop edits, and it never plays sound."
+  "waveform.disclaimer": "Library preview is read-only. IN trim can be saved only for an explicitly selected cue; OUT and region looping are not available yet.",
+  "waveform.inLabel": "IN point",
+  "waveform.inHelp": "Drag the waveform marker to select a start point. Save to change only this cue's next manual GO.",
+  "waveform.saveIn": "Save IN to cue",
+  "waveform.cancelIn": "Discard change"
 }
