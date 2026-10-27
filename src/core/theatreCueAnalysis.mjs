@@ -11,7 +11,10 @@ import { planScriptAnalysis } from './sceneAnalysis.mjs';
 import { annotateDramaticStructure } from './dramaticStructure.mjs';
 import { buildProductionGuidance, validateProductionContext } from './performanceKnowledge.mjs';
 
-export const THEATRE_ANALYSIS_WINDOWS_PER_REQUEST = 2;
+// The 16-field JSON proposal contract is verbose, and reasoning tokens share
+// the output budget. Never combine unrelated scene windows in one completion.
+export const THEATRE_ANALYSIS_WINDOWS_PER_REQUEST = 1;
+export const THEATRE_COMPLETION_TOKEN_BUDGET = 8192;
 export const THEATRE_MAX_SUGGESTIONS = 8;
 export const THEATRE_MAX_LINE_CHARS = 250;
 
@@ -134,7 +137,8 @@ const DEVELOPER_INSTRUCTIONS = [
   'For one-shots describe onset, distance, texture and decay. For ambience describe layers, evolution, duration, loop seam and exclusions such as no voices or music.',
   'Copy sourceEvidence exactly from the referenced source line. Preserve source language and exact line IDs; do not translate or rewrite the script.',
   'Write concise labels, acoustic briefs and reasons in the source language where feasible. Never name an audio-generation provider.',
-  'Return at most 8 meaningful items for the current batch. Avoid redundant cues but do not suppress legitimate optional creative suggestions merely because there are no explicit audio directions.',
+  'Return at most 8 meaningful items for the current scene window. Prioritize explicit script-required acoustic actions before optional creative ideas if more than 8 candidates exist. Avoid redundant cues but do not suppress legitimate optional creative suggestions merely because there are no explicit audio directions.',
+  'Complete the entire strict JSON response before ending; use concise labels and sound prompts (ideally one sentence), and a short factual reason. Do not repeat script lines in the reason or verbose narrative. Never omit mandatory JSON fields.',
   'A physical stage action such as a door slam, breathing, cup placement or footsteps may be performed by the actor or a practical prop. It is NOT necessarily a sound-file playback cue. Treat replacement with recorded audio only as an explicit or clearly motivated design choice.',
   'Silence is a dramatic decision: report it as SILENCE rather than generating a fake playable audio file. A proposed fade/stop needs a separate existing-sound target approved by the operator.',
   'Locate optional atmosphere at its first meaningful introduction and a later transition at the line where the stage situation changes, not on arbitrary dialogue discussing a sound.',
@@ -217,7 +221,7 @@ export function prepareTheatricalCueAnalysis(show, options = {}) {
       ],
       response_format: makeResponseFormat(analyzedWindowIds, analyzedLineIds, scope.assetIds),
       reasoning_effort: 'low',
-      max_completion_tokens: 4096,
+      max_completion_tokens: THEATRE_COMPLETION_TOKEN_BUDGET,
       stream: false,
       store: false,
     },
