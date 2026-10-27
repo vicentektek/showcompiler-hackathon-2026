@@ -106,6 +106,24 @@ try {
   assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
     'Exactly one workspace should carry the current class');
   await capture('02-editor-1366.png');
+  const readEditorGeometry = () => page.evaluate(() => {
+    const left=document.getElementById('cueList').getBoundingClientRect();
+    const right=document.getElementById('cueInspector').getBoundingClientRect();
+    const go=document.getElementById('operatorGoBtn').getBoundingClientRect();
+    const stop=document.getElementById('operatorPanicBtn').getBoundingClientRect();
+    return {left:{x:left.x,right:left.right,width:left.width},right:{x:right.x,width:right.width},
+      go:{top:go.top,bottom:go.bottom},stop:{top:stop.top,bottom:stop.bottom}};
+  });
+  const editorGeometry = await readEditorGeometry();
+  assert.ok(editorGeometry.right.x >= editorGeometry.left.right-2, 'Inspector is right of cue list, not a third-row item');
+  assert.ok(editorGeometry.left.width >= 280 && editorGeometry.right.width >= 250, 'Both panes remain usable');
+  await page.setViewportSize({width:1093,height:614});
+  await capture('07-editor-1093.png');
+  const compactGeometry=await readEditorGeometry();
+  assert.ok(compactGeometry.right.x >= compactGeometry.left.right-2,'Compact inspector stays next to cue list');
+  assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
+    'Compact GO and STOP ALL remain visible without scrolling');
+  await page.setViewportSize({width:1366,height:768});
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
