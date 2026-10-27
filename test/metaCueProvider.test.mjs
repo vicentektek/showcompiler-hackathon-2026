@@ -197,6 +197,22 @@ test('default call uses scene-aware V2 and returns transient coverage/details on
   assert.doesNotMatch(request.init.body, /TEST_SECRET/);
 });
 
+test('independent post-model check flags an explicit unaddressed SFX instruction', async () => {
+  const result = await callMetaCueModel({
+    show: createNewShow({ scriptText: 'ESCENA 1\\nSFX: campana lejana\\nMARTA: Hola' }),
+    apiKey: 'TEST_SECRET',
+    requestId: 'meta-independent-review-test',
+    fetchImpl: async () => ({
+      ok: true, status: 200, text: async () => JSON.stringify(response([])),
+    }),
+  });
+  assert.deepEqual(result.proposals, []);
+  assert.deepEqual(result.independentReview, {
+    reviewFlags: ['L2'],
+    totalUnreviewed: 1,
+  });
+});
+
 test('V2 semantic evidence failure has a local semantic diagnostic', async () => {
   const bad = {
     windowId: 'S1-W1', sourceLineId: 'L2', sourceEvidence: 'invented evidence',
