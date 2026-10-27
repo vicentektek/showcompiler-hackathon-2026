@@ -27,3 +27,8 @@ jobs:
           path: demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
           if-no-files-found: error
           retention-days: 14
+
+      - name: Install pinned browser smoke driver (CI-only, no lockfile)
+        run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
+        run: node tools/browser-e2e.mjs
