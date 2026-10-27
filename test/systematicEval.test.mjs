@@ -106,3 +106,7 @@ test('live experiment requires ledger and does not bypass previously reserved sp
   assert.equal(summary.analysis.completed,0);
   assert.equal(summary.runs[0].reason,'GLOBAL_BUDGET_REACHED');
 });
+
+test('programmatic live execution requires ack even if caller bypasses CLI',async()=>{
+  await assert.rejects(runSystematicExperiment({live:true,ackPaid:false,cases:['hotel-door']}),TypeError);
+});
