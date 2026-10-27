@@ -5,7 +5,7 @@ The goal is to spend credits on integration mechanics, NOT on discovery or anoth
 
 ## Inputs and prepared evidence
 
-Start from branch `docs/codex-qa-playbook-2026-10-27`. Read `AGENTS.md`, then ONLY C1 and the high-risk findings of `docs/CODEX_EXECUTION_PLAN_2026-10-27.md` and `docs/SECOND_PASS_TECHNICAL_AUDIT_2026-10-27.md`.
+Start from branch `docs/codex-qa-playbook-2026-10-27`. Read `AGENTS.md` and THIS task brief first. It is self-contained. Do not read the long plan, QA matrix, product UX documents, or second-pass audit unless a specific merge conflict/failed test requires a targeted section; use `docs/DECISION_INDEX_2026-10-27.md` to locate it.
 
 Previously confirmed branch map:
 - This branch includes the PR 20 automation persistence/editor-model stack; current app UI is still manual.
