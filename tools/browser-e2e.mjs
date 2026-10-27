@@ -107,11 +107,19 @@ try {
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   await page.locator('#cueSearchInput').fill('');
   assert.equal(await page.locator('#cueList .cue-item').count(), 3);
-  await page.getByRole('button', { name: 'Inspect', exact: true }).nth(1).click();
+  await page.locator('[data-cue-select]').nth(1).click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  assert.equal(await page.locator('[data-cue-select]').nth(1).getAttribute('aria-pressed'),'true');
+  // Keyboard selection is inspection-only. Moving through filtered cues
+  // must not mutate GO position, emit audio, or rebuild the whole page.
+  await page.locator('[data-cue-select]').nth(1).press('ArrowUp');
+  assert.equal(await page.locator('[data-cue-select]').first().getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('[data-cue-select]').nth(1).click();
+  await page.locator('[data-inspector-tab="actions"]').click();
   // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
-  await page.locator('#cuePlaybackForm [data-stop-target="cue-1"]').check();
-  await page.locator('#cuePlaybackForm').getByRole('button',{name:'Save playback settings'}).click();
+  await page.locator('#cueTargetStopForm [data-stop-target="cue-1"]').check();
+  await page.locator('#cueTargetStopForm').getByRole('button',{name:'Save target actions'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
@@ -154,7 +162,7 @@ try {
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), startsBeforeZipOpen);
   await page.locator('[data-workspace-nav="cues"]').click();
-  await page.getByRole('button', {name:'Inspect',exact:true}).nth(editedCueIndex).click();
+  await page.locator('[data-cue-select]').nth(editedCueIndex).click();
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
   await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
