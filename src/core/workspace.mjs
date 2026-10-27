@@ -223,3 +223,33 @@ export function decideProposal(project, proposalId, decision) {
   const cues = reviewed.cue ? [...current.cues, reviewed.cue] : current.cues;
   return normalizeShowProject({ ...current, proposals, cues });
 }
+
+/**
+ * Update operator-controlled cue playback properties without changing the
+ * original AI proposal, approval, script line references or audio asset.
+ * Rejects unknown property names and performs full show-level validation
+ * (including stop-other references and follow constraints) before commit.
+ */
+export function updateCueAutomation(project, cueId, changes) {
+  const current = normalizeShowProject(project);
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || cue.status !== 'DRAFT') throw new TypeError('Cue is not editable');
+  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) {
+    throw new TypeError('Cue automation changes must be an object');
+  }
+  const allowed = new Set(['mode', 'delayMs', 'fadeInMs', 'fadeOutMs', 'loop', 'stopCueIds']);
+  for (const key of Object.keys(changes)) {
+    if (!allowed.has(key)) throw new TypeError('Unknown cue automation property: ' + key);
+  }
+  const previous = cue.automation ?? {
+    mode: 'MANUAL', delayMs: 0, fadeInMs: 0, fadeOutMs: 0, loop: false, stopCueIds: [],
+  };
+  const next = { ...previous, ...changes };
+  // Changing to MANUAL clears an obsolete follow delay; this mirrors an
+  // intuitive mode switch in the editor while preserving strict JSON checks.
+  if (changes.mode === 'MANUAL' && changes.delayMs === undefined) next.delayMs = 0;
+  return normalizeShowProject({
+    ...current,
+    cues: current.cues.map(item => item.id === cueId ? { ...item, automation: next } : item),
+  });
+}
