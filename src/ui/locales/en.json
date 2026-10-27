@@ -256,5 +256,7 @@
   "bundle.opened": "Show “{name}” restored with {count} real audio files. GO remains manual.",
   "bundle.failed": "Could not complete show ZIP: {reason}",
   "bundle.invalidFile": "Choose a SHOWCOMPILER .zip file (maximum 64 MB).",
-  "bundle.busy": "Finish the current audio/ZIP operation before changing the show."
+  "bundle.busy": "Finish the current audio/ZIP operation before changing the show.",
+  "bundle.tryDemo": "Try with real sounds",
+  "bundle.preparingDemo": "Creating the original show and WAVs in this browser..."
 }
