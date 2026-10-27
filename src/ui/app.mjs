@@ -100,6 +100,7 @@ function refreshAudioControls() {
     : '';
   const effects = [];
   if (prepared) {
+    if (prepared.audioTracks?.length) effects.push(t('operator.effectTracks', {count:prepared.actions.length + prepared.audioTracks.length}));
     const settings = normalizeCuePlayback(prepared.playback);
     if (settings.loop) effects.push(t('operator.effectLoop'));
     else if (settings.repeatCount > 1) effects.push(t('operator.effectRepeat', { count: settings.repeatCount }));
