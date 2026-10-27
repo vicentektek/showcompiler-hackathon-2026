@@ -1,6 +1,7 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
+import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
@@ -104,7 +105,9 @@ function refreshAudioControls() {
     if (settings.fadeInMs) effects.push(t('operator.effectFadeIn', { ms: settings.fadeInMs }));
     const stopTargets = (prepared.automation?.stopCueIds ?? []).map(id => {
       const target = show.cues.find(cue => cue.id === id);
-      return target ? target.number + ' ' + target.label : id;
+      const duration = prepared.stopFadeOverrides?.[id] ?? target?.playback?.fadeOutMs ?? 0;
+      return (target ? target.number + ' ' + target.label : id) + ' (' +
+        t('cueEditor.fadeSeconds', { seconds: (duration / 1000).toFixed(1) }) + ')';
     });
     if (stopTargets.length) effects.push(t('operator.effectStops', { targets: stopTargets.join(', ') }));
   }
@@ -842,7 +845,21 @@ function cueActionInspector(cue) {
       check.value = item.id;
       check.dataset.stopTarget = item.id;
       check.checked = (cue.automation?.stopCueIds ?? []).includes(item.id);
-      label.append(check, node('span', '', item.number + ' · ' + item.label));
+      const fadeWrap = node('span', 'cue-stop-fade');
+      const fadeLabel = node('span', 'caption', t('cueEditor.stopFadeSeconds'));
+      const fade = node('input');
+      fade.type = 'number';
+      fade.step = '0.1';
+      fade.min = '0';
+      fade.max = '10';
+      fade.required = true;
+      fade.dataset.stopFade = item.id;
+      const existingMs = cue.stopFadeOverrides?.[item.id] ?? item.playback?.fadeOutMs ?? 0;
+      fade.value = (existingMs / 1000).toFixed(1);
+      fade.disabled = !check.checked;
+      check.addEventListener('change', () => { fade.disabled = !check.checked; });
+      fadeWrap.append(fadeLabel, fade);
+      label.append(check, node('span', 'cue-stop-name', item.number + ' · ' + item.label), fadeWrap);
       options.append(label);
     }
     form.append(options);
@@ -852,9 +869,13 @@ function cueActionInspector(cue) {
     form.addEventListener('change', () => { inspectorPendingChanges = true; });
     form.addEventListener('submit', event => {
       event.preventDefault();
-      const stopCueIds = [...form.querySelectorAll('input:checked')].map(input => input.value);
+      const transitions = [...form.querySelectorAll('input:checked')].map(input => {
+        const fadeInput = [...form.querySelectorAll('[data-stop-fade]')]
+          .find(element => element.dataset.stopFade === input.value);
+        return { targetCueId: input.value, fadeMs: Math.round(Number(fadeInput.value) * 1000) };
+      });
       try {
-        show = updateCueAutomation(show, cue.id, { stopCueIds });
+        show = normalizeShowProject(stageCueStopTransitions(show, cue.id, transitions));
         inspectorPendingChanges = false;
         dirty = true;
         render();
@@ -867,6 +888,41 @@ function cueActionInspector(cue) {
     pane.append(node('p', 'inspector-warning', t('workspace.autoNotWired')));
   }
   return pane;
+}
+
+
+function cueAudioSourceControls(cue) {
+  const block = node('div', 'cue-source-controls');
+  const playable = cue.actions.filter(action => action.type === 'PLAY');
+  if (cue.actions.length === 1 && playable.length === 1) {
+    const asset = show.assets.find(item => item.id === playable[0].assetId);
+    block.append(node('p', 'caption', t('cueEditor.currentAudio', {
+      name: asset?.name ?? playable[0].assetId,
+    })));
+    block.append(cueAudioPicker(cue.id, 'cueEditor.replaceAudio'));
+    if (show.assets.length > 1) {
+      const pick = node('select');
+      pick.id = 'cueReplaceLibrary';
+      pick.setAttribute('aria-label', t('cueEditor.chooseLibraryAudio'));
+      replaceOptions(pick, show.assets.map(item => [item.id, item.name]), playable[0].assetId);
+      const assign = node('button', 'btn subtle small', t('cueEditor.useLibraryAudio'));
+      assign.type = 'button';
+      assign.addEventListener('click', () => {
+        const status = player.getStatus();
+        if (status.activeCueCount || status.pendingGoCount || status.auditionActive ||
+            status.auditionPending || audioInFlight) {
+          feedback('errors.audioWhilePlaying', {}, 'error');
+          return;
+        }
+        safeOperation(() => replaceCueAudioAsset(show, cue.id, pick.value),
+          'cueEditor.libraryReplaced', {number:cue.number});
+      });
+      block.append(pick, assign);
+    }
+  } else {
+    block.append(node('p', 'caption', t('cueEditor.trackEditorPending')));
+  }
+  return block;
 }
 
 function renderCueInspector() {
@@ -928,6 +984,7 @@ function renderCueInspector() {
     panel.append(cueDetailsEditor(cue));
     panel.append(sourceButton(cue.sourceLineIds[0]));
   } else if (inspectorTab === 'audio') {
+    panel.append(cueAudioSourceControls(cue));
     panel.append(cuePlaybackEditor(cue));
     panel.append(node('p', 'caption', t('audioProps.currentLimits')));
   } else {
@@ -1049,7 +1106,7 @@ $('operatorGoBtn').addEventListener('click', async () => {
     // proposal cannot insert stop targets or start automatic following.
     for (const targetId of cue.automation?.stopCueIds ?? []) {
       const target = show.cues.find(item => item.id === targetId);
-      player.stopCue(targetId, target?.playback?.fadeOutMs ?? 0);
+      player.stopCue(targetId, cue.stopFadeOverrides?.[targetId] ?? target?.playback?.fadeOutMs ?? 0);
     }
     await player.go(cue);
     if (generation !== projectGeneration) return; // The previous show must not move the new playhead.
