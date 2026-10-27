@@ -104,7 +104,7 @@ test('fade schedules a ramp and eventually stops the source', async () => {
   assert.equal(x.sources[0].stopped,13.52);
   x.sources[0].end();
   assert.equal(x.engine.isPlaying('cue-1'),false);
-  assert.equal(x.engine.stopCue('cue-1',-1),false); // Already finished.
+  assert.throws(() => x.engine.stopCue('cue-1',-1), RangeError); // Invalid command fails closed.
 });
 
 test('invalid fade is rejected while cue remains active', async () => {
@@ -222,4 +222,56 @@ test('STOP ALL silences a running audition and cancels a pending one', async () 
   await assert.rejects(promise,/cancelada/);
   assert.equal(delayed.engine.isAuditioning(),false);
   assert.equal(delayed.sources.length,0);
+});
+
+test('STOP cancels GO while AudioContext resume is pending and does not emit sound', async () => {
+  const x=fixture({deferredResume:true});
+  await x.engine.loadFile(x.file,'audio-1');
+  const first=x.engine.go(x.cue());
+  await Promise.resolve();
+  assert.equal(x.engine.isPlaying('cue-1'),true);
+  assert.equal(x.engine.stopCue('cue-1'),true);
+  assert.equal(x.engine.isStopping('cue-1'),true);
+  await assert.rejects(x.engine.go(x.cue()),/ya está reproduciéndose/);
+  x.resumeNow();
+  await assert.rejects(first,/cancelado por STOP/);
+  assert.equal(x.engine.activeCueCount(),0);
+  assert.equal(x.engine.isPlaying('cue-1'),false);
+  assert.equal(x.sources.length,0);
+  const second=x.engine.go(x.cue());
+  await Promise.resolve();
+  x.resumeNow();
+  await second;
+  assert.equal(x.sources.length,1);
+});
+
+test('STOP of a pending cue does not inadvertently cancel another cue GO', async () => {
+  const x=fixture();
+  await x.engine.loadFile(x.file,'audio-1');
+  let unblock;
+  const resumed = new Promise(resolve => { unblock = resolve; });
+  x.context.resume = () => resumed;
+  const first=x.engine.go(x.cue('cue-1'));
+  const second=x.engine.go(x.cue('cue-2'));
+  await Promise.resolve();
+  assert.equal(x.engine.stopCue('cue-1',1500),true);
+  unblock();
+  await assert.rejects(first,/cancelado/);
+  await second;
+  assert.equal(x.sources.length,1);
+  assert.equal(x.engine.isPlaying('cue-1'),false);
+  assert.equal(x.engine.isPlaying('cue-2'),true);
+  x.engine.stopAll();
+});
+
+test('invalid fade duration never silently cancels pending GO', async () => {
+  const x=fixture({deferredResume:true});
+  await x.engine.loadFile(x.file,'audio-1');
+  const pending=x.engine.go(x.cue());
+  await Promise.resolve();
+  assert.throws(()=>x.engine.stopCue('cue-1',12000),RangeError);
+  assert.equal(x.engine.isStopping('cue-1'),false);
+  x.engine.stopAll();
+  x.resumeNow();
+  await assert.rejects(pending,/cancelado/);
 });

@@ -23,23 +23,35 @@ Only work created in this repository during the Meta Global AI Developer Hackath
 | Strict transient `CueSuggestionV2`, theatrical transport distinctions, semantic evidence checks, and deterministic deduplication | DTO/schema/semantic/dedupe tests | Only PLAY becomes a pending project proposal |
 | Extended evaluation for hallucinated references, duplicates, forbidden triggers, precision, recall, and F1 | Rights-clear multilingual aggregate fixtures | Reproducible offline measurement |
 
+## 27 October 2026 — interface, operations and complete-show portability
+
+| New work / isolated draft PR | Evidence | Truthful state |
+|---|---|---|
+| [#9](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/9) Local audio attach/replace from approved cue | Workspace, browser/static integration tests | Original File reference and decoded buffer are local to the browser |
+| [#10](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/10) Navigate back to precise script line, accent-insensitive search and operator preflight | Navigation, source and readiness tests | Preflight is advisory, not live-mode arming |
+| [#11](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/11) Editable cue title, trigger and operator notes | JSON persistence and UI tests | Editing changes approved cue metadata, not model output |
+| [#12](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/12) Manual prepared-cue GO, SKIP and next-cue position | Pure queue and operation tests | Preparation does not execute sound automatically |
+| [#13](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/13) Same-output audio audition and STOP ALL interlocks | Audio mock and UI tests | Audition uses the same speakers as GO; no PFL hardware bus |
+| [#14](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/14) Self-contained ZIP with script, cues and original audio; staged import, manifest SHA-256 and CRC32 | ZIP corruption/roundtrip/interop tests; original three-WAV demonstration; [CI run 224/224 passing](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40428477729) | Portable data package implemented; manual browser acceptance still pending |
+| [#14](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/14) Fix stale pre-audition tests and individual pending-GO STOP cancellation | Tests for asynchronous GO, duplicate activation, STOP ALL and independent pending cues | Race prevention tested with fake Web Audio contexts, not real device latency |
+| [#14](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/14) One-click offline original three-WAV demo inside the browser | Shared pure source generator, browser wiring and [CI 225/225 success](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40428477729) | Browser demo button implemented; audible hardware acceptance pending |
+
 ## Current verification
 
-- Working branch: `feat/meta-muse-reliable-cues`, based on `feat/meta-theatrical-prompt-evals`.
-- Verified locally: `npm test` reports **180/180 passing**, `npm run check:syntax` passes, and `git diff --check` is clean.
-- Meta and Baseten provider paths are tested using injected/mock transports only.
-- The guarded `npm run smoke:meta -- --authorize-one-billable-meta-request` command is deliberately excluded from CI and has **not** been executed.
-- `main` is not modified or merged automatically. Delivery is through a draft PR for review.
-
-Historical GitHub Actions evidence remains visible in repository history. The draft PR should record the final local test count and current CI run rather than reusing an obsolete count from an earlier stacked branch.
+- Working branch: `feat/portable-show-archive-2026-10-27`, stacked after the separate draft PRs through #13. Default `main` is unchanged.
+- **225/225 automated tests passed, 0 failures, 0 cancellations**, including ZIP integrity and the local-browser pending-GO cancellation cases: [GitHub Actions run](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/40427926064).
+- `npm run check:syntax`, `npm test`, `npm run demo:package`, and independent `unzip -t` completed successfully in that CI run.
+- The browser can generate the same original three-WAV show with one click; CI also publishes a downloadable `showcompiler-full-demo-zip` with three explicitly approved MANUAL_MOCK cues. No copyrighted sound was downloaded or uploaded.
+- Source code and CI use no external Meta/Baseten token. A previous guarded first-party Meta smoke was recorded in the repository README; **it was not repeated by this work**.
+- Native WASAPI/ASIO show-control, Tauri install, multichannel buses, output selection, and audio generation are **not integrated**. Portable ZIP is a data package, not a desktop EXE.
 
 ## Pending manual evidence
 
-- Explicitly authorized live Meta contract smoke with safe usage/latency output.
+- Independently review the earlier authorized Meta contract smoke record; no new paid inference was performed during this branch.
 - Human review of a rights-clear multilingual corpus, including a 91-line script and negative dialogue-memory fixture.
 - Chrome/Edge EN/ES switching, scene coverage progression, review controls, and responsive/accessibility checks.
 - Audible local GO/STOP/fade/STOP ALL at a safe level, including network-offline operation.
-- JSON save/reopen with `PLAN_AUDIO`, reassignment/reload of audio, and confirmation that transient analysis data is absent.
+- Browser acceptance of **complete ZIP import/export**, original WAV decoding, cue GO/STOP/fade, JSON compatibility, audio reassignment and transient analysis isolation.
 - Independent code/security/privacy review before any merge.
 
 ## Submission truthfulness
@@ -48,5 +60,5 @@ Historical GitHub Actions evidence remains visible in repository history. The dr
 - “Prepare AI generation” records intent; it does not synthesize audio or spend generation credits.
 - `operatorConfirmed` expresses a UI transition, not authenticated identity.
 - Browser playback is real local code but not professional/certified show control.
-- Native WASAPI/ASIO, complete portable projects, desktop installer, hardware routing, and paid audio generation are not implemented.
+- Complete show ZIP storage **is implemented and verified automatically**. Native WASAPI/ASIO playback integration, desktop installer, independent output routing and paid audio generation are not implemented.
 - Never commit keys, account/billing details, full private scripts, raw provider responses, or unlicensed media.

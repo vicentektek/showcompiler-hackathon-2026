@@ -2,6 +2,8 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails } from '../core/workspace.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
+import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
+import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
@@ -32,6 +34,8 @@ let metaCoverage = null;
 let metaProposalDetails = new Map();
 let pendingAudioCueId = null;
 let audioInFlight = false;
+let bundleInFlight = false;
+let originalAudioFiles = new Map();
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
@@ -40,7 +44,7 @@ let operatorQueue = newOperatorQueue();
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
-const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
+let player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
 function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
@@ -53,7 +57,9 @@ function refreshAudioControls() {
       : t('status.transportStopped');
   $('stopAllBtn').disabled = active === 0 && pending === 0 && !auditioning;
   $('stopAuditionBtn').disabled = !auditioning;
-  $('loadAudioBtn').disabled = audioInFlight || auditioning;
+  $('loadAudioBtn').disabled = audioInFlight || auditioning || bundleInFlight;
+  $('openBundleBtn').disabled = bundleInFlight || audioInFlight;
+  $('saveBundleBtn').disabled = bundleInFlight || audioInFlight;
   for (const button of document.querySelectorAll('[data-asset-audition]')) {
     button.disabled = !player.hasAsset(button.dataset.assetAudition) || audioInFlight || auditioning || active > 0 || pending > 0;
   }
@@ -589,6 +595,7 @@ function setNewShow(project, statusKey, values = {}) {
   operatorQueue = newOperatorQueue();
   $('scriptSearchInput').value = '';
   player.reset();
+  originalAudioFiles.clear();
   show = project;
   resetMetaAnalysis();
   dirty = true;
@@ -707,6 +714,128 @@ $('saveProjectBtn').addEventListener('click', () => {
   try { saveProject(); }
   catch (error) { showError(error); }
 });
+/**
+ * Save a real self-contained ZIP. JSON Save remains available as a lightweight
+ * interchange format, but is NOT presented as a full audio-inclusive backup.
+ */
+$('saveBundleBtn').addEventListener('click', async () => {
+  if (bundleInFlight || audioInFlight) return;
+  const before = show;
+  const generation = projectGeneration;
+  bundleInFlight = true;
+  audioInFlight = true; // Prevent GO/loading while reading the original files.
+  refreshAudioControls();
+  feedback('bundle.saving');
+  try {
+    const canonical = normalizeShowProject({ ...before, name: $('showName').value.trim() });
+    const zip = await exportPortableShow(canonical, originalAudioFiles);
+    if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
+    const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'showcompiler-' + canonical.id.replace(/[^A-Za-z0-9._-]/g, '-') + '.showcompiler.zip';
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    show = canonical;
+    dirty = false;
+    render();
+    feedback('bundle.saved', { count: canonical.assets.length }, 'success');
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Invalid package').slice(0, 180) }, 'error');
+  } finally {
+    bundleInFlight = false;
+    audioInFlight = false;
+    render();
+  }
+});
+$('openBundleBtn').addEventListener('click', () => {
+  if (bundleInFlight || audioInFlight) return;
+  $('bundleFileInput').click();
+});
+async function loadCompleteZip(inputBytes) {
+  const before = show;
+  const generation = projectGeneration;
+  const previousPlayer = player;
+  const stage = createBrowserAudioBackend({ onStateChange: () => {} });
+  const decoded = new Map();
+  let committed = false;
+  bundleInFlight = true;
+  audioInFlight = true;
+  refreshAudioControls();
+  feedback('bundle.importing');
+  try {
+    const beforeTransport = player.getStatus();
+    if (beforeTransport.activeCueCount || beforeTransport.pendingGoCount ||
+        beforeTransport.auditionActive || beforeTransport.auditionPending) {
+      throw uiError('bundle.busy');
+    }
+    const archive = await importPortableShow(inputBytes);
+    // Stage all audio decoding without touching the playing engine or project.
+    for (const item of archive.audioFiles) {
+      const restoredFile = new File([item.bytes], item.name, { type: 'application/octet-stream' });
+      await stage.loadFile(restoredFile, item.assetId);
+      decoded.set(item.assetId, restoredFile);
+    }
+    if (generation !== projectGeneration || show !== before || player !== previousPlayer) {
+      throw uiError('errors.projectChanged');
+    }
+    const status = player.getStatus();
+    if (status.activeCueCount || status.pendingGoCount ||
+        status.auditionActive || status.auditionPending) throw uiError('bundle.busy');
+    setNewShow(archive.project, 'bundle.opened', {
+      name: archive.project.name, count: archive.audioFiles.length,
+    });
+    player = stage;
+    originalAudioFiles = decoded;
+    committed = true;
+    dirty = false;
+    render();
+    feedback('bundle.opened', { name: show.name, count: decoded.size }, 'success');
+    void previousPlayer.dispose().catch(() => {});
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Invalid package').slice(0, 180) }, 'error');
+  } finally {
+    if (!committed) {
+      try { await stage.dispose(); } catch {}
+    }
+    bundleInFlight = false;
+    audioInFlight = false;
+    render();
+  }
+}
+
+$('bundleFileInput').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file || bundleInFlight || audioInFlight || !userAllowsReplacement()) return;
+  if (!file.name.toLowerCase().endsWith('.zip') ||
+      file.size < 22 || file.size > MAX_PORTABLE_ZIP_BYTES) {
+    showError(uiError('bundle.invalidFile'));
+    return;
+  }
+  try {
+    await loadCompleteZip(new Uint8Array(await file.arrayBuffer()));
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Invalid package').slice(0, 180) }, 'error');
+  }
+});
+
+$('audibleExampleBtn').addEventListener('click', async () => {
+  if (bundleInFlight || audioInFlight || !userAllowsReplacement()) return;
+  const before = show;
+  const generation = projectGeneration;
+  try {
+    feedback('bundle.preparingDemo');
+    const { archive } = await buildDemoPackage(); // Original sound synthesis in this browser.
+    if (show !== before || generation !== projectGeneration) throw uiError('errors.projectChanged');
+    await loadCompleteZip(archive);
+  } catch (error) {
+    feedback('bundle.failed', { reason: String(error?.message ?? 'Unable to create demo').slice(0, 180) }, 'error');
+  }
+});
+
 $('openProjectBtn').addEventListener('click', () => $('projectFileInput').click());
 $('projectFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
@@ -919,6 +1048,7 @@ $('audioFileInput').addEventListener('change', async event => {
     const info = await player.loadFile(file, assetId);
     if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
     show = nextShow;
+    originalAudioFiles.set(assetId, file);
     dirty = true;
     render();
     feedback(cueId ? 'soundPlan.fileAttachedFeedback' : 'status.audioLoaded', {

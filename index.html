@@ -24,8 +24,10 @@
         <span class="pill" data-i18n="top.badge">OPTIONAL META AI · REAL LOCAL AUDIO</span>
         <button id="stopAllBtn" class="btn danger" type="button" data-i18n="top.panic" data-i18n-aria="top.panicAria" aria-label="Stop all audio immediately">STOP ALL</button>
         <button id="newShowBtn" class="btn subtle" type="button" data-i18n="top.new">New</button>
+        <button id="openBundleBtn" class="btn subtle" type="button" data-i18n="bundle.open">Open show ZIP</button>
         <button id="openProjectBtn" class="btn subtle" type="button" data-i18n="top.open">Open JSON</button>
         <button id="saveProjectBtn" class="btn primary" type="button" data-i18n="top.save">Save JSON</button>
+        <button id="saveBundleBtn" class="btn primary" type="button" data-i18n="bundle.save">Save complete ZIP</button>
       </div>
     </header>
 
@@ -48,7 +50,7 @@
         <section class="panel" aria-labelledby="scriptHeading">
           <div class="panel-head">
             <div><span class="step">01</span><h2 id="scriptHeading" data-i18n="script.heading">Script</h2></div>
-            <button id="exampleBtn" type="button" class="btn subtle small" data-i18n="script.example">Example</button>
+            <div class="item-actions"><button id="audibleExampleBtn" type="button" class="btn accent small" data-i18n="bundle.tryDemo">Try with real sounds</button><button id="exampleBtn" type="button" class="btn subtle small" data-i18n="script.example">Example</button></div>
           </div>
           <label class="field" for="showName" data-i18n="script.showName">Show name</label>
           <input id="showName" type="text" maxlength="120" data-i18n-placeholder="script.showNamePlaceholder" placeholder="New show" value="New show">
@@ -169,6 +171,7 @@
   </div>
   <input id="scriptFileInput" type="file" accept=".txt,text/plain" hidden>
   <input id="projectFileInput" type="file" accept=".json,application/json" hidden>
+  <input id="bundleFileInput" type="file" accept=".zip,.showcompiler.zip,application/zip" hidden>
   <input id="audioFileInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" hidden>
 </body>
 </html>

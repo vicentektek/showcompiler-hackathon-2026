@@ -14,6 +14,7 @@ export class BrowserAudioEngine {
     this.buffers = new Map();
     this.playing = new Map();
     this.pending = new Set();
+    this.cancelledPending = new Set();
     this.auditionVoice = null;
     this.auditionPending = false;
     this.transportEpoch = 0;
@@ -31,7 +32,7 @@ export class BrowserAudioEngine {
 
   hasAsset(assetId) { return this.buffers.has(assetId); }
   isPlaying(cueId) { return this.playing.has(cueId) || this.pending.has(cueId); }
-  isStopping(cueId) { return this.playing.get(cueId)?.stopping === true; }
+  isStopping(cueId) { return this.playing.get(cueId)?.stopping === true || this.cancelledPending.has(cueId); }
   activeCueCount() { return this.playing.size; }
   isAuditioning() { return this.auditionVoice !== null || this.auditionPending; }
 
@@ -147,7 +148,9 @@ export class BrowserAudioEngine {
     try {
       const ctx = this.getContext();
       if (typeof ctx.resume === 'function') await ctx.resume();
-      if (epoch !== this.transportEpoch) throw new Error('GO cancelado por PARAR TODO.');
+      if (epoch !== this.transportEpoch || this.cancelledPending.has(cue.id)) {
+        throw new Error('GO cancelado por STOP o PARAR TODO.');
+      }
       if (ctx.state === 'suspended') throw new Error('El navegador ha bloqueado el audio.');
       const startAt = ctx.currentTime + 0.02;
       voices = cue.actions.map(action => {
@@ -186,17 +189,25 @@ export class BrowserAudioEngine {
       throw error;
     } finally {
       this.pending.delete(cue?.id);
+      this.cancelledPending.delete(cue?.id);
       this.notify();
     }
   }
 
   /** Stop one cue immediately or fade out; this does not modify stored cue actions. */
   stopCue(cueId, fadeMs = 0) {
-    const run = this.playing.get(cueId);
-    if (!run) return false;
     if (!Number.isFinite(fadeMs) || fadeMs < 0 || fadeMs > 10_000) {
       throw new RangeError('Fundido inválido (0–10 segundos).');
     }
+    // A user can press STOP while context.resume() is still pending.
+    // Invalidate this specific GO without canceling other queued cues.
+    if (this.pending.has(cueId) && !this.playing.has(cueId)) {
+      this.cancelledPending.add(cueId);
+      this.notify();
+      return true;
+    }
+    const run = this.playing.get(cueId);
+    if (!run) return false;
     const now = this.getContext().currentTime;
     run.stopping = true;
     for (const voice of run.voices) {
@@ -220,6 +231,7 @@ export class BrowserAudioEngine {
   stopAll() {
     this.stopAudition();
     this.transportEpoch += 1;
+    this.cancelledPending.clear();
     const now = this.context?.currentTime ?? 0;
     for (const run of this.playing.values()) {
       for (const voice of run.voices) {
@@ -240,5 +252,13 @@ export class BrowserAudioEngine {
     this.assetEpoch += 1;
     this.buffers.clear();
     this.notify();
+  }
+
+  /** Release audio hardware resources when discarding a staged ZIP or show. */
+  async dispose() {
+    this.reset();
+    const context = this.context;
+    this.context = null;
+    if (context && typeof context.close === 'function') await context.close();
   }
 }

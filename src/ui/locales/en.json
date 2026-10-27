@@ -247,5 +247,16 @@
   "errors.metaOutputRefused": "Meta refused or filtered the requested output. No cues were imported.",
   "errors.metaOutputFinish": "Meta ended with an unsupported finish reason. No cues were imported.",
   "errors.metaOutputSemantic": "Meta returned a structurally valid result that failed local theatrical/source validation.",
-  "errors.metaBadReferences": "Meta proposed a script line or asset that failed validation. All suggestions were rejected safely."
+  "errors.metaBadReferences": "Meta proposed a script line or asset that failed validation. All suggestions were rejected safely.",
+  "bundle.open": "Open show ZIP",
+  "bundle.save": "Save complete ZIP",
+  "bundle.saving": "Packing script, cues and original audio...",
+  "bundle.importing": "Verifying and importing the ZIP; the current show is preserved...",
+  "bundle.saved": "Complete ZIP downloaded with {count} audio files. Keep this file to restore the show.",
+  "bundle.opened": "Show “{name}” restored with {count} real audio files. GO remains manual.",
+  "bundle.failed": "Could not complete show ZIP: {reason}",
+  "bundle.invalidFile": "Choose a SHOWCOMPILER .zip file (maximum 64 MB).",
+  "bundle.busy": "Finish the current audio/ZIP operation before changing the show.",
+  "bundle.tryDemo": "Try with real sounds",
+  "bundle.preparingDemo": "Creating the original show and WAVs in this browser..."
 }
