@@ -491,3 +491,11 @@
   .shell[data-active-workspace="cues"] .cue-item,
   .shell[data-active-workspace="cues"] .cue-row-select{transition:none}
 }
+
+/* The full creation toolbar remains visible on short desktop windows.
+   Repeating the same shortcuts inside the inspector would hide actual audio
+   controls below the fold at 1093×614. */
+@media(max-height:700px) and (min-width:801px){
+  .shell[data-active-workspace="cues"] .cue-inspector-quick-actions{display:none}
+  .shell[data-active-workspace="cues"] .cue-inspector-origin{margin:4px 0}
+}
