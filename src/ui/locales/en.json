@@ -341,5 +341,11 @@
   "audioProps.noAuto": "These settings apply on the next manual GO. They never start a cue automatically. An end fade only applies to finite playback.",
   "audioProps.save": "Save playback settings",
   "audioProps.saved": "Playback settings saved for cue {number}. No audio was started.",
-  "audioProps.currentLimits": "Manual cue audio: trim, start delay, fade-in, end fade-out and looping/repeats are active. Independent PFL, pan, speed, regions, per-track output and automatic follow are not implemented yet."
+  "audioProps.currentLimits": "Playback supports cue trim, offset, speed, pan, delay, fades, loops and finite repeats. Independent PFL, timecode, per-track output, cue-target STOP and automatic following are not implemented yet.",
+  "audioProps.startAtMs": "Start position (ms)",
+  "audioProps.startAtHelp": "Trim the beginning of the file. Must be less than its decoded duration.",
+  "audioProps.playbackRate": "Playback speed (0.5×–2×)",
+  "audioProps.rateHelp": "1.0× preserves pitch/speed behavior; changing speed changes pitch in this browser.",
+  "audioProps.pan": "Stereo pan (-1 to +1)",
+  "audioProps.panHelp": "-1 left, 0 center, +1 right. Depends on browser stereo output."
 }
