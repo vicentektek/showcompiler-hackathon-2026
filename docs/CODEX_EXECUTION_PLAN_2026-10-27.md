@@ -35,28 +35,42 @@ This branch graph and CI evidence have already been checked directly in GitHub. 
 
 Before C1 coding, perform ONLY git status --short, git branch --show-current, git rev-parse HEAD and git merge-base for the relevant branch heads. Verify no uncommitted user work. If HEAD/ref differs from this snapshot, report the minimal discrepancy; do not restart broad research. Commit to one narrow, integration-ready feature branch and run the full suite once AFTER actual integration work.
 
-### C1 — Converge branches in ONE integration branch (after review of C0)
+### C1 — Integrate existing branches, preserve pending-GO cancellation (first coding task)
 
-Objective: have one runnable checkout containing ZIP/demo, audio end semantics and operator automation data without losing any behavior.
+Objective: a SINGLE executable checkout preserving the PR 20 base, PR 14 portable archive/demo and PR 18 natural-end event; do not turn on new AUTO playback.
 
-- Work on a new isolated feature branch based on the reviewed code head. Do not overwrite or delete old branches; never force-push or merge main.
-- Bring over PR 14 portable ZIP/demo, PR 18 natural-end callback, and PR 19/20 automation persistence/editor model, accounting for their shared ancestor and PR 15–17 chain. Prefer smallest reviewable diffs; do not import whole historical histories or duplicate code.
-- Preserve original audio bytes and transactional ZIP import. Preserve old valid JSON and reject malformed package input without erasing the current show. Maintain exact source IDs and approvals.
-- If automation hooks are not wired to real GO/STOP yet, leave them disabled and explicitly indicate this. Never make default transport automatically run the next cue.
-- Update CI to test the complete integration branch; avoid repeated workflow runs from trivial intermediate pushes. Use workflow concurrency cancellation where appropriate, while still retaining final evidence. Keep existing offline suites.
-- Tests: npm run check:syntax, npm test and demo:package if that script is actually present. Inspect the produced ZIP with a system unzip or independent archive parser where available.
-Acceptance: a single reproducible checkout and PR with a passed full offline suite, portable show roundtrip, no automatic GO after STOP ALL, documented unverified browser/audio behavior. No auto merge.
+Base this task on docs/codex-qa-playbook-2026-10-27 (which contains PR 20's data-model stack). Branch off safely, confirm tree is clean, and inspect branch heads/diffs briefly. The full findings are already recorded in docs/SECOND_PASS_TECHNICAL_AUDIT_2026-10-27.md. Do NOT redo a repo-wide audit.
 
-### C2 — Automations and transport: hostile deterministic regression suite
+CRITICAL MERGE TRAP:
+- PR 14 src/core/browserAudio.mjs provides cancelledPending, stopCue on pending AudioContext.resume, originalAudioFiles, complete ZIP and transactional stage import.
+- PR 18 src/core/browserAudio.mjs provides onCueNaturalEnd, suppression after STOP/fade and after all voices stop.
+- PR 19/20 provide validated optional automation in the existing schema and updateCueAutomation model; their UI/engine are still not wired to those optional settings.
+- Keep all three behaviors while reconciling the SAME browserAudio.mjs file. Do not overwrite PR 20's schema with older PR 14 persistence. The audioBackend facade may need to pass event callbacks later; no claims until wired.
+- Existing src/ui/app.mjs has independent manual player.go/stopAll flows. Never attach the new scheduler in C1; it must remain disabled until a single arbitration gate is added in C2.
 
-Objective: exercise real scheduler and cue state edges, not merely pure DTO constructors.
+Preserve original ZIP/CRC/SHA behavior, per-cue pending GO cancellation, no onended callback after stop, project-swap immutability and legacy JSON compatibility. No new dependency or framework migration.
 
-- Review createCueAutomationRuntime, normalizeCueAutomation, BrowserAudioEngine, operator queue, UI event wiring, cancellation and project teardown.
-- Add injectable fake clock/timers and fake audio/transport; forbid real delays, sleep loops, network and actual speakers in automated unit tests.
-- Cover MANUAL, AUTO_CONTINUE from successful GO, AUTO_FOLLOW from actual natural completion; delay = 0 and >0; loop refusing natural-follow; stopped/failed GO; duplicate GO; repeated onended; short/long fade; cancellation during pending asynchronous GO; STOP other source; STOP ALL; dispose; project switch; stale callbacks from old show; return from queued microtask and timer races.
-- Use ownership/identity of running cue instances. Different cues playing the same asset must not both stop accidentally; selection and script navigation cannot alter prepared GO.
-- Build deterministic property/metamorphic tests with fixed seeds if useful, but report actual invariants rather than running random tests forever.
-Acceptance: every listed destructive/cancel case has an automated assertion. In particular, NO audio restart after STOP ALL, NO double GO, NO stale execution after replacing project, NO model request along transport paths.
+Commands and evidence: run npm run check:syntax and npm test AFTER integration; if npm run demo:package is present, generate the ZIP, run unzip -t or equivalent independent validation, and verify contents. On CI check an integrated branch run, not isolated PR checks. Add narrow regression tests for any exposed conflict. Do not merge to main, change repository visibility or run paid APIs.
+
+STOP condition: an unresolved schema conflict or unsafe concurrency issue requiring broad redesign. Report exact lines, minimal proof and recommended bounded next task; do not improvise a rewrite.
+
+Acceptance: one draft integration PR with complete original demo ZIP + original audio, automation data model, correct natural-end reporting and pending GO stop safety, full offline suite green. Automatic follow and advanced fades/loops are explicitly NOT active yet.
+
+### C1-M — Manual validation, zero Codex cost (after C1)
+
+Operator on a Windows PC: start the development server with npm run dev; open the local browser and select Try with real sounds; confirm sample script + three original WAVs, prepare + manual GO, check audible output at low gain, STOP/FADE/STOP ALL, then save complete ZIP, reopen and manually GO offline. Record browser version, speaker route and any failed step. This is NOT evidence of native audio or isolated audition routing. If it fails, give Codex ONLY the failing reproduction steps.
+
+### C2 — Optional automation transport integration ONLY after C1-M passes
+
+Objective: one arbitration owner for cue execution and cancellation, not two independent GO paths. Before writing features, inspect createCueAutomationRuntime, BrowserAudioEngine, src/core/audioBackend.mjs, operatorQueue and real UI event handlers.
+
+Must create a single cancelAll / stopAll authority that synchronously invalidates timers/epochs and silences the backend. Pass onCueNaturalEnd from engine through facade to coordinator, with generation-based protection. Manual GO, optional automation and STOP must share an idempotent dispatch API. Project replacement disposes old coordinator before activating new show. No trigger from AI output. Defaults remain MANUAL; AUTO is explicitly opt-in.
+
+Do NOT advertise configurable fades/loop/stop-other parameters unless the audio engine genuinely applies them; data-model support is not transport support. For each capability choose: implement with deterministic tests, or disable with truthful UI messaging. Any unsupported automation remains disabled rather than silently ignored.
+
+Minimum deterministic tests use controlled AudioContext.resume promise, synthetic onended events, fake clock, multiple voices and zero network. Assert no audio on STOP during pending resume; no event on intentional stop; one event on true natural end; no restart after STOP ALL, project switch/dispose or UI selection; no double GO from automatic and manual collisions. Include test for loop not ending and maximum automatic chain behavior.
+
+Acceptance: C1 tests remain green and specific runtime/DOM unit or browser tests prove the coordinator path. STOP ALL is effective even with queued asynchronous work. If safe integration needs a larger redesign, stop with evidence and defer AUTO instead of risking the MVP.
 
 ### C3 — Provider and theatre-analysis evaluation, OFFLINE by default
 
