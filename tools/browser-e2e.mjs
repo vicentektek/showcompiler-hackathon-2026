@@ -182,7 +182,16 @@ try {
   await page.mouse.down();
   await page.mouse.move(bounds.x+bounds.width*.28,bounds.y+bounds.height*.45);
   await page.mouse.up();
-  assert.equal(await page.locator('#waveformSaveIn').isEnabled(),true);
+  const inUiDiagnostic = await page.evaluate(() => ({
+    marker: document.querySelector('#waveformInValue')?.textContent,
+    time: document.querySelector('#waveformRuler')?.textContent,
+    saveDisabled: document.querySelector('#waveformSaveIn')?.disabled,
+    toolHidden: document.querySelector('#waveformTrimTools')?.hidden,
+    zoom: document.querySelector('#waveformZoom')?.value,
+    pan: document.querySelector('#waveformPan')?.value,
+  }));
+  assert.equal(await page.locator('#waveformSaveIn').isEnabled(),true,
+    'Dragging IN must enable save: '+JSON.stringify(inUiDiagnostic));
   await page.locator('#waveformSaveIn').click();
   assert.match(await page.locator('#waveformStatus').innerText(),/IN point saved/);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),audioStartsBeforeWaveform);
