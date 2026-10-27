@@ -84,6 +84,22 @@ function safeCoverage(value) {
   };
 }
 
+function safeIndependentReview(value, coverage) {
+  if (!coverage || !value || typeof value !== 'object' || Array.isArray(value) ||
+      !Array.isArray(value.reviewFlags) || value.reviewFlags.length > 16 ||
+      !Number.isSafeInteger(value.totalUnreviewed) ||
+      value.totalUnreviewed < value.reviewFlags.length ||
+      value.totalUnreviewed > coverage.analyzedLines) {
+    throw new TypeError('Invalid Meta independent review');
+  }
+  const permitted = new Set(coverage.analyzedLineIds);
+  if (value.reviewFlags.some(id => typeof id !== 'string' || !LINE_ID.test(id) || !permitted.has(id)) ||
+      new Set(value.reviewFlags).size !== value.reviewFlags.length) {
+    throw new TypeError('Independent review references invalid source lines');
+  }
+  return { reviewFlags: [...value.reviewFlags], totalUnreviewed: value.totalUnreviewed };
+}
+
 function safeTheatricalDetail(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       !CUE_KINDS.has(value.cueKind) || !BASES.has(value.basis) ||
@@ -207,6 +223,7 @@ export function makeMetaRoute({
         ...(proposal.actions[0].type === 'PLAN_AUDIO' ? { soundPrompt: proposal.actions[0].prompt } : {}),
         label: proposal.label,
       }));
+      const independentReview = result.independentReview === undefined ? undefined : safeIndependentReview(result.independentReview, coverage);
       const proposalDetails = result.details === undefined ? undefined : result.details.map(safeTheatricalDetail);
       const observations = result.observations === undefined ? undefined : result.observations.map(safeTheatricalDetail);
       const duplicatesRemoved = result.duplicatesRemoved === undefined ? undefined : result.duplicatesRemoved;
@@ -223,6 +240,7 @@ export function makeMetaRoute({
         proposals: output,
         diagnostic: sanitizeMetaDiagnostic(result.diagnostics ?? localDiagnostic('COMPLETE', 'OK')),
         ...(coverage === undefined ? {} : { coverage }),
+        ...(independentReview === undefined ? {} : { independentReview }),
         ...(proposalDetails === undefined ? {} : { proposalDetails }),
         ...(observations === undefined ? {} : { observations }),
         ...(duplicatesRemoved === undefined ? {} : { duplicatesRemoved }),

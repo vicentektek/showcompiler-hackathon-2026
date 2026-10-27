@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "provenance": "ORIGINAL_SYNTHETIC_TRAINING_FIXTURES_NOT_LIVE_MODEL_MEASUREMENTS",
+  "cases": [
+    {
+      "id": "telephone-state",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "scriptText": "ESCENA 1\n(Suena un teléfono.)\nANA: Recuerdo la tormenta de ayer.\n(El teléfono sigue sonando.)\n(El teléfono deja de sonar.)",
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L4",
+          "transport": "CONTINUE",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L5",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L3"
+      ]
+    },
+    {
+      "id": "physical-prop",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "scriptText": "ESCENA 1\n(El actor golpea físicamente la mesa.)\nLUCÍA: Es madera maciza.\n(Se apagan las luces.)",
+      "expected": [],
+      "forbiddenPlayLineIds": [
+        "L2",
+        "L3",
+        "L4"
+      ]
+    },
+    {
+      "id": "gala-escaleta",
+      "type": "gala",
+      "documentKind": "running_order",
+      "scriptText": "BLOQUE 1 | 00:00 | Apertura\nSONIDO 7: reproducir sintonía de entrada.\nLX 2: encender frontal.\nPRESENTADOR: Recibamos a los premiados.",
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L3",
+        "L4"
+      ]
+    },
+    {
+      "id": "live-song-versus-file",
+      "type": "concert",
+      "documentKind": "setlist",
+      "scriptText": "SETLIST\n1. Canción inicial — banda en directo.\nSFX 8: reproducir una sirena grabada.\nSFX 8: detener sirena.",
+      "expected": [
+        {
+          "lineId": "L3",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L4",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L2"
+      ]
+    },
+    {
+      "id": "silence-and-memory",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "scriptText": "SCENE 1\n(Se hace el silencio absoluto.)\nINES: Nunca olvidaré la alarma de aquella noche.",
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L3"
+      ]
+    },
+    {
+      "id": "optional-ambience",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "scriptText": "ESCENA 1\nLa acción transcurre en una cafetería tranquila.\nJULIA: Tendremos que cerrar pronto.",
+      "expected": [],
+      "forbiddenPlayLineIds": [
+        "L3"
+      ]
+    }
+  ]
+}
