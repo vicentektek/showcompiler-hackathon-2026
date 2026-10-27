@@ -151,3 +151,6 @@ vite.config.ts.timestamp-*
 
 # Locally generated, rights-clear audio demonstration package (CI artifact)
 demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
+
+# Reports may be generated from user-private material; never commit local reports.
+artifacts/cue-qa/
