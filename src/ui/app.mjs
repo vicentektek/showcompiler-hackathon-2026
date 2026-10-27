@@ -151,8 +151,14 @@ function renderWorkspaceShell() {
 
 function setWorkspace(workspace) {
   if (!availableWorkspaces.includes(workspace)) throw new RangeError('Unknown workspace');
+  if (workspace !== activeWorkspace && activeWorkspace === 'cues' && inspectorPendingChanges) {
+    if (!confirmDiscardInspectorEdits()) return false;
+    inspectorPendingChanges = false;
+    renderCueInspector(); // Discard local form changes, not stored show data.
+  }
   activeWorkspace = workspace;
   renderWorkspaceShell();
+  return true;
 }
 
 function renderSetupReadiness() {
@@ -280,6 +286,11 @@ function applyMetaCoverage(value, observations, duplicates) {
   metaCoverage.duplicates += duplicates;
 }
 function switchUiLocale(locale) {
+  if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) {
+    $('uiLocaleSelect').value = uiLocale;
+    return;
+  }
+  inspectorPendingChanges = false;
   const nameFieldValue = $('showName').value; // Never discard an unsaved edit.
   uiLocale = savePreferredUiLocale(uiStorage, locale);
   $('uiLocaleSelect').value = uiLocale;
@@ -340,7 +351,7 @@ function cueAudioPicker(cueId, translationKey) {
 function jumpToScriptLine(lineId) {
   if (!lineId) return;
   scriptFocusLineId = lineId;
-  setWorkspace('script');
+  if (!setWorkspace('script')) return;
   render();
   const target = [...$('scriptPreview').querySelectorAll('[data-script-line-id]')]
     .find(item => item.dataset.scriptLineId === lineId);
@@ -933,6 +944,7 @@ function userAllowsReplacement() {
   return window.confirm(t('status.replaceConfirm'));
 }
 function saveProject() {
+  if (inspectorPendingChanges) throw uiError('cueEditor.saveEditsFirst');
   const name = $('showName').value.trim();
   const serialized = serializeShowProject({ ...show, name });
   show = deserializeShowProject(serialized);
@@ -1144,6 +1156,10 @@ $('saveProjectBtn').addEventListener('click', () => {
  */
 $('saveBundleBtn').addEventListener('click', async () => {
   if (bundleInFlight || audioInFlight) return;
+  if (inspectorPendingChanges) {
+    feedback('cueEditor.saveEditsFirst', {}, 'error');
+    return;
+  }
   const before = show;
   const generation = projectGeneration;
   bundleInFlight = true;
