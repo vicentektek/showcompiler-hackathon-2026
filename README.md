@@ -14,7 +14,7 @@ npm run check:syntax
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface; Spanish is selectable. `npm run demo:core` runs the terminal-only review demonstration. `npm run demo:package` creates a complete, rights-clear show ZIP with three original WAVs that can be reopened directly in the app.
+Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface; Spanish is selectable. **Click “Try with real sounds” / “Probar con sonidos reales” for an immediate, self-contained, locally generated playable show** (three WAVs and manually approved cues, no AI key required). `npm run demo:core` runs the terminal-only review demonstration. `npm run demo:package` creates a complete, rights-clear show ZIP with three original WAVs that can be reopened directly in the app.
 
 ## Implemented
 
