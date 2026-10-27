@@ -119,3 +119,20 @@ test('ZIP reader does not trust central offsets, renamed local files or overlapp
   new DataView(changed.buffer).setUint32(second+42,0,true);
   assert.throws(() => readZipStore(changed), /mismatched|overlapping|hidden/);
 });
+
+test('colon-bearing historical asset IDs use Windows-safe ZIP entry filenames', async () => {
+  const project = addAudioReference(createNewShow({ id: 'show:legacy' }), 'bell.wav');
+  project.assets[0].id = 'asset:legacy';
+  const archive = await exportPortableShow(project, new Map([['asset:legacy', soundFile('bell.wav')]]));
+  assert.ok(readZipStore(archive).has('audio/asset%3Alegacy.wav'));
+  const restored = await importPortableShow(archive);
+  assert.equal(restored.project.assets[0].id, 'asset:legacy');
+});
+
+test('folder-like source asset names cannot escape the archive audio directory', async () => {
+  const project = addAudioReference(createNewShow(), '../escape.wav');
+  await assert.rejects(
+    exportPortableShow(project, new Map([['asset-1', soundFile('../escape.wav')]])),
+    /invalid sound asset/,
+  );
+});
