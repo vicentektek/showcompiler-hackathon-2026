@@ -109,6 +109,10 @@ try {
   assert.equal(await page.locator('#cueList .cue-item').count(), 3);
   await page.getByRole('button', { name: 'Inspect', exact: true }).nth(1).click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
+  await page.locator('#cuePlaybackForm [data-stop-target="cue-1"]').check();
+  await page.locator('#cuePlaybackForm').getByRole('button',{name:'Save playback settings'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
   await page.locator('[data-workspace-nav="operation"]').click();
@@ -118,6 +122,10 @@ try {
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
+  const stopsBeforeTarget = await page.evaluate(()=>window.__testAudioStops);
+  await page.locator('#operatorGoBtn').click();
+  await page.waitForFunction(stops=>window.__testAudioStops>stops,stopsBeforeTarget);
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /3\s*[·.]/);
   assert.equal(await page.locator('#operatorPanicBtn').isEnabled(), true);
   await page.locator('#operatorPanicBtn').click();
   await page.waitForFunction(() => window.__testAudioStops >= 1);
@@ -133,6 +141,7 @@ try {
   assert.equal(exportedProject.cues[editedCueIndex].playback.pan,-0.5);
   assert.equal(exportedProject.cues[editedCueIndex].playback.playbackRate,1.25);
   assert.equal(exportedProject.cues[editedCueIndex].playback.startAtMs,125);
+  assert.deepEqual(exportedProject.cues[1].automation.stopCueIds,['cue-1']);
   const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#bundleFileInput').setInputFiles({
