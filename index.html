@@ -238,9 +238,16 @@
         <section class="panel" data-workspaces="cues operation" aria-labelledby="cuesHeading">
           <div class="panel-head">
             <div><span class="step">03</span><h2 id="cuesHeading" data-i18n="cues.heading">Cue list</h2></div>
-            <span class="label-draft" data-i18n="cues.manual">MANUAL GO</span>
+            <div class="cue-create-actions">
+              <button id="cueAddBtn" type="button" class="btn primary" data-i18n="cueEditor.addCue">+ Add cue</button>
+              <button id="cueInsertBtn" type="button" class="btn subtle" data-i18n="cueEditor.insertCue">Insert after selected</button>
+              <button id="cueDuplicateBtn" type="button" class="btn subtle" data-i18n="cueEditor.duplicateCue">Duplicate</button>
+              <button id="cueMoveUpBtn" type="button" class="btn subtle" data-i18n="cueEditor.moveUp">Move up</button>
+              <button id="cueMoveDownBtn" type="button" class="btn subtle" data-i18n="cueEditor.moveDown">Move down</button>
+              <button id="cueDeleteBtn" type="button" class="btn subtle danger" data-i18n="cueEditor.deleteCue">Delete selected</button>
+            </div>
           </div>
-          <p class="help" data-i18n="cues.help">Only expressly approved suggestions appear here. GO plays the loaded audio; STOP and FADE 1.5 s stop playback. The operator remains in control.</p>
+          <p class="help" data-i18n="cues.help">Create and edit cues freely. AI suggestions are optional; clicking a cue never starts sound.</p>
           <div class="preflight-toolbar">
             <button id="checkPreflightBtn" type="button" class="btn subtle small" data-i18n="preflight.check">Check show readiness</button>
             <span class="caption" data-i18n="preflight.notice">Advisory only · does not arm live mode</span>
