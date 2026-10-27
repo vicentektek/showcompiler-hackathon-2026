@@ -354,5 +354,19 @@
   "operator.effectRepeat": "Repeat {count} times",
   "operator.effectDelay": "Delay {ms} ms",
   "operator.effectFadeIn": "Fade-in {ms} ms",
-  "operator.effectStops": "STOP / FADE: {targets}"
+  "operator.effectStops": "STOP / FADE: {targets}",
+  "cueEditor.selectCue": "Select cue {number}: {label} for inspection; does not change NEXT GO",
+  "cueEditor.nextGo": "NEXT GO · position only",
+  "cueEditor.discardChanges": "You have unsaved cue edits. Discard them and change selection or inspector tab?",
+  "cueEditor.inspectorSections": "Cue editing sections",
+  "cueEditor.tab.details": "Basics",
+  "cueEditor.tab.audio": "Audio",
+  "cueEditor.tab.actions": "Actions",
+  "cueEditor.noTrigger": "Trigger not specified",
+  "cueEditor.assetSection": "Sound actions",
+  "cueEditor.saveActions": "Save target actions",
+  "cueEditor.actionsSaved": "Target-stop actions saved for cue {number}. No sound was started.",
+  "cueEditor.listHelp": "Click a cue row to edit it. ↑ ↓ Home End navigate. Inspection never changes NEXT GO.",
+  "cueEditor.hint": "Edit cue properties on the right. GO and emergency STOP remain in Operation.",
+  "cueEditor.saveEditsFirst": "Save or discard the cue's pending inspector edits before exporting JSON or ZIP."
 }

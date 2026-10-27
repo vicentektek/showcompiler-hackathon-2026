@@ -42,6 +42,8 @@ let scriptMatchIndex = 0;
 let preflightVisible = false;
 let editingCueId = null;
 let selectedCueId = null; // Selection inspects only; it never changes the GO queue.
+let inspectorTab = 'audio';
+let inspectorPendingChanges = false;
 let activeWorkspace = 'home';
 const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'setup', 'operation']);
 let operatorQueue = startOperatorQueue(show.cues);
@@ -149,8 +151,14 @@ function renderWorkspaceShell() {
 
 function setWorkspace(workspace) {
   if (!availableWorkspaces.includes(workspace)) throw new RangeError('Unknown workspace');
+  if (workspace !== activeWorkspace && activeWorkspace === 'cues' && inspectorPendingChanges) {
+    if (!confirmDiscardInspectorEdits()) return false;
+    inspectorPendingChanges = false;
+    renderCueInspector(); // Discard local form changes, not stored show data.
+  }
   activeWorkspace = workspace;
   renderWorkspaceShell();
+  return true;
 }
 
 function renderSetupReadiness() {
@@ -278,6 +286,11 @@ function applyMetaCoverage(value, observations, duplicates) {
   metaCoverage.duplicates += duplicates;
 }
 function switchUiLocale(locale) {
+  if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) {
+    $('uiLocaleSelect').value = uiLocale;
+    return;
+  }
+  inspectorPendingChanges = false;
   const nameFieldValue = $('showName').value; // Never discard an unsaved edit.
   uiLocale = savePreferredUiLocale(uiStorage, locale);
   $('uiLocaleSelect').value = uiLocale;
@@ -338,7 +351,7 @@ function cueAudioPicker(cueId, translationKey) {
 function jumpToScriptLine(lineId) {
   if (!lineId) return;
   scriptFocusLineId = lineId;
-  setWorkspace('script');
+  if (!setWorkspace('script')) return;
   render();
   const target = [...$('scriptPreview').querySelectorAll('[data-script-line-id]')]
     .find(item => item.dataset.scriptLineId === lineId);
@@ -405,9 +418,10 @@ function cueDetailsEditor(cue) {
   save.type = 'submit';
   const cancel = node('button', 'btn subtle small', t('cue.cancelDetails'));
   cancel.type = 'button';
-  cancel.addEventListener('click', () => { editingCueId = null; render(); });
+  cancel.addEventListener('click', () => { inspectorPendingChanges = false; editingCueId = null; render(); });
   controls.append(save, cancel);
   form.append(labelCaption, triggerCaption, notesCaption, controls);
+  form.addEventListener('input', () => { inspectorPendingChanges = true; });
   form.addEventListener('submit', event => {
     event.preventDefault();
     try {
@@ -415,12 +429,177 @@ function cueDetailsEditor(cue) {
         label: labelInput.value, trigger: triggerInput.value, notes: notesInput.value,
       });
       dirty = true;
+      inspectorPendingChanges = false;
       editingCueId = null;
       render();
       feedback('status.cueDetailsSaved', { number: cue.number }, 'success');
     } catch (error) { showError(error); }
   });
   return form;
+}
+
+
+/** Only the row selection changes on ordinary mouse/keyboard navigation.
+ * It cannot change GO position, start audio, or regenerate the page.
+ */
+function updateCueSelectionVisual() {
+  const rows = [...$('cueList').querySelectorAll('[data-cue-select]')];
+  const selectedIsVisible = rows.some(button => button.dataset.cueSelect === selectedCueId);
+  rows.forEach((button, index) => {
+    const selected = button.dataset.cueSelect === selectedCueId;
+    button.setAttribute('aria-pressed', String(selected));
+    button.tabIndex = selectedIsVisible ? (selected ? 0 : -1) : (index === 0 ? 0 : -1);
+    button.closest('.cue-item')?.classList.toggle('cue-selected', selected);
+  });
+}
+
+function confirmDiscardInspectorEdits() {
+  return !inspectorPendingChanges || window.confirm(t('cueEditor.discardChanges'));
+}
+
+function selectCueForInspection(cueId) {
+  if (!show.cues.some(cue => cue.id === cueId)) return false;
+  if (cueId === selectedCueId) return true;
+  if (!confirmDiscardInspectorEdits()) return false;
+  selectedCueId = cueId;
+  editingCueId = null;
+  // Keep the same property section when reviewing consecutive cues;
+  // only fall back if the newly selected cue has no playable audio.
+  if (inspectorTab === 'audio' && !show.cues.find(cue => cue.id === cueId).actions.some(a => a.type === 'PLAY')) {
+    inspectorTab = 'details';
+  }
+  inspectorPendingChanges = false;
+  updateCueSelectionVisual();
+  renderCueInspector();
+  return true;
+}
+
+function renderCueList({ resetScroll = false } = {}) {
+  const cueList = $('cueList');
+  const priorScrollTop = cueList.scrollTop;
+  cueList.replaceChildren();
+  const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
+  const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
+    const matchingAssets = cue.actions.map(action =>
+      show.assets.find(asset => asset.id === action.assetId)?.name ?? '').join(' ');
+    const searchable = [cue.number, cue.label, cue.trigger, cue.notes,
+      cue.sourceLineIds.join(' '), matchingAssets].join(' ').toLocaleLowerCase();
+    return searchable.includes(cueQuery);
+  });
+  $('cueSearchStatus').textContent = t('workspace.matchCount', { visible: visibleCues.length, total: show.cues.length });
+  if (!show.cues.length) cueList.append(node('p', 'empty', t('status.noCues')));
+  else if (!visibleCues.length) cueList.append(node('p', 'empty', t('workspace.noCueMatches')));
+  for (const cue of visibleCues) {
+    const card = node('article', 'item cue-item');
+    if (cue.id === selectedCueId) card.classList.add('cue-selected');
+    if (cue.id === operatorQueue.preparedCueId) card.classList.add('cue-prepared');
+    const select = node('button', 'cue-row-select');
+    select.type = 'button';
+    select.dataset.cueSelect = cue.id;
+    select.setAttribute('aria-label', t('cueEditor.selectCue', { number: cue.number, label: cue.label }));
+    select.setAttribute('aria-pressed', String(cue.id === selectedCueId));
+    const top = node('div', 'item-head cue-row-heading');
+    top.append(node('strong', 'cue-row-title', cue.number + ' · ' + cue.label));
+    const runtime = node('span', 'state', t('status.soundMissing'));
+    runtime.dataset.cueState = cue.id;
+    top.append(runtime);
+    const detail = node('span', 'cue-row-meta', cue.sourceLineIds.join(', ') + ' · ' + describeCueActions(cue.actions));
+    select.append(top, detail);
+    if (cue.trigger) select.append(node('span', 'cue-row-trigger', t('cue.trigger') + ': ' + cue.trigger));
+    if (cue.id === operatorQueue.preparedCueId) {
+      select.append(node('span', 'cue-row-next', t('cueEditor.nextGo')));
+    }
+    select.addEventListener('click', () => selectCueForInspection(cue.id));
+    select.addEventListener('keydown', event => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+      const index = visibleCues.findIndex(item => item.id === cue.id);
+      const destination = event.key === 'ArrowDown' ? Math.min(index + 1, visibleCues.length - 1)
+        : event.key === 'ArrowUp' ? Math.max(index - 1, 0)
+        : event.key === 'Home' ? 0
+        : event.key === 'End' ? visibleCues.length - 1 : -1;
+      if (destination < 0) return;
+      event.preventDefault();
+      const next = visibleCues[destination];
+      if (!next || !selectCueForInspection(next.id)) return;
+      const target = [...cueList.querySelectorAll('[data-cue-select]')][destination];
+      target?.focus();
+      target?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    card.append(select);
+    const sourceActions = node('div', 'item-actions cue-edit-actions');
+    sourceActions.append(sourceButton(cue.sourceLineIds[0]));
+    card.append(sourceActions);
+    // Editing belongs to the inspector, not to the scrolling cue list.
+    const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
+    if (plan) {
+      const resolve = node('div', 'item-actions cue-audio-tools');
+      const deferred = node('button', 'btn subtle small', t('soundPlan.defer'));
+      deferred.type = 'button';
+      deferred.disabled = plan.resolution === 'DEFER';
+      deferred.addEventListener('click', () => safeOperation(
+        () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'
+      ));
+      const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
+      generate.type = 'button';
+      generate.disabled = plan.resolution === 'GENERATE';
+      generate.addEventListener('click', () => safeOperation(
+        () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'
+      ));
+      resolve.append(cueAudioPicker(cue.id, 'soundPlan.loadFile'), deferred, generate);
+      if (show.assets.length) {
+        const library = node('select', '', '');
+        library.setAttribute('aria-label', t('soundPlan.libraryLabel'));
+        replaceOptions(library, show.assets.map(asset => [asset.id, asset.name]));
+        const assign = node('button', 'btn primary small', t('soundPlan.assign'));
+        assign.type = 'button';
+        assign.addEventListener('click', () => safeOperation(
+          () => assignAudioToCue(show, cue.id, library.value), 'soundPlan.assignedFeedback'
+        ));
+        resolve.append(library, assign);
+      }
+      card.append(resolve);
+    } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
+      const replaceAudio = node('div', 'item-actions cue-audio-tools');
+      replaceAudio.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
+      card.append(replaceAudio);
+    }
+    const controls = node('div', 'item-actions cue-operation-actions');
+    const prepare = node('button', 'btn accent small', t('operator.setNext'));
+    prepare.type = 'button';
+    prepare.disabled = operatorQueue.preparedCueId === cue.id;
+    prepare.addEventListener('click', () => {
+      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
+      render();
+      feedback('operator.preparedFeedback', { number: cue.number }, 'success');
+    });
+    controls.append(prepare);
+    // Only the global prepared-sequence GO can start playback. Row buttons stop
+    // an already-running cue or intentionally reposition the next GO.
+    const commands = [['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
+    for (const [action, title, style] of commands) {
+      const button = node('button', style, title);
+      button.type = 'button';
+      button.dataset.cueAction = action;
+      button.dataset.cueId = cue.id;
+      button.addEventListener('click', async () => {
+        try {
+          if (action === 'stop') {
+            player.stopCue(cue.id);
+            feedback('status.audioStopped', { number: cue.number }, 'success');
+          } else {
+            player.stopCue(cue.id, cue.playback?.fadeOutMs || 1500);
+            feedback('status.audioFaded', { number: cue.number }, 'success');
+          }
+        } catch (error) { showError(error, resolveErrorKey(error) === 'errors.generic' ? 'errors.invalidAudio' : undefined); }
+      });
+      controls.append(button);
+    }
+    card.append(controls);
+    cueList.append(card);
+  }
+
+  updateCueSelectionVisual();
+  cueList.scrollTop = resetScroll ? 0 : priorScrollTop;
 }
 
 function render() {
@@ -525,119 +704,7 @@ function render() {
     proposalList.append(card);
   }
 
-  const cueList = $('cueList');
-  cueList.replaceChildren();
-  const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
-  const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
-    const matchingAssets = cue.actions.map(action =>
-      show.assets.find(asset => asset.id === action.assetId)?.name ?? '').join(' ');
-    const searchable = [cue.number, cue.label, cue.trigger, cue.notes,
-      cue.sourceLineIds.join(' '), matchingAssets].join(' ').toLocaleLowerCase();
-    return searchable.includes(cueQuery);
-  });
-  $('cueSearchStatus').textContent = t('workspace.matchCount', { visible: visibleCues.length, total: show.cues.length });
-  if (!show.cues.length) cueList.append(node('p', 'empty', t('status.noCues')));
-  else if (!visibleCues.length) cueList.append(node('p', 'empty', t('workspace.noCueMatches')));
-  for (const cue of visibleCues) {
-    const card = node('article', 'item cue-item');
-    if (cue.id === selectedCueId) card.classList.add('cue-selected');
-    if (cue.id === operatorQueue.preparedCueId) card.classList.add('cue-prepared');
-    const top = node('div', 'item-head');
-    top.append(node('strong', '', `${cue.number}. ${cue.label}`), node('span', 'state', t('status.draft')));
-    const runtime = node('span', 'state', t('status.soundMissing'));
-    runtime.dataset.cueState = cue.id;
-    top.append(runtime);
-    card.append(top, node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')), node('p', 'item-detail', describeCueActions(cue.actions)));
-    const sourceActions = node('div', 'item-actions cue-edit-actions');
-    sourceActions.append(sourceButton(cue.sourceLineIds[0]));
-    const inspect = node('button', 'btn subtle small', t('workspace.inspect'));
-    inspect.type = 'button';
-    inspect.setAttribute('aria-pressed', String(selectedCueId === cue.id));
-    inspect.addEventListener('click', () => {
-      selectedCueId = cue.id;
-      editingCueId = null;
-      render();
-    });
-    sourceActions.append(inspect);
-    const edit = node('button', 'btn subtle small', t('cue.editDetails'));
-    edit.type = 'button';
-    edit.addEventListener('click', () => {
-      selectedCueId = cue.id;
-      editingCueId = editingCueId === cue.id ? null : cue.id;
-      render();
-    });
-    sourceActions.append(edit);
-    card.append(sourceActions);
-    if (cue.trigger) card.append(node('p', 'item-detail', t('cue.trigger') + ': ' + cue.trigger));
-    if (cue.notes) card.append(node('p', 'item-detail cue-technical-notes', t('cue.notes') + ': ' + cue.notes));
-    // Editing belongs to the inspector, not to the scrolling cue list.
-    const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
-    if (plan) {
-      const resolve = node('div', 'item-actions cue-audio-tools');
-      const deferred = node('button', 'btn subtle small', t('soundPlan.defer'));
-      deferred.type = 'button';
-      deferred.disabled = plan.resolution === 'DEFER';
-      deferred.addEventListener('click', () => safeOperation(
-        () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'
-      ));
-      const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
-      generate.type = 'button';
-      generate.disabled = plan.resolution === 'GENERATE';
-      generate.addEventListener('click', () => safeOperation(
-        () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'
-      ));
-      resolve.append(cueAudioPicker(cue.id, 'soundPlan.loadFile'), deferred, generate);
-      if (show.assets.length) {
-        const library = node('select', '', '');
-        library.setAttribute('aria-label', t('soundPlan.libraryLabel'));
-        replaceOptions(library, show.assets.map(asset => [asset.id, asset.name]));
-        const assign = node('button', 'btn primary small', t('soundPlan.assign'));
-        assign.type = 'button';
-        assign.addEventListener('click', () => safeOperation(
-          () => assignAudioToCue(show, cue.id, library.value), 'soundPlan.assignedFeedback'
-        ));
-        resolve.append(library, assign);
-      }
-      card.append(resolve);
-    } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
-      const replaceAudio = node('div', 'item-actions cue-audio-tools');
-      replaceAudio.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
-      card.append(replaceAudio);
-    }
-    const controls = node('div', 'item-actions cue-operation-actions');
-    const prepare = node('button', 'btn accent small', t('operator.setNext'));
-    prepare.type = 'button';
-    prepare.disabled = operatorQueue.preparedCueId === cue.id;
-    prepare.addEventListener('click', () => {
-      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
-      render();
-      feedback('operator.preparedFeedback', { number: cue.number }, 'success');
-    });
-    controls.append(prepare);
-    // Only the global prepared-sequence GO can start playback. Row buttons stop
-    // an already-running cue or intentionally reposition the next GO.
-    const commands = [['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
-    for (const [action, title, style] of commands) {
-      const button = node('button', style, title);
-      button.type = 'button';
-      button.dataset.cueAction = action;
-      button.dataset.cueId = cue.id;
-      button.addEventListener('click', async () => {
-        try {
-          if (action === 'stop') {
-            player.stopCue(cue.id);
-            feedback('status.audioStopped', { number: cue.number }, 'success');
-          } else {
-            player.stopCue(cue.id, cue.playback?.fadeOutMs || 1500);
-            feedback('status.audioFaded', { number: cue.number }, 'success');
-          }
-        } catch (error) { showError(error, resolveErrorKey(error) === 'errors.generic' ? 'errors.invalidAudio' : undefined); }
-      });
-      controls.append(button);
-    }
-    card.append(controls);
-    cueList.append(card);
-  }
+  renderCueList();
   renderCueInspector();
   renderSetupReadiness();
   renderWorkspaceShell();
@@ -688,26 +755,6 @@ function cuePlaybackEditor(cue) {
   loop.checked = settings.loop;
   loopLabel.append(loop, node('span', '', t('audioProps.loop')));
   form.append(loopLabel);
-  const others = show.cues.filter(item => item.id !== cue.id);
-  let stopTargets = null;
-  if (others.length) {
-    stopTargets = node('fieldset', 'cue-stop-targets');
-    stopTargets.append(node('legend', '', t('audioProps.stopTargets')));
-    stopTargets.append(node('p', 'caption', t('audioProps.stopTargetsHelp')));
-    const choices = node('div', 'cue-stop-options');
-    for (const item of others) {
-      const label = node('label', 'cue-stop-option');
-      const check = node('input');
-      check.type = 'checkbox';
-      check.value = item.id;
-      check.checked = (cue.automation?.stopCueIds ?? []).includes(item.id);
-      check.dataset.stopTarget = item.id;
-      label.append(check, node('span', '', item.number + ' · ' + item.label));
-      choices.append(label);
-    }
-    stopTargets.append(choices);
-    form.append(stopTargets);
-  }
   function syncLoop() {
     if (loop.checked) {
       repeats.value = '1';
@@ -722,6 +769,8 @@ function cuePlaybackEditor(cue) {
   const save = node('button', 'btn primary small', t('audioProps.save'));
   save.type = 'submit';
   form.append(save);
+  form.addEventListener('input', () => { inspectorPendingChanges = true; });
+  form.addEventListener('change', () => { inspectorPendingChanges = true; });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = { loop: loop.checked };
@@ -730,12 +779,8 @@ function cuePlaybackEditor(cue) {
     }
     if (loop.checked) { next.repeatCount = 1; next.fadeOutMs = 0; }
     try {
-      let staged = updateCuePlayback(show, cue.id, next);
-      if (stopTargets) {
-        const stopCueIds = [...stopTargets.querySelectorAll('input:checked')].map(input => input.value);
-        staged = updateCueAutomation(staged, cue.id, { stopCueIds });
-      }
-      show = staged; // Commit atomically only after both validators pass.
+      show = updateCuePlayback(show, cue.id, next);
+      inspectorPendingChanges = false;
       dirty = true;
       render();
       feedback('audioProps.saved', { number: cue.number }, 'success');
@@ -744,50 +789,162 @@ function cuePlaybackEditor(cue) {
   return form;
 }
 
+function cueActionInspector(cue) {
+  const pane = node('div', 'cue-actions-inspector');
+  pane.append(node('h4', 'inspector-section-heading', t('cueEditor.assetSection')));
+  for (const action of cue.actions) {
+    const label = action.type === 'PLAY'
+      ? 'PLAY · ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
+      : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved');
+    pane.append(node('div', 'inspector-action', label));
+  }
+  const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
+  const audioTools = node('div', 'cue-inspector-audio-tools');
+  if (plan) {
+    audioTools.append(cueAudioPicker(cue.id, 'soundPlan.loadFile'));
+    const deferred = node('button', 'btn subtle small', t('soundPlan.defer'));
+    deferred.type = 'button';
+    deferred.disabled = plan.resolution === 'DEFER';
+    deferred.addEventListener('click', () => safeOperation(
+      () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'));
+    const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
+    generate.type = 'button';
+    generate.disabled = plan.resolution === 'GENERATE';
+    generate.addEventListener('click', () => safeOperation(
+      () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'));
+    audioTools.append(deferred, generate);
+    if (show.assets.length) {
+      const library = node('select');
+      library.setAttribute('aria-label', t('soundPlan.libraryLabel'));
+      replaceOptions(library, show.assets.map(asset => [asset.id, asset.name]));
+      const assign = node('button', 'btn primary small', t('soundPlan.assign'));
+      assign.type = 'button';
+      assign.addEventListener('click', () => safeOperation(
+        () => assignAudioToCue(show, cue.id, library.value), 'soundPlan.assignedFeedback'));
+      audioTools.append(library, assign);
+    }
+  } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
+    audioTools.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
+  }
+  pane.append(audioTools);
+
+  const otherCues = show.cues.filter(item => item.id !== cue.id);
+  if (otherCues.length) {
+    const form = node('form', 'cue-target-stop-editor');
+    form.id = 'cueTargetStopForm';
+    form.append(node('h4', 'inspector-section-heading', t('audioProps.stopTargets')));
+    form.append(node('p', 'caption', t('audioProps.stopTargetsHelp')));
+    const options = node('div', 'cue-stop-options');
+    for (const item of otherCues) {
+      const label = node('label', 'cue-stop-option');
+      const check = node('input');
+      check.type = 'checkbox';
+      check.value = item.id;
+      check.dataset.stopTarget = item.id;
+      check.checked = (cue.automation?.stopCueIds ?? []).includes(item.id);
+      label.append(check, node('span', '', item.number + ' · ' + item.label));
+      options.append(label);
+    }
+    form.append(options);
+    const save = node('button', 'btn primary small', t('cueEditor.saveActions'));
+    save.type = 'submit';
+    form.append(save);
+    form.addEventListener('change', () => { inspectorPendingChanges = true; });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const stopCueIds = [...form.querySelectorAll('input:checked')].map(input => input.value);
+      try {
+        show = updateCueAutomation(show, cue.id, { stopCueIds });
+        inspectorPendingChanges = false;
+        dirty = true;
+        render();
+        feedback('cueEditor.actionsSaved', { number: cue.number }, 'success');
+      } catch (error) { showError(error); }
+    });
+    pane.append(form);
+  }
+  if (cue.automation && cue.automation.mode !== 'MANUAL') {
+    pane.append(node('p', 'inspector-warning', t('workspace.autoNotWired')));
+  }
+  return pane;
+}
+
 function renderCueInspector() {
   const inspector = $('cueInspector');
-  inspector.replaceChildren(node('h3', '', t('workspace.inspector')));
+  const previousScrollTop = inspector.scrollTop;
+  inspector.replaceChildren();
   const cue = show.cues.find(item => item.id === selectedCueId);
   if (!cue) {
+    inspector.append(node('h3', '', t('workspace.inspector')));
     inspector.append(node('p', 'empty', t('workspace.noSelection')));
     return;
   }
   const header = node('div', 'inspector-title');
-  header.append(node('strong', '', cue.number + '. ' + cue.label),
+  header.append(node('strong', '', cue.number + ' · ' + cue.label),
     node('span', 'state', cue.id === operatorQueue.preparedCueId
       ? t('workspace.prepared') : t('workspace.selected')));
   inspector.append(header);
-  inspector.append(node('p', 'item-detail', t('cue.sourceLabel') + ': ' + cue.sourceLineIds.join(', ')));
-  if (cue.trigger) inspector.append(node('p', 'item-detail', t('cue.trigger') + ': ' + cue.trigger));
-  if (cue.notes) inspector.append(node('p', 'item-detail cue-technical-notes', t('cue.notes') + ': ' + cue.notes));
-  inspector.append(node('h4', 'inspector-section-heading', t('workspace.actions')));
-  for (const action of cue.actions) {
-    const isPlay = action.type === 'PLAY';
-    const label = isPlay
-      ? 'PLAY · ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
-      : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved');
-    inspector.append(node('div', 'inspector-action', label));
+  inspector.append(node('p', 'cue-inspector-origin', cue.sourceLineIds.join(', ') + ' · ' +
+    (cue.trigger || t('cueEditor.noTrigger'))));
+  const available = cue.actions.some(a => a.type === 'PLAY')
+    ? ['details', 'audio', 'actions'] : ['details', 'actions'];
+  if (!available.includes(inspectorTab)) inspectorTab = available[0];
+  const tabs = node('div', 'cue-inspector-tabs');
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', t('cueEditor.inspectorSections'));
+  const panelId = 'cueInspectorPanel';
+  function changeTab(next) {
+    if (next === inspectorTab || !available.includes(next) || !confirmDiscardInspectorEdits()) return;
+    inspectorTab = next;
+    inspectorPendingChanges = false;
+    renderCueInspector();
+    inspector.scrollTop = 0;
+    inspector.querySelector('[data-inspector-tab="' + next + '"]')?.focus();
   }
-  if (cue.actions.some(action => action.type === 'PLAY')) inspector.append(cuePlaybackEditor(cue));
-  inspector.append(node('p', 'caption', t('audioProps.currentLimits')));
-  if (cue.automation && cue.automation.mode !== 'MANUAL') {
-    inspector.append(node('p', 'inspector-warning', t('workspace.autoNotWired')));
+  for (const [index, name] of available.entries()) {
+    const tab = node('button', 'cue-inspector-tab', t('cueEditor.tab.' + name));
+    tab.type = 'button';
+    tab.dataset.inspectorTab = name;
+    tab.id = 'cueInspectorTab-' + name;
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-controls', panelId);
+    tab.setAttribute('aria-selected', String(name === inspectorTab));
+    tab.tabIndex = name === inspectorTab ? 0 : -1;
+    tab.addEventListener('click', () => changeTab(name));
+    tab.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      const delta = event.key === 'ArrowRight' ? 1 : -1;
+      changeTab(available[(index + delta + available.length) % available.length]);
+    });
+    tabs.append(tab);
   }
-  const actions = node('div', 'item-actions');
-  actions.append(sourceButton(cue.sourceLineIds[0]));
-  const edit = node('button', 'btn accent small', t('cue.editDetails'));
-  edit.type = 'button';
-  edit.addEventListener('click', () => { editingCueId = cue.id; render(); });
-  actions.append(edit);
-  inspector.append(actions);
-  if (editingCueId === cue.id) inspector.append(cueDetailsEditor(cue));
+  inspector.append(tabs);
+  const panel = node('div', 'cue-inspector-panel');
+  panel.id = panelId;
+  panel.setAttribute('role', 'tabpanel');
+  panel.setAttribute('aria-labelledby', 'cueInspectorTab-' + inspectorTab);
+  if (inspectorTab === 'details') {
+    panel.append(cueDetailsEditor(cue));
+    panel.append(sourceButton(cue.sourceLineIds[0]));
+  } else if (inspectorTab === 'audio') {
+    panel.append(cuePlaybackEditor(cue));
+    panel.append(node('p', 'caption', t('audioProps.currentLimits')));
+  } else {
+    panel.append(cueActionInspector(cue));
+    panel.append(sourceButton(cue.sourceLineIds[0]));
+  }
+  inspector.append(panel);
+  inspector.scrollTop = previousScrollTop;
 }
 
 function userAllowsReplacement() {
+  if (inspectorPendingChanges && !window.confirm(t('cueEditor.discardChanges'))) return false;
   if (!dirty && !show.scriptText && !show.proposals.length && !show.assets.length) return true;
   return window.confirm(t('status.replaceConfirm'));
 }
 function saveProject() {
+  if (inspectorPendingChanges) throw uiError('cueEditor.saveEditsFirst');
   const name = $('showName').value.trim();
   const serialized = serializeShowProject({ ...show, name });
   show = deserializeShowProject(serialized);
@@ -836,6 +993,8 @@ function setNewShow(project, statusKey, values = {}) {
   preflightVisible = false;
   editingCueId = null;
   selectedCueId = null;
+  inspectorTab = 'audio';
+  inspectorPendingChanges = false;
   operatorQueue = startOperatorQueue(project.cues);
   lastGoCueId = null;
   $('scriptSearchInput').value = '';
@@ -850,7 +1009,7 @@ function setNewShow(project, statusKey, values = {}) {
 }
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
-$('cueSearchInput').addEventListener('input', () => render());
+$('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScroll:true }); refreshAudioControls(); });
 for (const button of document.querySelectorAll('[data-workspace-nav]')) {
   button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
 }
@@ -997,6 +1156,10 @@ $('saveProjectBtn').addEventListener('click', () => {
  */
 $('saveBundleBtn').addEventListener('click', async () => {
   if (bundleInFlight || audioInFlight) return;
+  if (inspectorPendingChanges) {
+    feedback('cueEditor.saveEditsFirst', {}, 'error');
+    return;
+  }
   const before = show;
   const generation = projectGeneration;
   bundleInFlight = true;
