@@ -5,6 +5,7 @@ import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
+import { newOperatorQueue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 
@@ -35,6 +36,7 @@ let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
 let editingCueId = null;
+let operatorQueue = newOperatorQueue();
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 const player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
@@ -55,6 +57,16 @@ function refreshAudioControls() {
     const stopping = player.isStopping(cue.id);
     label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
+  const prepared = show.cues.find(cue => cue.id === operatorQueue.preparedCueId);
+  $('preparedCueStatus').textContent = prepared
+    ? t('operator.prepared', { number: prepared.number, label: prepared.label })
+    : t('operator.nonePrepared');
+  $('operatorGoBtn').disabled = !prepared || audioInFlight ||
+    prepared.actions.some(action => action.type !== 'PLAY' || !player.hasAsset(action.assetId)) ||
+    player.isPlaying(prepared.id);
+  $('operatorSkipBtn').disabled = !prepared || audioInFlight;
+  $('operatorResetBtn').disabled = !operatorQueue.preparedCueId &&
+    !operatorQueue.completedCueIds.length && !operatorQueue.skippedCueIds.length;
   for (const button of document.querySelectorAll('[data-cue-action]')) {
     const cue = show.cues.find(item => item.id === button.dataset.cueId);
     if (!cue) continue;
@@ -398,6 +410,7 @@ function render() {
   if (show.cues.length === 0) cueList.append(node('p', 'empty', t('status.noCues')));
   for (const cue of show.cues) {
     const card = node('article', 'item cue-item');
+    if (cue.id === operatorQueue.preparedCueId) card.classList.add('cue-prepared');
     const top = node('div', 'item-head');
     top.append(node('strong', '', `${cue.number}. ${cue.label}`), node('span', 'state', t('status.draft')));
     const runtime = node('span', 'state', t('status.soundMissing'));
@@ -451,6 +464,15 @@ function render() {
       card.append(replaceAudio);
     }
     const controls = node('div', 'item-actions');
+    const prepare = node('button', 'btn accent small', t('operator.prepare'));
+    prepare.type = 'button';
+    prepare.disabled = operatorQueue.preparedCueId === cue.id;
+    prepare.addEventListener('click', () => {
+      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
+      render();
+      feedback('operator.preparedFeedback', { number: cue.number }, 'success');
+    });
+    controls.append(prepare);
     const commands = [['go', t('actions.go'), 'btn primary small'], ['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
     for (const [action, title, style] of commands) {
       const button = node('button', style, title);
@@ -535,6 +557,7 @@ function setNewShow(project, statusKey, values = {}) {
   scriptMatchIndex = 0;
   preflightVisible = false;
   editingCueId = null;
+  operatorQueue = newOperatorQueue();
   $('scriptSearchInput').value = '';
   player.reset();
   show = project;
@@ -565,6 +588,35 @@ $('scriptSearchNextBtn').addEventListener('click', () => moveScriptMatch(1));
 $('checkPreflightBtn').addEventListener('click', () => {
   preflightVisible = !preflightVisible;
   renderPreflight();
+});
+$('operatorGoBtn').addEventListener('click', async () => {
+  const id = operatorQueue.preparedCueId;
+  if (!id || audioInFlight) return;
+  const cue = normalizeShowProject(show).cues.find(item => item.id === id);
+  if (!cue) return;
+  try {
+    await player.go(cue);
+    if (operatorQueue.preparedCueId === id) {
+      operatorQueue = completePreparedCue(operatorQueue, show.cues, id);
+    }
+    render();
+    feedback('operator.goFeedback', { number: cue.number }, 'success');
+  } catch (error) { showError(error); }
+});
+$('operatorSkipBtn').addEventListener('click', () => {
+  if (!operatorQueue.preparedCueId || audioInFlight) return;
+  const cue = show.cues.find(item => item.id === operatorQueue.preparedCueId);
+  if (!cue) return;
+  try {
+    operatorQueue = skipPreparedCue(operatorQueue, show.cues);
+    render();
+    feedback('operator.skippedFeedback', { number: cue.number }, 'success');
+  } catch (error) { showError(error); }
+});
+$('operatorResetBtn').addEventListener('click', () => {
+  operatorQueue = newOperatorQueue();
+  render();
+  feedback('operator.resetFeedback', {}, 'success');
 });
 $('scriptLanguageSelect').addEventListener('change', event => {
   const custom = event.target.value === 'other';
