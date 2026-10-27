@@ -199,7 +199,7 @@ test('default call uses scene-aware V2 and returns transient coverage/details on
 
 test('independent post-model check flags an explicit unaddressed SFX instruction', async () => {
   const result = await callMetaCueModel({
-    show: createNewShow({ scriptText: 'ESCENA 1\\nSFX: campana lejana\\nMARTA: Hola' }),
+    show: createNewShow({ scriptText: 'ESCENA 1\nSFX: campana lejana\nMARTA: Hola' }),
     apiKey: 'TEST_SECRET',
     requestId: 'meta-independent-review-test',
     fetchImpl: async () => ({
