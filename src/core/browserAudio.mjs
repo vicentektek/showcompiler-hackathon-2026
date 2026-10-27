@@ -4,12 +4,13 @@
  * No AI call, external I/O, server audio upload, or professional audio guarantee.
  */
 export class BrowserAudioEngine {
-  constructor({ contextFactory = () => new AudioContext(), onStateChange = () => {} } = {}) {
-    if (typeof contextFactory !== 'function' || typeof onStateChange !== 'function') {
+  constructor({ contextFactory = () => new AudioContext(), onStateChange = () => {}, onCueNaturalEnd = () => {} } = {}) {
+    if (typeof contextFactory !== 'function' || typeof onStateChange !== 'function' || typeof onCueNaturalEnd !== 'function') {
       throw new TypeError('Invalid audio engine configuration');
     }
     this.contextFactory = contextFactory;
     this.onStateChange = onStateChange;
+    this.onCueNaturalEnd = onCueNaturalEnd;
     this.context = null;
     this.buffers = new Map();
     this.playing = new Map();
@@ -168,6 +169,9 @@ export class BrowserAudioEngine {
           run.voices.delete(voice);
           if (run.voices.size === 0 && this.playing.get(cue.id) === run) {
             this.playing.delete(cue.id);
+            if (!run.stopping) {
+              try { this.onCueNaturalEnd(cue.id); } catch { /* Never interrupt transport cleanup. */ }
+            }
           }
           this.notify();
         };
@@ -222,6 +226,7 @@ export class BrowserAudioEngine {
     this.transportEpoch += 1;
     const now = this.context?.currentTime ?? 0;
     for (const run of this.playing.values()) {
+      run.stopping = true;
       for (const voice of run.voices) {
         try {
           voice.gain.gain.cancelScheduledValues(now);
