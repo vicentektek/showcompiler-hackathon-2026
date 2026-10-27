@@ -85,7 +85,7 @@
   "proposals.metaNextButton": "Analizar las siguientes escenas con Meta AI",
   "proposals.metaCompleteButton": "Todas las ventanas de escena analizadas",
   "proposals.metaChecking": "Comprobando conexión local de Meta AI...",
-  "proposals.metaDisclaimer": "Cada confirmación autoriza exactamente una petición acotada a Meta con hasta dos ventanas de escena, contexto de solo lectura y 80 nombres de audio. No se envían WAV/MP3. La API puede generar costes y las peticiones no se reintentan automáticamente.",
+  "proposals.metaDisclaimer": "Cada confirmación autoriza exactamente una petición acotada a Meta con una sola ventana de escena, contexto de solo lectura y 80 nombres de audio. No se envían WAV/MP3. La API puede generar costes y las peticiones no se reintentan automáticamente.",
   "proposals.coverageNone": "Cobertura de escenas: todavía no se ha completado ningún análisis con Meta.",
   "proposals.coverageProgress": "Cobertura de escenas: {lines}/{totalLines} líneas · {windows}/{totalWindows} ventanas en {scenes} escenas · {observations} observaciones sin PLAY · {duplicates} duplicados eliminados.",
   "proposals.coverageComplete": "Cobertura de escenas completa: {lines}/{totalLines} líneas · {windows}/{totalWindows} ventanas en {scenes} escenas · {observations} observaciones sin PLAY · {duplicates} duplicados eliminados.",
