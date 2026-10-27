@@ -90,7 +90,8 @@ function createEditorEnhancements(){
   for(const key of ['cue','detail','state']){
     const span=elt('span','',t(key));span.dataset.rqText=key;header.append(span);
   }
-  list.before(header);
+  // Header stays OUTSIDE the two-column editor grid; cue list re-renders replace its children.
+  list.parentElement.before(header);
 }
 function createAudioEnhancements(){
   const panel=document.querySelector('[data-workspaces="audio"]');
