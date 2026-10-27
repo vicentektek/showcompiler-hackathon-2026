@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newOperatorQueue, prepareOperatorCue, completePreparedCue, skipPreparedCue, isCuePrepared } from '../src/core/operatorQueue.mjs';
+import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue, isCuePrepared } from '../src/core/operatorQueue.mjs';
 
 const cues=[{id:'cue-1'},{id:'cue-2'},{id:'cue-3'}];
 test('preparing one cue never plays audio or marks it complete', () => {
@@ -40,4 +40,37 @@ test('invalid or stale prepared references reject safely', () => {
   assert.throws(()=>prepareOperatorCue(state,cues,'nonexistent'),/Unknown cue/);
   assert.throws(()=>completePreparedCue(state,cues,'cue-1'),/not prepared/);
   assert.throws(()=>prepareOperatorCue(state,null,'cue-1'),/Invalid cue sequence/);
+});
+
+test('a newly opened nonempty show positions cue 1 automatically without GO', () => {
+  const state = startOperatorQueue(cues);
+  assert.equal(state.preparedCueId, 'cue-1');
+  assert.deepEqual(state.completedCueIds, []);
+  assert.deepEqual(state.skippedCueIds, []);
+  assert.deepEqual(startOperatorQueue([]), newOperatorQueue());
+});
+
+test('single-GO operator playhead advances through show, then Back can revisit last cue', () => {
+  let state = startOperatorQueue(cues);
+  state = completePreparedCue(state, cues, 'cue-1');
+  assert.equal(state.preparedCueId, 'cue-2');
+  state = completePreparedCue(state, cues, 'cue-2');
+  state = completePreparedCue(state, cues, 'cue-3');
+  assert.equal(state.preparedCueId, null);
+  state = previousOperatorCue(state, cues);
+  assert.equal(state.preparedCueId, 'cue-3');
+  state = previousOperatorCue(state, cues);
+  assert.equal(state.preparedCueId, 'cue-2');
+  assert.deepEqual(state.completedCueIds, ['cue-1', 'cue-2', 'cue-3']);
+  state = prepareOperatorCue(state, cues, 'cue-1');
+  assert.equal(previousOperatorCue(state, cues).preparedCueId, 'cue-1');
+});
+
+test('repositioning never creates a playback action and invalid target is rejected', () => {
+  assert.throws(() => startOperatorQueue(null), /Invalid cue sequence/);
+  assert.throws(() => previousOperatorCue(newOperatorQueue(), null), /Invalid cue sequence/);
+  const state = startOperatorQueue(cues);
+  const back = previousOperatorCue(state, cues);
+  assert.deepEqual(back, state);
+  assert.throws(() => prepareOperatorCue(state, cues, 'missing'), /Unknown cue/);
 });
