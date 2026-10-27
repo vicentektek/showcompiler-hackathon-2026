@@ -146,6 +146,28 @@ try {
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
   assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
   await capture('05-audio-1366.png');
+  // W03: real local PCM waveform. Viewing/zooming never invokes GO or AI.
+  const audioStartsBeforeWaveform = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('[data-asset-waveform]').first().click();
+  await page.waitForFunction(
+    () => document.querySelector('#waveformStatus')?.textContent.includes('Real PCM waveform'),
+    null, { timeout: 15000 },
+  );
+  assert.equal(await page.locator('#waveformPanel').isVisible(), true);
+  const originalWaveformRange = await page.locator('#waveformRuler').innerText();
+  assert.match(originalWaveformRange, /0\.00s/);
+  await page.locator('#waveformZoom').evaluate(input => {
+    input.value='3';input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  await page.locator('#waveformPan').evaluate(input => {
+    input.value='100';input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  const zoomedRange = await page.locator('#waveformRuler').innerText();
+  assert.notEqual(zoomedRange,originalWaveformRange,'Real zoom/pan changes source-time viewport');
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), audioStartsBeforeWaveform);
+  await capture('08-audio-waveform-1366.png');
+  await page.locator('#waveformClose').click();
+  assert.equal(await page.locator('#waveformPanel').isVisible(),false);
   await page.locator('[data-workspace-nav="setup"]').click();
   assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
   await page.locator('[data-workspace-nav="cues"]').click();
