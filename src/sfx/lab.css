@@ -66,3 +66,62 @@
 .sfx-feedback.error {color:var(--sfx-danger)}
 @media(max-width:1120px){.sfx-layout{grid-template-columns:1fr}.sfx-left{grid-template-columns:1fr 1fr}.sfx-audio-panel{min-height:0}}
 @media(max-width:760px){.sfx-left{grid-template-columns:1fr}.sfx-row-fields{grid-template-columns:1fr}.sfx-lab-intro,.sfx-export{align-items:flex-start;flex-direction:column}.sfx-level{margin-left:0}}
+
+/* Script-to-sound proposal inspector, aligned with RunQ stagecraft panels. */
+.sfx-lab [data-sfx-step="interpret"] {
+  margin: 0 0 16px;
+  padding: 18px;
+  border: 1px solid #536b6b;
+  border-radius: 10px;
+  background: linear-gradient(155deg,#202d30 0%,#1c252b 52%,#181f26 100%);
+  box-shadow: inset 3px 0 0 #83c7cc;
+}
+.sfx-lab [data-sfx-step="interpret"] .sfx-index {
+  background: #244248;
+  color: #9ee1df;
+}
+.sfx-lab [data-sfx-step="interpret"] .sfx-section-header h3 {
+  font-size: 17px;
+  letter-spacing: -.02em;
+}
+.sfx-lab [data-sfx-step="interpret"] textarea,
+.sfx-lab [data-sfx-step="interpret"] select,
+.sfx-lab [data-sfx-step="interpret"] input {
+  border-radius: 6px;
+}
+.sfx-lab [data-sfx-step="interpret"] > label {
+  margin-bottom: 12px;
+}
+.sfx-lab [data-sfx-step="interpret"] > .sfx-row-fields {
+  margin-bottom: 12px;
+}
+.sfx-lab [data-sfx-step="interpret"] > .sfx-buttons {
+  margin: 6px 0;
+}
+.sfx-proposal-results {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 15px;
+  border-top: 1px solid #3c5358;
+}
+.sfx-proposal-results[hidden] {display:none!important}
+.sfx-evidence {
+  padding: 10px 12px;
+  margin: 0;
+  line-height: 1.65;
+  border-left: 3px solid #8db5b3;
+  background: #1b2a2d;
+  color: #c6d9d9;
+  overflow-wrap: anywhere;
+}
+.sfx-proposal-results .sfx-buttons {
+  padding-top: 4px;
+}
+.sfx-lab :is(button,select,input,textarea):focus-visible {
+  outline:2px solid #b5e3e4;
+  outline-offset:2px;
+}
+@media(max-width:760px) {
+  .sfx-lab [data-sfx-step="interpret"]{padding:14px}
+}
