@@ -45,6 +45,8 @@ jobs:
 
       - name: Install pinned browser smoke driver (CI-only, no lockfile)
         run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Stagecraft cue controls and keyboard map Chrome smoke (mock only)
+        run: node tools/stagecraft-keymap-browser-e2e.mjs
       - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
         env:
           RUNQ_CAPTURE_UI: '1'
