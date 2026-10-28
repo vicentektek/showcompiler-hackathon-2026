@@ -186,7 +186,7 @@ function mount(){
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)complete();});
  window.addEventListener('pagehide',shutdown,{once:true});
  const shell=document.querySelector('.shell');
- if(shell)new MutationObserver(()=>{if(shell.dataset.activeWorkspace!=='rehearsal'&&stream)complete();})
+ if(shell)new MutationObserver(()=>{if(shell.dataset.activeWorkspace!=='voice'&&stream)complete();})
    .observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
  localize();update();
 }
