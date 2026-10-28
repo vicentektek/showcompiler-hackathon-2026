@@ -4,6 +4,7 @@
  * No AI call, external I/O, server audio upload, or professional audio guarantee.
  */
 import { normalizeCuePlayback } from './cuePlayback.mjs';
+import { summarizeWaveform } from './audioWaveform.mjs';
 
 export class BrowserAudioEngine {
   constructor({ contextFactory = () => new AudioContext(), onStateChange = () => {}, onCueNaturalEnd = () => {} } = {}) {
@@ -15,6 +16,7 @@ export class BrowserAudioEngine {
     this.onCueNaturalEnd = onCueNaturalEnd;
     this.context = null;
     this.buffers = new Map();
+    this.waveforms = new Map();
     this.playing = new Map();
     this.pending = new Set();
     this.cancelledPending = new Set();
@@ -34,6 +36,16 @@ export class BrowserAudioEngine {
   }
 
   hasAsset(assetId) { return this.buffers.has(assetId); }
+
+  /** Read-only amplitude envelope for the waveform editor, never raw PCM. */
+  getWaveform(assetId) {
+    const buffer = this.buffers.get(assetId);
+    if (!buffer) return null;
+    if (!this.waveforms.has(assetId)) {
+      this.waveforms.set(assetId, summarizeWaveform(buffer));
+    }
+    return this.waveforms.get(assetId);
+  }
   isPlaying(cueId) { return this.playing.has(cueId) || this.pending.has(cueId); }
   isStopping(cueId) { return this.playing.get(cueId)?.stopping === true || this.cancelledPending.has(cueId); }
   activeCueCount() { return this.playing.size; }
@@ -128,6 +140,7 @@ export class BrowserAudioEngine {
     if (this.isAuditioning()) throw new Error('Detén la preescucha antes de cargar nuevos audios.');
     if (this.playing.size || this.pending.size) this.stopAll();
     this.buffers.set(assetId, decoded);
+    this.waveforms.delete(assetId);
     this.notify();
     return { durationSeconds: decoded.duration, channels: decoded.numberOfChannels };
   }
@@ -149,8 +162,13 @@ export class BrowserAudioEngine {
     if (playable.length > 12 || playable.some(track => !this.hasAsset(track.assetId))) {
       throw new Error('Cue inválido o sin todos sus audios cargados.');
     }
-    if (playable.some(track => track.playback.startAtMs >= this.buffers.get(track.assetId).duration * 1000)) {
-      throw new RangeError('El inicio del audio debe estar dentro de cada archivo.');
+    if (playable.some(track => {
+      const durationMs = this.buffers.get(track.assetId).duration * 1000;
+      const { startAtMs, endAtMs } = track.playback;
+      return startAtMs >= durationMs ||
+        (endAtMs !== null && (endAtMs > durationMs || endAtMs <= startAtMs));
+    })) {
+      throw new RangeError('Los puntos IN/OUT deben estar dentro del archivo y OUT después de IN.');
     }
     if (this.isAuditioning()) throw new Error('Detén la preescucha antes de GO.');
     if (this.isPlaying(cue.id)) throw new Error('Este cue ya está reproduciéndose.');
@@ -183,8 +201,14 @@ export class BrowserAudioEngine {
           source.playbackRate.value = playback.playbackRate;
         }
         source.loop = playback.loop || playback.repeatCount > 1;
-        const duration = (source.buffer.duration - offsetSeconds +
-          (playback.repeatCount - 1) * source.buffer.duration) / playback.playbackRate;
+        const clipEndSeconds = playback.endAtMs === null
+          ? source.buffer.duration : playback.endAtMs / 1000;
+        const clipSeconds = clipEndSeconds - offsetSeconds;
+        if (source.loop) {
+          source.loopStart = offsetSeconds;
+          source.loopEnd = clipEndSeconds;
+        }
+        const duration = clipSeconds * playback.repeatCount / playback.playbackRate;
         const fadeIn = Math.min(playback.fadeInMs / 1000, duration);
         const fadeOut = playback.loop ? 0 : Math.min(playback.fadeOutMs / 1000, Math.max(0, duration - fadeIn));
         gain.gain.value = fadeIn ? 0 : targetGain;
@@ -202,7 +226,8 @@ export class BrowserAudioEngine {
         if (panner) { gain.connect(panner); panner.connect(ctx.destination); }
         else gain.connect(ctx.destination);
         return {source,gain,panner,duration,repeatCount:playback.repeatCount,
-          loop:playback.loop,startAt,offsetSeconds};
+          loop:playback.loop,startAt,offsetSeconds,
+          startDuration:source.loop || playback.endAtMs === null ? null : clipSeconds};
       });
       const run = { voices: new Set(voices), stopping: false };
       this.playing.set(cue.id, run);
@@ -222,7 +247,8 @@ export class BrowserAudioEngine {
         };
       }
       for (const voice of voices) {
-        voice.source.start(voice.startAt, voice.offsetSeconds);
+        if (voice.startDuration === null) voice.source.start(voice.startAt, voice.offsetSeconds);
+        else voice.source.start(voice.startAt, voice.offsetSeconds, voice.startDuration);
         if (!voice.loop && voice.repeatCount > 1) {
           voice.source.stop(voice.startAt + voice.duration);
         }
@@ -304,6 +330,7 @@ export class BrowserAudioEngine {
     this.stopAll();
     this.assetEpoch += 1;
     this.buffers.clear();
+    this.waveforms.clear();
     this.notify();
   }
 
