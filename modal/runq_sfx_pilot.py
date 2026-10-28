@@ -56,8 +56,11 @@ def get_model():
 
 
 @app.function(
-    image=worker_image, gpu="L4", timeout=180, retries=0,
-    min_containers=0, max_containers=1, scaledown_window=5,
+    # Fallback improves scheduling when L4 is temporarily unavailable.
+    # Both L4 and A10 have 24 GiB VRAM; validate performance on A10 before demo.
+    # Stay scale-to-zero: no permanent idle GPU billing.
+    image=worker_image, gpu=["L4", "A10"], timeout=180, retries=0,
+    min_containers=0, max_containers=1, scaledown_window=120,
     secrets=[modal.Secret.from_name("huggingface-secret")],
 )
 def generate_sfx(prompt: str, duration_seconds: int, seed: int) -> bytes:
