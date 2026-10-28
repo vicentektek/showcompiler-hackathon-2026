@@ -162,12 +162,13 @@ export class BrowserAudioEngine {
     if (playable.length > 12 || playable.some(track => !this.hasAsset(track.assetId))) {
       throw new Error('Cue inválido o sin todos sus audios cargados.');
     }
-    if (playable.some(track => {
-      const durationMs = this.buffers.get(track.assetId).duration * 1000;
-      const { startAtMs, endAtMs } = track.playback;
-      return startAtMs >= durationMs ||
-        (endAtMs !== null && (endAtMs > durationMs || endAtMs <= startAtMs));
-    })) {
+    if (playable.some(track =>
+      track.playback.startAtMs >= this.buffers.get(track.assetId).duration * 1000)) {
+      throw new RangeError('El inicio del audio debe estar dentro de cada archivo.');
+    }
+    if (playable.some(track => track.playback.endAtMs !== null &&
+      (track.playback.endAtMs > this.buffers.get(track.assetId).duration * 1000 ||
+       track.playback.endAtMs <= track.playback.startAtMs))) {
       throw new RangeError('Los puntos IN/OUT deben estar dentro del archivo y OUT después de IN.');
     }
     if (this.isAuditioning()) throw new Error('Detén la preescucha antes de GO.');
