@@ -4,6 +4,7 @@
  */
 import { replayVoiceRehearsal } from '../core/voiceRehearsal.mjs';
 import { parseScript } from '../core/script.mjs';
+import { makeProjectVoiceScenario } from '../core/voiceScenario.mjs';
 
 const $ = id => document.getElementById(id);
 const lang = () => $('uiLocaleSelect')?.value === 'es' ? 'es' : 'en';
@@ -65,29 +66,6 @@ function getProject(){
 function projectKey(project){
   return JSON.stringify({scriptText:project?.scriptText??'',cues:project?.cues??[]});
 }
-function makeProjectScenario(project){
-  const scriptText=project?.scriptText||'';
-  const validLines=new Set(parseScript(scriptText).map(row=>row.id));
-  const cues=(project?.cues||[]).flatMap(cue=>{
-    const lineId=cue.sourceLineIds?.find(id=>validLines.has(id));
-    const trigger=typeof cue.trigger==='string'?cue.trigger.trim():'';
-    if(!lineId||trigger.split(/\s+/).length<3)return [];
-    return [{id:cue.id,number:cue.number,label:cue.label,trigger,lineId}];
-  }).sort((a,b)=>Number(a.lineId.slice(1))-Number(b.lineId.slice(1)));
-  if(!scriptText||!cues.length)return null;
-  const events=[];
-  let atMs=1000,focus=Number(cues[0].lineId.slice(1));
-  for(const cue of cues.slice(0,20)){
-    const line=Number(cue.lineId.slice(1));
-    if(line<focus||line>focus+25){
-      events.push({type:'SET_FOCUS',atMs,line});
-      atMs+=500;
-    }
-    events.push({type:'TRANSCRIPT',atMs,endMs:atMs-100,final:true,text:cue.trigger});
-    focus=line; atMs+=2000;
-  }
-  return {initialFocusLine:Number(cues[0].lineId.slice(1)),cues,events,scriptText};
-}
 function stop(){
   cleanTimer(); playing=false;
 }
@@ -111,7 +89,7 @@ async function loadScenario(){
     snapshotKey='';
   }else{
     const project=getProject();
-    session=makeProjectScenario(project);
+    session=makeProjectVoiceScenario(project);
     snapshotKey=projectKey(project);
   }
   render();return Boolean(session);
@@ -190,7 +168,7 @@ function render(){
   text('rqvfTranscript',event?.type==='TRANSCRIPT'?event.text:(event?.type==='SET_FOCUS'?t('focus'):t('none')));
   text('rqvfLine',entry?.lineId||t('unknown'));
   text('rqvfResult',entry?describe(entry):t('noCue'));
-  text('rqvfCue',currentCue?String(currentCue.number??currentCue.id)+' · '+(currentCue.label??currentCue.id):t('noCue'));
+  text('rqvfCue',currentCue?String(currentCue.number??currentCue.id)+' · '+(currentCue.label??currentCue.trigger??currentCue.id):t('noCue'));
   text('rqvfScore',entry?.score!=null?t('score')+': '+Math.round(entry.score*100)+'%':t('score')+': —');
   const message=!session&&source.value==='project'?t('noProject'):
     !session?t('idle'):stepIndex>=session.events.length?t('done'):
