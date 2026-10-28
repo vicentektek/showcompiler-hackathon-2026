@@ -298,10 +298,10 @@
   "workspace.saved": "Saved",
   "workspace.unsaved": "Unsaved changes",
   "workspace.script": "Script",
-  "workspace.ai": "AI & Review",
+  "workspace.ai": "AI Studio",
   "workspace.cues": "Cue Editor",
   "workspace.audio": "Audio Library",
-  "workspace.soundlab": "Sound Lab",
+  "workspace.soundlab": "Sound Design",
   "workspace.setup": "Setup",
   "workspace.operation": "Operation",
   "workspace.mode": "MODE",
@@ -487,5 +487,6 @@
   "audioBatch.errorTitle": "Unable to complete import",
   "audioBatch.existing": "Already loaded in the library",
   "audioBatch.fileLimit": "Up to 100 files per batch; each up to 20 MB and 10 minutes.",
-  "audioBatch.missing": "Invalid files are not added to the library. Other files still import."
+  "audioBatch.missing": "Invalid files are not added to the library. Other files still import.",
+  "workspace.description.soundlab": "Design, listen to and review authentic sounds. Create a cue now or after selecting the sound."
 }

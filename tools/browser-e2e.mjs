@@ -410,6 +410,88 @@ try {
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#cueDeleteBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),2);
+  // AI Studio V3: start with a local sound and create a cue only AFTER
+  // selecting the sound. No provider requests, fake takes or GO calls.
+  const beforeStudioStarts=await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('[data-workspace-nav="soundlab"]').click();
+  assert.equal(await page.locator('#rqaiContext').count(),1);
+  assert.equal(await page.locator('#rqaiDestination').count(),1);
+  assert.equal(await page.locator('.rqai-sound-workspace .sfx-audio-panel').count(),1);
+  assert.equal(await page.locator('#rqaiOpen').isDisabled(),true);
+  const pcm=Buffer.alloc(48);
+  pcm.write('RIFF',0,'ascii');pcm.writeUInt32LE(40,4);
+  pcm.write('WAVE',8,'ascii');pcm.write('fmt ',12,'ascii');
+  pcm.writeUInt32LE(16,16);pcm.writeUInt16LE(1,20);
+  pcm.writeUInt16LE(1,22);pcm.writeUInt32LE(400,24);
+  pcm.writeUInt32LE(800,28);pcm.writeUInt16LE(2,32);
+  pcm.writeUInt16LE(16,34);pcm.write('data',36,'ascii');
+  pcm.writeUInt32LE(4,40);
+  await page.locator('#localWav').setInputFiles({
+    name:'stage-door.wav',mimeType:'audio/wav',buffer:pcm,
+  });
+  await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent?.includes('stage-door.wav'));
+  assert.equal(await page.locator('#rqaiOpen').isEnabled(),true);
+  await page.locator('#rqaiOpen').click();
+  assert.equal(await page.locator('#rqaiUse > .rqai-kicker').innerText(),
+    '¿Dónde quieres utilizarlo?', 'Spanish AI Studio labels must follow the UI locale');
+  await page.locator('#rqaiDestination').selectOption('NEW_CUE');
+  await page.locator('#rqaiNewCueName').fill('Stage door impact');
+  await page.setViewportSize({width:1440,height:900});
+  await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
+  const useBounds=await page.locator('#rqaiUse').boundingBox();
+  assert.ok(useBounds && useBounds.y < 900 && useBounds.y + useBounds.height > 60,
+    'Selected sound destination must stay in view while the long audio workbench scrolls');
+  await capture('11-ai-studio-use-sound.png');
+  await page.setViewportSize({width:1093,height:614});
+  await page.locator('#rqaiConfirm').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#cueList .cue-item').length===3);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeStudioStarts,
+    'Sound-first cue creation must not start audio');
+  assert.equal(await page.locator('#rqaiOpenCue').isVisible(),true);
+  assert.match(await page.locator('#rqaiStatus').innerText(),/NEXT GO unchanged/);
+  await page.locator('#rqaiOpenCue').click();
+  assert.match(await page.locator('#cueInspector .inspector-title').innerText(),/Stage door impact/);
+
+  // The approved UX must ALSO complete cue creation directly in Script
+  // Review after a sound has been saved, without a forced return to Sound Lab.
+  await page.locator('[data-workspace-nav="home"]').click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#homeDemoBtn').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
+  await page.locator('[data-workspace-nav="ai"]').click();
+  await page.locator('#proposalLabel').fill('Stage metal door cue');
+  await page.locator('#lineSelect').selectOption('L2');
+  await page.locator('#assetSelect').selectOption('');
+  await page.locator('#createProposalBtn').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#proposalList .item').length>0);
+  const pendingProposal=page.locator('#proposalList .item').last();
+  await pendingProposal.locator('[data-ai-studio-proposal]').click();
+  assert.equal(await page.locator('[data-workspace-nav="soundlab"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#sourceLine').inputValue(),'L2');
+  assert.match(await page.locator('#soundPrompt').inputValue(),/Stage metal door cue/);
+  await page.locator('#localWav').setInputFiles({
+    name:'unique-stage-door.wav',mimeType:'audio/wav',buffer:pcm,
+  });
+  await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent?.includes('unique-stage-door.wav'));
+  await page.locator('#rqaiOpen').click();
+  await page.locator('#rqaiDestination').selectOption('LIBRARY');
+  await page.locator('#rqaiConfirm').click();
+  await page.waitForFunction(()=>document.querySelector('#rqaiStatus')?.textContent?.includes('library'));
+  await page.locator('[data-workspace-nav="ai"]').click();
+  assert.match(await page.locator('#rqaiScriptCompletion').innerText(),/unique-stage-door/);
+  await page.setViewportSize({width:1440,height:900});
+  await capture('12-ai-studio-inline-script.png');
+  await page.setViewportSize({width:1093,height:614});
+  const beforeScriptAttachStarts=await page.evaluate(()=>window.__testAudioStarts);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#rqaiScriptCompletion button').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeScriptAttachStarts,
+    'Creating a proposal-backed cue in Script Review must not fire GO');
+  assert.equal(await page.locator('[data-workspace-nav="ai"]').getAttribute('aria-pressed'),'true',
+    'Script completion stays in the same review workspace');
+  await page.locator('#rqaiScriptCompletion button').click();
+  assert.match(await page.locator('#cueInspector .inspector-title').innerText(),/Stage metal door cue/);
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();

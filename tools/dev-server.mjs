@@ -50,6 +50,9 @@ const allowed = new Map([
   ['/src/sfx/waveform.mjs', ['src/sfx/waveform.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/lab.css', ['src/sfx/lab.css', 'text/css; charset=utf-8']],
   ['/src/ui/app.mjs', ['src/ui/app.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/ai-studio-v3.mjs', ['src/ui/ai-studio-v3.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/aiStudioDestinations.mjs', ['src/core/aiStudioDestinations.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/ai-studio-v3.css', ['src/ui/ai-studio-v3.css', 'text/css; charset=utf-8']],
   ['/src/ui/style.css', ['src/ui/style.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-theme.css', ['src/ui/runq-theme.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-menu.mjs', ['src/ui/runq-menu.mjs', 'text/javascript; charset=utf-8']],
@@ -119,6 +122,14 @@ export function createAppServer(options = {}) {
     if (await sfxRoute(request, response, pathname, headers)) return;
     if (!['GET', 'HEAD'].includes(request.method)) {
       response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
+      response.end();
+      return;
+    }
+    // The historical experimental lab is now integrated into AI Studio.
+    // Redirect old bookmarks to the ONE real generator implementation rather
+    // than serving a disconnected page whose controls cannot initialize.
+    if (pathname === '/sound-lab' || pathname === '/sound-lab.html') {
+      response.writeHead(302, { ...headers, Location: '/?workspace=soundlab' });
       response.end();
       return;
     }

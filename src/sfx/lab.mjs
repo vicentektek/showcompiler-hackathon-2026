@@ -454,13 +454,24 @@ function bindEvents(){
     inform('Original verified PCM16 WAV downloaded. The reviewed IN/OUT did not alter it.');
   }));
   $('importLibraryBtn').addEventListener('click',()=>void action(async()=>{
-    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accepted generated source is not available for integrated import');
-    if(!confirm('Import the verified original WAV into this show library? It will not be assigned to a cue automatically.'))return;
+    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')
+      throw new Error('Only a human-accepted, verified generated WAV can be imported');
+    let intent={mode:'LIBRARY'};
+    document.dispatchEvent(new CustomEvent('runq:ai-studio:get-destination',{
+      detail:{respond:choice=>{if(choice)intent=choice;}},
+    }));
+    const consequence=intent.mode==='NEW_CUE'
+      ?'Import the original verified WAV, create a new cue and add the audio track?'
+      :intent.mode==='EXISTING_CUE'
+        ?'Import the original verified WAV and apply it to the explicitly selected cue/track?'
+        :'Import the verified original WAV into this show library without changing any cue?';
+    if(!confirm(consequence+' This does not start audio or change NEXT GO.'))return;
     const result=await state.onImportReviewed({
       job:structuredClone(state.job),audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
       reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds}),
+      destination:intent,
     });
-    inform(result?.message??'Accepted source imported to the local library. Assign it to a cue manually.');
+    inform(result?.message??'Verified source imported. NEXT GO unchanged.',!!result?.warning);
   }));
   window.addEventListener('resize',drawWave);
   window.addEventListener('pagehide',()=>{stopSoundLabAudition();if(state.context)void state.context.close();});

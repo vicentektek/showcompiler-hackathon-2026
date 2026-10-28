@@ -12,6 +12,7 @@ import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '
 import { planAudioLibraryBatch } from '../core/audioBatchImport.mjs';
 import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
 import { prepareReviewedSfxImport } from '../core/sfxImportCandidate.mjs';
+import { applyAiStudioDestination } from '../core/aiStudioDestinations.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -61,6 +62,26 @@ document.addEventListener('runq:request-audio-source', event => {
   respond(registered ? (originalAudioFiles.get(assetId) ?? null) : null);
 });
 
+/**
+ * Read-only UI adapter: AI Studio can show current proposed/created cue
+ * destinations without owning or mutating the show state.
+ */
+document.addEventListener('runq:ai-studio:snapshot',event=>{
+  const respond=event.detail?.respond;
+  if(typeof respond!=='function')return;
+  respond({
+    projectId:show.id,projectGeneration,
+    cues:show.cues.map(c=>({id:c.id,label:c.label,number:c.number,status:c.status,
+      sourceProposalId:c.sourceProposalId??null,
+      mainType:c.actions[0]?.type??null,
+      mainAssetId:c.actions[0]?.type==='PLAY'?c.actions[0].assetId:null,
+      audioTracks:(c.audioTracks??[]).map(t=>({id:t.id,assetId:t.assetId}))})),
+    proposals:show.proposals.map(p=>({id:p.id,label:p.label,status:p.status,
+      lineId:p.sourceLineIds[0]??null,sourceLineIds:[...p.sourceLineIds],
+      prompt:p.actions.find(a=>a.type==='PLAN_AUDIO')?.prompt??p.label})),
+    assets:show.assets.map(a=>({id:a.id,name:a.name})),
+  });
+});
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
@@ -902,6 +923,26 @@ function render() {
     }
     const proposalSource = node('div', 'item-actions');
     proposalSource.append(sourceButton(proposal.sourceLineIds[0]));
+    if(proposal.status!=='REJECTED'){
+      const design=node('button','btn subtle small ai-studio-open-sound',
+        uiLocale==='es'?'Diseñar sonido':'Design sound first');
+      design.type='button';
+      design.dataset.aiStudioProposal=proposal.id;
+      design.addEventListener('click',()=>{
+        const linkedCue=show.cues.find(c=>c.sourceProposalId===proposal.id);
+        const fromLine=getScriptLine(parseScript(show.scriptText),proposal.sourceLineIds[0]);
+        const draft={
+          projectId:show.id,projectGeneration,proposalId:proposal.id,
+          cueId:linkedCue?.id??null,label:linkedCue?.label??proposal.label,
+          lineId:proposal.sourceLineIds[0],
+          excerpt:fromLine?.text??'',
+          prompt:proposal.actions.find(a=>a.type==='PLAN_AUDIO')?.prompt??proposal.label,
+        };
+        if(!setWorkspace('soundlab'))return;
+        document.dispatchEvent(new CustomEvent('runq:ai-studio:design',{detail:draft}));
+      });
+      proposalSource.append(design);
+    }
     card.append(proposalSource);
     proposalList.append(card);
   }
@@ -2603,19 +2644,143 @@ $('audioFileInput').addEventListener('change', async event => {
   catch (error) { showError(error); }
 });
 
-async function importReviewedGeneratedSfx({ job, audioBytes, reviewedRegion } = {}) {
-  const candidate = await prepareReviewedSfxImport({ job, audioBytes, reviewedRegion });
-  const result = await importSingleAudioFile(candidate.file, {
-    provenance: candidate.provenance,
-    refuseReplacement: true,
+/**
+ * The accepted WAV is imported ONCE. Only afterwards can the operator's
+ * explicit destination create/modify a cue. Failure at the second stage
+ * keeps the verified WAV in the library for safe retry, never re-generates.
+ */
+async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,destination}={}) {
+  const intent=destination??{mode:'LIBRARY'};
+  if(intent.projectId!==undefined &&
+     (intent.projectId!==show.id||intent.projectGeneration!==projectGeneration)){
+    throw new Error('The active project has changed. Choose a destination in the current show.');
+  }
+  if(intent.mode==='EXISTING_CUE' &&
+     !show.cues.some(c=>c.id===intent.targetCueId)){
+    throw new Error('The destination cue no longer exists. Choose a new target.');
+  }
+  const candidate=await prepareReviewedSfxImport({job,audioBytes,reviewedRegion});
+  const result=await importSingleAudioFile(candidate.file,{
+    provenance:candidate.provenance,refuseReplacement:true,
   });
-  if (!result) throw new Error('Generated audio was not imported');
-  setWorkspace('audio');
-  return {
-    assetId: result.assetId,
-    message: `Imported ${candidate.file.name} as ${result.assetId}. Choose a cue explicitly; no cue was changed.`,
+  if(!result)throw new Error('Accepted WAV was not imported');
+  let applied=null,warning=null;
+  try{
+    const status=player.getStatus();
+    if(status.activeCueCount||status.pendingGoCount||
+       status.auditionActive||status.auditionPending){
+      throw new Error('Stop show playback before assigning sound to a cue.');
+    }
+    applied=applyAiStudioDestination(show,{
+      ...intent,assetId:result.assetId,
+      reviewedRegion:candidate.provenance.reviewedRegion,
+    });
+    show=applied.project;
+    dirty=true;
+    if(applied.cueId)selectedCueId=applied.cueId;
+    render();
+  }catch(error){
+    warning='The WAV is safely stored in the library, but assignment failed: '+
+      String(error.message??error)+'. Choose a destination to retry without generating again.';
+  }
+  const outcome={
+    assetId:result.assetId,cueId:applied?.cueId??null,
+    trackId:applied?.trackId??null,projectId:show.id,
+    imported:true,assigned:!!applied?.cueId,warning,
+    message:warning??(applied?.cueId
+      ?'Verified WAV imported and assigned to '+applied.cueId+'. NEXT GO unchanged.'
+      :'Verified WAV imported into this show library. NEXT GO unchanged.'),
   };
+  document.dispatchEvent(new CustomEvent('runq:ai-studio:imported',{detail:outcome}));
+  return outcome;
 }
+/**
+ * Local-file alternative from the same Sound Design destination sheet.
+ * The actual File is supplied by a native file picker; no provider call or
+ * synthetic model output is involved. A failure cannot resubmit a SFX job.
+ */
+document.addEventListener('runq:ai-studio:import-local',event=>{
+  const {file,destination,respond}=event.detail??{};
+  if(typeof respond!=='function')return;
+  void (async()=>{
+    if(!(file instanceof File)||!file.name.toLowerCase().endsWith('.wav'))
+      throw new TypeError('Choose a genuine local WAV file');
+    if(destination?.projectId!==show.id||
+       destination?.projectGeneration!==projectGeneration)
+      throw new Error('The project changed. Re-select your destination.');
+    if(destination.mode==='EXISTING_CUE' &&
+        !show.cues.some(c=>c.id===destination.targetCueId))
+      throw new TypeError('The destination cue is no longer present.');
+    const result=await importSingleAudioFile(file);
+    if(!result)throw new Error('Local WAV import did not finish');
+    let applied=null,warning=null;
+    try{
+      const audioState=player.getStatus();
+      if(audioState.activeCueCount||audioState.pendingGoCount||
+         audioState.auditionActive||audioState.auditionPending)
+        throw new Error('Stop audio before editing cue assignments');
+      const start=Math.round(Number($('inPoint')?.value)*1000);
+      const end=Math.round(Number($('outPoint')?.value)*1000);
+      const selectedRegion=Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&
+        start>=0&&end>start&&end<=Math.round(result.info.durationSeconds*1000)
+        ?{inMs:start,outMs:end}:null;
+      applied=applyAiStudioDestination(show,{
+        ...destination,assetId:result.assetId,
+        reviewedRegion:selectedRegion,
+      });
+      show=applied.project;
+      dirty=true;
+      if(applied.cueId)selectedCueId=applied.cueId;
+      render();
+    }catch(error){
+      warning='Local WAV imported to library. Cue assignment failed: '+
+        String(error.message??error)+'. Retry without importing another file.';
+    }
+    const outcome={
+      assetId:result.assetId,cueId:applied?.cueId??null,
+      trackId:applied?.trackId??null,projectId:show.id,
+      imported:true,assigned:!!applied?.cueId,warning,
+      message:warning??(applied?.cueId
+        ?'Local WAV added to '+applied.cueId+'. NEXT GO unchanged.'
+        :'Local WAV stored in the library. No cue changed.'),
+    };
+    document.dispatchEvent(new CustomEvent('runq:ai-studio:imported',{detail:outcome}));
+    return outcome;
+  })().then(respond,error=>respond({error:String(error.message??error)}));
+});
+document.addEventListener('runq:ai-studio:apply-existing',event=>{
+  const {assetId,destination,respond}=event.detail??{};
+  if(typeof respond!=='function')return;
+  try{
+    if(destination?.projectId!==show.id||
+       destination?.projectGeneration!==projectGeneration){
+      throw new Error('The project changed; select a new destination.');
+    }
+    const state=player.getStatus();
+    if(audioInFlight||bundleInFlight||state.activeCueCount||state.pendingGoCount||
+       state.auditionActive||state.auditionPending){
+      throw new Error('Stop audio and pending GO before editing cue assignments.');
+    }
+    const applied=applyAiStudioDestination(show,{...destination,assetId});
+    show=applied.project;dirty=true;
+    if(applied.cueId)selectedCueId=applied.cueId;
+    render();
+    const result={assetId,cueId:applied.cueId,trackId:applied.trackId,
+      projectId:show.id,assigned:!!applied.cueId,
+      message:applied.cueId
+        ?'Sound assigned to '+applied.cueId+'. NEXT GO unchanged.'
+        :'Sound retained in library; no cue changed.'};
+    document.dispatchEvent(new CustomEvent('runq:ai-studio:imported',{detail:result}));
+    respond(result);
+  }catch(error){respond({error:String(error.message??error)});}
+});
+document.addEventListener('runq:ai-studio:open-cue',event=>{
+  const cueId=event.detail?.cueId;
+  if(!show.cues.some(c=>c.id===cueId))return;
+  if(!setWorkspace('cues'))return;
+  selectedCueId=cueId;inspectorTab='audio';
+  renderCueList();renderCueInspector();
+});
 
 function reportSoundLabBootstrapError(error) {
   // A missing ES module used to leave an apparently interactive Sound Lab

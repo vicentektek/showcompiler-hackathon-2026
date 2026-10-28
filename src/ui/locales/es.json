@@ -298,10 +298,10 @@
   "workspace.saved": "Guardado",
   "workspace.unsaved": "Cambios sin guardar",
   "workspace.script": "Guion",
-  "workspace.ai": "IA y revisión",
+  "workspace.ai": "AI Studio",
   "workspace.cues": "Editor de cues",
   "workspace.audio": "Biblioteca de audio",
-  "workspace.soundlab": "Laboratorio de sonido",
+  "workspace.soundlab": "Diseño de sonido",
   "workspace.setup": "Montaje",
   "workspace.operation": "Operación",
   "workspace.mode": "MODO",
@@ -487,5 +487,6 @@
   "audioBatch.errorTitle": "La importación no se pudo completar",
   "audioBatch.existing": "Ya existe en la biblioteca y está cargado",
   "audioBatch.fileLimit": "Máximo 100 archivos por lote; cada uno hasta 20 MB y 10 minutos.",
-  "audioBatch.missing": "Los archivos que fallen no se añaden a la biblioteca; los demás continúan."
+  "audioBatch.missing": "Los archivos que fallen no se añaden a la biblioteca; los demás continúan.",
+  "workspace.description.soundlab": "Diseña, escucha y revisa sonidos reales. Crea el cue ahora o después de elegir el sonido."
 }
