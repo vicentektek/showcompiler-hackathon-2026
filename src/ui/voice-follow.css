@@ -51,3 +51,8 @@
 .rqmic-review audio{height:32px;max-width:260px}
 .rqmic-review a{color:#a5f0ca;font-size:11px}
 .rqmic-review [hidden]{display:none!important}
+
+.rqmic-transcribe{border-top:1px solid #36515b;margin-top:8px;padding-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rqmic-consent{font-size:11px;display:flex;gap:5px;align-items:center}
+.rqmic-transcribe p{flex-basis:100%;margin:0;font-size:11px}
+.rqmic-transcript{display:block;flex-basis:100%;min-height:24px;color:#d1f4e0;font-size:13px;overflow-wrap:anywhere}
