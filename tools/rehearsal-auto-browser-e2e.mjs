@@ -70,7 +70,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#rqLiveArm')?.getAttribute('aria-pressed')==='true',null,{timeout:5000});
  assert.equal(await send(0,'first'),true);
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('First'),null,{timeout:7000});
- assert.equal((await page.locator('#operatorLastGo').textContent()).includes('01'),true);
+ assert.equal(/\b1\s*·/.test(await page.locator('#operatorLastGo').textContent()),true);
  // Jump directly to cue 3: cue 2 must not play.
  assert.equal(await send(2,'skip'),true);
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('Jump ahead'),null,{timeout:7000});
@@ -84,7 +84,7 @@ try{
  assert.equal(await page.locator('#rqLiveArm').getAttribute('aria-pressed'),'false');
  assert.equal(await send(0,'after-panic'),false);
  await page.waitForTimeout(150);
- assert.equal((await page.locator('#operatorLastGo').textContent()).includes('02'),true);
+ assert.equal(/\b2\s*·/.test(await page.locator('#operatorLastGo').textContent()),true);
  assert.deepEqual(remote,[], 'No provider calls in browser rehearsal E2E');
  assert.deepEqual(errors,[], 'Browser runtime errors');
  console.log('REHEARSAL AUTO GO E2E PASS: off by default, arm unlock, skip, rewind, STOP ALL override, real WAV');
