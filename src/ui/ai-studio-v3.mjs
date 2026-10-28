@@ -86,8 +86,27 @@ function updateLocale(){
     if(el.matches('option'))el.textContent=value;
     else if(el.matches('button,span,h2,h3,p,strong'))el.textContent=value;
   });
+  // Translate static labels too; these are created before the operator may
+  // change language. Never replace input/select elements (that loses drafts).
+  for(const [selector,key] of [
+    ['.rqai-studio-heading .rqai-kicker','title'],
+    ['.rqai-studio-heading .rqai-subheading','intro'],
+    ['.rqai-library-shortcut strong','title'],
+    ['.rqai-library-shortcut span','intro'],
+    ['#rqaiUse > .rqai-kicker','choice'],
+    ['#rqaiOptions > label:first-child > span','choice'],
+    ['#rqaiCueLabelBlock > span','name'],
+    ['#rqaiCueTargetBlock > span','chooseCue'],
+    ['#rqaiTrackActionBlock > span','action'],
+    ['#rqaiReplaceTrackBlock > span','track'],
+    ['#rqaiSourceBlock > span','soundChoice'],
+    ['#rqaiContext .rqai-context-head .rqai-kicker','context'],
+  ]){
+    const element=document.querySelector(selector);
+    if(element)element.textContent=t(key);
+  }
   renderContext();
-  updateDestinations(false);
+  updateReadiness();
 }
 function updateStatus(text,isError=false){
   const status=$('rqaiStatus');if(!status)return;
