@@ -81,3 +81,21 @@
 .cue-waveform-editor.is-clip-editor .cue-playback-editor>.field{min-width:0}
 .cue-wave-legacy-ms{display:none!important}
 @media(max-width:480px){.cue-wave-timing{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.cue-wave-ms-advanced{border-top:1px solid #334a56;padding-top:7px;margin-top:2px}
+.cue-wave-ms-advanced summary{
+ color:#adbac5;cursor:pointer;font:700 11px/1.6 system-ui,sans-serif;
+ list-style:disclosure-closed;
+}
+.cue-wave-ms-advanced[open] summary{margin-bottom:8px}
+.cue-wave-ms-advanced>label{
+ display:grid;grid-template-columns:1fr 110px;align-items:center;
+ margin:4px 0;gap:8px;font-size:11px;
+}
+.cue-wave-ms-advanced input{
+ width:110px;min-height:30px;background:#0e1921;
+ border:1px solid #52606f;color:#e6edf4;
+}
+.cue-wave-ms-advanced .caption{font-size:10px}
+.cue-wave-instruction{margin:0;color:#a3b6c2;font-size:10px;line-height:1.5}
+.cue-waveform-editor .cue-wave-timing>label{min-width:0}
