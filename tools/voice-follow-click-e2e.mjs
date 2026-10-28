@@ -53,6 +53,18 @@ try{
   await tryClick('[data-workspace-nav="rehearsal"]');
   assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'rehearsal');
   assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
+  // Voice Live remains strictly opt-in even when the microphone is available.
+  assert.equal(await page.locator('#rqLivePanel').isVisible(),true);
+  assert.equal(await page.locator('#rqLiveStop').isDisabled(),true);
+  assert.equal(await page.locator('#rqLivePrepare').isDisabled(),true);
+  assert.equal(await page.locator('#rqLiveDismiss').isDisabled(),true);
+  await tryClick('#rqLiveStart');
+  assert.match(await page.locator('#rqLiveStatus').textContent(),/Authorize|Autoriza/);
+  assert.equal(await page.locator('#rqLiveStop').isDisabled(),true);
+  await page.locator('#rqLiveLang').selectOption('en');
+  await page.locator('#rqLiveLang').selectOption('mixed');
+  await page.locator('#rqLiveLang').selectOption('es');
+
   assert.equal(await page.locator('#rqvfCounter').textContent(),'0 / 0');
   await tryClick('#rqvfStep');
   await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4',{timeout:4000});
