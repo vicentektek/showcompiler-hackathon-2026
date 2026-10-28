@@ -55,6 +55,7 @@ const allowed = new Map([
   ['/src/ui/voice-microphone-test.mjs', ['src/ui/voice-microphone-test.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-follow-ui.mjs', ['src/ui/voice-follow-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-follow.css', ['src/ui/voice-follow.css', 'text/css; charset=utf-8']],
+  ['/src/core/reviewedSfxCue.mjs', ['src/core/reviewedSfxCue.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/livePcm.mjs', ['src/core/livePcm.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/voiceFollow.mjs', ['src/core/voiceFollow.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/voiceScenario.mjs', ['src/core/voiceScenario.mjs', 'text/javascript; charset=utf-8']],
