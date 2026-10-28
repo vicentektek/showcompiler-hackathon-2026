@@ -49,6 +49,31 @@ export class BrowserAudioEngine {
   isPlaying(cueId) { return this.playing.has(cueId) || this.pending.has(cueId); }
   isStopping(cueId) { return this.playing.get(cueId)?.stopping === true || this.cancelledPending.has(cueId); }
   activeCueCount() { return this.playing.size; }
+
+  /** Truthful read-only live voices snapshot; all clock values from AudioContext.
+   * No synthetic meters, seeking, or audio hardware claims.
+   */
+  getActiveCues() {
+    const now = this.context?.currentTime ?? 0;
+    const result = [];
+    for (const [cueId, run] of this.playing) {
+      const begunAt = run.startedAt ?? now;
+      const elapsedSeconds = Math.max(0, now - begunAt);
+      const endsAt = run.stopping && Number.isFinite(run.stopEndsAt)
+        ? run.stopEndsAt : run.endsAt;
+      const durationSeconds = Number.isFinite(endsAt) && !run.stopping
+        ? Math.max(0, endsAt - begunAt) : run.durationSeconds;
+      const remainingSeconds = Number.isFinite(endsAt) ? Math.max(0, endsAt - now) : null;
+      const progress = durationSeconds > 0 && Number.isFinite(durationSeconds)
+        ? Math.max(0, Math.min(1, elapsedSeconds / durationSeconds)) : null;
+      result.push(Object.freeze({
+        cueId, stopping: run.stopping === true, elapsedSeconds,
+        remainingSeconds, durationSeconds: Number.isFinite(durationSeconds) ? durationSeconds : null,
+        progress,
+      }));
+    }
+    return Object.freeze(result);
+  }
   isAuditioning() { return this.auditionVoice !== null || this.auditionPending; }
 
   /** Audition is never a show GO. These voices cannot change the operator playhead. */
@@ -394,7 +419,14 @@ export class BrowserAudioEngine {
           loop:playback.loop,startAt,offsetSeconds,
           startDuration:source.loop || playback.endAtMs === null ? null : clipSeconds};
       });
-      const run = { voices: new Set(voices), stopping: false };
+      const begunAt = Math.min(...voices.map(voice => voice.startAt));
+      const runningForever = voices.some(voice => voice.loop);
+      const endsAt = runningForever ? null
+        : Math.max(...voices.map(voice => voice.startAt + voice.duration));
+      const run = { voices: new Set(voices), stopping: false,
+        startedAt: begunAt, endsAt,
+        durationSeconds: endsAt === null ? null : endsAt - begunAt,
+        stopEndsAt: null };
       this.playing.set(cue.id, run);
       for (const voice of voices) {
         voice.source.onended = () => {
@@ -453,6 +485,7 @@ export class BrowserAudioEngine {
     if (!run) return false;
     const now = this.getContext().currentTime;
     run.stopping = true;
+    run.stopEndsAt = now + fadeMs / 1000;
     for (const voice of run.voices) {
       const param = voice.gain.gain;
       try {
