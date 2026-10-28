@@ -71,6 +71,17 @@ try{
   assert.match(await page.locator('#audioName').innerText(),/NOT AI/);
   assert.equal(await page.locator('#playBtn').isEnabled(),true);
   assert.equal(await page.locator('#exportBtn').isDisabled(),true,'Offline demo WAV is not an accepted remote generation; it must not be exportable as an AI take');
+  assert.equal(await page.locator('#sfxFadeIn').isEnabled(),true);
+  assert.equal(await page.locator('#sfxFadeOut').isEnabled(),true);
+  assert.equal(await page.locator('#importCueBtn').isDisabled(),true,'Offline demo must not create a generated cue');
+  await page.locator('#sfxFadeIn').evaluate(input=>{
+    input.value='0.5';input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  assert.match(await page.locator('#sfxFadeInLabel').textContent(),/0\.50 s/);
+  await page.locator('#sfxFadeOut').evaluate(input=>{
+    input.value='0.25';input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  assert.match(await page.locator('#sfxFadeOutLabel').textContent(),/0\.25 s/);
   await page.locator('#inPoint').fill('0.250');
   await page.locator('#inPoint').dispatchEvent('change');
   await page.locator('#outPoint').fill('1.250');
