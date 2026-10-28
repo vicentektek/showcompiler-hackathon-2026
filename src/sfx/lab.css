@@ -170,3 +170,10 @@
 
 /* CSP-compatible replacement for previously blocked inline display rule. */
 .sfx-technical-details{white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Non-destructive fade audition controls; original WAV remains untouched. */
+.sfx-fade-editor{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:9px 0}
+.sfx-fade-editor label{display:flex;flex-direction:column;gap:5px;min-width:125px;flex:1;font-size:11px;color:#c8d9e3}
+.sfx-fade-editor input[type="range"]{width:100%;accent-color:#8ad4f7;cursor:ew-resize}
+.sfx-fade-editor select{padding:7px;border:1px solid #5a7079;border-radius:4px;background:#15232b;color:#eaf4f7}
+.sfx-audio-panel #importCueBtn{background:#257160;color:white;white-space:normal}
