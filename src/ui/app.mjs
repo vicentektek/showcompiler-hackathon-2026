@@ -1772,8 +1772,8 @@ function renderCueInspector() {
   chatButton.addEventListener('click',()=>{
     document.dispatchEvent(new CustomEvent('runq:cue-chat-open',{detail:{cueId:cue.id}}));
   });
-  header.append(chatButton);
   inspector.append(header);
+  inspector.append(chatButton);
   inspector.append(node('p', 'cue-inspector-origin', cue.sourceLineIds.join(', ') + ' · ' +
     (cue.trigger || t('cueEditor.noTrigger'))));
   if(cue.actions.every(a=>a.type==='PLAY')) {
