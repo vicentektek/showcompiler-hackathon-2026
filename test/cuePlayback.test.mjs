@@ -28,7 +28,7 @@ function audioFixture() {
     createBufferSource() {
       const source = { buffer:null, loop:false, playbackRate:{value:1}, onended:null,
         connect() {}, disconnect() {},
-        start(t, offset=0) { actions.push(['start',t,offset]); source.startTime=t; source.startOffset=offset; },
+        start(t, offset=0, duration) { actions.push(['start',t,offset]); source.startTime=t; source.startOffset=offset; source.startDuration=duration; },
         stop(t) { actions.push(['stop',t]); source.stopTime=t; },
         end() { source.onended?.(); },
       };
@@ -147,5 +147,56 @@ test('rejects offset at or beyond decoded file boundary before starting audio', 
   const x=audioFixture();
   await x.engine.loadFile(x.file,'asset-1');
   await assert.rejects(x.engine.go(x.cue({startAtMs:3000})),/dentro de cada archivo/);
+  assert.equal(x.sources.length,0);
+});
+
+test('OUT trim is optional, strict, and survives save without changing AI evidence', () => {
+  assert.equal(normalizeCuePlayback().endAtMs,null);
+  for (const settings of [
+    {endAtMs:0}, {endAtMs:-1}, {endAtMs:1.5}, {endAtMs:600001},
+    {startAtMs:800,endAtMs:800}, {startAtMs:800,endAtMs:700},
+  ]) assert.throws(()=>normalizeCuePlayback(settings),/endAtMs/);
+  const original=showWithCue();
+  const edited=updateCuePlayback(original,'cue-1',{startAtMs:400,endAtMs:1100,fadeOutMs:250});
+  assert.equal(edited.cues[0].playback.endAtMs,1100);
+  assert.deepEqual(deserializeShowProject(serializeShowProject(edited)),edited);
+  assert.deepEqual(edited.proposals,original.proposals);
+});
+
+test('real finite OUT trim limits playback duration and fade to the selected region',async()=>{
+  const x=audioFixture();
+  await x.engine.loadFile(x.file,'asset-1');
+  await x.engine.go(x.cue({startAtMs:500,endAtMs:1500,fadeInMs:200,fadeOutMs:300}));
+  assert.equal(x.sources[0].startOffset,.5);
+  assert.equal(x.sources[0].startDuration,1);
+  assert.equal(x.sources[0].loop,false);
+  assert.ok(x.actions.some(a=>a[0]==='ramp'&&a[1]===0&&Math.abs(a[2]-6.02)<1e-9));
+  x.sources[0].end();
+  assert.deepEqual(x.ended,['cue-1']);
+});
+
+test('trimmed finite repeats loop only within IN/OUT and stop after the selected count',async()=>{
+  const x=audioFixture();
+  await x.engine.loadFile(x.file,'asset-1');
+  await x.engine.go(x.cue({startAtMs:500,endAtMs:1500,repeatCount:3,playbackRate:2}));
+  assert.equal(x.sources[0].loop,true);
+  assert.equal(x.sources[0].loopStart,.5);
+  assert.equal(x.sources[0].loopEnd,1.5);
+  assert.equal(x.sources[0].stopTime,6.52);
+  x.sources[0].end();
+  await x.engine.go(x.cue({startAtMs:500,endAtMs:1500,loop:true}));
+  assert.equal(x.sources[1].loop,true);
+  assert.equal(x.sources[1].loopStart,.5);
+  assert.equal(x.sources[1].loopEnd,1.5);
+  assert.equal(x.sources[1].stopTime,undefined);
+  x.engine.stopAll();
+  x.sources[1].end();
+  assert.deepEqual(x.ended,['cue-1']);
+});
+
+test('invalid OUT boundary fails before starting any source',async()=>{
+  const x=audioFixture();
+  await x.engine.loadFile(x.file,'asset-1');
+  await assert.rejects(x.engine.go(x.cue({startAtMs:200,endAtMs:3100})),/puntos IN\/OUT/);
   assert.equal(x.sources.length,0);
 });
