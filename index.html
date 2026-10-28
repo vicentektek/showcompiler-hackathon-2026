@@ -177,7 +177,7 @@
             <div class="sfx-left">
               <section class="sfx-card" aria-labelledby="sfxGenerateTitle">
                 <div class="sfx-section-header"><span class="sfx-index">01</span><div><h3 id="sfxGenerateTitle">Generate</h3><p>One explicit authorization, no retries</p></div></div>
-                <section class="sfx-card" aria-labelledby="scriptSfxHeading" style="margin-bottom:14px">
+                <section class="sfx-card" aria-labelledby="scriptSfxHeading" data-sfx-step="interpret">
                   <div class="sfx-section-header"><span class="sfx-index">AI</span><div><h3 id="scriptSfxHeading">Del guion al sonido</h3><p>Propuestas locales; revisa antes de generar</p></div></div>
                   <label>Acotación del guion<textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
                   <div class="sfx-row-fields">
@@ -185,9 +185,9 @@
                     <label>Interpretación<select id="scriptSfxMode"><option value="STRICT">Estricto · sin inventar</option><option value="CREATIVE">Creativo · inferencias visibles</option></select></label>
                   </div>
                   <div class="sfx-buttons"><button id="scriptSfxCompile" class="btn" type="button">Interpretar acotación</button><span id="scriptSfxStatus" class="sfx-muted" role="status">Sin analizar · 0 créditos</span></div>
-                  <div id="scriptSfxResults" hidden>
+                  <div id="scriptSfxResults" class="sfx-proposal-results" hidden>
                     <label>Sonido detectado<select id="scriptSfxSelect"></select></label>
-                    <p id="scriptSfxEvidence" class="sfx-muted sfx-small"></p>
+                    <p id="scriptSfxEvidence" class="sfx-evidence sfx-small" aria-live="polite"></p>
                     <div class="sfx-row-fields">
                       <label>Fuente<input id="scriptSfxSource" maxlength="300"></label>
                       <label>Acción<input id="scriptSfxAction" maxlength="300"></label>
@@ -196,7 +196,7 @@
                       <label>Intensidad<select id="scriptSfxIntensity"><option value="">Sin definir</option><option value="LOW">Suave</option><option value="MEDIUM">Media</option><option value="HIGH">Alta</option><option value="VERY_HIGH">Muy alta</option></select></label>
                       <label>Duración (s)<input id="scriptSfxDuration" type="number" min="1" max="12" step="1"></label>
                     </div>
-                    <label>Prompt revisable<textarea id="scriptSfxPrompt" rows="4" maxlength="1000"></textarea></label>
+                    <div class="sfx-row-fields"><label>Material / textura<input id="scriptSfxMaterial" maxlength="300" placeholder="No especificado"></label><label>Espacio acústico<select id="scriptSfxSpace"><option value="UNSPECIFIED">Sin especificar</option><option value="INDOOR">Interior</option><option value="OUTDOOR">Exterior</option><option value="CORRIDOR">Pasillo</option><option value="LARGE_HALL">Sala grande</option><option value="UNDERGROUND">Subterráneo</option></select></label></div><label>Prompt revisable<textarea id="scriptSfxPrompt" rows="4" maxlength="1000"></textarea></label>
                     <div class="sfx-buttons"><button type="button" class="btn subtle" id="scriptSfxRestore">Restaurar</button><button type="button" class="btn primary-secondary" id="scriptSfxTransfer">Usar en generación (sin enviar)</button></div>
                     <p class="sfx-muted sfx-small">No realiza solicitudes a Modal. Transferir rellena el formulario y mantiene la confirmación de coste desmarcada.</p>
                   </div>
