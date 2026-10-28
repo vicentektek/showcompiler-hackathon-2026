@@ -30,7 +30,7 @@ function transport(){
    }
   }
   deliver(data){this.dispatchEvent(new MessageEvent('message',{data:JSON.stringify(data)}));}
-  close(){if(this.readyState===3)return;this.readyState=3;this.dispatchEvent(new CloseEvent('close',{code:1000}));}
+  close(){if(this.readyState===3)return;this.readyState=3;this.dispatchEvent(new Event('close'));}
  }
  return {WebSocketCtor:FakeMuseSocket,messages};
 }
