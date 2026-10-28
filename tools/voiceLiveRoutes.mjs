@@ -47,7 +47,9 @@ export function makeVoiceLiveRoute({getKey=()=>process.env.MODEL_API_KEY,WebSock
  const belongs=(req,s)=>Boolean(s&&req.headers['x-runq-voice-session']===s.token);
  const authorizedOrigin=req=>{
   const origin=req.headers.origin;
-  return !origin||new URL(origin).host===req.headers.host&&new URL(origin).protocol==='http:';
+  if(!origin)return true;
+  try{const url=new URL(origin);return url.protocol==='http:'&&url.hostname==='127.0.0.1'&&url.host===req.headers.host;}
+  catch{return false;}
  };
  return async(req,res,pathname,headers)=>{
   if(!pathname.startsWith('/api/voice/live/'))return false;
