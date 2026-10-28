@@ -410,6 +410,39 @@ try {
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#cueDeleteBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),2);
+  // AI Studio V3: start with a local sound and create a cue only AFTER
+  // selecting the sound. No provider requests, fake takes or GO calls.
+  const beforeStudioStarts=await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('[data-workspace-nav="soundlab"]').click();
+  assert.equal(await page.locator('#rqaiContext').count(),1);
+  assert.equal(await page.locator('#rqaiDestination').count(),1);
+  assert.equal(await page.locator('.rqai-sound-workspace .sfx-audio-panel').count(),1);
+  assert.equal(await page.locator('#rqaiOpen').isDisabled(),true);
+  const pcm=Buffer.alloc(48);
+  pcm.write('RIFF',0,'ascii');pcm.writeUInt32LE(40,4);
+  pcm.write('WAVE',8,'ascii');pcm.write('fmt ',12,'ascii');
+  pcm.writeUInt32LE(16,16);pcm.writeUInt16LE(1,20);
+  pcm.writeUInt16LE(1,22);pcm.writeUInt32LE(400,24);
+  pcm.writeUInt32LE(800,28);pcm.writeUInt16LE(2,32);
+  pcm.writeUInt16LE(16,34);pcm.write('data',36,'ascii');
+  pcm.writeUInt32LE(4,40);
+  await page.locator('#localWav').setInputFiles({
+    name:'stage-door.wav',mimeType:'audio/wav',buffer:pcm,
+  });
+  await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent?.includes('stage-door.wav'));
+  assert.equal(await page.locator('#rqaiOpen').isEnabled(),true);
+  await page.locator('#rqaiOpen').click();
+  await page.locator('#rqaiDestination').selectOption('NEW_CUE');
+  await page.locator('#rqaiNewCueName').fill('Stage door impact');
+  await capture('11-ai-studio-use-sound.png');
+  await page.locator('#rqaiConfirm').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#cueList .cue-item').length===3);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeStudioStarts,
+    'Sound-first cue creation must not start audio');
+  assert.equal(await page.locator('#rqaiOpenCue').isVisible(),true);
+  assert.match(await page.locator('#rqaiStatus').innerText(),/NEXT GO unchanged/);
+  await page.locator('#rqaiOpenCue').click();
+  assert.match(await page.locator('#cueInspector .inspector-title').innerText(),/Stage door impact/);
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();
