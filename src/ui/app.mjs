@@ -2,6 +2,7 @@ import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
+import { setCueEntryPolicy,planEntryStops,normalizeCueEntryPolicy } from '../core/cueEntryPolicy.mjs';
 import { insertManualCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue } from '../core/manualCues.mjs';
 import { stageAddCueTrack, stageChangeCueTrack, stageRemoveCueTrack } from '../core/cueTracks.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
@@ -130,6 +131,9 @@ function refreshAudioControls() {
         t('cueEditor.fadeSeconds', { seconds: (duration / 1000).toFixed(1) }) + ')';
     });
     if (stopTargets.length) effects.push(t('operator.effectStops', { targets: stopTargets.join(', ') }));
+    const entry=normalizeCueEntryPolicy(prepared.entryPolicy);
+    if(entry.mode==='STOP_PREVIOUS') effects.push((uiLocale==='es'?'PARAR ANTERIORES':'STOP PREVIOUS')+
+      (entry.fadeOutMs?' · '+(entry.fadeOutMs/1000).toFixed(1)+'s fade':''));
   }
   $('operatorEffectSummary').textContent = prepared ? effects.join(' · ') : '';
   $('operatorProgress').textContent = prepared
@@ -1224,6 +1228,48 @@ function cueActionInspector(cue) {
   }
   pane.append(audioTools);
 
+  const policy=normalizeCueEntryPolicy(cue.entryPolicy);
+  const policyForm=node('form','cue-overlap-policy');
+  policyForm.id='cueEntryPolicyForm';
+  policyForm.append(node('h4','inspector-section-heading',
+    uiLocale==='es'?'Al entrar este cue':'When this cue starts'));
+  const modeLabel=node('label','field',uiLocale==='es'?'Audio anterior':'Previous audio');
+  const modeSelect=node('select');
+  modeSelect.name='mode';modeSelect.id='cueEntryMode';
+  for(const [value,en,es] of [
+    ['OVERLAP','Allow sounds to overlap','Permitir solapar sonidos'],
+    ['STOP_PREVIOUS','Stop all earlier cues','Detener todos los cues anteriores'],
+  ]) {
+    const option=node('option','',uiLocale==='es'?es:en);
+    option.value=value;modeSelect.append(option);
+  }
+  modeSelect.value=policy.mode;
+  modeLabel.append(modeSelect);
+  const fadeLabel=node('label','field',uiLocale==='es'?'Fade al detener (segundos)':'Stop fade (seconds)');
+  const fadeInput=node('input');fadeInput.type='number';fadeInput.name='fadeSeconds';
+  fadeInput.min='0';fadeInput.max='10';fadeInput.step='0.1';
+  fadeInput.value=String(policy.fadeOutMs/1000);
+  const sync=()=>{fadeInput.disabled=modeSelect.value!=='STOP_PREVIOUS';};
+  modeSelect.addEventListener('change',sync);sync();
+  fadeLabel.append(fadeInput);
+  const helper=node('p','caption',uiLocale==='es'
+    ?'Se aplica solo al pulsar GO. La parada de cues específicos sigue disponible debajo.'
+    :'Applied only on GO. Targeted cue stops remain configurable below.');
+  const savePolicy=node('button','btn primary small',uiLocale==='es'?'Guardar política':'Save stop policy');
+  savePolicy.type='submit';
+  policyForm.append(modeLabel,fadeLabel,helper,savePolicy);
+  policyForm.addEventListener('change',()=>{inspectorPendingChanges=true;});
+  policyForm.addEventListener('submit',event=>{
+    event.preventDefault();
+    try {
+      show=setCueEntryPolicy(show,cue.id,{
+        mode:modeSelect.value,fadeOutMs:Math.round(Number(fadeInput.value)*1000),
+      });
+      inspectorPendingChanges=false;dirty=true;render();
+      feedback('cueEditor.actionsSaved',{number:cue.number},'success');
+    }catch(error){showError(error);}
+  });
+  pane.append(policyForm);
   const otherCues = show.cues.filter(item => item.id !== cue.id);
   if (otherCues.length) {
     const form = node('form', 'cue-target-stop-editor');
@@ -1693,6 +1739,12 @@ $('operatorGoBtn').addEventListener('click', async () => {
   const cue = normalizeShowProject(show).cues.find(item => item.id === id);
   if (!cue) return;
   try {
+    // Per-cue overlap policy is operator-authored and applies only on actual GO.
+    // "STOP PREVIOUS" fades/stops all earlier cue runs but does not cancel
+    // the incoming cue or mutate any source media.
+    for (const stop of planEntryStops(show.cues,id,cue.entryPolicy)) {
+      player.stopCue(stop.cueId,stop.fadeMs);
+    }
     // Operator-authored stop targets execute before this cue's PLAY; an AI
     // proposal cannot insert stop targets or start automatic following.
     for (const targetId of cue.automation?.stopCueIds ?? []) {
