@@ -182,7 +182,16 @@ function createShell(){
     link.addEventListener('click',()=>route('ai'));
     script.querySelector('.panel-head')?.after(link);
   }
-  const labTitle=soundlab.querySelector('.sfx-lab-intro h2');
+  const exportBox=soundlab.querySelector('.sfx-export');
+  if(exportBox){
+    const title=exportBox.querySelector('h3');
+    const help=exportBox.querySelector('p');
+    if(title)title.textContent=locale()==='es'?'Descargar fuente WAV original':'Download original WAV';
+    if(help)help.textContent=locale()==='es'
+      ?'Para utilizar este sonido en el espectáculo, selecciona el destino en el panel «Usar este sonido».'
+      :'To use this sound in the show, select its destination in the Use this sound panel.';
+  }
+    const labTitle=soundlab.querySelector('.sfx-lab-intro h2');
   if(labTitle)labTitle.textContent=t('title')+' / SOUND DESIGN';
   const labSubtitle=soundlab.querySelector('.sfx-lab-intro p');
   if(labSubtitle)labSubtitle.textContent=t('intro');
