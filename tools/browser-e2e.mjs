@@ -166,6 +166,7 @@ try {
   await page.locator('[data-workspace-nav="cues"]').click();
   // Real cue-editor settings never execute audio merely by being saved.
   const inspector = page.locator('#cuePlaybackForm');
+  await inspector.locator('.cue-wave-ms-advanced summary').click();
   assert.equal(await inspector.count(), 1);
   await inspector.locator('[name="gainDb"]').fill('-9');
   await inspector.locator('[name="fadeInMs"]').fill('250');
