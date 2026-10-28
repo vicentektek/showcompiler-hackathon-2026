@@ -133,8 +133,17 @@ function createStage(){
   const syncSelectedTools=()=>{
     const current=cueList.querySelector('.cue-item.cue-selected');
     const cueId=current?.querySelector('[data-cue-select]')?.dataset.cueSelect??'';
+    const oldCueId=selectedTools.dataset.cueId??'';
+    // These are the ORIGINAL action nodes with working event handlers.
+    // Return them to the previous row on a selection change; otherwise
+    // selecting A -> B -> A silently loses A's source/audio controls.
+    if(oldCueId && oldCueId!==cueId){
+      const previous=[...cueList.querySelectorAll('.cue-item')].find(item=>
+        item.querySelector('[data-cue-select]')?.dataset.cueSelect===oldCueId);
+      if(previous)previous.append(...selectedTools.children);
+    }
     const actions=current?[...current.querySelectorAll(':scope > .cue-edit-actions, :scope > .cue-audio-tools')]:[];
-    if(actions.length || cueId!==selectedTools.dataset.cueId){
+    if(actions.length || cueId!==oldCueId){
       selectedTools.replaceChildren(...actions);
       selectedTools.dataset.cueId=cueId;
     }
