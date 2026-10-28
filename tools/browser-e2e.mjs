@@ -209,6 +209,13 @@ try {
   assert.match(await page.locator('[data-preview-status]').innerText(),/LISTENING/);
   await page.locator('.cue-audition-studio [data-preview-stop]').click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforePreview);
+  // Scoped editing keys are preview/stop only. Never an operator GO.
+  const startsAfterButton=await page.evaluate(()=>window.__testAudioStarts);
+  await page.keyboard.press('v');
+  await page.waitForFunction(count=>window.__testAudioStarts>count,startsAfterButton);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforePreview);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('[data-preview-status]').getAttribute('data-playing'),'false');
   // Reset smoke counters so the existing GO-only assertions remain meaningful.
   await page.evaluate(()=>{
     window.__testAudioStarts=0;window.__testAudioStops=0;
