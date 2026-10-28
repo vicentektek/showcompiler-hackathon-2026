@@ -82,6 +82,10 @@ export function makeSfxRoute({
       else json(response, 200, configSafe, headers);
       return true;
     }
+    if (pathname === '/api/sfx/jobs' && request.method !== 'POST') {
+      json(response, 405, { code: 'SFX_METHOD' }, headers);
+      return true;
+    }
     const match = routes.exec(pathname);
     const isStart = pathname === '/api/sfx/jobs' && request.method === 'POST';
     if (!isStart && !match) {
