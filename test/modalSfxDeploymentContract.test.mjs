@@ -29,3 +29,10 @@ test('SFX pilot never retries a paid job implicitly', async () => {
   assert.match(code, /@modal\.asgi_app\(requires_proxy_auth=True\)/);
   assert.doesNotMatch(code, /min_containers=1/);
 });
+
+test('GPU scheduling can fall back to compatible A10 without permanent warm spend', async () => {
+  const code = await worker();
+  assert.match(code, /gpu=\["L4", "A10"\]/);
+  assert.match(code, /min_containers=0, max_containers=1, scaledown_window=120/);
+  assert.match(code, /retries=0/);
+});
