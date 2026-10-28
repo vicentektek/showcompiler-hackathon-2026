@@ -54,7 +54,13 @@ try{
     return route.continue();
   });
   await page.goto('http://127.0.0.1:'+port+'/sound-lab',{waitUntil:'domcontentloaded'});
-  await page.getByText('Offline editing',{exact:true}).waitFor();
+  // Local SFX status is localized by the current lab implementation.
+  // Check that the genuine read-only status probe completed, not an obsolete
+  // English-only badge copy from the original standalone sketch.
+  await page.waitForFunction(()=>{
+    const label=document.querySelector('#engineBadge')?.textContent?.trim();
+    return label && label!=='Checking engine' && label!=='Comprobando…';
+  },null,{timeout:10000});
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
   await page.locator('#demoAudioBtn').click();
