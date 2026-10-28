@@ -1,5 +1,11 @@
 {
   "brand.prototype": "HACKATHON 2026 · PROTOTIPO",
+  "audioProps.endAtMs": "Recorte OUT (ms; vacío = final del archivo)",
+  "audioProps.endAtHelp": "Final opcional; debe estar después del IN y dentro del archivo decodificado.",
+  "waveform.heading": "Forma de onda real · IN / OUT",
+  "waveform.unavailable": "Carga el archivo local para mostrar su onda real. Puedes configurar los recortes numéricamente.",
+  "waveform.dragHelp": "Arrastra el marcador IN ámbar o OUT rojo más cercano. Flechas ajustan IN 10 ms; Mayús + flechas ajustan OUT. Guarda para aplicar.",
+  "waveform.selection": "IN {start} s · OUT {end} s · Selección {duration} s",
   "script.searchLabel": "Buscar en el guion",
   "script.searchPlaceholder": "Buscar diálogo o acotación",
   "script.previousMatch": "Coincidencia anterior",
