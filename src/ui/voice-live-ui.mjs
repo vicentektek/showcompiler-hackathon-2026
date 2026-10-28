@@ -15,6 +15,7 @@ let polling=null,stopping=false,starting=false,active=false,queue=Promise.resolv
 let transcriptHistory=[],consumedIds=new Set(),focusLine=1;
 let pcmEncoder=null;
 let scenario=null,showFingerprint='',startedAt=0;
+let suggestedCueId=null;
 const CHUNK_SAMPLES=2560,MAX_SECONDS=180;
 function report(en,es){$('rqLiveStatus').textContent=local(en,es);}
 function safeResponse(res){return res.json().then(data=>{if(!res.ok)throw Error(data.error||'HTTP '+res.status);return data;});}
@@ -36,6 +37,8 @@ function refreshShow(){
  focusLine=Number.isInteger(value)&&value>0?value:(scenario?.initialFocusLine??1);
  $('rqLiveFocus').value=String(focusLine);
  consumedIds.clear();
+ suggestedCueId=null;
+ $('rqLivePrepare').disabled=true;$('rqLiveDismiss').disabled=true;
  $('rqLiveCue').textContent=scenario
   ?local('Ready to follow '+scenario.cues.length+' configured spoken cues.',
     'Preparado para seguir '+scenario.cues.length+' pies hablados configurados.')
@@ -68,6 +71,8 @@ function presentFinal(text,turnId){
  $('rqLivePartial').textContent='';
  const result=currentMatches(text);
  if(result?.status==='SUGGEST_PREPARE'){
+  suggestedCueId=result.cueId;
+  $('rqLivePrepare').disabled=false;$('rqLiveDismiss').disabled=false;
   consumedIds.add(result.cueId);
   focusLine=Number(result.lineId.slice(1));
   $('rqLiveFocus').value=String(focusLine);
@@ -77,6 +82,8 @@ function presentFinal(text,turnId){
     ' · '+result.lineId+' · '+Math.round(result.score*100)+'%';
   document.dispatchEvent(new CustomEvent('runq:voice-follow-highlight-line',{detail:{lineId:result.lineId}}));
  }else{
+  suggestedCueId=null;
+  $('rqLivePrepare').disabled=true;$('rqLiveDismiss').disabled=true;
   $('rqLiveCue').textContent=result?.status==='AMBIGUOUS'
    ?local('Ambiguous cues: operator decision required.','Cues ambiguos: decide el operador.')
    :local('No confident match; operator remains in control.','Sin coincidencia fiable; el operador mantiene el control.');
@@ -221,6 +228,8 @@ function localized(){
  $('rqLiveTitle').textContent=local('LIVE VOICE FOLLOW · MUSE','SEGUIMIENTO DE VOZ EN DIRECTO · MUSE');
  $('rqLiveStart').textContent=local('Start listening','Empezar escucha');
  $('rqLiveStop').textContent=local('Stop listening','Detener escucha');
+ $('rqLivePrepare').textContent=local('Set as NEXT','Preparar como NEXT');
+ $('rqLiveDismiss').textContent=local('Ignore','Ignorar');
  $('rqLiveRefresh').textContent=local('Refresh microphones','Actualizar micrófonos');
  $('rqLiveLangLabel').textContent=local('Spoken language','Idioma hablado');
  $('rqLiveDeviceLabel').textContent=local('Input','Entrada');
@@ -241,6 +250,24 @@ function mount(){
  $('rqLiveStart').addEventListener('click',()=>void start());
  $('rqLiveStop').addEventListener('click',()=>void stop());
  $('rqLiveRefresh').addEventListener('click',()=>void devices());
+ $('rqLivePrepare').addEventListener('click',()=>{
+  if(!suggestedCueId)return;
+  let ok=false;
+  document.dispatchEvent(new CustomEvent('runq:voice-follow-prepare-cue',{
+   detail:{cueId:suggestedCueId,respond:answer=>{ok=answer===true;}}
+  }));
+  if(ok){
+   $('rqLivePrepare').disabled=true;
+   $('rqLiveCue').textContent+=local(' · Prepared by operator. GO still manual.',
+     ' · Preparado por el operador. GO sigue manual.');
+  }else report('Cue could not be prepared. Check the current show.',
+    'No se ha podido preparar el cue. Comprueba el espectáculo.');
+ });
+ $('rqLiveDismiss').addEventListener('click',()=>{
+  suggestedCueId=null;
+  $('rqLivePrepare').disabled=true;$('rqLiveDismiss').disabled=true;
+  $('rqLiveCue').textContent=local('Ignored by operator.','Ignorado por el operador.');
+ });
  $('rqLiveFocus').addEventListener('change',()=>{
   const value=Number($('rqLiveFocus').value);
   if(Number.isInteger(value)&&value>=1&&value<=100000){focusLine=value;consumedIds.clear();}
