@@ -6,8 +6,6 @@ NO deployment on import. Deploy manually after checking licensing/credits:
 No test, Node startup, or browser action invokes this module.
 Only SFX / ENVIRONMENT; voiceover and music are intentionally NOT implemented.
 """
-from __future__ import annotations
-
 import hashlib
 import io
 import re
