@@ -188,3 +188,21 @@
  .rqlive-settings label{flex:1 1 180px}
  .rqvf-primary-head{align-items:flex-start}
 }
+
+/* Inspection list is available on demand without crowding the active session. */
+.rqlive-cue-map{border:1px solid #365260;border-radius:6px;background:#152932;margin:8px 0}
+.rqlive-cue-map summary{padding:9px 12px;color:#b8d4de;cursor:pointer;font-size:12px;font-weight:650}
+.rqlive-cue-map summary:hover{background:#1c3744;color:#f1f8fb}
+.rqlive-cue-map ol{max-height:205px;overflow:auto;list-style:none;padding:0 10px 8px;margin:0}
+.rqlive-cue-map li{display:grid;grid-template-columns:32px 1fr auto;align-items:center;
+ gap:12px;padding:8px 6px;border-top:1px solid #334854;font-size:12px;min-width:0}
+.rqlive-cue-map li b{color:#81dbc1;font-variant-numeric:tabular-nums}
+.rqlive-cue-map li span{overflow-wrap:anywhere;color:#e3eff5}
+.rqlive-cue-map li small{font-size:10px;color:#adc2ce;text-align:right}
+.rqlive-cue-map li.is-current{background:#214c40;box-shadow:inset 3px 0 #67d6aa}
+.rqvf-primary-head output[data-state="armed"]{background:#7f3729!important;color:#ffddd1!important}
+.rqvf-primary-head output[data-state="needs-arm"]{background:#6a4126!important;color:#ffe0bd!important}
+.rqvf-primary-head output[data-state="listening"]{background:#204c43!important;color:#c3fce2!important}
+.rqlive-awaiting-arm .rqlive-auto-mode{border:2px solid #b57f42;background:#293b43}
+.rqlive-awaiting-arm #rqLiveArm:not(:disabled){box-shadow:0 0 0 2px #6b995d;background:#21785f!important}
+@media(max-width:800px){.rqlive-cue-map li{grid-template-columns:25px 1fr}.rqlive-cue-map li small{grid-column:2;text-align:left}}
