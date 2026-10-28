@@ -27,7 +27,7 @@ const dictionary={
     audition:'Audition selected source',stopAudition:'Stop audition',
     readOnly:'SOURCE WAVEFORM · READ-ONLY',noWave:'Load an original local sound to see its real waveform here.',
     auditionWarning:'Audition and GO share the same system output. Not an independent monitoring bus.',
-    zoom:'Zoom',channels:'CHANNELS',duration:'DURATION',real:'Decoded audio',
+    zoom:'Zoom',pan:'Scroll',channels:'CHANNELS',duration:'DURATION',real:'Decoded audio',
     keep:'The original file is not edited. IN/OUT graphical playback editing will be enabled after engine and ZIP validation.',
     intro:'Workspaces are linked. Selection never changes NEXT GO.',
     actual:'LIVE TRANSPORT STATUS',ready:'SOUND FILE LIBRARY',platform:'BROWSER AUDIO · LOCAL',
@@ -43,7 +43,7 @@ const dictionary={
     audition:'Preescuchar recurso',stopAudition:'Detener preescucha',
     readOnly:'FORMA DE ONDA REAL · SOLO LECTURA',noWave:'Carga un archivo de audio local para mostrar su forma de onda auténtica.',
     auditionWarning:'La preescucha y GO comparten salida de sistema. No hay un bus independiente de monitores.',
-    zoom:'Zoom',channels:'CANALES',duration:'DURACIÓN',real:'Audio decodificado',
+    zoom:'Zoom',pan:'Desplazar',channels:'CANALES',duration:'DURACIÓN',real:'Audio decodificado',
     keep:'No se modifica el original. IN/OUT gráfico se activará tras validar motor y guardado ZIP.',
     intro:'Las vistas están conectadas. Seleccionar no cambia NEXT GO.',
     actual:'ESTADO REAL DE TRANSPORTE',ready:'BIBLIOTECA DE SONIDOS',platform:'AUDIO WEB · LOCAL',
@@ -204,7 +204,13 @@ function createAudio(){
   zoom.type='range';zoom.min='1';zoom.max='8';zoom.step='1';zoom.value='1';
   zoom.id='rq5WaveZoom';zoom.setAttribute('aria-label',tr('zoom'));
   zoomLabel.append(zoom);
-  chooser.append(inputLabel,zoomLabel);
+  const panLabel=el('label','rq5-pan-label');
+  panLabel.append(label('pan'));
+  const pan=el('input','rq5-wave-pan');
+  pan.type='range';pan.min='0';pan.max='100';pan.step='1';pan.value='0';
+  pan.id='rq5WavePan';pan.setAttribute('aria-label',tr('pan'));
+  pan.disabled=true;panLabel.append(pan);
+  chooser.append(inputLabel,zoomLabel,panLabel);
   const canvasWrap=el('div','rq5-wave-canvas');
   const canvas=el('canvas');
   canvas.id='rq5WaveCanvas';canvas.width=1280;canvas.height=340;
@@ -224,9 +230,10 @@ function createAudio(){
   const grid=el('div','rq5-audio-grid');
   grid.append(library,editor);
   if(panelHead)panelHead.after(grid);else panel.prepend(grid);
-  waveformUi={canvas,select,zoom,status,channelCount,durationValue,peaks:null,assetId:null,sourceFile:null,error:null,sourceLabel:null};
+  waveformUi={canvas,select,zoom,pan,status,channelCount,durationValue,peaks:null,assetId:null,sourceFile:null,error:null,sourceLabel:null};
   select.addEventListener('change',()=>void selectSource(select.value));
-  zoom.addEventListener('input',drawWave);
+  zoom.addEventListener('input',()=>{pan.disabled=Number(zoom.value)===1;drawWave();});
+  pan.addEventListener('input',drawWave);
   const observer=new MutationObserver(()=>queueMicrotask(refreshAssetPicker));
   observer.observe(assetList,{childList:true,subtree:true});
   refreshAssetPicker();
@@ -316,6 +323,17 @@ function drawWave(){
     const x=Math.round((w*i)/12)+.5;
     context.beginPath();context.moveTo(x,0);context.lineTo(x,h);context.stroke();
   }
+  if(peaks){
+    const zoom=Number(state.zoom.value)||1;
+    const portion=peaks.durationMs/zoom;
+    const startMs=(peaks.durationMs-portion)*(Number(state.pan.value)/100);
+    context.font='12px ui-monospace, Consolas, monospace';
+    context.fillStyle='#9fb3be';
+    for(let index=0;index<=8;index++){
+      const t=startMs+portion*(index/8);
+      context.fillText((t/1000).toFixed(1)+'s',Math.max(6,(w-60)*index/8),14);
+    }
+  }
   const channels=peaks?.channels.length??2;
   const bandH=h/channels;
   for(let c=0;c<channels;c++){
@@ -326,12 +344,13 @@ function drawWave(){
     const count=peaks.bucketCount;
     const zoom=Number(state.zoom.value)||1;
     const visible=Math.max(1,Math.ceil(count/zoom));
+    const start=Math.round((count-visible)*(Number(state.pan.value)/100));
     const channel=peaks.channels[c];
     context.strokeStyle=c===0?'#65d7c9':'#ada1ff';
     context.lineWidth=1.5;
     context.beginPath();
     for(let x=0;x<w;x++){
-      const index=Math.min(visible-1,Math.floor(x*visible/w));
+      const index=Math.min(count-1,start+Math.min(visible-1,Math.floor(x*visible/w)));
       const amplitude=bandH*.43;
       const up=center-channel.max[index]*amplitude;
       const down=center-channel.min[index]*amplitude;
