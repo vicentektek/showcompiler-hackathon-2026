@@ -1,3 +1,4 @@
+import { compileSoundProposals, applyProposalEdits, recompileProposal } from '../core/soundPromptCompiler.mjs';
 import { waveformPeaks, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
 
 const api = '/api/sfx';
@@ -235,6 +236,74 @@ function applyPreset(){
   $('confirmRequest').checked=false;updateControls();
   inform('Acceptance case loaded locally. No request has been sent.');
 }
+const scriptProposalState={proposals:[],selected:0};
+function showScriptProposal(){
+  const p=scriptProposalState.proposals[scriptProposalState.selected];
+  if(!p)return;
+  $('scriptSfxSource').value=p.soundSource??'';
+  $('scriptSfxAction').value=p.action??'';
+  $('scriptSfxIntensity').value=p.intensity??'';
+  $('scriptSfxDuration').value=String(p.suggestedDurationSeconds??8);
+  $('scriptSfxPrompt').value=p.prompt;
+  const evidence=[...(p.explicitElements??[]),...(p.inferences??[]).map(x=>'Inferencia: '+x),...(p.uncertainties??[]).map(x=>'Sin determinar: '+x)];
+  $('scriptSfxEvidence').textContent=evidence.join(' · ')||'Revisión necesaria';
+}
+function bindScriptCompiler(){
+  if(!$('scriptSfxCompile'))return;
+  $('scriptSfxCompile').addEventListener('click',()=>{
+    try{
+      const fragment=$('scriptSfxFragment').value.trim();
+      const sourceLineId=$('scriptSfxLine').value.trim();
+      const mode=$('scriptSfxMode').value;
+      const proposals=compileSoundProposals({fragment,sourceLineId,projectId:'sound-lab-local',fragmentKind:'STAGE_DIRECTION',mode});
+      scriptProposalState.proposals=proposals;
+      scriptProposalState.selected=0;
+      const select=$('scriptSfxSelect');select.replaceChildren();
+      proposals.forEach((p,i)=>{const option=document.createElement('option');option.value=String(i);option.textContent=(i+1)+'. '+p.soundSource+' · '+(p.action??'acción por concretar');select.append(option);});
+      $('scriptSfxResults').hidden=proposals.length===0;
+      $('scriptSfxStatus').textContent=proposals.length?proposals.length+' propuesta(s) · sin consumo':'No se detectaron sonidos explícitos';
+      if(proposals.length)showScriptProposal();
+    }catch(error){$('scriptSfxResults').hidden=true;$('scriptSfxStatus').textContent='Revisa la acotación: '+error.message;}
+  });
+  $('scriptSfxSelect').addEventListener('change',()=>{scriptProposalState.selected=Number($('scriptSfxSelect').value);showScriptProposal();});
+  $('scriptSfxMode').addEventListener('change',()=>{
+    if(!scriptProposalState.proposals.length)return;
+    try{
+      scriptProposalState.proposals=scriptProposalState.proposals.map(p=>recompileProposal(p,{mode:$('scriptSfxMode').value}));
+      showScriptProposal();
+    }catch(error){$('scriptSfxStatus').textContent=error.message;}
+  });
+  for(const [id,key] of [['scriptSfxSource','soundSource'],['scriptSfxAction','action'],['scriptSfxIntensity','intensity'],['scriptSfxDuration','suggestedDurationSeconds']]){
+    $(id).addEventListener('change',()=>{
+      const index=scriptProposalState.selected,p=scriptProposalState.proposals[index];if(!p)return;
+      try{const value=key==='suggestedDurationSeconds'?Number($(id).value):key==='intensity'?($(id).value||null):$(id).value;
+        scriptProposalState.proposals[index]=applyProposalEdits(p,{[key]:value});
+        showScriptProposal();}catch(error){$('scriptSfxStatus').textContent=error.message;}
+    });
+  }
+  $('scriptSfxPrompt').addEventListener('input',()=>{
+    const p=scriptProposalState.proposals[scriptProposalState.selected];if(!p)return;
+    try{scriptProposalState.proposals[scriptProposalState.selected]=applyProposalEdits(p,{prompt:$('scriptSfxPrompt').value});}
+    catch{/* Editable draft may be temporarily empty; transfer checks final state. */}
+  });
+  $('scriptSfxRestore').addEventListener('click',()=>{
+    const i=scriptProposalState.selected,p=scriptProposalState.proposals[i];if(!p)return;
+    scriptProposalState.proposals[i]=recompileProposal(p,{mode:$('scriptSfxMode').value});showScriptProposal();
+    $('scriptSfxStatus').textContent='Propuesta restaurada';
+  });
+  $('scriptSfxTransfer').addEventListener('click',()=>{
+    const p=scriptProposalState.proposals[scriptProposalState.selected];if(!p)return;
+    if(p.category==='MUSIC'){$('scriptSfxStatus').textContent='Música requiere un proveedor compatible; no se transfiere al piloto SFX';return;}
+    const finalPrompt=$('scriptSfxPrompt').value.trim();
+    if(!finalPrompt||finalPrompt.length>1000){$('scriptSfxStatus').textContent='El prompt debe tener entre 1 y 1000 caracteres';return;}
+    $('soundKind').value=p.category==='ENVIRONMENT'?'ENVIRONMENT':'SFX';
+    $('sourceLine').value=p.scriptReference??'';
+    $('soundPrompt').value=finalPrompt;
+    $('duration').value=String(p.suggestedDurationSeconds??8);
+    $('confirmRequest').checked=false;updateControls();
+    $('scriptSfxStatus').textContent='Transferido al formulario. No se ha enviado ninguna solicitud.';
+  });
+}
 function bindEvents(){
   $('generateForm').addEventListener('submit',event=>{
     event.preventDefault();
@@ -348,7 +417,7 @@ export async function initializeSoundLab({onImportReviewed}={}){
   if(!requiredDom())throw new Error('Sound Lab workspace is unavailable');
   if(typeof onImportReviewed==='function')state.onImportReviewed=onImportReviewed;
   if(state.initialized){updateControls();drawWave();return;}
-  state.initialized=true;bindEvents();
+  state.initialized=true;bindEvents();bindScriptCompiler();
   try{
     const settings=await(await request('/status')).json();
     state.settings=settings;state.enabled=settings.enabled===true;showCost(settings);
