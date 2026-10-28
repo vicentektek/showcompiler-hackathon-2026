@@ -1,4 +1,5 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
+import {authorizeRehearsalVoice,rehearsalArmState,disarmRehearsalVoice} from '../core/rehearsalArmSession.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
@@ -74,6 +75,12 @@ document.addEventListener('runq:voice-follow-read-project', event => {
     })),
   });
 });
+function voiceShowFingerprint(){
+ return JSON.stringify({script:show.scriptText,cues:show.cues.map(c=>({
+  id:c.id,number:c.number,label:c.label,trigger:c.trigger??'',
+  sourceLineIds:[...c.sourceLineIds],
+ }))});
+}
 document.addEventListener('runq:voice-follow-highlight-line', event => {
   const lineId=event.detail?.lineId;
   if(typeof lineId!=='string'||!/^L[1-9]\d*$/.test(lineId))return;
@@ -113,7 +120,7 @@ let selectedCueId = null; // Selection inspects only; it never changes the GO qu
 let inspectorTab = 'audio';
 let inspectorPendingChanges = false;
 let activeWorkspace = 'home';
-const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'soundlab', 'setup', 'rehearsal', 'operation']);
+const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'soundlab', 'voice', 'setup', 'rehearsal', 'operation']);
 let operatorQueue = startOperatorQueue(show.cues);
 let lastGoCueId = null;
 let auditionAcknowledged = false;
@@ -335,6 +342,13 @@ function setWorkspace(workspace) {
   return true;
 }
 
+document.addEventListener('runq:voice-open-cue',event=>{
+ const cueId=event.detail?.cueId;
+ if(typeof cueId!=='string'||!show.cues.some(c=>c.id===cueId))return;
+ if(!setWorkspace('cues'))return;
+ selectedCueId=cueId;inspectorTab='details';
+ renderCueList();renderCueInspector();
+});
 function renderSetupReadiness() {
   const report = inspectShowReadiness(show, assetId => player.hasAsset(assetId), { audioLoading: audioInFlight });
   $('setupReadinessSummary').textContent = t(report.ready ? 'preflight.ready' : 'preflight.blocked', {
@@ -1921,6 +1935,8 @@ function currentScriptLanguageHint() {
 }
 
 function setNewShow(project, statusKey, values = {}) {
+  disarmRehearsalVoice('project_replaced');
+  document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'project_replaced'}}));
   projectGeneration += 1;
   scriptFocusLineId = null;
   scriptMatchIndex = 0;
@@ -2033,8 +2049,9 @@ document.addEventListener('runq:operator-quick-go',event=>{
 // Shared guarded path for manual GO and explicitly ARMED rehearsal auto-GO.
 // Both use the same audio engine, cue entry policies and completion logic.
 let goTransportPending=false;
-async function executePreparedGo(){
+async function executePreparedGo({authorization=null}={}){
  const id=operatorQueue.preparedCueId;
+ if(authorization&&!authorization())return false;
  if(!id||goTransportPending||audioInFlight||bundleInFlight)return false;
  const generation=projectGeneration;
  const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
@@ -2045,6 +2062,7 @@ async function executePreparedGo(){
     player.isPlaying(id))return false;
  goTransportPending=true;
  try{
+   if(authorization&&!authorization())return false;
    for(const stop of planEntryStops(show.cues,id,cue.entryPolicy,cue.automation?.stopCueIds??[])){
      player.stopCue(stop.cueId,stop.fadeMs);
    }
@@ -2052,7 +2070,12 @@ async function executePreparedGo(){
      const target=show.cues.find(item=>item.id===targetId);
      player.stopCue(targetId,cue.stopFadeOverrides?.[targetId]??target?.playback?.fadeOutMs??0);
    }
+   if(authorization&&!authorization())return false;
    await player.go(cue);
+   if(authorization&&!authorization()){
+     try{player.stopCue(id,0);}catch{}
+     return false;
+   }
    if(generation!==projectGeneration)return false;
    lastGoCueId=id;
    if(operatorQueue.preparedCueId===id)operatorQueue=completePreparedCue(operatorQueue,show.cues,id);
@@ -2085,9 +2108,15 @@ document.addEventListener('runq:rehearsal-auto-arm-audio',event=>{
 document.addEventListener('runq:rehearsal-auto-go',event=>{
  const cueId=event.detail?.cueId,respond=event.detail?.respond;
  const report=payload=>{if(typeof respond==='function')respond(payload);};
- if(activeWorkspace!=='rehearsal'||document.hidden||
-   document.body?.dataset.runqVoiceCapture!=='live'||
-   $('rqLiveArm')?.getAttribute('aria-pressed')!=='true'||
+ const grantEpoch=rehearsalArmState().epoch;
+ const authorized=()=>authorizeRehearsalVoice({
+  workspace:activeWorkspace,
+  live:document.body?.dataset.runqVoiceCapture==='live',
+  visible:!document.hidden,
+  fingerprint:voiceShowFingerprint(),
+  epoch:grantEpoch,
+ });
+ if(!authorized()||
    typeof cueId!=='string'||goTransportPending||audioInFlight||bundleInFlight){
    report({ok:false,reason:'NOT_ARMED_OR_BUSY'});return;
  }
@@ -2110,7 +2139,7 @@ document.addEventListener('runq:rehearsal-auto-go',event=>{
  try{
    operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cueId);
    refreshAudioControls();
-   void executePreparedGo().then(ok=>{
+   void executePreparedGo({authorization:authorized}).then(ok=>{
      if(!ok&&projectAtStart===projectGeneration&&operatorQueue.preparedCueId===cueId){
        operatorQueue=prior;render();
      }
