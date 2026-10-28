@@ -20,7 +20,9 @@ function normalizedRegion(region){
   return {startAtMs:inMs,endAtMs:outMs};
 }
 function withTrackRegion(project, cueId, trackId, region){
-  const playback=normalizedRegion(region);
+  // Validated once at the public transaction boundary; this is already the
+  // normalized playback-shaped object, not an inMs/outMs UI draft.
+  const playback=region;
   if(!playback)return project;
   if(trackId){
     const cue=project.cues.find(c=>c.id===cueId);
