@@ -528,3 +528,99 @@ main{padding:9px 14px 12px!important}
 
 /* Editing a selection must never surface a misleading NEXT/transport command. */
 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item .cue-operation-actions{display:none!important}
+
+
+/* Every workspace retains the browser's explicit hidden contract even when
+   its active sibling uses a powerful display:flex/grid layout rule. */
+[data-workspaces][hidden]{display:none!important}
+.workspace-tab[data-workspace-nav="rehearsal"]::before{content:"◎";font-size:19px!important}
+
+/* Manual rehearsal is a real split view of the SAME script, queue and GO.
+   No microphone, transcript or automatic execution is implied. */
+.shell[data-active-workspace="rehearsal"] main{
+ display:flex!important;flex-direction:column;min-height:0;overflow:hidden!important;
+}
+.shell[data-active-workspace="rehearsal"] .workspace-intro{
+ min-height:37px;margin:0 0 4px!important;flex:none;
+}
+.shell[data-active-workspace="rehearsal"] #statusMessage{
+ flex:none;min-height:25px;padding:4px 9px!important;
+ max-height:28px;margin-bottom:5px!important;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.shell[data-active-workspace="rehearsal"] .layout{
+ flex:1;min-height:0;display:grid!important;
+ grid-template-columns:minmax(320px,.78fr) minmax(0,1.35fr)!important;
+ gap:8px!important;align-items:stretch!important;
+}
+.shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]{
+ display:flex!important;flex-direction:column;min-height:0;min-width:0;
+ height:100%;padding:9px!important;overflow:hidden;
+}
+.shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]>.panel-head{
+ flex:none;margin:0 0 7px;padding:0 0 8px;
+}
+.shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]>label,
+.shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]>#showName,
+.shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]>.line-actions,
+.shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]>#runqScriptContext{
+ display:none!important;
+}
+.shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]>.subheading{
+ margin:2px 0 7px;font-size:10px;
+}
+.shell[data-active-workspace="rehearsal"] #scriptPreview{
+ flex:1!important;min-height:0!important;max-height:none!important;
+ background:#0b121a!important;overflow:auto;
+}
+.shell[data-active-workspace="rehearsal"] .script-line{
+ font-size:13px;line-height:1.55;padding:4px 8px;
+}
+.shell[data-active-workspace="rehearsal"] .layout>.rq5-show-workspace{
+ display:flex!important;flex-direction:column;height:100%!important;
+ min-height:0!important;padding:0!important;overflow:hidden;
+}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace>.rq5-transport-dock{
+ order:0;padding:8px!important;
+}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace>.rq5-desk{order:1;min-height:0}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .rq5-stage-actions{display:none!important}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .rq5-sequence{padding:5px 9px}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .cue-workspace-body{
+ grid-template-columns:1fr!important;
+}
+.shell[data-active-workspace="rehearsal"] .rq5-inspector-frame{display:none!important}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .operator-queue{
+ grid-template-columns:1fr!important;min-height:120px!important;
+ padding:10px!important;
+}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .operator-queue-controls #operatorGoBtn,
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .operator-queue-controls #operatorPanicBtn{
+ min-height:52px!important;font-size:18px!important;
+}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .cue-operation-actions{
+ display:flex!important;
+}
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .cue-audio-tools,
+.shell[data-active-workspace="rehearsal"] .rq5-show-workspace .cue-edit-actions{display:none!important}
+.shell[data-active-workspace="rehearsal"] .rq5-stage-identity>.rq5-eyebrow{color:var(--rq5-amber)}
+.shell[data-active-workspace="rehearsal"] .rq5-stage-tabs{gap:2px}
+.shell[data-active-workspace="rehearsal"] .rq5-route[data-rq5-label="rehearsal"]{
+ color:var(--rq5-lime);border-bottom-color:var(--rq5-lime);
+}
+@media(max-width:1120px){
+ .shell[data-active-workspace="rehearsal"] .layout{
+  grid-template-columns:minmax(290px,.9fr) minmax(0,1.1fr)!important;
+ }
+ .shell[data-active-workspace="rehearsal"] .rq5-stage-tabs{display:none}
+}
+@media(max-width:800px){
+ .shell[data-active-workspace="rehearsal"] main{overflow:auto!important}
+ .shell[data-active-workspace="rehearsal"] .layout{
+  display:flex!important;flex-direction:column;
+ }
+ .shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]{
+  min-height:240px;max-height:48vh;
+ }
+ .shell[data-active-workspace="rehearsal"] .layout>.rq5-show-workspace{min-height:400px}
+}
