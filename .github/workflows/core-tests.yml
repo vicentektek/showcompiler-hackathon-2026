@@ -70,6 +70,8 @@ jobs:
         run: node tools/stagecraft-cue-safety-e2e.mjs
       - name: Stagecraft Audio Library batch and compressed ZIP Chrome smoke
         run: node tools/stagecraft-audio-batch-e2e.mjs
+      - name: Audio drop to manual cues Chrome smoke (offline)
+        run: node tools/audio-cue-drop-browser-e2e.mjs
       - name: Sound Lab Chrome smoke (offline, zero provider calls)
         env:
           RUNQ_CAPTURE_UI: '1'

@@ -10,6 +10,7 @@ import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { formatCueTime,parseCueTime,clampCueFade } from '../core/cueTimeEditing.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
 import { planAudioLibraryBatch } from '../core/audioBatchImport.mjs';
+import { insertAudioCues, moveAudioCueBefore } from '../core/audioCueDrop.mjs';
 import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
 import { prepareReviewedSfxImport } from '../core/sfxImportCandidate.mjs';
 import { createCueFromReviewedAudio } from '../core/reviewedSfxCue.mjs';
@@ -111,6 +112,7 @@ let scriptMatchIndex = 0;
 let preflightVisible = false;
 let editingCueId = null;
 let selectedCueId = null; // Selection inspects only; it never changes the GO queue.
+let cueDropReport = '';
 let inspectorTab = 'audio';
 let inspectorPendingChanges = false;
 let activeWorkspace = 'home';
@@ -228,6 +230,11 @@ function refreshAudioControls() {
   $('loadAudioBtn').disabled = audioInFlight || auditioning || bundleInFlight;
   $('importAudioBatchBtn').disabled = audioInFlight || bundleInFlight || auditioning || active>0 || pending>0;
   $('importAudioZipBtn').disabled = $('importAudioBatchBtn').disabled;
+  for(const button of document.querySelectorAll('[data-rq-audio-cue-import]'))
+    button.disabled=audioInFlight||bundleInFlight||auditioning||active>0||pending>0;
+  for(const button of document.querySelectorAll('[data-rq-create-audio-cue]'))
+    button.disabled=audioInFlight||bundleInFlight||auditioning||active>0||pending>0||
+      !player.hasAsset(button.dataset.rqCreateAudioCue);
   $('openBundleBtn').disabled = bundleInFlight || audioInFlight;
   $('saveBundleBtn').disabled = bundleInFlight || audioInFlight;
   for (const button of document.querySelectorAll('[data-asset-audition]')) {
@@ -719,6 +726,26 @@ function renderCueList({ resetScroll = false } = {}) {
   const cueList = $('cueList');
   const priorScrollTop = cueList.scrollTop;
   cueList.replaceChildren();
+  const importBar = node('div','rq-audio-cue-import');
+  const importButton = node('button','btn subtle small',
+    uiLocale==='es'?'Importar audios como cues':'Import audio as cues');
+  importButton.type='button';
+  importButton.dataset.rqAudioCueImport='';
+  importButton.disabled=audioInFlight||bundleInFlight;
+  const chooser=node('input','rq-audio-cue-input');
+  chooser.type='file';chooser.accept='.wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*';
+  chooser.multiple=true;chooser.hidden=true;
+  importButton.addEventListener('click',()=>{chooser.value='';chooser.click();});
+  chooser.addEventListener('change',()=>{
+    const files=[...(chooser.files??[])];chooser.value='';
+    void importAudioFilesAsCues(files);
+  });
+  importBar.append(importButton,node('span','rq-audio-cue-hint',
+    uiLocale==='es'?'Arrastra archivos aquí o entre cues · No se reproducen al importarlos':
+      'Drop files here or between cues · Import never plays audio'));
+  const report=node('p','rq-audio-cue-report',cueDropReport);
+  report.setAttribute('role','status');report.hidden=!cueDropReport;
+  cueList.append(importBar,chooser,report);
   const cueQuery = $('cueSearchInput').value.trim().toLocaleLowerCase();
   const visibleCues = !cueQuery ? show.cues : show.cues.filter(cue => {
     const matchingAssets = cue.actions.map(action =>
@@ -732,6 +759,13 @@ function renderCueList({ resetScroll = false } = {}) {
   else if (!visibleCues.length) cueList.append(node('p', 'empty', t('workspace.noCueMatches')));
   for (const cue of visibleCues) {
     const card = node('article', 'item cue-item');
+    card.dataset.rqCueRow=cue.id;
+    card.draggable=true;
+    card.addEventListener('dragstart',event=>{
+      if(!event.dataTransfer)return;
+      event.dataTransfer.effectAllowed='move';
+      event.dataTransfer.setData('application/x-runq-cue-id',cue.id);
+    });
     if (cue.id === selectedCueId) card.classList.add('cue-selected');
     if (cue.id === operatorQueue.preparedCueId) card.classList.add('cue-prepared');
     const select = node('button', 'cue-row-select');
@@ -890,6 +924,14 @@ function render() {
   for (const asset of show.assets) {
     const state = t(player.hasAsset(asset.id) ? 'status.loaded' : 'status.missingAsset');
     const row = node('div', 'asset-list-row');
+    row.draggable=player.hasAsset(asset.id);
+    row.dataset.rqAudioAsset=asset.id;
+    row.title=uiLocale==='es'?'Arrastrar al editor de cues':'Drag to cue editor';
+    row.addEventListener('dragstart',event=>{
+      if(!player.hasAsset(asset.id)){event.preventDefault();return;}
+      event.dataTransfer?.setData('application/x-runq-audio-asset',asset.id);
+      if(event.dataTransfer)event.dataTransfer.effectAllowed='copy';
+    });
     const label = node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state);
     const audition = node('button', 'btn subtle small', t('audio.audition'));
     audition.type = 'button';
@@ -905,7 +947,13 @@ function render() {
         feedback('audio.auditionStarted', { name: asset.name }, 'success');
       } catch (error) { showError(error); }
     });
-    row.append(label, audition);
+    const addCue=node('button','btn subtle small',
+      uiLocale==='es'?'Crear cue':'Create cue');
+    addCue.type='button';
+    addCue.dataset.rqCreateAudioCue=asset.id;
+    addCue.disabled=!player.hasAsset(asset.id)||audioInFlight||bundleInFlight;
+    addCue.addEventListener('click',()=>insertLoadedAudioCues([asset.id]));
+    row.append(label, audition, addCue);
     list.append(row);
   }
 
@@ -2638,6 +2686,160 @@ async function importAudioLibraryBatch(selected,{zip=false}={}){
     refreshAudioControls();
   }
 }
+/**
+ * Manual show creation from existing library files or local drag-and-drop.
+ * No network calls and no automatic GO. Reuses the same validated decoder,
+ * local audio asset registry and show schema as the normal library import.
+ */
+function cueDropBlocked(){
+  const status=player.getStatus();
+  if(audioInFlight||bundleInFlight||status.activeCueCount||status.pendingGoCount||
+      status.auditionActive||status.auditionPending){
+    feedback('cueEditor.stopBeforeEdit',{},'error');return true;
+  }
+  if(inspectorPendingChanges&&!confirmDiscardInspectorEdits())return true;
+  return false;
+}
+function insertLoadedAudioCues(assetIds,beforeCueId=null){
+  if(cueDropBlocked())return;
+  const unavailable=assetIds.find(id=>!show.assets.some(a=>a.id===id)||!player.hasAsset(id));
+  if(unavailable){
+    cueDropReport=uiLocale==='es'?'Carga primero el archivo en la biblioteca.':
+      'Load the original audio file in the library first.';
+    render();return;
+  }
+  editCueSequence(()=>insertAudioCues(show,assetIds,{beforeCueId}));
+  cueDropReport=uiLocale==='es'
+    ?assetIds.length+' cue(s) creados a partir de la biblioteca.'
+    :assetIds.length+' cue(s) created from the audio library.';
+  render();
+}
+async function importAudioFilesAsCues(files,beforeCueId=null){
+  if(!files.length||cueDropBlocked())return;
+  if(show.cues.length+files.length>2000){
+    showError(new RangeError('Show cue limit reached'));return;
+  }
+  const plan=planAudioLibraryBatch(files,show.assets,()=>false);
+  const skipped=[...plan.skipped];
+  const choices=[];
+  let bytes=0;
+  // Protect the browser from oversized multi-file drops, as in ZIP intake.
+  for(const item of plan.accepted){
+    if(bytes+item.file.size>100_000_000){
+      skipped.push({name:item.file.name,reason:'batch exceeds 100 MB'});continue;
+    }
+    bytes+=item.file.size;choices.push(item);
+  }
+  if(!choices.length){
+    cueDropReport=(uiLocale==='es'?'Ningún archivo válido':'No valid files')+
+      ' · '+skipped.length+' '+(uiLocale==='es'?'omitidos':'skipped');
+    render();return;
+  }
+  const generation=projectGeneration;
+  const sourceShow=show;
+  audioInFlight=true;refreshAudioControls();
+  const accepted=[];
+  try{
+    for(const item of choices){
+      if(generation!==projectGeneration||show!==sourceShow && !accepted.length)
+        throw uiError('errors.projectChanged');
+      const matches=show.assets.filter(a=>a.name.toLocaleLowerCase()===item.file.name.toLocaleLowerCase());
+      if(matches.length>1){skipped.push({name:item.file.name,reason:'ambiguous library name'});continue;}
+      if(matches.length===1&&player.hasAsset(matches[0].id)){
+        accepted.push(matches[0].id);
+        continue; // Never replace a shared, already loaded source on drop.
+      }
+      const id=matches[0]?.id??nextAvailableId('asset',show.assets.map(a=>a.id));
+      if(!matches.length&&show.assets.length>=500){
+        skipped.push({name:item.file.name,reason:'library limit (500)'});continue;
+      }
+      try{
+        await player.loadFile(item.file,id);
+        if(generation!==projectGeneration)throw uiError('errors.projectChanged');
+        if(!matches.length)show=addAudioReference(show,item.file.name);
+        originalAudioFiles.set(id,item.file);
+        dirty=true;
+        accepted.push(id);
+      }catch(error){
+        if(generation!==projectGeneration)throw error;
+        skipped.push({name:item.file.name,reason:error?.message??'Cannot decode audio'});
+      }
+    }
+    if(generation!==projectGeneration)throw uiError('errors.projectChanged');
+    if(accepted.length){
+      const outcome=insertAudioCues(show,accepted,{beforeCueId});
+      show=outcome.project;
+      selectedCueId=outcome.cueId;
+      operatorQueue=startOperatorQueue(show.cues);
+      lastGoCueId=null;
+      inspectorPendingChanges=false;editingCueId=null;
+      $('cueSearchInput').value='';
+      dirty=true;
+    }
+    cueDropReport=(uiLocale==='es'?'Cues creados: ':'Cues created: ')+accepted.length+
+      (skipped.length?' · '+skipped.length+(uiLocale==='es'?' omitidos':' skipped'):'')+
+      (skipped.length?' · '+skipped.slice(0,3).map(x=>x.name+': '+x.reason).join('; '):'');
+    render();
+  }catch(error){showError(error);}
+  finally{audioInFlight=false;refreshAudioControls();}
+}
+function audioCueDropPosition(event){
+  const card=event.target instanceof Element?event.target.closest('[data-rq-cue-row]'):null;
+  if(!card)return null;
+  const cueId=card.dataset.rqCueRow;
+  const rect=card.getBoundingClientRect();
+  if(event.clientY<rect.top+rect.height/2)return cueId;
+  const index=show.cues.findIndex(cue=>cue.id===cueId);
+  return show.cues[index+1]?.id??null;
+}
+const cueDropList=$('cueList');
+function isCueDrop(event){
+  const types=[...(event.dataTransfer?.types??[])];
+  return types.includes('Files')||types.includes('application/x-runq-audio-asset')||
+    types.includes('application/x-runq-cue-id');
+}
+cueDropList.addEventListener('dragover',event=>{
+  if(!isCueDrop(event))return;
+  event.preventDefault();
+  if(event.dataTransfer)event.dataTransfer.dropEffect=
+    [...event.dataTransfer.types].includes('application/x-runq-cue-id')?'move':'copy';
+  cueDropList.classList.add('rq-audio-cue-dragover');
+  cueDropList.querySelectorAll('.rq-cue-drop-target').forEach(row=>row.classList.remove('rq-cue-drop-target'));
+  event.target.closest?.('[data-rq-cue-row]')?.classList.add('rq-cue-drop-target');
+});
+cueDropList.addEventListener('dragleave',event=>{
+  if(!cueDropList.contains(event.relatedTarget))
+    cueDropList.classList.remove('rq-audio-cue-dragover');
+});
+cueDropList.addEventListener('drop',event=>{
+  if(!isCueDrop(event))return;
+  event.preventDefault();
+  cueDropList.classList.remove('rq-audio-cue-dragover');
+  cueDropList.querySelectorAll('.rq-cue-drop-target').forEach(row=>row.classList.remove('rq-cue-drop-target'));
+  const beforeCueId=audioCueDropPosition(event);
+  const draggedCue=event.dataTransfer?.getData('application/x-runq-cue-id');
+  const asset=event.dataTransfer?.getData('application/x-runq-audio-asset');
+  if(draggedCue){
+    if(draggedCue!==beforeCueId)editCueSequence(()=>moveAudioCueBefore(show,draggedCue,beforeCueId));
+    return;
+  }
+  if(asset){insertLoadedAudioCues([asset],beforeCueId);return;}
+  const files=[...(event.dataTransfer?.files??[])];
+  if(files.length)void importAudioFilesAsCues(files,beforeCueId);
+});
+cueDropList.addEventListener('dragend',()=>{
+  cueDropList.classList.remove('rq-audio-cue-dragover');
+  cueDropList.querySelectorAll('.rq-cue-drop-target').forEach(row=>row.classList.remove('rq-cue-drop-target'));
+});
+// While dragging an audio row, hovering over the Cues workspace tab opens
+// the target. A Create cue button also provides an accessible non-drag route.
+$('workspaceNav')?.addEventListener('dragover',event=>{
+  const nav=event.target.closest?.('[data-workspace-nav="cues"]');
+  if(nav&&[...(event.dataTransfer?.types??[])].includes('application/x-runq-audio-asset')){
+    event.preventDefault();setWorkspace('cues');
+  }
+});
+
 $('importAudioBatchBtn').addEventListener('click',()=>{
   if(audioInFlight||bundleInFlight)return;
   $('audioBatchFilesInput').value='';
