@@ -1,0 +1,101 @@
+/* Stagecraft operator dashboard: real active playback clock, never fake meters. */
+.rq5-active-cues{
+  border:1px solid #374c51;background:linear-gradient(145deg,#12202a,#101920);
+  padding:9px 11px 11px;border-radius:5px;min-width:0;max-width:100%;
+  display:flex;flex-direction:column;gap:7px;flex:none;
+}
+.rq5-active-cues[hidden]{display:none!important}
+.rq5-active-heading{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.rq5-active-title{font:800 10px/1.4 ui-monospace,Consolas,monospace;letter-spacing:.12em;color:#b5c9cf}
+.rq5-active-count{
+ display:inline-flex;align-items:center;justify-content:center;min-width:26px;padding:3px 9px;
+ border:1px solid #578777;border-radius:13px;background:#203b35;color:#8ce3cf;font:800 12px ui-monospace,monospace;
+}
+.rq5-active-list{display:flex;flex-direction:column;gap:5px;max-height:168px;overflow-y:auto;overscroll-behavior:contain}
+.rq5-active-empty{font-size:11px!important;margin:2px 0!important;color:#b2bec8}
+.rq5-active-row{
+ display:grid;grid-template-columns:minmax(130px,1fr) minmax(80px,.6fr) auto;
+ gap:10px;align-items:center;min-height:44px;
+ border:1px solid #34514e;border-left:3px solid #60d2bd;border-radius:4px;
+ padding:5px 8px;background:#172a2c;min-width:0;
+}
+.rq5-active-row.is-fading{border-color:#827149;border-left-color:#e8c276;background:#302820}
+.rq5-active-ident{min-width:0;display:flex;flex-direction:column;gap:3px}
+.rq5-active-label{font-size:12px;line-height:1.3;font-weight:800;color:#ecf8f4;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.rq5-active-time{font:700 10px ui-monospace,Consolas,monospace;color:#a2c9ca}
+.rq5-active-progress{height:6px;background:#243b44;border-radius:4px;overflow:hidden}
+.rq5-active-progress-fill{display:block;height:100%;width:0;background:#6edaca;transition:width .22s linear}
+.rq5-active-row.is-fading .rq5-active-progress-fill{background:#e8c276}
+.rq5-active-row.is-looping .rq5-active-progress-fill{
+ background:repeating-linear-gradient(105deg,#497768 0 9px,#6bdac4 9px 19px)
+}
+.rq5-active-actions{display:flex;gap:5px;flex:none}
+.rq5-active-action{
+ min-width:55px;min-height:32px;padding:6px 9px;border-radius:4px;
+ border:1px solid #7c4c59;background:#43262e;color:#ffdbe2;
+ font-size:11px;font-weight:800;cursor:pointer;
+}
+.rq5-active-action.fade{background:#33302b;border-color:#8c755b;color:#f4dbb2}
+.rq5-active-action:hover:not(:disabled){filter:brightness(1.25)}
+.rq5-active-action:disabled{opacity:.48;cursor:not-allowed}
+.rq5-active-action:focus-visible{outline:2px solid #d9f877;outline-offset:2px}
+.shell[data-active-workspace="operation"] .rq5-active-cues{
+ margin-top:7px;
+}
+@media(max-width:1100px){
+ .rq5-active-row{grid-template-columns:minmax(0,1fr) auto;gap:6px}
+ .rq5-active-progress{grid-column:1 / -1;grid-row:2}
+ .rq5-active-list{max-height:124px}
+}
+@media(max-width:560px){
+ .rq5-active-list{max-height:105px}
+ .rq5-active-cues{padding:6px 8px}
+ .rq5-active-label{font-size:11px}
+ .rq5-active-action{min-height:30px;padding:4px 7px;min-width:45px}
+}
+/* Compact clip transport/timing; controls edit the cue, not the original asset. */
+.cue-wave-timing{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:6px;margin:2px 0;
+}
+.cue-wave-timing label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#b7c6d0}
+.cue-wave-timing input{
+ width:100%;min-width:0;height:32px;border:1px solid #526679;
+ background:#0c1925;border-radius:4px;padding:5px 6px;color:#eef6f3;
+ text-align:center;font:800 11px/1.2 ui-monospace,Consolas,monospace;
+}
+.cue-wave-timing input:focus-visible{outline:2px solid #d3c4ff;outline-offset:1px}
+.cue-wave-timing input[aria-invalid="true"]{border-color:#ed7180}
+.cue-wave-timing .cue-timing-hint{grid-column:1/-1;font-size:10px;color:#9db2ba}
+.cue-wave-scrub{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center}
+.cue-wave-scrub input{accent-color:#b9a6ff;width:100%;min-width:0;cursor:crosshair}
+.cue-wave-scrub span{font:800 11px ui-monospace,Consolas,monospace;color:#cbd9df;white-space:nowrap}
+.cue-wave-tools{display:flex;gap:5px;flex-wrap:wrap}
+.cue-wave-tools .btn{
+ font-size:11px;min-height:31px;padding:5px 8px;border-radius:4px;
+ background:#1b3340;border:1px solid #476376;color:#e0eee8;
+}
+.cue-wave-tools .btn:focus-visible{outline:2px solid #c6b4ff;outline-offset:2px}
+.cue-waveform-editor.is-clip-editor .cue-waveform-stage{position:relative}
+.cue-waveform-editor.is-clip-editor .cue-waveform-canvas{cursor:crosshair}
+.cue-waveform-editor.is-clip-editor .cue-playback-editor>.field{min-width:0}
+.cue-wave-legacy-ms{display:none!important}
+@media(max-width:480px){.cue-wave-timing{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.cue-wave-ms-advanced{border-top:1px solid #334a56;padding-top:7px;margin-top:2px}
+.cue-wave-ms-advanced summary{
+ color:#adbac5;cursor:pointer;font:700 11px/1.6 system-ui,sans-serif;
+ list-style:disclosure-closed;
+}
+.cue-wave-ms-advanced[open] summary{margin-bottom:8px}
+.cue-wave-ms-advanced>label{
+ display:grid;grid-template-columns:1fr 110px;align-items:center;
+ margin:4px 0;gap:8px;font-size:11px;
+}
+.cue-wave-ms-advanced input{
+ width:110px;min-height:30px;background:#0e1921;
+ border:1px solid #52606f;color:#e6edf4;
+}
+.cue-wave-ms-advanced .caption{font-size:10px}
+.cue-wave-instruction{margin:0;color:#a3b6c2;font-size:10px;line-height:1.5}
+.cue-waveform-editor .cue-wave-timing>label{min-width:0}

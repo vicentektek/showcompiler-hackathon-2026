@@ -7,6 +7,7 @@ import { insertManualCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorC
 import { stageAddCueTrack, stageChangeCueTrack, stageRemoveCueTrack } from '../core/cueTracks.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
+import { formatCueTime,parseCueTime,clampCueFade } from '../core/cueTimeEditing.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
@@ -72,6 +73,95 @@ let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 let player = createBrowserAudioBackend({ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); } });
+// ON AIR is a transport *snapshot*, not a new independent cue player.
+// Reuse existing stopCue and Web Audio clock; rows survive 250ms clock refreshes.
+let runningCuesTicker=null;
+function refreshRunningCues(){
+  const panel=$('runqActiveCues'),list=$('runqActiveCuesList');
+  if(!panel||!list||!player)return;
+  const visible=activeWorkspace==='operation';
+  panel.hidden=!visible;
+  if(!visible){
+    if(runningCuesTicker!==null)window.clearInterval(runningCuesTicker);
+    runningCuesTicker=null;
+    return;
+  }
+  const active=player.getActiveCues();
+  $('runqActiveCuesCount').textContent=String(active.length);
+  $('runqActiveCuesTitle').textContent=uiLocale==='es'?'EN DIRECTO · CUES SONANDO':'ON AIR · RUNNING CUES';
+  const wanted=new Set(active.map(item=>item.cueId));
+  for(const child of [...list.children]){
+    if(child.dataset.runningCue && !wanted.has(child.dataset.runningCue))child.remove();
+  }
+  const empty=list.querySelector('.rq5-active-empty');
+  if(active.length===0){
+    if(!empty)list.append(node('p','rq5-active-empty',
+      uiLocale==='es'?'No hay cues sonando. El próximo GO está preparado arriba.':
+        'Nothing playing. The next GO is prepared above.'));
+  } else empty?.remove();
+  for(const state of active){
+    const cue=show.cues.find(c=>c.id===state.cueId);
+    let card=[...list.children].find(el=>el.dataset.runningCue===state.cueId);
+    if(!card){
+      card=node('div','rq5-active-row');
+      card.dataset.runningCue=state.cueId;
+      const left=node('div','rq5-active-ident');
+      left.append(node('strong','rq5-active-label'),node('span','rq5-active-time'));
+      const meter=node('div','rq5-active-progress');
+      meter.setAttribute('role','progressbar');meter.setAttribute('aria-valuemin','0');
+      meter.setAttribute('aria-valuemax','100');
+      meter.append(node('span','rq5-active-progress-fill'));
+      const actions=node('div','rq5-active-actions');
+      for(const [action,english,spanish] of [
+        ['stop','STOP','PARAR'],['fade','FADE','FUNDIR']
+      ]){
+        const btn=node('button','rq5-active-action '+action,uiLocale==='es'?spanish:english);
+        btn.type='button';btn.dataset.activeAction=action;
+        btn.addEventListener('click',()=>{
+          const current=show.cues.find(c=>c.id===state.cueId);
+          if(!current || !player.isPlaying(state.cueId) || player.isStopping(state.cueId))return;
+          try{
+            player.stopCue(state.cueId,action==='stop'?0:(current.playback?.fadeOutMs||1500));
+            refreshRunningCues();
+          }catch(error){showError(error);}
+        });
+        actions.append(btn);
+      }
+      card.append(left,meter,actions);
+      list.append(card);
+    }
+    const stateText=state.stopping?'FADING':state.durationSeconds===null?'LOOP':'PLAYING';
+    card.classList.toggle('is-fading',state.stopping);
+    card.classList.toggle('is-looping',state.durationSeconds===null);
+    card.querySelector('.rq5-active-label').textContent=
+      (cue?String(cue.number).padStart(2,'0')+' · '+cue.label:state.cueId);
+    const elapsed=Number.isFinite(state.elapsedSeconds)?Math.floor(state.elapsedSeconds):0;
+    const remaining=state.remainingSeconds===null?'∞':
+      Math.ceil(state.remainingSeconds)+'s';
+    card.querySelector('.rq5-active-time').textContent=
+      stateText+'  ·  '+String(Math.floor(elapsed/60)).padStart(2,'0')+':'+
+      String(elapsed%60).padStart(2,'0')+'  ·  '+remaining;
+    const meter=card.querySelector('.rq5-active-progress');
+    const progress=state.progress;
+    meter.setAttribute('aria-label','Playback timeline: '+(cue?.label??state.cueId));
+    if(progress===null)meter.removeAttribute('aria-valuenow');
+    else meter.setAttribute('aria-valuenow',String(Math.round(progress*100)));
+    meter.querySelector('.rq5-active-progress-fill').style.width=
+      (progress===null?100:Math.round(progress*100))+'%';
+    for(const button of card.querySelectorAll('[data-active-action]')){
+      button.disabled=state.stopping;
+      button.textContent=uiLocale==='es'
+        ?button.dataset.activeAction==='stop'?'PARAR':'FUNDIR'
+        :button.dataset.activeAction==='stop'?'STOP':'FADE';
+    }
+  }
+  if(active.length && runningCuesTicker===null){
+    runningCuesTicker=window.setInterval(refreshRunningCues,250);
+  }else if(!active.length && runningCuesTicker!==null){
+    window.clearInterval(runningCuesTicker);runningCuesTicker=null;
+  }
+}
+
 function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
@@ -159,6 +249,7 @@ function refreshAudioControls() {
     const stopping = player.isStopping(cue.id);
     button.disabled = !playing || stopping;
   }
+  refreshRunningCues();
 }
 
 function renderWorkspaceShell() {
@@ -175,6 +266,7 @@ function renderWorkspaceShell() {
   $('workspaceDescription').textContent = t('workspace.description.' + activeWorkspace);
   $('activeShowTitle').textContent = show.name;
   $('saveState').textContent = t(dirty ? 'workspace.unsaved' : 'workspace.saved');
+  refreshRunningCues();
 }
 
 function setWorkspace(workspace) {
@@ -911,7 +1003,7 @@ function stopCuePreview() {
  */
 function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } = {}) {
   const summary=assetId?player.getWaveform(assetId):null;
-  const block=node('section','cue-waveform-editor');
+  const block=node('section','cue-waveform-editor is-clip-editor');
   block.append(node('strong','cue-waveform-title',t('waveform.heading')));
   if(!summary) {
     block.append(node('p','caption',t('waveform.unavailable')));
@@ -947,7 +1039,106 @@ function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } 
   pan.type='range';pan.min='0';pan.max='0';pan.step='10';pan.value='0';
   pan.setAttribute('aria-label',t('preview.panWave'));
   pan.disabled=true;
+  // All input data still lives in the cue/track's existing integer-ms fields.
+  // Show timecodes and a scrub transport; keep old ms inputs under Advanced.
+  const timing=node('div','cue-wave-timing');
+  const readable=new Map();
+  const fields=[
+    ['startAtMs','IN'],['endAtMs','OUT'],
+    ['fadeInMs',uiLocale==='es'?'ENTRADA':'FADE IN'],
+    ['fadeOutMs',uiLocale==='es'?'SALIDA':'FADE OUT'],
+  ];
+  const advanced=node('details','cue-wave-ms-advanced');
+  advanced.append(node('summary','',uiLocale==='es'
+    ?'Precisión avanzada (milisegundos)':'Advanced precision (milliseconds)'));
+  for(const [key,title] of fields){
+    const label=node('label','',title);
+    const input=node('input','cue-wave-timecode');
+    input.type='text';input.inputMode='decimal';input.autocomplete='off';
+    input.spellcheck=false;input.required=true;input.dataset.timecode=key;
+    label.append(input);timing.append(label);readable.set(key,input);
+    const raw=inputs.get(key);
+    const rawLabel=raw.closest('label');
+    if(rawLabel)advanced.append(rawLabel);
+    input.addEventListener('input',()=>{
+      try{
+        parseCueTime(input.value);input.setCustomValidity('');
+        input.removeAttribute('aria-invalid');
+      }catch{
+        input.setCustomValidity(uiLocale==='es'
+          ?'Usa mm:ss.mmm o segundos (p. ej. 01:02.500)'
+          :'Use mm:ss.mmm or seconds (e.g. 01:02.500)');
+        input.setAttribute('aria-invalid','true');
+      }
+    });
+    input.addEventListener('change',()=>{
+      try{
+        const millis=parseCueTime(input.value);
+        const {start,end}=clip();
+        if(key==='startAtMs'&&millis>=end)throw new RangeError('IN must precede OUT');
+        if(key==='endAtMs'&&millis<=start)throw new RangeError('OUT must follow IN');
+        if(key==='fadeOutMs'&&input.disabled)return;
+        if(key==='fadeInMs'||key==='fadeOutMs'){
+          const other=key==='fadeInMs'?'fadeOutMs':'fadeInMs';
+          const max=Math.max(0,Math.min(10000,(end-start)/
+            Math.max(.5,Number(inputs.get('playbackRate')?.value)||1) -
+            Number(inputs.get(other)?.value||0)));
+          if(millis>max)throw new RangeError('Fade exceeds usable clip duration');
+        }
+        raw.value=key==='endAtMs'&&millis===duration?'':String(millis);
+        input.setCustomValidity('');input.removeAttribute('aria-invalid');
+        raw.dispatchEvent(new Event('input',{bubbles:true}));
+        inspectorPendingChanges=true;redraw();
+      }catch{
+        input.setCustomValidity(uiLocale==='es'?'Tiempo fuera del rango del cue'
+          :'Time is outside the cue region');
+        input.setAttribute('aria-invalid','true');
+      }
+    });
+  }
+  const readableHint=node('p','cue-timing-hint',uiLocale==='es'
+    ?'Formato mm:ss.mmm · Los cambios son solo para este cue; pulsa Guardar.'
+    :'MM:SS.mmm · Changes affect this cue only; press Save.');
+  timing.append(readableHint);
+  const scrubWrap=node('div','cue-wave-scrub');
+  const scrub=node('input');
+  scrub.type='range';scrub.min='0';scrub.max=String(duration);
+  scrub.step='10';scrub.value='0';
+  scrub.setAttribute('aria-label',uiLocale==='es'
+    ?'Cursor de preescucha':'Audition position');
+  const scrubTime=node('span','',formatCueTime(0));
+  scrubWrap.append(scrub,scrubTime);
+  const tools=node('div','cue-wave-tools');
+  const markIn=node('button','btn subtle small',
+    uiLocale==='es'?'IN ← cursor':'IN ← cursor');
+  const markOut=node('button','btn subtle small',
+    uiLocale==='es'?'OUT ← cursor':'OUT ← cursor');
+  for(const button of [markIn,markOut])button.type='button';
+  markIn.addEventListener('click',()=>place('in',cursorMs??clip().start));
+  markOut.addEventListener('click',()=>place('out',cursorMs??clip().end));
+  tools.append(markIn,markOut);
+  const instruction=node('p','cue-wave-instruction',uiLocale==='es'
+    ?'Parte superior de la onda: arrastra los tiradores violeta de FADE. Parte inferior: mueve IN/OUT. Preescucha por esta misma salida.'
+    :'Upper waveform: drag violet FADE handles. Lower waveform: move IN/OUT. Audition uses this same audio output.');
   let zoom=1,viewStart=0,cursorMs=null,dragging=null;
+  function syncTimecodes(){
+    const selected=clip();
+    for(const [key,input] of readable){
+      if(document.activeElement===input)continue;
+      const raw=inputs.get(key);
+      const value=key==='endAtMs'&&raw.value===''?duration:Number(raw.value||0);
+      input.value=formatCueTime(Math.max(0,Math.round(value)));
+      input.setCustomValidity('');input.removeAttribute('aria-invalid');
+      if(key==='fadeOutMs')input.disabled=raw.disabled;
+    }
+    const pos=cursorMs??selected.start;
+    scrub.value=String(Math.max(0,Math.min(duration,Math.round(pos))));
+    scrubTime.textContent=formatCueTime(Math.round(pos));
+  }
+  scrub.addEventListener('input',()=>{
+    cursorMs=Number(scrub.value);redraw();
+  });
+
   const clip=()=>({
     start:Math.max(0,Math.min(duration,Number(startField.value)||0)),
     end:endField.value.trim()===''?duration:
@@ -1004,16 +1195,22 @@ function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } 
     const fadeIn=Math.max(0,readMs('fadeInMs'));
     const fadeOut=Math.max(0,readMs('fadeOutMs'));
     const rate=Math.max(.5,Number(inputs.get('playbackRate')?.value)||1);
-    ctx.strokeStyle='#b7a0ff';ctx.lineWidth=2;ctx.beginPath();
-    if(fadeIn>0) {
-      ctx.moveTo(toX(start),mid);
-      ctx.lineTo(toX(Math.min(end,start+fadeIn*rate)),15);
-    }
-    if(fadeOut>0) {
-      ctx.moveTo(toX(Math.max(start,end-fadeOut*rate)),15);
-      ctx.lineTo(toX(end),mid);
-    }
+    const fadeInX=toX(Math.min(end,start+fadeIn*rate));
+    const fadeOutX=toX(Math.max(start,end-fadeOut*rate));
+    // Visible editable linear envelope; these are not arbitrary DAW points.
+    ctx.strokeStyle='#c3a6ff';ctx.lineWidth=2.8;ctx.beginPath();
+    ctx.moveTo(toX(start),fadeIn>0?mid:15);
+    ctx.lineTo(fadeInX,15);
+    ctx.lineTo(Math.max(fadeInX,fadeOutX),15);
+    ctx.lineTo(toX(end),fadeOut>0?mid:15);
     ctx.stroke();
+    for(const [x,key] of [[fadeInX,'fadeIn'],[fadeOutX,'fadeOut']]){
+      if(x>=0&&x<=w){
+        ctx.beginPath();ctx.arc(x,15,7,0,Math.PI*2);
+        ctx.fillStyle=key==='fadeIn'?'#e4baff':'#ffe3b2';
+        ctx.fill();ctx.strokeStyle='#19212d';ctx.lineWidth=2;ctx.stroke();
+      }
+    }
     for(const [ms,color] of [[start,'#f6c65d'],[end,'#f18794']]) {
       const x=toX(ms);
       if(x>=0&&x<=w) {
@@ -1036,15 +1233,25 @@ function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } 
     canvas.setAttribute('aria-valuetext',times.textContent);
     progress.dataset.viewStartMs=String(viewStart);
     progress.dataset.viewSpanMs=String(viewSpan());
+    syncTimecodes();
     refreshPreviewStudio();
   }
   function place(handle,millis) {
     const {start,end}=clip();
     const value=Math.round(Math.max(0,Math.min(duration,millis))/10)*10;
     if(handle==='in') startField.value=String(Math.max(0,Math.min(value,end-10)));
-    else {
+    else if(handle==='out') {
       const out=Math.max(start+10,Math.min(duration,value));
       endField.value=out>=duration?'':String(out);
+    }else{
+      const key=handle==='fadeIn'?'fadeInMs':'fadeOutMs';
+      const other=handle==='fadeIn'?'fadeOutMs':'fadeInMs';
+      const loop=Boolean(startField.closest('form')?.querySelector('[name="loop"]')?.checked);
+      const rate=Math.max(.5,Number(inputs.get('playbackRate')?.value)||1);
+      const fade=clampCueFade({handle,positionMs:value,inMs:start,outMs:end,rate,
+        otherFadeMs:Number(inputs.get(other).value||0),loop});
+      if(inputs.get(key).disabled)return;
+      inputs.get(key).value=String(fade);
     }
     inspectorPendingChanges=true;
     redraw();
@@ -1057,7 +1264,16 @@ function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } 
       redraw();return;
     }
     const {start,end}=clip(),ms=point(e);
-    dragging=Math.abs(ms-start)<=Math.abs(ms-end)?'in':'out';
+    const rect=canvas.getBoundingClientRect();
+    const x=((e.clientX-rect.left)/Math.max(1,rect.width))*canvas.width;
+    const y=((e.clientY-rect.top)/Math.max(1,rect.height))*canvas.height;
+    const rate=Math.max(.5,Number(inputs.get('playbackRate')?.value)||1);
+    const fin=toX(start+(Number(inputs.get('fadeInMs').value)||0)*rate);
+    const fout=toX(end-(Number(inputs.get('fadeOutMs').value)||0)*rate);
+    const distIn=Math.abs(x-fin),distOut=Math.abs(x-fout);
+    if(y<40 && Math.min(distIn,distOut)<=24){
+      dragging=distIn<=distOut?'fadeIn':'fadeOut';
+    }else dragging=Math.abs(ms-start)<=Math.abs(ms-end)?'in':'out';
     canvas.setPointerCapture?.(e.pointerId);
     place(dragging,ms);
   });
@@ -1101,7 +1317,7 @@ function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } 
   stop.type='button';stop.dataset.previewStop='true';
   stop.addEventListener('click',stopCuePreview);
   toolbar.append(listen,fromCursor,stop,zoomOut,zoomIn,fit,zoomReadout);
-  block.append(stage,times,toolbar,pan,node('p','caption',t('preview.waveHint')));
+  block.append(stage,times,timing,scrubWrap,tools,toolbar,pan,instruction,advanced);
   refreshPan();redraw();
   return block;
 }

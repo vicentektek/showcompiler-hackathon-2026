@@ -166,6 +166,7 @@ try {
   await page.locator('[data-workspace-nav="cues"]').click();
   // Real cue-editor settings never execute audio merely by being saved.
   const inspector = page.locator('#cuePlaybackForm');
+  await inspector.locator('.cue-wave-ms-advanced summary').click();
   assert.equal(await inspector.count(), 1);
   await inspector.locator('[name="gainDb"]').fill('-9');
   await inspector.locator('[name="fadeInMs"]').fill('250');
@@ -185,7 +186,7 @@ try {
   await page.locator('#cueAddTrackBtn').click();
   assert.match(await page.locator('#statusMessage').innerText(), /Audio track added/);
   assert.equal(await page.locator('[data-extra-track="track-1"]').count(), 1);
-  await page.locator('[data-extra-track="track-1"] summary').click();
+  await page.locator('[data-extra-track="track-1"] .cue-track-details > summary').click();
   await page.locator('[data-track-settings="track-1"] [name="gainDb"]').fill('-12');
   await page.locator('[data-track-settings="track-1"] [name="startDelayMs"]').fill('1250');
   await page.locator('[data-track-settings="track-1"]').getByRole('button',{name:'Save track settings'}).click();

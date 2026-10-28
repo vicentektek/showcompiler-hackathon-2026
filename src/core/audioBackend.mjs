@@ -27,7 +27,7 @@ export const BROWSER_AUDIO_CAPABILITIES = Object.freeze({
 const REQUIRED_METHODS = Object.freeze([
   'loadFile', 'go', 'stopCue', 'stopAll', 'reset', 'dispose', 'hasAsset',
   'auditionAsset', 'previewCue', 'getPreviewStatus', 'stopAudition', 'isAuditioning',
-  'isPlaying', 'isStopping', 'getStatus', 'getWaveform',
+  'isPlaying', 'isStopping', 'getStatus', 'getActiveCues', 'getWaveform',
 ]);
 
 export function validateAudioBackend(backend) {
@@ -63,6 +63,7 @@ export function createBrowserAudioBackend(options = {}) {
     getWaveform: assetId => engine.getWaveform(assetId),
     isPlaying: cueId => engine.isPlaying(cueId),
     isStopping: cueId => engine.isStopping(cueId),
+    getActiveCues: () => engine.getActiveCues(),
     getStatus: () => Object.freeze({
       activeCueCount: engine.activeCueCount(),
       pendingGoCount: engine.pending.size,

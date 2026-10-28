@@ -171,7 +171,10 @@ function createStage(){
   const desk=el('div','rq5-desk');
   desk.append(mast,actions,sequence,stageBody);
   const dock=el('div','rq5-transport-dock');
-  dock.append(queue,footer);
+  const activeCues=get('runqActiveCues');
+  dock.append(queue);
+  if(activeCues)dock.append(activeCues);
+  dock.append(footer);
   panel.prepend(desk);
   panel.append(dock);
   const sourceHint=panel.querySelector('.cue-editor-hint');
