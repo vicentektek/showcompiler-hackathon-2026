@@ -26,6 +26,9 @@ test('cue STOP_PREVIOUS selects only OTHER cues, preserves fade and round-trips 
   assert.deepEqual(planEntryStops(b.cues,'cue-2',b.cues[1].entryPolicy),[
     {cueId:'cue-1',fadeMs:850},{cueId:'cue-3',fadeMs:850},
   ]);
+  assert.deepEqual(planEntryStops(b.cues,'cue-2',b.cues[1].entryPolicy,['cue-1']),[
+    {cueId:'cue-3',fadeMs:850},
+  ],'Explicit per-target fades take priority over global STOP_PREVIOUS fade');
   const restored=deserializeShowProject(serializeShowProject(b));
   assert.deepEqual(restored,b);
   assert.equal(restored.cues[0].entryPolicy,undefined);
