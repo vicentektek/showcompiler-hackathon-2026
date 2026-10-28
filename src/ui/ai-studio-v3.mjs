@@ -460,13 +460,48 @@ function updateScriptCompletion(){
   if(!state.importedAssetId||!state.context?.proposalId||!show)return;
   if(!show.assets.some(a=>a.id===state.importedAssetId))return;
   const name=show.assets.find(a=>a.id===state.importedAssetId)?.name??'WAV';
+  const matched=show.cues.find(c=>c.sourceProposalId===state.context.proposalId);
+  const isAssigned=matched && (
+    matched.mainType==='PLAY'||matched.audioTracks.some(track=>track.assetId===state.importedAssetId)
+  );
   target.append(node('strong','',t('scriptReady')+' · '+name));
-  const button=actionText(state.context.cueId?'modeExisting':'after','rqai-primary');
+  if(isAssigned){
+    const open=actionText('openCue','rqai-primary');
+    open.addEventListener('click',()=>document.dispatchEvent(
+      new CustomEvent('runq:ai-studio:open-cue',{detail:{cueId:matched.id}})));
+    target.append(open);
+    return;
+  }
+  const button=actionText(matched?'modeExisting':'after','rqai-primary');
   button.addEventListener('click',()=>{
-    route('soundlab');
-    state.open=true;
-    if($('rqaiDestination'))$('rqaiDestination').value=state.context.cueId?'EXISTING_CUE':'NEW_CUE';
-    updateDestinations(true);
+    const latest=snapshot();
+    if(!latest||latest.projectId!==state.projectId||
+       latest.projectGeneration!==state.projectGeneration){
+      updateStatus('The show changed; choose a destination again.',true);return;
+    }
+    const linked=latest.cues.find(c=>c.sourceProposalId===state.context.proposalId);
+    const proposal=latest.proposals.find(p=>p.id===state.context.proposalId);
+    const mode=linked?'EXISTING_CUE':'NEW_CUE';
+    const destination={
+      projectId:latest.projectId,projectGeneration:latest.projectGeneration,mode,
+      proposalId:mode==='NEW_CUE'&&proposal?.status==='PENDING'
+        ?proposal.id:null,
+      cueLabel:state.context.label??'New sound cue',
+      targetCueId:linked?.id??null,targetTrackId:null,trackAction:'ADD',
+    };
+    const summary=mode==='NEW_CUE'
+      ?'Create a cue and attach this already imported WAV?'
+      :'Add this WAV to the existing linked cue?';
+    if(!window.confirm(summary+' NEXT GO will not change.'))return;
+    document.dispatchEvent(new CustomEvent('runq:ai-studio:apply-existing',{
+      detail:{assetId:state.importedAssetId,destination,
+        respond:outcome=>{
+          if(outcome?.error){updateStatus(outcome.error,true);return;}
+          updateStatus(outcome?.message??t('imported'));
+          // No navigation: complete the operation inside the Script Review.
+          updateScriptCompletion();
+        }}
+    }));
   });
   target.append(button);
 }
