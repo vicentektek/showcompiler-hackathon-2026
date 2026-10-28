@@ -5,6 +5,7 @@
 const $=id=>document.getElementById(id);
 let stream=null,ctx=null,source=null,processor=null,mutedGain=null,timer=null;
 let recording=false,frames=[],samples=0,started=0;
+let lastTake=null,requestInFlight=false;
 const MAX_MS=10000;
 const t=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
 function status(en,es){$('rqMicStatus').textContent=t(en,es)}
@@ -47,6 +48,10 @@ function complete(){
  shutdown();frames=[];samples=0;
  if(result.length<rate/5){status('No useful audio captured.','No se ha capturado audio suficiente.');return;}
  const blob=wav(result,rate);
+ lastTake=blob;
+ $('rqMicConsent').checked=false;
+ $('rqMicTranscribe').disabled=false;
+ $('rqMicTranscript').textContent='';
  if(window.__runqMicTakeUrl)URL.revokeObjectURL(window.__runqMicTakeUrl);
  window.__runqMicTakeUrl=URL.createObjectURL(blob);
  $('rqMicListen').src=window.__runqMicTakeUrl;
@@ -58,7 +63,11 @@ function complete(){
         'Grabación local lista. Escúchala para comprobar ambos idiomas. No se ha enviado audio.');
 }
 async function begin(){
- if(stream)return;
+ if(stream||requestInFlight)return;
+ lastTake=null;
+ $('rqMicConsent').checked=false;
+ $('rqMicTranscribe').disabled=true;
+ $('rqMicTranscript').textContent='';
  try{
    if(!navigator.mediaDevices?.getUserMedia)throw Error('unsupported');
    stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:false,noiseSuppression:false},video:false});
@@ -89,6 +98,41 @@ async function begin(){
      'Micrófono no disponible o permiso denegado: '+(error?.name||'Desconocido'));
  }
 }
+async function transcribe(){
+ if(requestInFlight||stream||!lastTake)return;
+ if(!$('rqMicConsent').checked){
+  $('rqMicTranscribeStatus').textContent=t('Authorize this individual upload first.','Autoriza primero este envío concreto.');
+  return;
+ }
+ requestInFlight=true;
+ $('rqMicTranscribe').disabled=true;
+ $('rqMicConsent').disabled=true;
+ $('rqMicTranscribeStatus').textContent=t('Sending one recording securely to Meta Muse...', 'Enviando una grabación a Meta Muse...');
+ const startedAt=performance.now();
+ try{
+  const response=await fetch('/api/voice/transcribe',{
+   method:'POST',headers:{
+    'Content-Type':'audio/wav',
+    'X-RunQ-Voice-Consent':'yes',
+    'X-RunQ-Voice-Language':$('rqMicLang').value,
+   },body:lastTake,
+  });
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||'HTTP_'+response.status);
+  $('rqMicTranscript').textContent=data.transcript||t('(No speech found)','(No se detectó voz)');
+  $('rqMicTranscribeStatus').textContent=t('Muse transcription received in ','Transcripción recibida en ')+
+    ((performance.now()-startedAt)/1000).toFixed(2)+' s';
+  // Transcript is displayed for operator review; it never changes the prepared queue or triggers GO.
+ }catch(error){
+  $('rqMicTranscript').textContent='';
+  $('rqMicTranscribeStatus').textContent=t('Transcription unavailable: ','Transcripción no disponible: ')+String(error.message);
+ }finally{
+  requestInFlight=false;
+  $('rqMicConsent').checked=false;
+  $('rqMicConsent').disabled=false;
+  $('rqMicTranscribe').disabled=!lastTake;
+ }
+}
 function localize(){
  $('rqMicTitle').textContent=t('MICROPHONE TEST · LOCAL','PRUEBA DE MICRÓFONO · LOCAL');
  $('rqMicStart').textContent=t('Record 10s','Grabar 10 s');
@@ -99,6 +143,8 @@ function localize(){
  $('rqMicPrivacy').textContent=t('Local recording and playback only. No automatic GO. Nothing sent to Meta.',
  'Grabación y escucha locales. Sin GO automático. No se envía nada a Meta.');
  $('rqMicDownload').textContent=t('Save WAV','Guardar WAV');
+ $('rqMicTranscribe').textContent=t('Transcribe with Muse','Transcribir con Muse');
+ $('rqMicConsentLabel').textContent=t('I authorize this one recording to be sent to Meta Muse for transcription.', 'Autorizo enviar esta grabación concreta a Meta Muse para transcribirla.');
  if(!stream&&!$('rqMicListen').src)status('Ready. Select a language and record a short phrase.',
  'Preparado. Elige idioma y graba una frase corta.');
 }
@@ -106,6 +152,7 @@ function mount(){
  if(!$('rqMicStart'))return;
  $('rqMicStart').addEventListener('click',()=>void begin());
  $('rqMicStop').addEventListener('click',complete);
+ $('rqMicTranscribe').addEventListener('click',()=>void transcribe());
  $('uiLocaleSelect')?.addEventListener('change',localize);
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)complete();});
  window.addEventListener('pagehide',shutdown,{once:true});
