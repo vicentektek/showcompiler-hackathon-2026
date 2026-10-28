@@ -184,10 +184,10 @@ test('manual operator queue is separate from source inspection and GO is guarded
   assert.match(html, /id="operatorResetBtn"/);
   assert.match(client, /prepareOperatorCue\(operatorQueue, show\.cues, cue\.id\)/);
   assert.match(client, /await player\.go\(cue\)/);
-  assert.match(client, /completePreparedCue\(operatorQueue, show\.cues, id\)/);
+  assert.match(client, /completePreparedCue\(operatorQueue,\s*show\.cues,\s*id\)/);
   assert.match(client, /skipPreparedCue\(operatorQueue, show\.cues\)/);
   assert.match(client, /operatorQueue = startOperatorQueue\(project\.cues\)/);
-  assert.match(client, /lastGoCueId = id/);
+  assert.match(client, /lastGoCueId\s*=\s*id/);
   assert.match(client, /previousOperatorCue\(operatorQueue, show\.cues\)/);
   assert.match(html, /id="operatorBackBtn"/);
   assert.match(html, /id="operatorTrigger"/);
