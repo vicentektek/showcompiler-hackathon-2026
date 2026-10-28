@@ -16,10 +16,12 @@
   <link rel="stylesheet" href="/src/ui/audio-library-batch.css">
   <link rel="stylesheet" href="/src/sfx/lab.css">
   <link rel="stylesheet" href="/src/ui/voice-follow.css">
+  <link rel="stylesheet" href="/src/ui/voice-console-v5.css">
   <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
   <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
   <script type="module" src="/src/ui/voice-live-ui.mjs"></script>
   <script type="module" src="/src/ui/rehearsal-auto-ui.mjs"></script>
+  <script type="module" src="/src/ui/voice-console-v5.mjs"></script>
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
@@ -62,6 +64,7 @@
       <button type="button" class="workspace-tab" data-workspace-nav="audio" aria-pressed="false" data-i18n="workspace.audio">Audio</button>
       <button type="button" class="workspace-tab" data-workspace-nav="soundlab" aria-pressed="false" data-i18n="workspace.soundlab">Sound Lab</button>
       <button type="button" class="workspace-tab" data-workspace-nav="setup" aria-pressed="false" data-i18n="workspace.setup">Setup</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="voice" aria-pressed="false" data-i18n="workspace.voice">Voice &amp; Follow</button>
       <button type="button" class="workspace-tab" data-workspace-nav="rehearsal" aria-pressed="false" data-i18n="workspace.rehearsal">Rehearsal</button>
       <button type="button" class="workspace-tab" data-workspace-nav="operation" aria-pressed="false" data-i18n="workspace.operation">Operation</button>
       <div class="workspace-mode"><span data-i18n="workspace.mode">MODE</span><strong data-i18n="workspace.design">DESIGN · MANUAL</strong></div>
@@ -81,7 +84,7 @@
       </section>
 
       <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
-      <section id="rqvfPanel" class="rqvf-panel" data-workspaces="rehearsal" hidden aria-labelledby="rqvfTitle">
+      <section id="rqvfPanel" class="rqvf-panel" data-workspaces="voice" hidden aria-labelledby="rqvfTitle">
         <div class="rqvf-head">
           <div class="rqvf-brand">
             <strong id="rqvfTitle">VOICE FOLLOW</strong>
@@ -199,6 +202,33 @@
           <div><small id="rqvfLogHeading">EVENT LOG</small>
             <ol id="rqvfLog" class="rqvf-log" aria-label="Voice simulation log"></ol>
           </div>
+        </div>
+      </section>
+      <section class="rq-rehearsal-deck" id="rqRehearsalDeck" data-workspaces="rehearsal" hidden aria-labelledby="rqRehTitle">
+        <div class="rq-rehearsal-heading">
+          <div><span class="rq-rehearsal-eyebrow">RUNQ / STAGE REHEARSAL</span><h2 id="rqRehTitle">Rehearsal desk</h2>
+            <p id="rqRehIntro">Work with the script and cues. Voice is optional.</p></div>
+          <div class="rq-rehearsal-status" role="status" aria-live="polite">
+            <span id="rqRehMicState">MIC OFF</span><span id="rqRehAutoState">MANUAL</span>
+          </div>
+        </div>
+        <div class="rq-rehearsal-toolbar">
+          <label for="rqRehMode"><span id="rqRehModeLabel">Control</span>
+            <select id="rqRehMode">
+              <option value="manual">Manual</option><option value="assist">Voice assist</option><option value="auto">Automatic rehearsal</option>
+            </select>
+          </label>
+          <button id="rqRehStart" type="button" class="btn accent">Start listening</button>
+          <button id="rqRehStop" type="button" class="btn subtle" disabled>Stop listening</button>
+          <button id="rqRehArm" type="button" class="btn danger-outline" disabled aria-pressed="false">ARM AUTO GO</button>
+          <button id="rqRehDisarm" type="button" class="btn subtle" disabled>DISARM</button>
+          <button id="rqRehConfigure" type="button" class="btn subtle">Voice setup &amp; test</button>
+          <span id="rqRehDescription" class="rq-rehearsal-summary">Manual cue control. Nothing listens or plays automatically.</span>
+        </div>
+        <div class="rq-rehearsal-feedback">
+          <div><small id="rqRehTranscriptLabel">LAST RECOGNIZED LINE</small><strong id="rqRehTranscript">—</strong></div>
+          <div><small id="rqRehCueLabel">VOICE CUE STATUS</small><strong id="rqRehCandidate">No suggestion</strong></div>
+          <div class="rq-rehearsal-actions"><button id="rqRehPrepare" type="button" class="btn subtle small" disabled>Set suggested NEXT</button><button id="rqRehDismiss" type="button" class="btn subtle small" disabled>Ignore</button></div>
         </div>
       </section>
       <div class="layout">
