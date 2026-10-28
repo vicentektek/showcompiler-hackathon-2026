@@ -419,7 +419,14 @@ async function commitDestination(){
 }
 function handleResult(result){
   if(!result)return;
-  if(result.assetId)state.importedAssetId=result.assetId;
+  if(result.assetId){
+    state.importedAssetId=result.assetId;
+    // After a successful import, any later assignment reuses that exact
+    // asset ID: do not submit/import the same sound again.
+    updateReadiness();
+    const select=$('rqaiSourceChoice');
+    if(select&&[...select.options].some(o=>o.value==='IMPORTED'))select.value='IMPORTED';
+  }
   const current=snapshot();
   if(current){state.projectId=current.projectId;state.projectGeneration=current.projectGeneration;}
   updateStatus(result.warning??result.message??t('imported'),!!result.warning);
