@@ -139,6 +139,23 @@
             <button id="loadAudioBtn" class="btn accent" type="button" data-i18n="script.loadAudio">Load real WAV/MP3</button>
             <span class="caption" data-i18n="script.audioHint">Up to 20 MB · 10 min · mono/stereo. Reload audio after opening JSON.</span>
           </div>
+          <section class="audio-batch-import" aria-labelledby="audioBatchTitle">
+            <div class="audio-batch-heading">
+              <div>
+                <strong id="audioBatchTitle" data-i18n="audioBatch.heading">IMPORT SOUNDS</strong>
+                <p class="caption" data-i18n="audioBatch.explanation">Load multiple audio files, or an ordinary ZIP containing a folder of WAV/MP3/etc.</p>
+              </div>
+            </div>
+            <div class="audio-batch-actions">
+              <button id="importAudioBatchBtn" class="btn accent" type="button" data-i18n="audioBatch.selectMany">Select audio files</button>
+              <button id="importAudioZipBtn" class="btn subtle" type="button" data-i18n="audioBatch.selectZip">Import audio ZIP</button>
+            </div>
+            <p class="audio-batch-guide" data-i18n="audioBatch.safety">Files are decoded locally. Existing loaded files are never replaced automatically. A show ZIP belongs in Open Show, not here.</p>
+            <div class="audio-batch-report" id="audioBatchReport" role="status" aria-live="polite" hidden>
+              <strong id="audioBatchStatus"></strong>
+              <ul id="audioBatchDetails"></ul>
+            </div>
+          </section>
           <p class="caption" data-i18n="audio.auditionWarning">Audition uses the SAME audio output as GO. Not a private headphone bus; confirm speakers are safe.</p>
           <button id="stopAuditionBtn" class="btn subtle small" type="button" disabled data-i18n="audio.stopAudition">Stop audition</button>
           <div id="assetList" class="tags" data-i18n-aria="script.assetsAria" aria-label="Registered audio references"></div>
@@ -358,5 +375,7 @@
   <input id="projectFileInput" type="file" accept=".json,application/json" hidden>
   <input id="bundleFileInput" type="file" accept=".zip,.showcompiler.zip,application/zip" hidden>
   <input id="audioFileInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" hidden>
+  <input id="audioBatchFilesInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" multiple hidden>
+  <input id="audioBatchZipInput" type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden>
 </body>
 </html>
