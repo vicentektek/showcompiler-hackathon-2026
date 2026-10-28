@@ -16,6 +16,12 @@ jobs:
           node-version: '22'
       - name: Install pinned local RAR / 7z WASM codec
         run: npm install --no-audit --no-fund
+      - name: Static validation of SFX pilot (no Modal deployment)
+        run: |
+          node --check src/core/modalSfxPilotClient.mjs
+          node --check src/sfx/lab.mjs
+          node --check src/sfx/waveform.mjs
+          python -m py_compile modal/runq_sfx_pilot.py
       - name: Full Codex QA (offline syntax, unit tests and synthetic cue comparisons)
         run: npm run qa:codex
       - name: Upload concise Codex task report (synthetic fixtures only)
@@ -31,6 +37,13 @@ jobs:
         with:
           name: runq-offline-cue-qa
           path: artifacts/cue-qa/report.*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload original seminar corpus contract QA (OFFLINE)
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-seminar-contract-qa
+          path: artifacts/seminar-qa/contract.*
           if-no-files-found: error
           retention-days: 14
       - name: Build original demo with three real WAV cues
@@ -53,6 +66,10 @@ jobs:
         run: node tools/stagecraft-cue-safety-e2e.mjs
       - name: Stagecraft Audio Library batch and compressed ZIP Chrome smoke
         run: node tools/stagecraft-audio-batch-e2e.mjs
+      - name: Sound Lab Chrome smoke (offline, zero provider calls)
+        env:
+          RUNQ_CAPTURE_UI: '1'
+        run: node tools/sfx-lab-browser-e2e.mjs
       - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
         env:
           RUNQ_CAPTURE_UI: '1'

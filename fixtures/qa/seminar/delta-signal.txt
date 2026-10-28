@@ -1,0 +1,26 @@
+DELTA: RETORNO DEL SONAR
+Obra original de prueba. Tres intérpretes y una voz grabada.
+PERSONAJES: EVA, NORA, TEÓFILO, CONTROL (voz grabada).
+ESCENA 1 — BÓVEDA DE CONTROL
+[Se inicia un zumbido eléctrico grave, en bucle continuo.]
+CONTROL: Temperatura estable. Registro de las 02:07.
+EVA: No confundáis el zumbido del generador con la voz de un fantasma.
+NORA: Mi abuelo recordaba una sirena en las tormentas.
+[El zumbido de fondo continúa sin variaciones.]
+TEÓFILO: Voy a golpear la carcasa con la mano. (Da dos golpes reales a la mesa.)
+[SFX 03: reproducir tres pitidos de sonar separados por un segundo.]
+EVA: ¿De dónde vienen esos pitidos?
+[Los pitidos de sonar se detienen; el zumbido permanece.]
+CONTROL: Atención: mensaje pregrabado disponible.
+[Se reproduce una voz filtrada: «Se ha abierto el archivo antiguo».]
+NORA: La frase que dijo mi abuelo fue distinta.
+[El zumbido se desvanece progresivamente durante cinco segundos.]
+ESCENA 2 — EL UMBRAL
+[SONIDO 09: comienza un pulso de alarma metálica, repetido.]
+TEÓFILO: Ahora sí que tenemos un problema.
+[La alarma continúa mientras EVA abre un archivador de utilería.]
+EVA: No actives la cámara; ya está encendida.
+[SONIDO 09: cortar la alarma inmediatamente.]
+[Silencio absoluto durante una pausa de tres segundos.]
+CONTROL: Fin del registro.
+TELÓN.

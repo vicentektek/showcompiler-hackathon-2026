@@ -1,0 +1,20 @@
+MAREA QUIETA — GUIÓN DE REGIDURÍA ORIGINAL
+Dos bailarinas. Ningún texto hablado.
+ESCENA 1 — ARENA
+PREPARE SONIDO A, no ejecutar todavía.
+[SONIDO A: lanzar textura de olas grabadas, bucle estéreo.]
+(Las bailarinas golpean el suelo de madera con sus pies; sonido real.)
+CALLING: LX 01 GO, encender lateral azul.
+[La textura de olas se mantiene durante el solo.]
+(Pausa coreográfica: las intérpretes se quedan quietas.)
+[SONIDO A: fundido de salida de cuatro segundos y STOP.]
+[Se pide silencio escénico absoluto; no crear un WAV de silencio.]
+ESCENA 2 — BRISA
+CALLING: VIDEO 02 GO, proyección muda de una cometa.
+[SONIDO B: ejecutar un golpe de viento procesado grabado.]
+(Una intérprete agita una tela; el roce físico lo produce ella.)
+CALLING: LX 02 GO, fundir lateral azul.
+[SONIDO C: iniciar base musical rítmica, a nivel bajo.]
+[La base musical continúa mientras cambia la coreografía.]
+[SONIDO C: STOP instantáneo a la señal manual de regiduría.]
+BLACKOUT visual, sin petición de nuevo audio.

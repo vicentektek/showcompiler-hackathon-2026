@@ -46,3 +46,14 @@ For tasks about cue precision, consult `docs/CODEX_CUE_QA_LOOP.md`, run `npm run
 ## Automated Codex regression gate (Meta-inspired independent review)
 
 For coding/QA tasks on cue interpretation, read `docs/CODEX_AUTOMATED_TEST_PLAN_2026-10-27.md`, and run `npm run qa:codex` before reporting completion. The command performs only offline syntax, unit/integration regression tests and synthetic cue-event QA; it writes `artifacts/codex-qa/summary.md` and `artifacts/cue-qa/report.md` for local review. These reports explicitly DO NOT measure Muse accuracy. The independent audio review is heuristic; showing a source-line warning must never auto-create, approve or trigger playback. GitHub CI runs the same gate for PRs. No secret access, billable requests, automatic main merges or claims of professional live certification.
+
+
+## Original seminar corpus + opt-in paid Meta laboratory
+
+For theatre/Muse interpretation work read \`docs/CODEX_META_SEMINAR_EVAL_LAB.md\`. The nine original scripts and *provisional* gold annotations live under \`fixtures/qa/seminar/\`. \`npm run qa:codex\` includes the free contract QA. \`npm run qa:meta:plan\` previews bounded Muse request counts without calling the provider.
+
+An operator may *separately* authorize a limited paid live batch using \`npm run qa:meta:live\`, but **coding agents and CI must NEVER run that command by themselves or read MODEL_API_KEY**. The persistent local budget ledger in \`.runq-local/\` records reserved spend and must not be committed or reset just to bypass the cap. The ledger is an estimate, not Meta billing enforcement. Never interpret synthetic tests or unreviewed gold as measured Muse quality. Do not modify live GO/STOP from an AI suggestion.
+
+## Systematic Muse evaluation lab
+
+For repeated experiments read docs/RUNQ_SYSTEMATIC_EVAL_PROTOCOL.md and run npm run qa:systematic (dry-run, no API). The lab outputs per-case typed event evidence and matching A/B scores only on completed cases. Never invoke a paid --live run from Codex or CI, and do not copy model keys, raw responses or local reports into public Git. Fix one issue with a test before changing prompts, and do not alter source gold to inflate results without operator signoff. The local $2 ledger is shared only by commands run from the same working directory. No auto-GO or auto-merge.

@@ -5,11 +5,17 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeMetaRoute } from './metaRoutes.mjs';
 import { makeBasetenRoute } from './basetenRoutes.mjs';
+import { makeSfxRoute } from './sfxRoutes.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const allowed = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/sound-lab', ['sound-lab.html', 'text/html; charset=utf-8']],
+  ['/sound-lab.html', ['sound-lab.html', 'text/html; charset=utf-8']],
+  ['/src/sfx/lab.mjs', ['src/sfx/lab.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/sfx/waveform.mjs', ['src/sfx/waveform.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/sfx/lab.css', ['src/sfx/lab.css', 'text/css; charset=utf-8']],
   ['/src/ui/app.mjs', ['src/ui/app.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/style.css', ['src/ui/style.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-theme.css', ['src/ui/runq-theme.css', 'text/css; charset=utf-8']],
@@ -64,6 +70,7 @@ export function createAppServer(options = {}) {
     modelClient: options.basetenClient,
     getKey: options.getBasetenKey,
   });
+  const sfxRoute = makeSfxRoute(options);
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',
@@ -76,6 +83,7 @@ export function createAppServer(options = {}) {
     catch { response.writeHead(400, headers); response.end(); return; }
     if (await metaRoute(request, response, pathname, headers)) return;
     if (await basetenRoute(request, response, pathname, headers)) return;
+    if (await sfxRoute(request, response, pathname, headers)) return;
     if (!['GET', 'HEAD'].includes(request.method)) {
       response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
       response.end();
