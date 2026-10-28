@@ -1,0 +1,201 @@
+/*
+ * RunQ AI Studio V3 — integrated Stagecraft surface
+ * Preserves existing lab forms, real WAV editor, status, review and provider.
+ * Only makes additional contextual DESTINATION choices visible.
+ */
+:root{
+  --rqai-bg:#0c1218;--rqai-surface:#131d25;--rqai-raised:#1c2933;
+  --rqai-border:#354753;--rqai-lime:#daf67e;--rqai-teal:#74ded1;
+  --rqai-violet:#b2a4f4;--rqai-muted:#adbdc5;--rqai-amber:#eebf80;
+}
+html[data-rqai-mounted] .rqai-studio-heading,
+html[data-rqai-mounted] .rqai-library-shortcut{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:13px 16px;background:linear-gradient(105deg,#17242d,#15201e);
+  border:1px solid #3c554d;border-radius:5px;margin:0 0 12px;
+}
+.rqai-kicker{
+  display:block;font:800 10px/1.35 Consolas,monospace;
+  letter-spacing:.105em;color:var(--rqai-teal);
+}
+.rqai-subheading{font-size:13px;color:#cbd8de;margin:5px 0 0;line-height:1.5}
+.rqai-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.rqai-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:36px;padding:7px 13px;border-radius:4px;border:1px solid #43545f;
+  background:#23313b;color:#e2eaec;font:750 12px/1.3 "Segoe UI",system-ui,sans-serif;
+  cursor:pointer;text-align:center;transition:background-color .1s;
+}
+.rqai-btn:hover:not(:disabled){background:#30414d;border-color:#8196a0}
+.rqai-btn:focus-visible{outline:2px solid var(--rqai-lime);outline-offset:2px}
+.rqai-btn:disabled{opacity:.45;cursor:not-allowed}
+.rqai-btn.rqai-primary{background:var(--rqai-lime);color:#111b15;border-color:var(--rqai-lime);font-weight:850}
+.rqai-btn.rqai-primary:hover:not(:disabled){background:#e7ff9b}
+.rqai-studio-workspace .rq5-ai-review{min-height:340px}
+.rqai-script-completion{
+  background:#233028;border-left:3px solid var(--rqai-lime);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 13px;gap:12px;flex-wrap:wrap;color:#e9f3dc;
+}
+.rqai-script-completion:empty{display:none}
+.rqai-script-completion strong{font-size:12px}
+.rqai-script-completion .rqai-btn{font-size:11px;min-height:31px}
+.rqai-script-shortcut{
+  margin:4px 0 12px!important;align-self:flex-start;min-height:32px;
+}
+.rqai-library-shortcut{margin-top:4px}
+.rqai-library-shortcut strong{
+  letter-spacing:.08em;color:var(--rqai-lime);font-size:12px;
+  font-family:Consolas,monospace;
+}
+.rqai-library-shortcut span{font-size:12px;flex:1;color:#d1dde0}
+.rqai-sound-workspace{
+  --sfx-dark:#10181f;
+  background:var(--rqai-bg)!important;border:0!important;
+  padding:12px!important;
+}
+.rqai-sound-workspace .sfx-lab-intro{
+  padding:11px 16px!important;margin-bottom:11px!important;
+  border:1px solid #324852;border-radius:4px;
+  background:linear-gradient(100deg,#121e27,#18261f)!important;
+}
+.rqai-sound-workspace .sfx-lab-intro h2{
+  letter-spacing:-.035em;color:#f4f9f0;font-size:22px;
+}
+.rqai-sound-workspace .sfx-lab-intro p{font-size:12px;color:#b6cad1}
+.rqai-sound-workspace .sfx-layout{
+  display:grid!important;
+  grid-template-columns:minmax(262px,300px) minmax(370px,1fr) minmax(270px,330px)!important;
+  gap:10px!important;align-items:stretch!important;min-height:0!important;
+}
+.rqai-sound-workspace .sfx-left{
+  display:flex!important;flex-direction:column!important;
+  gap:9px!important;min-width:0;min-height:0;
+  background:transparent!important;
+}
+.rqai-sound-workspace .sfx-left .sfx-card,
+.rqai-sound-workspace .sfx-audio-panel,
+.rqai-sound-workspace .rqai-use{
+  background:var(--rqai-surface)!important;border:1px solid var(--rqai-border)!important;
+  border-radius:4px!important;box-shadow:none!important;
+}
+.rqai-context{
+  order:-2;margin:0!important;padding:13px 14px!important;
+  border-left:3px solid var(--rqai-violet)!important;min-height:120px;
+}
+.rqai-context-head{display:flex;align-items:center;justify-content:space-between}
+.rqai-context-title{
+  font-weight:850!important;letter-spacing:-.025em;font-size:17px;
+  margin:10px 0 6px!important;color:#f4f7f2;
+}
+.rqai-context-details{
+  margin:0!important;color:#bfd0d6;font-size:11px;
+  font-family:Consolas,monospace;
+}
+.rqai-quote{
+  margin:10px 0 0!important;padding:10px 11px;background:#28273a;
+  border-left:2px solid var(--rqai-violet);font-size:12px;
+  color:#e2def5;line-height:1.55;
+}
+.rqai-context[data-from-script="false"]{
+  border-left-color:var(--rqai-lime)!important;
+}
+.rqai-sound-workspace .sfx-left>.sfx-card{padding:12px!important}
+.rqai-sound-workspace .sfx-section-header{
+  padding:5px 0 10px!important;margin-bottom:9px!important;border-bottom:1px solid #31444f;
+}
+.rqai-sound-workspace .sfx-section-header h3{
+  font-size:15px!important;letter-spacing:-.025em;font-weight:800;
+}
+.rqai-sound-workspace .sfx-section-header p{font-size:11px!important}
+.rqai-sound-workspace .sfx-prompt-main textarea{
+  line-height:1.5;min-height:95px!important;background:#0d151c!important;
+  border:1px solid #45565f!important;font-size:12px!important;padding:10px 12px!important;
+}
+.rqai-sound-workspace .sfx-form label{font-size:12px;color:#c6d3d8}
+.rqai-sound-workspace .sfx-form select,
+.rqai-sound-workspace .sfx-form input:not([type=checkbox]){
+  min-height:33px!important;font-size:12px!important;
+}
+.rqai-sound-workspace .sfx-notice{
+  background:#1c282e!important;border-left:2px solid var(--rqai-teal)!important;
+  color:#b9d0d5;font-size:11px;line-height:1.5;
+}
+.rqai-sound-workspace .sfx-job-info{background:#19252e}
+.rqai-sound-workspace .sfx-audio-panel{
+  display:flex!important;flex-direction:column!important;min-width:0;min-height:570px;
+  padding:14px!important;overflow:auto;
+}
+.rqai-sound-workspace .sfx-audio-panel .sfx-wavepanel{
+  flex:none;min-height:260px;background:#0c131b;border:1px solid #32444e;
+}
+.rqai-sound-workspace .sfx-audio-panel canvas{
+  width:100%!important;height:auto!important;max-height:320px!important;
+}
+.rqai-sound-workspace .sfx-audio-panel .sfx-wave-top{color:var(--rqai-teal)}
+.rqai-sound-workspace .sfx-export{
+  border:1px solid #334953;background:#1b2831;padding:12px!important;border-radius:4px;
+}
+.rqai-sound-workspace #importLibraryBtn{display:none!important}
+.rqai-sound-workspace .sfx-transport .btn.primary{background:var(--rqai-lime)!important;color:#1a2014!important}
+.rqai-sound-workspace .sfx-transport .sfx-level input{accent-color:var(--rqai-teal)}
+.rqai-use{
+  align-self:stretch;min-width:0;
+  display:flex!important;flex-direction:column;gap:12px!important;
+  min-height:530px;padding:16px!important;overflow-y:auto;
+}
+.rqai-use>.rqai-kicker{color:var(--rqai-lime)}
+.rqai-use-head{display:flex;flex-direction:column;gap:11px}
+.rqai-use-head p{font-size:12px;line-height:1.55;color:#bed0d5}
+.rqai-use-head .rqai-btn{width:100%;min-height:43px;font-size:13px}
+.rqai-options{
+  display:flex;flex-direction:column;gap:12px;
+  padding:12px;border:1px solid #59705a;background:#1d2a26;
+  border-radius:3px;
+}
+.rqai-options[hidden]{display:none!important}
+.rqai-input{
+  display:flex;flex-direction:column;gap:6px;
+  font-size:11px;font-weight:700;color:#c1d0d4;
+}
+.rqai-input select,.rqai-input input{
+  width:100%;min-height:37px;padding:8px 9px;
+  font-size:12px;background:#101820!important;color:#f2f5ef!important;
+  border:1px solid #425660!important;border-radius:3px!important;
+}
+.rqai-input[hidden]{display:none!important}
+.rqai-confirm-actions{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.rqai-confirm-actions button{width:100%;min-height:39px}
+.rqai-status{font-size:12px;line-height:1.5;color:#a5e6d9;padding:10px 12px;
+  background:#1a2a29;border-left:2px solid var(--rqai-teal);margin:0!important}
+.rqai-status[data-error="true"]{background:#352329;border-color:#f46b78;color:#ffd0d4}
+.rqai-note{font-size:11px!important;line-height:1.55;color:#b0c1c4;margin:0!important}
+.rqai-open-cue{width:100%;min-height:33px;font-size:11px}
+@media(max-width:1410px){
+  .rqai-sound-workspace .sfx-layout{
+    grid-template-columns:minmax(245px,280px) minmax(320px,1fr) minmax(255px,305px)!important;
+    gap:8px!important;
+  }
+  .rqai-sound-workspace .sfx-audio-panel{padding:10px!important}
+  .rqai-use{padding:11px!important}
+}
+@media(max-width:1170px){
+  .rqai-sound-workspace .sfx-layout{
+    grid-template-columns:minmax(258px,.78fr) minmax(0,1.22fr)!important;
+  }
+  .rqai-use{grid-column:1/-1;min-height:0;padding:14px!important}
+  .rqai-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
+  .rqai-confirm-actions{grid-column:1/-1;flex-direction:row}
+  .rqai-sound-workspace .sfx-audio-panel{min-height:480px}
+}
+@media(max-width:850px){
+  .rqai-sound-workspace .sfx-layout{display:flex!important;flex-direction:column}
+  .rqai-sound-workspace .sfx-left{order:1}
+  .rqai-sound-workspace .sfx-audio-panel{order:2;min-height:360px}
+  .rqai-use{order:3}
+  .rqai-options{display:flex}
+  .rqai-studio-heading,.rqai-library-shortcut{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){
+  .rqai-btn{transition:none}
+}
