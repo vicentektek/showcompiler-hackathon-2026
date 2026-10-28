@@ -215,11 +215,25 @@
               </section>
               <section class="sfx-card" aria-labelledby="jobsHeading">
                 <div class="sfx-section-header"><span class="sfx-index">02</span><div><h3 id="jobsHeading">Resultado de la generación</h3><p>Consulta el estado, escucha y acepta la toma</p></div></div>
-                <label>Request ID<input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
-                <div class="sfx-buttons"><button class="btn" id="openJobBtn" type="button">Open local record</button><button class="btn" id="refreshBtn" type="button">Check remote status</button><button class="btn danger-outline" id="cancelBtn" type="button">Request cancellation</button></div>
-                <div class="sfx-job-info"><div class="sfx-pill" id="jobState">No job loaded</div><p id="jobDetails" class="sfx-muted">No remote call is made when a saved record is opened.</p></div>
-                <div class="sfx-buttons"><button class="btn primary-secondary" id="loadGeneratedBtn" type="button">Load generated WAV</button><button class="btn" id="acceptBtn" type="button">Accept take</button><button class="btn danger-outline" id="rejectBtn" type="button">Reject take</button></div>
-                <p class="sfx-muted sfx-small">Accepting only unlocks download/import. It never edits a cue or starts playback.</p>
+                <div class="sfx-job-info"><div class="sfx-pill" id="jobState">Todavía no hay ninguna toma</div><p id="jobDetails" class="sfx-muted">Genera un sonido para obtener un resultado. Puedes seguir trabajando sin salir de esta pantalla.</p></div>
+                <div class="sfx-buttons">
+                  <button class="btn primary-secondary" id="sfxCheckResultBtn" type="button" disabled>Comprobar resultado y cargar audio</button>
+                  <button class="btn" id="acceptBtn" type="button">Aceptar toma</button>
+                  <button class="btn danger-outline" id="rejectBtn" type="button">Descartar</button>
+                </div>
+                <p class="sfx-muted sfx-small">Para aceptar, carga y escucha primero el audio. Nada se incorpora a la biblioteca sin confirmación.</p>
+                <details class="sfx-advanced sfx-technical-jobs">
+                  <summary>Historial y controles técnicos</summary>
+                  <div class="sfx-advanced-content">
+                    <label>ID de solicitud<input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
+                    <div class="sfx-buttons">
+                      <button class="btn" id="openJobBtn" type="button">Abrir registro</button>
+                      <button class="btn" id="refreshBtn" type="button">Actualizar estado</button>
+                      <button class="btn" id="loadGeneratedBtn" type="button">Cargar WAV</button>
+                      <button class="btn danger-outline" id="cancelBtn" type="button">Solicitar cancelación</button>
+                    </div>
+                  </div>
+                </details>
               </section>
             </div>
             <section class="sfx-card sfx-audio-panel" aria-labelledby="editorHeading">
