@@ -25,7 +25,8 @@ try{
       constructor(){this.state='running';this.currentTime=1;this.destination={};}
       async resume(){}
       async close(){this.state='closed';}
-      async decodeAudioData(){return {duration:3,numberOfChannels:1};}
+      async decodeAudioData(){return {duration:3,numberOfChannels:1,
+        sampleRate:400,length:1200,getChannelData:()=>new Float32Array(1200).fill(.3)};}
       createGain(){
         const gain={value:1,cancelScheduledValues(){},
           setValueAtTime(v){this.value=v;},linearRampToValueAtTime(v){this.value=v;}};
