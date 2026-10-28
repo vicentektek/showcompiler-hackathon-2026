@@ -159,7 +159,14 @@ export class BrowserAudioEngine {
       }
       const clockStart=ctx.currentTime+0.02;
       for (const track of tracks) voices.push(this.createPreviewVoice(ctx,track,clockStart));
-      run={voices:new Set(voices),cueId:cue.id,trackId,startedAt:clockStart,
+      run={voices:new Set(voices),cueId:cue.id,trackId:trackId??(tracks.length===1?tracks[0].id:null),
+        startedAt:clockStart,
+        previewFromMs:tracks.length===1?tracks[0].playback.startAtMs:null,
+        previewEndMs:tracks.length===1
+          ? (tracks[0].playback.endAtMs??Math.round(this.buffers.get(tracks[0].assetId).duration*1000))
+          : null,
+        playbackRate:tracks.length===1?tracks[0].playback.playbackRate:1,
+        repeating:tracks.length===1 ? (tracks[0].playback.loop || tracks[0].playback.repeatCount>1) : false,
         durationSeconds:voices.some(voice=>voice.loop)?null:Math.max(...voices.map(voice=>voice.duration))};
       this.auditionVoice=run;
       for (const voice of voices) {
@@ -194,10 +201,14 @@ export class BrowserAudioEngine {
   getPreviewStatus() {
     const run=this.auditionVoice;
     if (!run || !run.cueId) return null;
+    const elapsedSeconds=Math.max(0,(this.context?.currentTime??run.startedAt)-run.startedAt);
+    const length=run.previewEndMs-run.previewFromMs;
+    const position=run.previewFromMs===null ? null : run.previewFromMs+
+      (run.repeating ? (elapsedSeconds*1000*run.playbackRate)%length
+        : Math.min(length,elapsedSeconds*1000*run.playbackRate));
     return Object.freeze({
-      cueId:run.cueId,trackId:run.trackId,
-      elapsedSeconds:Math.max(0,(this.context?.currentTime??run.startedAt)-run.startedAt),
-      durationSeconds:run.durationSeconds,
+      cueId:run.cueId,trackId:run.trackId,elapsedSeconds,
+      durationSeconds:run.durationSeconds,positionMs:position,
     });
   }
 
