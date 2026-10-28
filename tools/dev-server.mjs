@@ -51,6 +51,7 @@ const allowed = new Map([
   ['/src/sfx/lab.css', ['src/sfx/lab.css', 'text/css; charset=utf-8']],
   ['/src/ui/app.mjs', ['src/ui/app.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/ai-studio-v3.mjs', ['src/ui/ai-studio-v3.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/aiStudioDestinations.mjs', ['src/core/aiStudioDestinations.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/ai-studio-v3.css', ['src/ui/ai-studio-v3.css', 'text/css; charset=utf-8']],
   ['/src/ui/style.css', ['src/ui/style.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-theme.css', ['src/ui/runq-theme.css', 'text/css; charset=utf-8']],
