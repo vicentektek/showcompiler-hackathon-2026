@@ -272,10 +272,12 @@ async function record(){
  }
  if(!navigator.mediaDevices?.getUserMedia)return;
  document.body.dataset.runqVoiceCapture='cue-chat';
+ let acquiringStream=null;
  try{
   const stream=await navigator.mediaDevices.getUserMedia({
    audio:{channelCount:1,echoCancellation:true,noiseSuppression:true},video:false,
   });
+  acquiringStream=stream;
   const Ctx=window.AudioContext||window.webkitAudioContext;
   const ctx=new Ctx();await ctx.resume();
   const source=ctx.createMediaStreamSource(stream),processor=ctx.createScriptProcessor(2048,1,1);
@@ -296,6 +298,7 @@ async function record(){
    'Recording… say the instruction, then stop.');
   localized();
  }catch{
+  acquiringStream?.getTracks().forEach(track=>track.stop());
   if(document.body?.dataset.runqVoiceCapture==='cue-chat')delete document.body.dataset.runqVoiceCapture;
   $('rqChatVoiceStatus').textContent=t('No se pudo acceder al micrófono','Microphone unavailable');
  }
