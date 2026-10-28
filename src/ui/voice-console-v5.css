@@ -178,3 +178,50 @@
 .shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="cues"]{
  border-color:#3b545d;
 }
+
+
+/* Operator-first progressive controls: no speech widgets in MANUAL.
+   On ASSISTED hide arm buttons; on AUTO show conspicuous arm/disarm.
+   This changes display only, never the underlying mic or GO authority. */
+.rq-rehearsal-deck[data-mode="manual"] .rq-rehearsal-consent,
+.rq-rehearsal-deck[data-mode="manual"] #rqRehStart,
+.rq-rehearsal-deck[data-mode="manual"] #rqRehStop,
+.rq-rehearsal-deck[data-mode="manual"] #rqRehArm,
+.rq-rehearsal-deck[data-mode="manual"] #rqRehDisarm,
+.rq-rehearsal-deck[data-mode="manual"] .rq-rehearsal-feedback,
+.rq-rehearsal-deck[data-mode="manual"] .rq-rehearsal-summary,
+.rq-rehearsal-deck[data-mode="assist"] #rqRehArm,
+.rq-rehearsal-deck[data-mode="assist"] #rqRehDisarm,
+.rq-rehearsal-deck[data-mode="auto"] .rq-rehearsal-actions{
+ display:none!important
+}
+.rq-rehearsal-deck{
+ gap:7px!important;padding:10px 14px!important;margin-bottom:9px!important
+}
+.rq-rehearsal-heading{align-items:center}
+.rq-rehearsal-heading h2{font-size:19px!important;margin:2px 0!important}
+.rq-rehearsal-heading p{display:none}
+.rq-rehearsal-toolbar{
+ padding:7px 0!important;gap:6px!important;border-bottom:0!important
+}
+.rq-rehearsal-toolbar .btn{min-height:32px!important;padding:6px 9px!important}
+.rq-rehearsal-toolbar select{min-height:32px!important;padding:5px 7px!important}
+.rq-rehearsal-consent{max-width:205px;font-size:10px;line-height:1.25}
+.rq-rehearsal-summary{
+ margin:0!important;padding:0!important;font-size:10px;
+ color:#aabec7
+}
+.rq-rehearsal-feedback{gap:7px!important}
+.rq-rehearsal-feedback>div{
+ padding:7px 9px!important;gap:4px!important;min-height:52px
+}
+.rq-rehearsal-feedback small{font-size:9px}
+.rq-rehearsal-feedback strong{font-size:12px}
+.rq-rehearsal-actions{min-width:140px}
+.rq-rehearsal-actions .btn{min-height:26px;padding:4px 7px}
+@media(min-width:1151px){
+ .rq-rehearsal-feedback{grid-template-columns:1fr 1fr auto}
+ .rq-rehearsal-toolbar{align-items:center}
+ .rq-rehearsal-toolbar .rq-rehearsal-consent{flex:0 1 205px}
+ .rq-rehearsal-toolbar label:not(.rq-rehearsal-consent){flex:0 0 180px}
+}
