@@ -133,6 +133,19 @@ try {
   assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
     'Compact GO and STOP ALL remain visible without scrolling');
   const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
+  if(!visibleInspectorField || visibleInspectorField.y>=614) {
+    console.error('COMPACT_AUDIO_LAYOUT',JSON.stringify(await page.evaluate(()=>{
+      const ids=['cueInspector','cuePlaybackForm','cueInspectorPanel'];
+      const rect=element=>element?{top:element.getBoundingClientRect().top,
+        bottom:element.getBoundingClientRect().bottom,height:element.getBoundingClientRect().height,
+        scrollTop:element.scrollTop,scrollHeight:element.scrollHeight}:null;
+      return {areas:Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))])),
+        gain:rect(document.querySelector('#cuePlaybackForm [name="gainDb"]')),
+        audition:rect(document.querySelector('.cue-audition-studio')),
+        tab:rect(document.querySelector('.cue-inspector-tabs')),
+        waveform:rect(document.querySelector('.cue-waveform-editor'))};
+    })));
+  }
   assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
     'Compact inspector must show real editable audio settings without page scroll');
   await page.setViewportSize({width:1366,height:768});
