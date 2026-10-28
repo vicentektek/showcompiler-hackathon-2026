@@ -82,7 +82,63 @@
 
       <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
       <section id="rqvfPanel" class="rqvf-panel" data-workspaces="rehearsal" hidden aria-labelledby="rqvfTitle">
-        <div class="rqvf-head">
+        <div class="rqvf-primary-head">
+          <div><strong id="rqvfPrimaryTitle">SEGUIMIENTO DE VOZ</strong>
+          <span id="rqvfPrimarySubtitle">Reconocimiento de voz y ejecución de cues en ensayo.</span></div>
+          <output id="rqvfPrimaryState">Sin escuchar</output>
+        </div>
+<section id="rqLivePanel" class="rqmic-panel rqlive-panel" aria-labelledby="rqLiveTitle">
+          <header class="rqlive-head">
+            <strong id="rqLiveTitle">LIVE VOICE FOLLOW · MUSE</strong>
+            <output id="rqLiveElapsed" aria-label="Audio duration">0 / 180 s</output>
+            <output id="rqLiveSpeaker"></output>
+          </header>
+          <div class="rqlive-settings">
+            <label for="rqLiveLang"><span id="rqLiveLangLabel">Spoken language</span>
+              <select id="rqLiveLang"><option value="es">Español</option><option value="en">English</option><option value="mixed">Spanish + English</option></select>
+            </label>
+            <label for="rqLiveDevice"><span id="rqLiveDeviceLabel">Input</span><select id="rqLiveDevice"><option value="">Default microphone</option></select></label>
+            <button type="button" class="btn subtle small" id="rqLiveRefresh">Refresh microphones</button>
+            <label for="rqLiveFocus"><span id="rqLiveFocusLabel">Script focus line</span>
+              <input id="rqLiveFocus" type="number" min="1" max="100000" step="1" value="1">
+            </label>
+          </div>
+          <div class="rqlive-auto-mode" role="group" aria-label="Modo de disparo">
+            <label for="rqLiveMode"><span id="rqLiveModeLabel">Cue follow mode</span>
+              <select id="rqLiveMode">
+                <option value="assist">Assist · suggest NEXT</option>
+                <option value="auto">Rehearsal autopilot · automatic GO</option>
+              </select>
+            </label>
+            <button type="button" id="rqLiveArm" class="btn danger-outline small" aria-pressed="false" disabled>ARM AUTO GO</button>
+            <output id="rqLiveArmStatus" role="status" aria-live="polite">AUTOPILOTO DESARMADO · SIN GO AUTOMÁTICO</output>
+          </div>
+          <p id="rqLiveAutoHelp" class="rqlive-auto-help">Primero activa el micrófono, después pulsa ARMAR GO AUTOMÁTICO. Si está desarmado, nunca reproducirá audio por voz.</p>
+          <ol id="rqLiveAutoHistory" class="rqlive-auto-history" aria-label="Automatic rehearsal cue events"></ol>
+          <label class="rqmic-consent"><input type="checkbox" id="rqLiveConsent">
+            <span id="rqLiveConsentText">I authorize sending my microphone to Meta Muse for this session (max 3 min).</span>
+          </label>
+          <label class="rqmic-consent"><input type="checkbox" id="rqLiveContextHints">
+            <span id="rqLiveContextHintsText">Optional: share up to 12 cue-name words to improve proper-name recognition.</span>
+          </label>
+          <div class="rqlive-controls">
+            <button id="rqLiveStart" class="btn accent small" type="button">Start listening</button>
+            <button id="rqLiveStop" class="btn subtle small" type="button" disabled>Stop listening</button>
+            <meter id="rqLiveMeter" min="0" max="100" value="0" aria-label="Live microphone level"></meter>
+            <output id="rqLiveStatus" role="status" aria-live="polite">Ready · microphone not transmitting</output>
+          </div>
+          <div class="rqlive-results">
+            <div class="rqlive-partial"><small id="rqLivePartialTitle">RECONOCIENDO AHORA</small><output id="rqLivePartial" aria-live="off"></output></div>
+            <div class="rqlive-transcript"><small id="rqLiveFinalTitle">ÚLTIMAS FRASES RECONOCIDAS</small><div id="rqLiveTranscript" aria-live="polite"></div></div>
+            <div class="rqlive-cue-result"><small id="rqLiveCueTitle">CUE DETECTADO</small><output id="rqLiveCue" aria-live="polite"></output><div class="rqlive-cue-actions"><button type="button" class="btn accent small" id="rqLivePrepare" disabled>Set as NEXT</button><button type="button" class="btn subtle small" id="rqLiveDismiss" disabled>Ignore</button></div></div>
+          </div>
+          <small id="rqLivePrivacy">Only finalized speech can suggest cues. No automatic GO.</small>
+        </section>
+        
+        <details id="rqvfAdvanced" class="rqvf-advanced">
+          <summary id="rqvfAdvancedLabel">Herramientas de diagnóstico · grabación corta y simulador</summary>
+          <div class="rqvf-advanced-content">
+<div class="rqvf-head">
           <div class="rqvf-brand">
             <strong id="rqvfTitle">VOICE FOLLOW</strong>
             <small id="rqvfSub">LIVE VOICE ASSISTANT + OFFLINE SIMULATOR · GO ALWAYS MANUAL</small>
@@ -100,53 +156,6 @@
             <button type="button" id="rqvfReset">Restart</button>
           </div>
         </div>
-        <section id="rqLivePanel" class="rqmic-panel rqlive-panel" aria-labelledby="rqLiveTitle">
-          <header class="rqlive-head">
-            <strong id="rqLiveTitle">LIVE VOICE FOLLOW · MUSE</strong>
-            <output id="rqLiveElapsed" aria-label="Audio duration">0 / 180 s</output>
-            <output id="rqLiveSpeaker"></output>
-          </header>
-          <div class="rqlive-settings">
-            <label for="rqLiveLang"><span id="rqLiveLangLabel">Spoken language</span>
-              <select id="rqLiveLang"><option value="es">Español</option><option value="en">English</option><option value="mixed">Spanish + English</option></select>
-            </label>
-            <label for="rqLiveDevice"><span id="rqLiveDeviceLabel">Input</span><select id="rqLiveDevice"><option value="">Default microphone</option></select></label>
-            <button type="button" class="btn subtle small" id="rqLiveRefresh">Refresh microphones</button>
-            <label for="rqLiveFocus"><span id="rqLiveFocusLabel">Script focus line</span>
-              <input id="rqLiveFocus" type="number" min="1" max="100000" step="1" value="1">
-            </label>
-          </div>
-          <div class="rqlive-auto-mode">
-            <label for="rqLiveMode"><span id="rqLiveModeLabel">Cue follow mode</span>
-              <select id="rqLiveMode">
-                <option value="assist">Assist · suggest NEXT</option>
-                <option value="auto">Rehearsal autopilot · automatic GO</option>
-              </select>
-            </label>
-            <button type="button" id="rqLiveArm" class="btn danger-outline small" aria-pressed="false" disabled>ARM AUTO GO</button>
-            <output id="rqLiveArmStatus" role="status" aria-live="polite">DISARMED · voice cannot play cues</output>
-          </div>
-          <p id="rqLiveAutoHelp" class="rqlive-auto-help">Autopilot must be armed while listening. Repeats, rewinds and cue skips require an unambiguous completed phrase. STOP ALL disarms.</p>
-          <ol id="rqLiveAutoHistory" class="rqlive-auto-history" aria-label="Automatic rehearsal cue events"></ol>
-          <label class="rqmic-consent"><input type="checkbox" id="rqLiveConsent">
-            <span id="rqLiveConsentText">I authorize sending my microphone to Meta Muse for this session (max 3 min).</span>
-          </label>
-          <label class="rqmic-consent"><input type="checkbox" id="rqLiveContextHints">
-            <span id="rqLiveContextHintsText">Optional: share up to 12 cue-name words to improve proper-name recognition.</span>
-          </label>
-          <div class="rqlive-controls">
-            <button id="rqLiveStart" class="btn accent small" type="button">Start listening</button>
-            <button id="rqLiveStop" class="btn subtle small" type="button" disabled>Stop listening</button>
-            <meter id="rqLiveMeter" min="0" max="100" value="0" aria-label="Live microphone level"></meter>
-            <output id="rqLiveStatus" role="status" aria-live="polite">Ready · microphone not transmitting</output>
-          </div>
-          <div class="rqlive-results">
-            <div><small id="rqLivePartialTitle">RECOGNIZING</small><output id="rqLivePartial" aria-live="off"></output></div>
-            <div><small id="rqLiveFinalTitle">FINAL TRANSCRIPT</small><div id="rqLiveTranscript" aria-live="polite"></div></div>
-            <div><small id="rqLiveCueTitle">SUGGESTED CUE · MANUAL GO</small><output id="rqLiveCue" aria-live="polite"></output><div class="rqlive-cue-actions"><button type="button" class="btn accent small" id="rqLivePrepare" disabled>Set as NEXT</button><button type="button" class="btn subtle small" id="rqLiveDismiss" disabled>Ignore</button></div></div>
-          </div>
-          <small id="rqLivePrivacy">Only finalized speech can suggest cues. No automatic GO.</small>
-        </section>
         <section id="rqMicPanel" class="rqmic-panel" aria-labelledby="rqMicTitle">
           <div class="rqmic-head">
             <strong id="rqMicTitle">MICROPHONE TEST · LOCAL</strong>
@@ -200,6 +209,9 @@
             <ol id="rqvfLog" class="rqvf-log" aria-label="Voice simulation log"></ol>
           </div>
         </div>
+      
+          </div>
+        </details>
       </section>
       <div class="layout">
         <section class="panel home-panel" data-workspaces="home" aria-labelledby="homeHeading">
