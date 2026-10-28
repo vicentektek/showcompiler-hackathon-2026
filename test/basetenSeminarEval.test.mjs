@@ -27,6 +27,7 @@ test('default is offline, paid mode needs both switches, bounded requests',()=>{
 test('Baseten request uses exact hackathon model, same source window and no unsupported JSON schema flag',()=>{
   const r=makeBasetenTheatreRequest(prepared());
   assert.equal(r.model,BASETEN_MODEL);
+  assert.equal(r.model,'meta-models/muse-spark-open');
   assert.equal(r.response_format,undefined);
   assert.equal(r.max_completion_tokens,undefined);
   assert.equal(r.max_tokens,8192);
