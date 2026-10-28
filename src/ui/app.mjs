@@ -135,6 +135,7 @@ function refreshAudioControls() {
   $('operatorSkipBtn').disabled = !prepared || audioInFlight || pending > 0;
   $('operatorResetBtn').disabled = !show.cues.length || audioInFlight || pending > 0 ||
     (preparedIndex === 0 && !operatorQueue.completedCueIds.length && !operatorQueue.skippedCueIds.length);
+  refreshPreviewStudio();
   for (const button of document.querySelectorAll('[data-cue-action]')) {
     const cue = show.cues.find(item => item.id === button.dataset.cueId);
     if (!cue) continue;
@@ -652,6 +653,14 @@ function renderCueList({ resetScroll = false } = {}) {
       feedback('operator.preparedFeedback', { number: cue.number }, 'success');
     });
     controls.append(prepare);
+    if(cue.actions.every(action=>action.type==='PLAY')) {
+      const listen=node('button','btn cue-row-preview',t('preview.row'));
+      listen.type='button';
+      listen.dataset.previewCue=cue.id;
+      listen.setAttribute('aria-label',t('preview.rowAria',{number:cue.number}));
+      listen.addEventListener('click',()=>listenToCue(cue.id));
+      controls.append(listen);
+    }
     // Only the global prepared-sequence GO can start playback. Row buttons stop
     // an already-running cue or intentionally reposition the next GO.
     const commands = [['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
@@ -679,6 +688,7 @@ function renderCueList({ resetScroll = false } = {}) {
 
   updateCueSelectionVisual();
   cueList.scrollTop = resetScroll ? 0 : priorScrollTop;
+  refreshPreviewStudio();
 }
 
 function render() {
@@ -796,6 +806,98 @@ function render() {
   renderPreflight();
 }
 
+
+
+/** Read an editing snapshot without committing it or advancing the GO queue. */
+function stagedAudioSettings(form, saved) {
+  const next={...normalizeCuePlayback(saved)};
+  if (!form) return normalizeCuePlayback(next);
+  for (const input of form.querySelectorAll('input[name]')) {
+    if (!Object.hasOwn(next,input.name)) continue;
+    if (input.type==='checkbox') next[input.name]=input.checked;
+    else if (input.name==='endAtMs' && input.value.trim()==='') next.endAtMs=null;
+    else if (input.value.trim()!=='') next[input.name]=Number(input.value);
+    else throw new TypeError('Numeric audio property cannot be empty');
+  }
+  if (next.loop) {next.repeatCount=1;next.fadeOutMs=0;}
+  return normalizeCuePlayback(next);
+}
+function stagedPreviewCue(cue) {
+  if (cue.id!==selectedCueId || inspectorTab!=='audio') return cue;
+  const main=document.getElementById('cuePlaybackForm');
+  const playback=stagedAudioSettings(main,cue.playback);
+  const audioTracks=(cue.audioTracks??[]).map(track=>{
+    const form=[...document.querySelectorAll('[data-track-settings]')]
+      .find(item=>item.dataset.trackSettings===track.id);
+    return {...track,playback:stagedAudioSettings(form,track.playback)};
+  });
+  return {...cue,playback,audioTracks};
+}
+let previewTicker=null;
+function refreshPreviewStudio() {
+  const preview=player.getPreviewStatus();
+  const busy=player.getStatus();
+  const locked=audioInFlight || bundleInFlight || busy.activeCueCount>0 ||
+    busy.pendingGoCount>0 || busy.auditionActive || busy.auditionPending;
+  for(const button of document.querySelectorAll('[data-preview-cue]')) {
+    const cue=show.cues.find(c=>c.id===button.dataset.previewCue);
+    button.disabled=locked || !cue || cue.actions.some(a=>a.type!=='PLAY') ||
+      !cue.actions.every(a=>player.hasAsset(a.assetId)) ||
+      !(cue.audioTracks??[]).every(t=>player.hasAsset(t.assetId));
+  }
+  for(const button of document.querySelectorAll('[data-preview-track]')) {
+    button.disabled=locked || !player.hasAsset(button.dataset.previewAsset);
+  }
+  for(const button of document.querySelectorAll('[data-preview-stop]')) {
+    button.disabled=!busy.auditionActive && !busy.auditionPending;
+  }
+  for(const status of document.querySelectorAll('[data-preview-status]')) {
+    if(!preview) {
+      status.textContent=t(inspectorPendingChanges?'preview.stagedReady':'preview.ready');
+      status.dataset.playing='false';
+    } else {
+      const label=show.cues.find(c=>c.id===preview.cueId)?.label??preview.cueId;
+      status.textContent=t('preview.playing',{
+        label,elapsed:preview.elapsedSeconds.toFixed(1),
+        total:preview.durationSeconds===null?'∞':preview.durationSeconds.toFixed(1),
+      });
+      status.dataset.playing='true';
+    }
+  }
+  for(const marker of document.querySelectorAll('[data-preview-playhead]')) {
+    const isSelected=preview && preview.cueId===marker.dataset.previewCueId &&
+      preview.trackId===marker.dataset.previewTrackId &&
+      Number.isFinite(preview.positionMs);
+    marker.hidden=!isSelected;
+    if(isSelected) marker.style.left=Math.max(0,Math.min(100,
+      preview.positionMs/Number(marker.dataset.durationMs)*100))+'%';
+  }
+  if(preview && previewTicker===null) {
+    previewTicker=window.setInterval(()=>refreshPreviewStudio(),125);
+  } else if(!preview && previewTicker!==null) {
+    window.clearInterval(previewTicker);
+    previewTicker=null;
+  }
+}
+async function listenToCue(cueId,{trackId=null,fromMs=null}={}) {
+  const cue=show.cues.find(c=>c.id===cueId);
+  if(!cue || audioInFlight || bundleInFlight) return;
+  if(!auditionAcknowledged) {
+    if(!window.confirm(t('audio.auditionConfirm'))) return;
+    auditionAcknowledged=true;
+  }
+  try {
+    const snapshot=stagedPreviewCue(cue);
+    await player.previewCue(snapshot,{trackId,fromMs});
+    feedback(trackId===null?'preview.started':'preview.trackStarted',
+      {number:cue.number},'success');
+    refreshPreviewStudio();
+  } catch(error) {showError(error);}
+}
+function stopCuePreview() {
+  if(player.stopAudition()) feedback('preview.stopped',{},'success');
+  refreshPreviewStudio();
+}
 
 /**
  * PCM waveform is a read-only display of decoded local audio.
@@ -961,8 +1063,8 @@ function cuePlaybackEditor(cue) {
   const save = node('button', 'btn primary small', t('audioProps.save'));
   save.type = 'submit';
   form.append(save);
-  form.addEventListener('input', () => { inspectorPendingChanges = true; });
-  form.addEventListener('change', () => { inspectorPendingChanges = true; });
+  form.addEventListener('input', () => { inspectorPendingChanges = true; refreshPreviewStudio(); });
+  form.addEventListener('change', () => { inspectorPendingChanges = true; refreshPreviewStudio(); });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = { loop: loop.checked };
@@ -1197,8 +1299,8 @@ function cueAdditionalTracksEditor(cue) {
     const save=node('button','btn primary small',t('cueTracks.saveProperties'));
     save.type='submit';
     form.append(save);
-    form.addEventListener('input',()=>{inspectorPendingChanges=true;});
-    form.addEventListener('change',()=>{inspectorPendingChanges=true;});
+    form.addEventListener('input',()=>{inspectorPendingChanges=true;refreshPreviewStudio();});
+    form.addEventListener('change',()=>{inspectorPendingChanges=true;refreshPreviewStudio();});
     form.addEventListener('submit',event=>{
       event.preventDefault();
       const settingsNext={loop:loop.checked};
@@ -1247,6 +1349,38 @@ function renderCueInspector() {
   inspector.append(header);
   inspector.append(node('p', 'cue-inspector-origin', cue.sourceLineIds.join(', ') + ' · ' +
     (cue.trigger || t('cueEditor.noTrigger'))));
+
+  if(cue.actions.every(a=>a.type==='PLAY')) {
+    const studio=node('section','cue-audition-studio');
+    studio.dataset.cueAuditionStudio=cue.id;
+    const kicker=node('span','studio-kicker',t('preview.kicker'));
+    const controls=node('div','cue-preview-controls');
+    const listen=node('button','btn cue-preview-play',t('preview.cue'));
+    listen.type='button';
+    listen.dataset.previewCue=cue.id;
+    listen.addEventListener('click',()=>listenToCue(cue.id));
+    const stop=node('button','btn cue-preview-stop',t('preview.stop'));
+    stop.type='button';
+    stop.dataset.previewStop='true';
+    stop.addEventListener('click',stopCuePreview);
+    const prepare=node('button','btn cue-preview-prepare',t('preview.prepare'));
+    prepare.type='button';
+    prepare.disabled=cue.id===operatorQueue.preparedCueId;
+    prepare.addEventListener('click',()=>{
+      operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cue.id);
+      render();
+      feedback('operator.preparedFeedback',{number:cue.number},'success');
+    });
+    controls.append(listen,stop,prepare);
+    const state=node('p','studio-preview-status',t('preview.ready'));
+    state.dataset.previewStatus='true';
+    state.setAttribute('role','status');
+    state.setAttribute('aria-live','off');
+    studio.append(kicker,controls,state,
+      node('p','studio-output-warning',t('preview.outputWarning')));
+    inspector.append(studio);
+  }
+
   const available = cue.actions.some(a => a.type === 'PLAY')
     ? ['details', 'audio', 'actions'] : ['details', 'actions'];
   if (!available.includes(inspectorTab)) inspectorTab = available[0];
@@ -1299,6 +1433,7 @@ function renderCueInspector() {
   }
   inspector.append(panel);
   inspector.scrollTop = previousScrollTop;
+  refreshPreviewStudio();
 }
 
 function userAllowsReplacement() {
