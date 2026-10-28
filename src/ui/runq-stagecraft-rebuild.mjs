@@ -263,7 +263,10 @@ async function selectSource(assetId){
     context=new (window.AudioContext||window.webkitAudioContext)();
     const audio=await context.decodeAudioData(raw);
     if(token!==waveformRequest)return;
-    const peaks=buildWaveformPeaks(audio,{bucketCount:Math.min(2400,audio.length)});
+    // Ensure several PCM frames per bucket. One frame per bucket gives
+    // min === max and an invisible zero-height vertical stroke.
+    const bucketCount=Math.min(1600,Math.max(1,Math.floor(audio.length/4)));
+    const peaks=buildWaveformPeaks(audio,{bucketCount});
     if(token!==waveformRequest)return;
     waveformUi.peaks=peaks;
     waveformUi.sourceLabel=file.name||assetId;
