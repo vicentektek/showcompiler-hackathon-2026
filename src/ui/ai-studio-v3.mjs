@@ -242,7 +242,7 @@ function createShell(){
   status.setAttribute('aria-live','polite');status.textContent=t('none');
   const foot=node('p','rqai-note',t('cost'));foot.dataset.rqaiText='cost';
   use.append(useHead,options,status,foot);
-  review?.append(use);
+  soundlab.querySelector('.sfx-layout')?.append(use);
 
   modeSelect.addEventListener('change',()=>{
     state.chosenByUser=true;updateDestinations(false);
@@ -329,9 +329,11 @@ function intent(){
   const show=snapshot();
   if(!show)throw new Error('No active show');
   const mode=$('rqaiDestination').value;
+  const source=show.proposals.find(p=>p.id===state.context?.proposalId);
   return {
     projectId:show.projectId,projectGeneration:show.projectGeneration,
-    mode,proposalId:mode==='NEW_CUE'?(state.context?.proposalId??null):null,
+    mode,proposalId:mode==='NEW_CUE'&&source?.status==='PENDING'
+      ?source.id:null,
     cueLabel:$('rqaiNewCueName').value.trim(),
     targetCueId:mode==='EXISTING_CUE'?$('rqaiTargetCue').value:null,
     targetTrackId:mode==='EXISTING_CUE'&&$('rqaiTrackAction').value==='REPLACE'
@@ -355,12 +357,12 @@ async function commitDestination(){
       }));
       if(!result||result.error)throw new Error(result?.error??'Destination unavailable');
       handleResult(result);
-    }else if(local && ($('importLibraryBtn')?.disabled??true)){
+    }else if(local){
       await new Promise((resolve,reject)=>{
         document.dispatchEvent(new CustomEvent('runq:ai-studio:import-local',{
           detail:{file:local,destination:choice,respond:r=>r?.error?reject(new Error(r.error)):resolve(r)}
         }));
-      }).then(handleResult);
+      }); // The application publishes the result once through a shared event.
     }else{
       const button=$('importLibraryBtn');
       if(!button||button.disabled)throw new Error(t('need'));
@@ -374,6 +376,8 @@ async function commitDestination(){
 function handleResult(result){
   if(!result)return;
   if(result.assetId)state.importedAssetId=result.assetId;
+  const current=snapshot();
+  if(current){state.projectId=current.projectId;state.projectGeneration=current.projectGeneration;}
   updateStatus(result.warning??result.message??t('imported'),!!result.warning);
   state.open=!!result.warning;
   updateDestinations(false);
