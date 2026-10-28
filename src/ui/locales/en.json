@@ -465,5 +465,8 @@
   "cueEditor.moveDown": "Move down",
   "proposals.reviewHintsNone": "Independent check: no unaddressed SOUND/FX/AUDIO/MUSIC-labelled lines found in analyzed windows. This does not prove cue completeness.",
   "proposals.reviewHintsSummary": "Independent check: {count} labelled audio-direction line(s) have no model proposal or observation. Review the source; an audio file is NOT necessarily required.",
-  "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review."
+  "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review.",
+  "preview.quickGain": "GAIN",
+  "preview.quickGainAria": "Cue preview and playback gain in decibels",
+  "preview.outputCompact": "SAME SYSTEM OUTPUT AS GO · no separate PFL"
 }
