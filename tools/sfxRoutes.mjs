@@ -231,11 +231,12 @@ export function makeSfxRoute({
     } catch (error) {
       const status = error?.status === 413 ? 413 :
         ['SFX_DUPLICATE','SFX_TRANSITION'].includes(error?.code) ? 409 :
-        error?.code === 'SFX_DAILY_LIMIT' ? 429 :
+        ['SFX_DAILY_LIMIT','SFX_ACTIVE_LIMIT'].includes(error?.code) ? 429 :
         error?.code === 'SFX_NOT_FOUND' ? 404 :
         error instanceof TypeError || error instanceof RangeError ? 400 : 503;
       const code = error?.code === 'SFX_DUPLICATE' ? 'SFX_DUPLICATE' :
         error?.code === 'SFX_DAILY_LIMIT' ? 'SFX_DAILY_LIMIT' :
+        error?.code === 'SFX_ACTIVE_LIMIT' ? 'SFX_ACTIVE_LIMIT' :
         error?.code === 'SFX_TRANSITION' ? 'SFX_INVALID_STATE' :
         status === 413 ? 'SFX_TOO_LARGE' :
         status === 400 ? 'SFX_INVALID_REQUEST' :
