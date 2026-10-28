@@ -19,7 +19,7 @@ const lang=()=>get('uiLocaleSelect')?.value==='es'?'es':'en';
 const dictionary={
   en:{
     sequence:'SHOW SEQUENCE',controls:'CUE COMMANDS',properties:'PROPERTY INSPECTOR',
-    editor:'Cue Editor',audio:'Audio',script:'Script',operation:'Operation',rehearsal:'Rehearsal',
+    editor:'Cue Editor',audio:'Audio Library',script:'Script',operation:'Operation',rehearsal:'Rehearsal',
     selected:'SELECTION / PROPERTIES',workspace:'DESIGN / SEQUENCE',
     working:'OPERATOR / MANUAL SHOW CONTROL',workHint:'Choose NEXT explicitly. Selecting a row cannot fire audio.',
     source:'SOURCE',signals:'LOCAL MEDIA',choose:'Choose a loaded asset',
@@ -35,7 +35,7 @@ const dictionary={
   },
   es:{
     sequence:'SECUENCIA DEL SHOW',controls:'ACCIONES DEL CUE',properties:'INSPECTOR DE PROPIEDADES',
-    editor:'Editor de cues',audio:'Audio',script:'Guion',operation:'Operación',rehearsal:'Ensayo',
+    editor:'Editor de cues',audio:'Biblioteca de audio',script:'Guion',operation:'Operación',rehearsal:'Ensayo',
     selected:'SELECCIÓN / PROPIEDADES',workspace:'DISEÑO / SECUENCIA',
     working:'OPERADOR / CONTROL MANUAL',workHint:'Prepara NEXT expresamente. Seleccionar una fila no reproduce sonido.',
     source:'FUENTE',signals:'ARCHIVOS LOCALES',choose:'Elige un recurso cargado',
@@ -207,7 +207,7 @@ function createAudio(){
   // Keep the actual forms, original file picker, audition and STOP controls.
   for(const selector of [
     '.subheading','#assetForm','.line-actions','[data-i18n="audio.auditionWarning"]',
-    '#stopAuditionBtn','#runqAudioOverview','#runqAudioActionbar','#assetList'
+    '#stopAuditionBtn','.audio-batch-import','#runqAudioOverview','#runqAudioActionbar','#assetList'
   ]){
     const node=panel.querySelector(selector);
     if(node)library.append(node);

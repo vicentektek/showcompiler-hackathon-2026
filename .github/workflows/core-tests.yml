@@ -49,6 +49,8 @@ jobs:
         run: node tools/stagecraft-keymap-browser-e2e.mjs
       - name: Stagecraft cue waveform and operation quick-GO Chrome smoke
         run: node tools/stagecraft-cue-safety-e2e.mjs
+      - name: Stagecraft Audio Library batch and compressed ZIP Chrome smoke
+        run: node tools/stagecraft-audio-batch-e2e.mjs
       - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
         env:
           RUNQ_CAPTURE_UI: '1'
