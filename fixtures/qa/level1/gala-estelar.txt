@@ -1,0 +1,12 @@
+GALA ESTELAR 2026 — ESCALETA DE SONIDO ORIGINAL
+00:00 | SONIDO 1: reproducir la sintonía de entrada grabada, en bucle corto.
+00:02 | LX 4: encender el telón de frontal.
+00:06 | SONIDO 1: mantener la sintonía bajo la palabra del maestro de ceremonias.
+00:12 | MAESTRO (micro real): «Buenas noches, noble auditorio».
+00:15 | SONIDO 1: detener la sintonía con fundido de dos segundos.
+00:18 | APLAUSOS: son los del público, en la sala; no existe archivo de aplausos esta noche.
+00:21 | VÍDEO 2: encender el logo en pantalla sin sonido.
+00:25 | SONIDO 2: lanzar el golpe de caja grabado del anuncio del primer premio.
+00:28 | MAESTRO: «Ese mismo golpe sonó ayer en el ensayo; esta noche vuelve a la carpeta y no sale».
+00:31 | DANZA: entrada de los premiados a la pista sin pista de apoyo.
+00:40 | FIN DE BLOQUE.

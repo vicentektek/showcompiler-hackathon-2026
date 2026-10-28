@@ -1,0 +1,11 @@
+ACTO 1 — La emisora
+(La orquesta en vivo comienza la obertura desde el foso; esta noche no se reproduce ninguna obertura grabada.)
+CLARA: ¡La noche no arranca sola!
+(SONIDO 6: reproducir el playback grabado del tema «Serpiente de medianoche».)
+(CLARA canta en directo sobre el playback; su voz nunca sale del archivo.)
+(SONIDO 6: mantener el playback mientras el coro real sigue cantando el contrapunto.)
+(SONIDO 6: suavizar el playback y detener el archivo bajo la palabra del director.)
+ACTO 2 — El trío del foso
+DIRECCIÓN: En los ensayos sonó el cierre del trío desde el altavoz; esta noche el trío canta en directo.
+(El trío entra en directo a tres voces; ninguna voz suena desde el archivo.)
+DIRECCIÓN: Terminado el trío, no hay playback, no hay announce, no hay archivo en este bloque.
