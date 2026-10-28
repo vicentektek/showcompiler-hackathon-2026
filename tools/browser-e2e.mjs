@@ -443,6 +443,44 @@ try {
   assert.match(await page.locator('#rqaiStatus').innerText(),/NEXT GO unchanged/);
   await page.locator('#rqaiOpenCue').click();
   assert.match(await page.locator('#cueInspector .inspector-title').innerText(),/Stage door impact/);
+
+  // The approved UX must ALSO complete cue creation directly in Script
+  // Review after a sound has been saved, without a forced return to Sound Lab.
+  await page.locator('[data-workspace-nav="home"]').click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#homeDemoBtn').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
+  await page.locator('[data-workspace-nav="ai"]').click();
+  await page.locator('#proposalLabel').fill('Stage metal door cue');
+  await page.locator('#lineSelect').selectOption('L2');
+  await page.locator('#assetSelect').selectOption('');
+  await page.locator('#createProposalBtn').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#proposalList .item').length>0);
+  const pendingProposal=page.locator('#proposalList .item').last();
+  await pendingProposal.locator('[data-ai-studio-proposal]').click();
+  assert.equal(await page.locator('[data-workspace-nav="soundlab"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#sourceLine').inputValue(),'L2');
+  assert.match(await page.locator('#soundPrompt').inputValue(),/Stage metal door cue/);
+  await page.locator('#localWav').setInputFiles({
+    name:'unique-stage-door.wav',mimeType:'audio/wav',buffer:pcm,
+  });
+  await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent?.includes('unique-stage-door.wav'));
+  await page.locator('#rqaiOpen').click();
+  await page.locator('#rqaiDestination').selectOption('LIBRARY');
+  await page.locator('#rqaiConfirm').click();
+  await page.waitForFunction(()=>document.querySelector('#rqaiStatus')?.textContent?.includes('library'));
+  await page.locator('[data-workspace-nav="ai"]').click();
+  assert.match(await page.locator('#rqaiScriptCompletion').innerText(),/unique-stage-door/);
+  const beforeScriptAttachStarts=await page.evaluate(()=>window.__testAudioStarts);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#rqaiScriptCompletion button').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeScriptAttachStarts,
+    'Creating a proposal-backed cue in Script Review must not fire GO');
+  assert.equal(await page.locator('[data-workspace-nav="ai"]').getAttribute('aria-pressed'),'true',
+    'Script completion stays in the same review workspace');
+  await page.locator('#rqaiScriptCompletion button').click();
+  assert.match(await page.locator('#cueInspector .inspector-title').innerText(),/Stage metal door cue/);
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
   await context.close();
