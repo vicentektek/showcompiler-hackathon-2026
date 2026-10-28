@@ -168,17 +168,27 @@
           <div class="sfx-lab-intro">
             <div>
               <span class="sfx-eyebrow">SOUND DESIGN / PREPARATION ONLY</span>
-              <h2 id="generatorHeading">Generate, review and import one sound</h2>
-              <p>Remote generation is isolated from live transport. A result must be listened to, accepted and imported before it can be assigned to a cue.</p>
+              <h2 id="generatorHeading">Crear, escuchar y guardar sonidos</h2>
+              <p>Escribe un prompt, genera una toma y escúchala. La incorporación a biblioteca es manual y nunca afecta a GO.</p>
             </div>
-            <span id="engineBadge" class="sfx-status-badge">Not checked</span>
+            <div class="sfx-connection"><span id="engineBadge" class="sfx-status-badge">Comprobando…</span><button class="btn subtle small" type="button" id="sfxReconnectBtn">Comprobar conexión</button></div>
           </div>
           <div class="sfx-layout">
             <div class="sfx-left">
               <section class="sfx-card" aria-labelledby="sfxGenerateTitle">
-                <div class="sfx-section-header"><span class="sfx-index">01</span><div><h3 id="sfxGenerateTitle">Generate</h3><p>One explicit authorization, no retries</p></div></div>
-                <section class="sfx-card" aria-labelledby="scriptSfxHeading" data-sfx-step="interpret">
-                  <div class="sfx-section-header"><span class="sfx-index">AI</span><div><h3 id="scriptSfxHeading">Del guion al sonido</h3><p>Propuestas locales; revisa antes de generar</p></div></div>
+                <div class="sfx-section-header"><span class="sfx-index">01</span><div><h3 id="sfxGenerateTitle">Crear sonido</h3><p>Prompt libre o acotación, sin pasos obligatorios de IA</p></div></div>
+                <form id="generateForm" class="sfx-form">
+                  <label class="sfx-prompt-main">Describe el sonido que quieres generar<textarea id="soundPrompt" rows="5" maxlength="1000" required placeholder="Una puerta pesada chirría y se cierra de golpe. Sin música."></textarea></label>
+<div class="sfx-row-fields"><label>Tipo<select id="soundKind"><option value="SFX">Efecto puntual</option><option value="ENVIRONMENT">Ambiente continuo</option></select></label><label>Duración (segundos)<input id="duration" type="number" min="1" max="12" value="8" step="1" required></label></div>
+<details class="sfx-advanced" id="sfxAdvanced"><summary>Ejemplos y opciones avanzadas</summary><div class="sfx-advanced-content">
+<label>Ejemplos<span class="sfx-inline"><select id="acceptancePreset"><option value="">Seleccionar ejemplo…</option><option value="door">Puerta antigua</option><option value="storm">Tormenta</option><option value="audience">Público de teatro</option></select><button class="btn subtle" id="loadPresetBtn" type="button">Usar ejemplo</button></span></label>
+<div class="sfx-row-fields"><label>Referencia al guion (opcional)<input id="sourceLine" type="text" pattern="L[1-9][0-9]*" maxlength="30" placeholder="L12"></label><label>Semilla<input id="seed" type="number" min="0" max="2147483647" value="104729" step="1" required></label></div>
+</div></details><div class="sfx-notice">Escribe libremente en español o inglés. El sonido solo se genera al autorizar expresamente una solicitud.</div>
+                  <div id="costEstimate" class="sfx-cost" role="status">Comprobando el límite de coste y la conexión…</div>
+                  <label class="sfx-checkline"><input id="confirmRequest" type="checkbox"><span id="confirmRequestLabel">Autorizo una única generación con el coste máximo indicado.</span></label>
+                  <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled>Generar sonido</button><span id="generationHint" class="sfx-muted">Comprobando generador…</span></div>
+                </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret"><summary>Interpretar una acotación de guion <span class="sfx-muted">· opcional</span></summary><div class="sfx-script-body">
+                  <p id="scriptSfxHeading" class="sfx-muted">Interpreta el guion y ajusta la propuesta; no genera sonido automáticamente.</p>
                   <label>Acotación del guion<textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
                   <div class="sfx-row-fields">
                     <label>Referencia<input id="scriptSfxLine" value="L1" pattern="L[1-9][0-9]*" maxlength="12"></label>
@@ -200,28 +210,11 @@
                     <div class="sfx-buttons"><button type="button" class="btn subtle" id="scriptSfxRestore">Restaurar</button><button type="button" class="btn primary-secondary" id="scriptSfxTransfer">Usar en generación (sin enviar)</button></div>
                     <p class="sfx-muted sfx-small">No realiza solicitudes a Modal. Transferir rellena el formulario y mantiene la confirmación de coste desmarcada.</p>
                   </div>
-                </section>
-                <form id="generateForm" class="sfx-form">
-                  <label>Acceptance case
-                    <span class="sfx-inline"><select id="acceptancePreset"><option value="">Custom prompt</option><option value="door">SFX 01 — Antique door</option><option value="storm">SFX 02 — Storm</option><option value="audience">SFX 03 — Theatre audience</option></select><button class="btn subtle" id="loadPresetBtn" type="button">Load case</button></span>
-                  </label>
-                  <div class="sfx-row-fields">
-                    <label>Sound type<select id="soundKind"><option value="SFX">Sound effect</option><option value="ENVIRONMENT">Environment / ambience</option></select></label>
-                    <label>Script reference (optional)<input id="sourceLine" type="text" pattern="L[1-9][0-9]*" maxlength="30" autocomplete="off" placeholder="L12"></label>
-                  </div>
-                  <label>Sound description<textarea id="soundPrompt" rows="5" maxlength="1000" required placeholder="A heavy antique wooden door slowly creaks open, then closes with one solid slam. No speech or music."></textarea></label>
-                  <div class="sfx-row-fields">
-                    <label>Duration (seconds)<input id="duration" type="number" min="1" max="12" value="8" step="1" required></label>
-                    <label>Seed<input id="seed" type="number" min="0" max="2147483647" value="104729" step="1" required></label>
-                  </div>
-                  <div class="sfx-notice">No request is sent when this workspace opens, when a preset is loaded, during preview or by automated tests.</div>
-                  <div id="costEstimate" class="sfx-cost" role="status">Cost estimate unavailable. Generation is blocked until the local service exposes a configured maximum.</div>
-                  <label class="sfx-checkline"><input id="confirmRequest" type="checkbox"><span id="confirmRequestLabel">I authorize exactly one request up to the maximum shown above.</span></label>
-                  <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled>Generate one take</button><span id="generationHint" class="sfx-muted">Open this workspace to check the local service.</span></div>
-                </form>
+                </div></details>
+
               </section>
               <section class="sfx-card" aria-labelledby="jobsHeading">
-                <div class="sfx-section-header"><span class="sfx-index">02</span><div><h3 id="jobsHeading">Review a take</h3><p>Persistent local records survive RunQ restarts</p></div></div>
+                <div class="sfx-section-header"><span class="sfx-index">02</span><div><h3 id="jobsHeading">Resultado de la generación</h3><p>Consulta el estado, escucha y acepta la toma</p></div></div>
                 <label>Request ID<input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
                 <div class="sfx-buttons"><button class="btn" id="openJobBtn" type="button">Open local record</button><button class="btn" id="refreshBtn" type="button">Check remote status</button><button class="btn danger-outline" id="cancelBtn" type="button">Request cancellation</button></div>
                 <div class="sfx-job-info"><div class="sfx-pill" id="jobState">No job loaded</div><p id="jobDetails" class="sfx-muted">No remote call is made when a saved record is opened.</p></div>
@@ -230,9 +223,9 @@
               </section>
             </div>
             <section class="sfx-card sfx-audio-panel" aria-labelledby="editorHeading">
-              <div class="sfx-section-header"><span class="sfx-index">03</span><div><h3 id="editorHeading">Waveform and audition</h3><p>Review IN/OUT without changing the generated source</p></div></div>
+              <div class="sfx-section-header"><span class="sfx-index">03</span><div><h3 id="editorHeading">Escuchar y editar</h3><p>Onda real y recorte IN/OUT sin alterar el original</p></div></div>
               <div class="sfx-source-file"><label for="localWav">Open a local WAV for zero-cost editing checks</label><input id="localWav" type="file" accept=".wav,audio/wav"><button class="btn" id="demoAudioBtn" type="button">Load offline synthetic test sound</button><span id="audioName" class="sfx-muted sfx-small">No audio loaded</span></div>
-              <div class="sfx-wavepanel"><div class="sfx-wave-top"><span id="waveDuration">00:00.000</span><span>Real decoded PCM waveform · drag to select</span></div><canvas id="waveCanvas" width="900" height="250" aria-label="Waveform and selected non-destructive review region"></canvas><div class="sfx-time-ruler"><span>IN</span><span>Reviewed region</span><span>OUT</span></div></div>
+              <div class="sfx-wavepanel"><p class="sfx-wave-empty" id="sfxWaveEmpty">Cuando generes o cargues un WAV aparecerá aquí su onda de audio.</p><div class="sfx-wave-top"><span id="waveDuration">00:00.000</span><span>Real decoded PCM waveform · drag to select</span></div><canvas id="waveCanvas" width="900" height="250" aria-label="Waveform and selected non-destructive review region"></canvas><div class="sfx-time-ruler"><span>IN</span><span>Reviewed region</span><span>OUT</span></div></div>
               <div class="sfx-row-fields"><label>IN (seconds)<input id="inPoint" type="number" min="0" step="0.001" value="0" disabled></label><label>OUT (seconds)<input id="outPoint" type="number" min="0" step="0.001" value="0" disabled></label></div>
               <div class="sfx-transport"><button class="btn primary" id="playBtn" type="button" disabled>▶ Preview selection</button><button class="btn" id="stopBtn" type="button" disabled>■ Stop</button><label class="sfx-level">Monitor level <input id="monitorLevel" type="range" min="0" max="50" value="15" aria-label="Audition volume"></label></div>
               <div class="sfx-notice sfx-muted">Preview uses the computer's default output, not an isolated PFL bus. Start at low volume. GO, NEXT and the running show are untouched.</div>
