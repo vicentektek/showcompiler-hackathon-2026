@@ -132,6 +132,9 @@ const DEVELOPER_INSTRUCTIONS = [
   'Classify an audible stage direction as basis EXPLICIT. A location or mood that could benefit from atmosphere is basis SUGGESTED and must be described honestly as a creative option.',
   'A character merely mentioning or remembering a sound is not an audible event: omit it unless the scene itself calls for sound.',
   'When ambience is already running and a later line says it continues, use transport CONTINUE, not PLAY. Do not create another GO.',
+  'Before returning, check every core line again for explicit recorded sound cues, including final lines and short stings in galas. Do not omit a playback instruction merely because other sound cues were already found.',
+  'Do not create optional ambience in literal mode based only on scenic location or mood. Physical props and live applause are not automatically recorded sound cues.',
+
   'For intentional silence use cueKind SILENCE and transport SILENCE. For a direction that ends or fades existing sound use transport STOP. These are observations, not playable audio files.',
   'Use transport PLAY only for a new audible cue. Set assetId only when an available audio name genuinely fits; otherwise use null and still provide a precise acoustic soundPrompt.',
   'For one-shots describe onset, distance, texture and decay. For ambience describe layers, evolution, duration, loop seam and exclusions such as no voices or music.',
