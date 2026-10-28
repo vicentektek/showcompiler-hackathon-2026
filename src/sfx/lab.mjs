@@ -229,6 +229,16 @@ function updateFades(fadeIn,fadeOut){
  text('sfxFadeOutLabel',(spanish?'Salida gradual':'Fade out')+' · '+last.toFixed(2)+' s');
  drawWave();
 }
+function updateSfxEditorLocale(){
+ const es=$('uiLocaleSelect')?.value==='es';
+ text('sfxDragLabel',es?'Acción al arrastrar':'Waveform gesture');
+ const modes=$('sfxDragMode').options;
+ modes[0].textContent=es?'Seleccionar IN/OUT':'Select IN/OUT';
+ modes[1].textContent=es?'Mover fundido de entrada':'Move fade-in edge';
+ modes[2].textContent=es?'Mover fundido de salida':'Move fade-out edge';
+ text('importCueBtn',es?'Importar y crear cue':'Import + create cue');
+ updateFades(state.fadeInSeconds,state.fadeOutSeconds);
+}
 function updateTrim(inSeconds,outSeconds){
   if(!state.audio)return;
   try{
@@ -470,7 +480,7 @@ function bindEvents(){
   for(const id of ['sfxFadeIn','sfxFadeOut'])$(id).addEventListener('input',()=>{
     updateFades(Number($('sfxFadeIn').value),Number($('sfxFadeOut').value));
   });
-  $('uiLocaleSelect')?.addEventListener('change',()=>{updateFades(state.fadeInSeconds,state.fadeOutSeconds);});
+  $('uiLocaleSelect')?.addEventListener('change',updateSfxEditorLocale);
   const canvas=$('waveCanvas');
   canvas.addEventListener('pointerdown',event=>{
     if(!state.audio)return;const rectangle=canvas.getBoundingClientRect();
@@ -572,5 +582,5 @@ export async function initializeSoundLab({onImportReviewed}={}){
       viewJob(await result.json());
     }catch{/* Old/missing local records are safely ignored. */}
   }
-  updateControls();drawWave();
+  updateSfxEditorLocale();updateControls();drawWave();
 }
