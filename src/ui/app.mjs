@@ -61,6 +61,29 @@ document.addEventListener('runq:request-audio-source', event => {
   respond(registered ? (originalAudioFiles.get(assetId) ?? null) : null);
 });
 
+/** Read-only Voice Follow interface; never touches operator queue or playback. */
+document.addEventListener('runq:voice-follow-read-project', event => {
+  const respond=event.detail?.respond;
+  if(typeof respond!=='function')return;
+  respond({
+    scriptText:show.scriptText,
+    cues:show.cues.map(cue=>({
+      id:cue.id,number:cue.number,label:cue.label,trigger:cue.trigger??'',
+      sourceLineIds:[...cue.sourceLineIds],
+    })),
+  });
+});
+document.addEventListener('runq:voice-follow-highlight-line', event => {
+  const lineId=event.detail?.lineId;
+  if(typeof lineId!=='string'||!/^L[1-9]\d*$/.test(lineId))return;
+  if(!parseScript(show.scriptText).some(line=>line.id===lineId))return;
+  scriptFocusLineId=lineId;
+  render(); // Source navigation only, never changes prepared queue.
+  const target=[...$('scriptPreview').querySelectorAll('[data-script-line-id]')]
+    .find(row=>row.dataset.scriptLineId===lineId);
+  target?.scrollIntoView({block:'nearest'});
+});
+
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
