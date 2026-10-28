@@ -230,6 +230,11 @@ function refreshAudioControls() {
   $('loadAudioBtn').disabled = audioInFlight || auditioning || bundleInFlight;
   $('importAudioBatchBtn').disabled = audioInFlight || bundleInFlight || auditioning || active>0 || pending>0;
   $('importAudioZipBtn').disabled = $('importAudioBatchBtn').disabled;
+  for(const button of document.querySelectorAll('[data-rq-audio-cue-import]'))
+    button.disabled=audioInFlight||bundleInFlight||auditioning||active>0||pending>0;
+  for(const button of document.querySelectorAll('[data-rq-create-audio-cue]'))
+    button.disabled=audioInFlight||bundleInFlight||auditioning||active>0||pending>0||
+      !player.hasAsset(button.dataset.rqCreateAudioCue);
   $('openBundleBtn').disabled = bundleInFlight || audioInFlight;
   $('saveBundleBtn').disabled = bundleInFlight || audioInFlight;
   for (const button of document.querySelectorAll('[data-asset-audition]')) {
@@ -725,6 +730,7 @@ function renderCueList({ resetScroll = false } = {}) {
   const importButton = node('button','btn subtle small',
     uiLocale==='es'?'Importar audios como cues':'Import audio as cues');
   importButton.type='button';
+  importButton.dataset.rqAudioCueImport='';
   importButton.disabled=audioInFlight||bundleInFlight;
   const chooser=node('input','rq-audio-cue-input');
   chooser.type='file';chooser.accept='.wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*';
@@ -944,6 +950,7 @@ function render() {
     const addCue=node('button','btn subtle small',
       uiLocale==='es'?'Crear cue':'Create cue');
     addCue.type='button';
+    addCue.dataset.rqCreateAudioCue=asset.id;
     addCue.disabled=!player.hasAsset(asset.id)||audioInFlight||bundleInFlight;
     addCue.addEventListener('click',()=>insertLoadedAudioCues([asset.id]));
     row.append(label, audition, addCue);
