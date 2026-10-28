@@ -132,7 +132,7 @@ try {
   assert.ok(compactGeometry.right.x >= compactGeometry.left.right-2,'Compact inspector stays next to cue list');
   assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
     'Compact GO and STOP ALL remain visible without scrolling');
-  const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
+  const visibleInspectorField=await page.locator('[data-quick-gain-cue]').boundingBox();
   if(!visibleInspectorField || visibleInspectorField.y>=614) {
     console.error('COMPACT_AUDIO_LAYOUT',JSON.stringify(await page.evaluate(()=>{
       const ids=['cueInspector','cuePlaybackForm','cueInspectorPanel'];
@@ -140,14 +140,21 @@ try {
         bottom:element.getBoundingClientRect().bottom,height:element.getBoundingClientRect().height,
         scrollTop:element.scrollTop,scrollHeight:element.scrollHeight}:null;
       return {areas:Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))])),
-        gain:rect(document.querySelector('#cuePlaybackForm [name="gainDb"]')),
+        gain:rect(document.querySelector('[data-quick-gain-cue]')),
         audition:rect(document.querySelector('.cue-audition-studio')),
         tab:rect(document.querySelector('.cue-inspector-tabs')),
         waveform:rect(document.querySelector('.cue-waveform-editor'))};
     })));
   }
-  assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
-    'Compact inspector must show real editable audio settings without page scroll');
+  assert.ok(visibleInspectorField && visibleInspectorField.y < 614 &&
+    visibleInspectorField.y+visibleInspectorField.height <= 614,
+    'Compact inspector must show editable quick gain without scrolling');
+  const previewControl=await page.locator('.cue-audition-studio .cue-preview-play').boundingBox();
+  assert.ok(previewControl && previewControl.y+previewControl.height<=614,
+    'Compact inspector must show the audition control without scrolling');
+  await page.locator('[data-quick-gain-cue]').fill('-8');
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),'-8',
+    'Quick gain must edit the same staged playback field');
   await page.setViewportSize({width:1366,height:768});
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
