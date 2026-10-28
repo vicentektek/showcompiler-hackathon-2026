@@ -1,3 +1,5 @@
+import { suggestVoiceCue } from '../core/voiceFollow.mjs';
+import { makeProjectVoiceScenario } from '../core/voiceScenario.mjs';
 /**
  * RunQ microphone preflight: explicit consent, local capture only.
  * No speech service, external upload, cue preparation or GO.
@@ -52,6 +54,7 @@ function complete(){
  $('rqMicConsent').checked=false;
  $('rqMicTranscribe').disabled=false;
  $('rqMicTranscript').textContent='';
+ $('rqMicCueMatch').textContent='';
  if(window.__runqMicTakeUrl)URL.revokeObjectURL(window.__runqMicTakeUrl);
  window.__runqMicTakeUrl=URL.createObjectURL(blob);
  $('rqMicListen').src=window.__runqMicTakeUrl;
@@ -120,6 +123,26 @@ async function transcribe(){
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||'HTTP_'+response.status);
   $('rqMicTranscript').textContent=data.transcript||t('(No speech found)','(No se detectó voz)');
+  // Only show a candidate; this is never an operator queue instruction.
+  let currentShow=null;
+  document.dispatchEvent(new CustomEvent('runq:voice-follow-read-project',{
+    detail:{respond:show=>{currentShow=show;}}
+  }));
+  const scenario=makeProjectVoiceScenario(currentShow);
+  if(scenario && data.transcript){
+    const result=suggestVoiceCue({
+      cues:scenario.cues,transcript:{text:data.transcript,final:true,endMs:0},
+      focusLine:scenario.initialFocusLine,nowMs:0,
+    });
+    const cue=scenario.cues.find(item=>item.id===result.cueId);
+    $('rqMicCueMatch').textContent=result.status==='SUGGEST_PREPARE'
+      ? t('Suggested cue (manual GO only): ','Cue sugerido (GO solo manual): ')+
+        (cue?.label||result.cueId)+' · '+result.lineId+' · '+Math.round(result.score*100)+'%'
+      : t('No confident cue match in the current show.','Sin coincidencia fiable con los cues del espectáculo.');
+  }else{
+    $('rqMicCueMatch').textContent=t('Configure voice triggers in Cue Editor to test cue matching.',
+      'Configura los pies hablados en el editor para probar la coincidencia de cues.');
+  }
   $('rqMicTranscribeStatus').textContent=t('Muse transcription received in ','Transcripción recibida en ')+
     ((performance.now()-startedAt)/1000).toFixed(2)+' s';
   // Transcript is displayed for operator review; it never changes the prepared queue or triggers GO.
