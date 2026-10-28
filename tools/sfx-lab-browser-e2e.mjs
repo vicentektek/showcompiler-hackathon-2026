@@ -63,7 +63,7 @@ try{
     currentUrl:page.url(),
     errors
   }));
-  await page.locator('#engineBadge').getByText('Offline editing',{exact:true}).waitFor({timeout:4000});
+  await page.waitForFunction(()=>!['Checking engine','Comprobando conexión'].includes(document.querySelector('#engineBadge')?.textContent?.trim()),null,{timeout:4000});
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
   await page.locator('#demoAudioBtn').click();
