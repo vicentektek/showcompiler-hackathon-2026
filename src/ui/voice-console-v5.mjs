@@ -155,6 +155,7 @@ function syncRehearsal(){
   mode==='assist'?tr('ASSISTED','ASISTIDO'):tr('MANUAL','MANUAL');
  $('rqRehearsalDeck').dataset.armed=String(auto);
  $('rqRehearsalDeck').dataset.listening=String(mic);
+ $('rqRehearsalDeck').dataset.mode=mode;
  $('rqRehStart').disabled=mode==='manual'||mic||!$('rqLiveStart')||$('rqLiveStart').disabled;
  $('rqRehStop').disabled=!mic||$('rqLiveStop').disabled;
  $('rqRehArm').disabled=mode!=='auto'||!mic||auto||$('rqLiveArm')?.disabled;
