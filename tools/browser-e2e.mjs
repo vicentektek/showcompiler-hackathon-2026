@@ -359,13 +359,14 @@ try {
   assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
     'Return to NEXT is viewport navigation only');
 
-  const directStop = page.locator('[data-cue-action="stop"]').first();
-  assert.equal((await directStop.isDisabled()), true);
+  const queuedStop = page.locator('[data-cue-action="stop"]').first();
+  assert.equal((await queuedStop.isDisabled()), true);
   assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
   const startsBeforeDirectGo = await page.evaluate(() => window.__testAudioStarts);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(starts => window.__testAudioStarts > starts, startsBeforeDirectGo);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
+  const directStop=page.locator('#runqActiveCuesList [data-active-action="stop"]').first();
   assert.equal((await directStop.isEnabled()), true);
   assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
   await directStop.click();
