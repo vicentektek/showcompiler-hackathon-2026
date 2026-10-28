@@ -225,6 +225,16 @@ function createShell(){
     updateReadiness();updateDestinations(false);
   });
   useHead.append(useInfo,sourceBlock,open);
+  // On compact laptops the destination is below the waveform. Keep one
+  // visible shortcut in the studio header; it opens the SAME real controls.
+  const jump=actionText('use','rqai-compact-jump rqai-primary');
+  jump.id='rqaiJumpUse';jump.disabled=true;
+  jump.addEventListener('click',()=>{
+    state.open=true;updateDestinations(true);
+    use.scrollIntoView({block:'start',behavior:'instant'});
+    open.focus({preventScroll:true});
+  });
+  soundlab.querySelector('.sfx-connection')?.append(jump);
   const options=node('div','rqai-options');options.id='rqaiOptions';options.hidden=true;
   const modeLabel=node('label','rqai-input');
   const modeSelect=node('select');modeSelect.id='rqaiDestination';
@@ -322,6 +332,7 @@ function updateReadiness(){
   const ready=!!chosen;
   const button=$('rqaiOpen');
   if(button)button.disabled=!ready;
+  const jump=$('rqaiJumpUse');if(jump)jump.disabled=!ready;
   const hint=$('rqaiReadiness');
   if(hint)hint.textContent=chosen==='IMPORTED'?t('saved'):
     chosen==='GENERATED'?t('available'):
