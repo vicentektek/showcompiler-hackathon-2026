@@ -34,6 +34,7 @@ function wav(pcm,sampleRate){
  return new Blob([buffer],{type:'audio/wav'});
 }
 function shutdown(){
+ if(document.body?.dataset.runqVoiceCapture==='recording')delete document.body.dataset.runqVoiceCapture;
  if(timer!==null){clearTimeout(timer);timer=null;}
  processor?.disconnect();source?.disconnect();mutedGain?.disconnect();
  processor=null;source=null;mutedGain=null;
@@ -67,6 +68,11 @@ function complete(){
 }
 async function begin(){
  if(stream||requestInFlight)return;
+ if(document.body?.dataset.runqVoiceCapture){
+  status('Another microphone session is in progress. Stop it first.',
+    'Hay otra sesión de micrófono activa. Detenla antes.');return;
+ }
+ document.body.dataset.runqVoiceCapture='recording';
  lastTake=null;
  $('rqMicConsent').checked=false;
  $('rqMicTranscribe').disabled=true;
