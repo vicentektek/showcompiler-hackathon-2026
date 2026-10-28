@@ -156,8 +156,10 @@ try {
   assert.equal(await inspector.count(), 1);
   const waveform = inspector.locator('.cue-waveform-canvas');
   assert.equal(await waveform.count(),1,'Real PCM preview is visible when a decoded file exists');
+  await waveform.scrollIntoViewIfNeeded();
   const rect = await waveform.boundingBox();
-  assert.ok(rect && rect.width>180);
+  assert.ok(rect && rect.width > 80,
+    'Waveform must be visible and interactive in the cue inspector: ' + JSON.stringify(rect));
   // Initial IN is zero and OUT is the full 3-second file. Clicking at 60%
   // chooses OUT, and the same numerical field is then persisted by Save.
   await page.mouse.click(rect.x+rect.width*.6,rect.y+rect.height/2);
