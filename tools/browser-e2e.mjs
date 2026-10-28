@@ -332,6 +332,30 @@ try {
   assert.equal(await page.locator('[data-extra-track="track-1"]').count(),1);
   await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
+  // V7 professional show desk: all cues remain navigable independently of
+  // prepared NEXT, while no browse, jump or double-click can trigger GO.
+  assert.equal(await page.locator('#rq7LiveNavigator').isVisible(),true,
+    'Live full-list transport must be available in Operation');
+  assert.equal(await page.locator('#rq7LiveInspector').isVisible(),true,
+    'Operation offers an inspector without editable show fields');
+  const v7Starts=await page.evaluate(()=>window.__testAudioStarts);
+  const v7Prepared=await page.locator('#preparedCueStatus').innerText();
+  await page.locator('#rq7JumpCue').fill('3');
+  await page.locator('#rq7JumpButton').click();
+  assert.match(await page.locator('#rq7LiveInspector').innerText(),/Q0*3/i);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Jump/inspect must never change NEXT');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),v7Starts,
+    'Jump/inspect must never run audio');
+  await page.locator('#cueList [data-cue-select]').nth(2).dblclick();
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),v7Starts,
+    'Double-clicking a cue never GO in V7');
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Double-clicking a cue never prepares NEXT in V7');
+  await page.locator('[data-rq7-action="return"]').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Return to NEXT is viewport navigation only');
+
   const directStop = page.locator('[data-cue-action="stop"]').first();
   assert.equal((await directStop.isDisabled()), true);
   assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
