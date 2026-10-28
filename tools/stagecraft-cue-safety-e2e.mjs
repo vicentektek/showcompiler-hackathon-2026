@@ -67,6 +67,7 @@ try {
   assert.ok(pixels>100,'real PCM waveform must be drawn onto canvas');
   const originalPrepared=await page.locator('#preparedCueStatus').innerText();
   const form=page.locator('#cuePlaybackForm');
+  await form.locator('.cue-wave-ms-advanced summary').click();
   await form.locator('[name="startAtMs"]').fill('180');
   await form.locator('[name="endAtMs"]').fill('1560');
   await form.locator('[name="fadeInMs"]').fill('220');
