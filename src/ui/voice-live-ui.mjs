@@ -158,8 +158,13 @@ async function poll(){
 }
 async function start(){
  if(active||starting||stopping)return;
+ if(document.body?.dataset.runqVoiceCapture){
+  report('Stop the other microphone recording first.',
+   'Detén primero la otra grabación de micrófono.');return;
+ }
  if(!$('rqLiveConsent').checked){report('Authorize microphone streaming first.',
   'Autoriza primero el envío del micrófono.');return;}
+ document.body.dataset.runqVoiceCapture='live';
  starting=true;controls();refreshShow();
  transcriptHistory=[];$('rqLiveTranscript').replaceChildren();$('rqLivePartial').textContent='';
  const lang=$('rqLiveLang').value;
@@ -204,7 +209,10 @@ async function start(){
 }
 async function stop(force=false,reason='manual'){
  if(stopping)return;
- if(!active&&!starting&&!session){teardownMic();controls();return;}
+ if(!active&&!starting&&!session){
+  if(document.body?.dataset.runqVoiceCapture==='live')delete document.body.dataset.runqVoiceCapture;
+  teardownMic();controls();return;
+ }
  stopping=true;active=false;teardownMic();
  if(polling!==null){clearInterval(polling);polling=null;}
  try{await queue;}catch{}
@@ -222,6 +230,7 @@ async function stop(force=false,reason='manual'){
    }else await endpoint('stop',{method:'POST'});
   }catch{}
  }
+ if(document.body?.dataset.runqVoiceCapture==='live')delete document.body.dataset.runqVoiceCapture;
  session=null;stopping=false;starting=false;queue=Promise.resolve();queuedFrames=0;
  $('rqLiveConsent').checked=false;
  report(reason==='manual'?'Session finished. No GO performed.':'Session ended safely: '+reason,
