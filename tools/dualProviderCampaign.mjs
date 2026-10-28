@@ -6,6 +6,7 @@
 import {mkdir,readFile,writeFile,open} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {PERFORMANCE_KINDS} from '../src/core/performanceKnowledge.mjs';
 import {readLevel1Corpus} from './level1Corpus.mjs';
 import {buildDualProviderPlan} from '../src/core/dualProviderPlan.mjs';
 import {createNewShow} from '../src/core/workspace.mjs';
@@ -90,7 +91,7 @@ export async function runCampaign({rootDir=process.cwd(),options={},metaCaller=c
     const windowStart=c.windows.findIndex(w=>w.id===pair.windowId);
     if(windowStart<0)throw new Error('Missing planned window');
     const prepared=prepareTheatricalCueAnalysis(project,{model:'muse-spark-1.3',windowStart,
-      designMode:'literal',scriptLanguage:c.language,performanceKind:c.type,documentKind:c.documentKind});
+      designMode:'literal',scriptLanguage:c.language,performanceKind:PERFORMANCE_KINDS.includes(c.type)?c.type:'auto',documentKind:c.documentKind});
     if(prepared.coverage.analyzedWindowIds.length!==1||
         prepared.coverage.analyzedWindowIds[0]!==pair.windowId||
         prepared.coverage.analyzedLineIds[0]!==pair.startLineId||
@@ -143,7 +144,7 @@ export async function runCampaign({rootDir=process.cwd(),options={},metaCaller=c
           if(provider==='META'){
             result=await metaCaller({show:x.project,apiKey:process.env.MODEL_API_KEY,
               analysisMode:'THEATRICAL',analysisWindowStart:x.windowStart,
-              scriptLanguage:x.c.language,designMode:'literal',performanceKind:x.c.type,
+              scriptLanguage:x.c.language,designMode:'literal',performanceKind:PERFORMANCE_KINDS.includes(x.c.type)?x.c.type:'auto',
               documentKind:x.c.documentKind,model:'muse-spark-1.3'});
             if(result.coverage?.analyzedWindowIds?.[0]!==x.pair.windowId)throw new Error('Unexpected model coverage');
             record={...record,status:'COMPLETED',
