@@ -40,23 +40,38 @@ function disarm(reason='operator'){
  if(armed)log(t('Disarmed: ','Desarmado: ')+reason);
  armed=false;epoch++;display();
 }
-function arm(){
+async function arm(){
  if(armed){disarm('operator');return;}
  if(!listening||busy||$('rqLiveMode').value!=='auto')return;
  const show=currentShow();
- if(!scenario||key(show)!==fingerprint){
-  disarm('show changed');return;
- }
+ if(!scenario||key(show)!==fingerprint){disarm('show changed');return;}
  const accepted=window.confirm(t(
   'REHEARSAL ONLY: allow voice-recognized cues to start SHOW AUDIO automatically? Cues may repeat, rewind and jump. No intermediate cues will play. STOP ALL disarms.',
   'SOLO ENSAYO: ¿permitir que los pies reconocidos disparen AUDIO DEL SHOW automáticamente? Se podrán repetir cues, retroceder o saltar. Los cues intermedios NO sonarán. PARAR TODO desarma.'
  ));
  if(!accepted)return;
+ // Dispatch synchronously within the operator click; Chrome can unlock the
+ // Web Audio output only during user activation, not when ASR arrives later.
+ const armEpoch=epoch;
+ const unlocked=new Promise(resolve=>{
+  document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-arm-audio',{
+   detail:{respond:resolve},
+  }));
+ });
+ busy=true;display();
+ const result=await unlocked;
+ busy=false;
+ if(epoch!==armEpoch||!listening||$('rqLiveMode').value!=='auto')return;
+ if(!result?.ok){
+  status('Cannot arm audio: '+(result?.reason??'OUTPUT_ERROR'),
+   'No se puede armar audio: '+(result?.reason??'OUTPUT_ERROR'));
+  display();return;
+ }
  const focus=Number($('rqLiveFocus').value);
  autoState=initialRehearsalAutoState({
   focusLine:Number.isInteger(focus)&&focus>0?focus:scenario.initialFocusLine,
  });
- busy=false;armed=true;epoch++;
+ armed=true;epoch++;
  display();
  log(t('Automatic GO ARMED','GO automático ARMADO'));
 }
@@ -146,7 +161,7 @@ async function finalTurn(detail){
 }
 function mount(){
  if(!$('rqLiveMode'))return;
- $('rqLiveArm').addEventListener('click',arm);
+ $('rqLiveArm').addEventListener('click',()=>void arm());
  $('rqLiveMode').addEventListener('change',()=>{
   disarm('mode changed');localized();
  });
