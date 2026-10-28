@@ -140,7 +140,8 @@ test('manual GO executes trim from file offset, speed and stereo pan with accura
   assert.equal(x.sources[0].startOffset,0.5);
   assert.equal(x.sources[0].playbackRate.value,2);
   assert.equal(x.panners[0].pan.value,-0.4);
-  assert.equal(x.sources[0].stopTime,7.77);
+  assert.equal(x.sources[0].loopStart,0.5); // Repeated segment starts at IN.
+  assert.equal(x.sources[0].stopTime,7.52);
   x.engine.stopAll();
 });
 test('rejects offset at or beyond decoded file boundary before starting audio', async () => {
