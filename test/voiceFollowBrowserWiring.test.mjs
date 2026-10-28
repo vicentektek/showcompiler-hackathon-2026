@@ -22,8 +22,8 @@ test('simulator UI has no audio transport, microphone or model service calls',()
  for(const dangerous of ['player.go','player.play','operatorGoBtn','operatorPanicBtn','completePreparedCue(','navigator.mediaDevices','api.meta.ai','MODEL_API_KEY'])
    assert.equal(code.includes(dangerous),false,dangerous);
  assert.ok(code.includes('replayVoiceRehearsal('));
- assert.ok(code.includes('GO ALWAYS MANUAL'));
- assert.ok(code.includes('GO SIEMPRE MANUAL'));
+ assert.ok(code.includes('DOES NOT EXECUTE GO'));
+ assert.ok(code.includes('NO EJECUTA GO'));
  assert.equal(code.includes('runq:voice-follow-prepare-cue'),false,'offline simulator never prepares cues');
 });
 
