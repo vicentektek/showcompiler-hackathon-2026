@@ -9,7 +9,8 @@ import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { formatCueTime,parseCueTime,clampCueFade } from '../core/cueTimeEditing.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
-import { extractAudioZip,planAudioLibraryBatch,MAX_AUDIO_ZIP_BYTES,MAX_AUDIO_BATCH_FILES } from '../core/audioBatchImport.mjs';
+import { planAudioLibraryBatch } from '../core/audioBatchImport.mjs';
+import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -2446,10 +2447,9 @@ async function importAudioLibraryBatch(selected,{zip=false}={}){
     let files=selected;
     if(zip){
       const archive=selected[0];
-      if(!archive || archive.size<22 || archive.size>MAX_AUDIO_ZIP_BYTES ||
-         !/\.zip$/i.test(archive.name))throw uiError('audioBatch.zipInvalid');
-      reportAudioImport(uiLocale==='es'?'Leyendo ZIP de audio…':'Reading audio ZIP…');
-      const extracted=await extractAudioZip(new Uint8Array(await archive.arrayBuffer()));
+      if(!archive)throw uiError('audioBatch.zipInvalid');
+      reportAudioImport((uiLocale==='es'?'Leyendo archivo comprimido: ':'Opening archive: ')+archive.name);
+      const extracted=await extractAudioArchive(archive);
       files=extracted.files;issues=[...extracted.skipped];
     }
     if(generation!==projectGeneration)throw uiError('errors.projectChanged');
