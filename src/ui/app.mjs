@@ -1732,6 +1732,34 @@ $('checkPreflightBtn').addEventListener('click', () => {
   preflightVisible = !preflightVisible;
   renderPreflight();
 });
+// Direct operation only: a deliberately enabled double click prepares a
+// specific cue then delegates to the one existing GO button. No extra engine.
+document.addEventListener('runq:operator-quick-go',event=>{
+  const id=event.detail?.cueId;
+  if(activeWorkspace!=='operation' || typeof id!=='string') return;
+  const cue=show.cues.find(item=>item.id===id);
+  if(!cue || cue.actions.some(action=>action.type!=='PLAY' ||
+       !player.hasAsset(action.assetId)) ||
+     (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)) ||
+     audioInFlight || bundleInFlight || player.isPlaying(id)) return;
+  const busy=player.getStatus();
+  if(busy.pendingGoCount || busy.auditionActive || busy.auditionPending) return;
+  const previous=operatorQueue;
+  try {
+    operatorQueue=prepareOperatorCue(operatorQueue,show.cues,id);
+    refreshAudioControls();
+    const go=$('operatorGoBtn');
+    if(go.disabled) {
+      operatorQueue=previous;refreshAudioControls();return;
+    }
+    // Do not run selected cue directly; preserve GO sequence advance and
+    // all regular stop-target and overlap policies.
+    go.click();
+  }catch(error){
+    operatorQueue=previous;refreshAudioControls();showError(error);
+  }
+});
+
 $('operatorGoBtn').addEventListener('click', async () => {
   const id = operatorQueue.preparedCueId;
   if (!id || audioInFlight) return;
