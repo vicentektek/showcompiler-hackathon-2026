@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="/src/ui/operator-workbench.css">
   <link rel="stylesheet" href="/src/ui/audio-library-batch.css">
   <link rel="stylesheet" href="/src/sfx/lab.css">
+  <link rel="stylesheet" href="/src/ui/voice-follow.css">
+  <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
@@ -76,6 +78,54 @@
       </section>
 
       <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
+      <section id="rqvfPanel" class="rqvf-panel" data-workspaces="rehearsal" hidden aria-labelledby="rqvfTitle">
+        <div class="rqvf-head">
+          <div class="rqvf-brand">
+            <strong id="rqvfTitle">VOICE FOLLOW</strong>
+            <small id="rqvfSub">OFFLINE REHEARSAL SIMULATOR · NO MICROPHONE · NO GO</small>
+          </div>
+          <div class="rqvf-actions">
+            <label for="rqvfSource"><span id="rqvfSourceLabel">Scenario</span>
+              <select id="rqvfSource">
+                <option value="fixture">Example scene</option>
+                <option value="project">Current show (configured triggers)</option>
+              </select>
+            </label>
+            <button type="button" id="rqvfPlay">Play</button>
+            <button type="button" id="rqvfPause" disabled>Pause</button>
+            <button type="button" id="rqvfStep">Next event</button>
+            <button type="button" id="rqvfReset">Restart</button>
+          </div>
+        </div>
+        <div class="rqvf-grid">
+          <div class="rqvf-cell">
+            <small id="rqvfInputHeading">TRANSCRIPT</small>
+            <div id="rqvfSnippet" class="rqvf-snippet"></div>
+            <span id="rqvfOrigin" class="rqvf-small"></span>
+          </div>
+          <div class="rqvf-cell">
+            <small id="rqvfResultHeading">MATCH RESULT</small>
+            <strong id="rqvfTranscript" class="rqvf-main-text"></strong>
+            <span id="rqvfLine" class="rqvf-small"></span>
+            <span id="rqvfScore" class="rqvf-small"></span>
+          </div>
+          <div class="rqvf-cell rqvf-results">
+            <small id="rqvfReadonly">SIMULATION ONLY</small>
+            <strong id="rqvfCue"></strong>
+            <span id="rqvfResult" class="rqvf-small"></span>
+          </div>
+        </div>
+        <div class="rqvf-foot">
+          <div class="rqvf-status">
+            <output id="rqvfClock">00:00</output>
+            <output id="rqvfCounter">0 / 0</output>
+            <p id="rqvfMessage" role="status" aria-live="polite">Ready.</p>
+          </div>
+          <div><small id="rqvfLogHeading">EVENT LOG</small>
+            <ol id="rqvfLog" class="rqvf-log" aria-label="Voice simulation log"></ol>
+          </div>
+        </div>
+      </section>
       <div class="layout">
         <section class="panel home-panel" data-workspaces="home" aria-labelledby="homeHeading">
           <div class="panel-head"><div><span class="step">00</span><h2 id="homeHeading" data-i18n="workspace.homeTitle">Start your show</h2></div></div>
