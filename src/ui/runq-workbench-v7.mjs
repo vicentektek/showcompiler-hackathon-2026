@@ -212,6 +212,17 @@ function mountWorkbench(){
       dl.append(dt,dd);
     }
     infoBody.append(dl);
+    const prepareButton=el('button','rq7-nav-action rq7-inspect-prepare',
+      t('Preparar este cue como NEXT','Prepare this cue as NEXT'));
+    prepareButton.type='button';
+    prepareButton.disabled=cue.id===prepared();
+    prepareButton.addEventListener('click',()=>{
+      // Original per-row PREPARE button, never the GO transport.
+      const card=[...list.querySelectorAll('.cue-item')].find(row=>
+        row.querySelector('[data-cue-select]')?.dataset.cueSelect===cue.id);
+      card?.querySelector('.cue-operation-actions button')?.click();
+    });
+    infoBody.append(prepareButton);
     infoBody.append(el('p','rq7-info-note',t(
       'Consultar este cue no cambia el siguiente GO. Para prepararlo utiliza «Preparar NEXT» en su fila.',
       'Inspecting does not change NEXT. Use the row’s explicit Prepare NEXT action.'
@@ -248,9 +259,16 @@ function mountWorkbench(){
       if(!all.length)return;
       if(action==='return'){
         followNext=true;lastFollowed=null;
-        const id=prepared(),target=all.find(x=>x.dataset.cueSelect===id);
+        const id=prepared();
+        let target=all.find(x=>x.dataset.cueSelect===id);
+        const filter=$('cueSearchInput');
+        if(!target && id && filter?.value){
+          filter.value='';
+          filter.dispatchEvent(new Event('input',{bubbles:true}));
+          target=rows().find(x=>x.dataset.cueSelect===id);
+        }
         target?.scrollIntoView({block:'center',inline:'nearest'});
-        lastFollowed=id;
+        lastFollowed=target?id:null;
         update();
         return;
       }
@@ -283,6 +301,15 @@ function mountWorkbench(){
     event.preventDefault();
     const all=rows(),index=all.indexOf(active);
     goTo(index+(event.key==='PageDown'?10:-10));
+  });
+  // Arrow/Home/End are handled by the original cue grid; synchronize the
+  // readonly inspection with its post-keyboard selection without touching NEXT.
+  list?.addEventListener('keydown',event=>{
+    if(workspace()!=='operation'||!['ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
+    queueMicrotask(()=>{
+      const id=selected();
+      if(id){browsedCueId=id;followNext=false;update();}
+    });
   });
   // Readonly browser state never touches the audio or operator queue.
   function update(){
