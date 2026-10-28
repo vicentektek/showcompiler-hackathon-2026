@@ -9,6 +9,7 @@ import { validateCueAutomationPlan } from './cueAutomation.mjs';
 import { normalizeCuePlayback } from './cuePlayback.mjs';
 import { normalizeStopFadeOverrides } from './cueStopFades.mjs';
 import { normalizeCueAudioTracks } from './cueTracks.mjs';
+import { normalizeCueEntryPolicy } from './cueEntryPolicy.mjs';
 
 export const PROJECT_SCHEMA_VERSION = 1;
 export const MAX_PROJECT_JSON_BYTES = 2_000_000;
@@ -125,7 +126,7 @@ export function normalizeShowProject(input) {
 
   const cues = limitedArray(input.cues, MAX_CUES, 'cues').map((cue, index) => {
     const at = "cues[" + index + "]";
-    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes', 'automation', 'playback', 'stopFadeOverrides', 'audioTracks', 'origin'], at);
+    fields(cue, ['id', 'number', 'label', 'sourceProposalId', 'sourceLineIds', 'actions', 'status', 'trigger', 'notes', 'automation', 'playback', 'stopFadeOverrides', 'audioTracks', 'origin', 'entryPolicy'], at);
     const cueId = identifier(cue.id, at + ".id");
     if (!Number.isSafeInteger(cue.number) || cue.number < 1 || cue.number > MAX_CUE_NUMBER) invalid(at + ".number is invalid");
     if (cue.status !== 'DRAFT') invalid(at + ".status must be DRAFT");
@@ -151,6 +152,7 @@ export function normalizeShowProject(input) {
       actions: cueActions,
       status: 'DRAFT',
       ...(cue.automation === undefined ? {} : { automation: cue.automation }),
+      ...(cue.entryPolicy === undefined ? {} : { entryPolicy: normalizeCueEntryPolicy(cue.entryPolicy) }),
       ...(cue.playback === undefined ? {} : { playback: normalizeCuePlayback(cue.playback) }),
       ...(cue.stopFadeOverrides === undefined ? {} : { stopFadeOverrides: cue.stopFadeOverrides }),
       ...(cue.audioTracks === undefined ? {} : { audioTracks: normalizeCueAudioTracks(cue.audioTracks, knownAssets) }),

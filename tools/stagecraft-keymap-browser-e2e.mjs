@@ -25,7 +25,8 @@ try{
       constructor(){this.state='running';this.currentTime=1;this.destination={};}
       async resume(){}
       async close(){this.state='closed';}
-      async decodeAudioData(){return {duration:3,numberOfChannels:1};}
+      async decodeAudioData(){return {duration:3,numberOfChannels:1,
+        sampleRate:400,length:1200,getChannelData:()=>new Float32Array(1200).fill(.3)};}
       createGain(){
         const gain={value:1,cancelScheduledValues(){},
           setValueAtTime(v){this.value=v;},linearRampToValueAtTime(v){this.value=v;}};
@@ -50,7 +51,18 @@ try{
   await page.goto('http://127.0.0.1:'+port+'/',{waitUntil:'domcontentloaded'});
   assert.equal(await page.locator('#runqGoKey').count(),1);
   await page.locator('#homeDemoBtn').click();
-  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
+  try {
+    await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3',null,{timeout:8000});
+  } catch (error) {
+    console.error('STAGECRAFT_DIAGNOSTIC',JSON.stringify(await page.evaluate(()=>({
+      count:document.querySelector('#cuesCount')?.textContent,
+      status:document.querySelector('#statusMessage')?.textContent,
+      shell:document.querySelector('.shell')?.dataset.activeWorkspace,
+      file:document.querySelector('#homeDemoBtn')?.outerHTML,
+    }))));
+    console.error('STAGECRAFT_PAGE_ERRORS',JSON.stringify(errors));
+    throw error;
+  }
   await page.locator('[data-workspace-nav="cues"]').click();
   const rows=page.locator('#cueList [data-cue-select]');
   assert.equal(await rows.count(),3);

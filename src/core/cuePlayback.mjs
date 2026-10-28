@@ -5,7 +5,7 @@
  */
 export const DEFAULT_CUE_PLAYBACK = Object.freeze({
   gainDb: 0, fadeInMs: 0, fadeOutMs: 0, startDelayMs: 0,
-  startAtMs: 0, playbackRate: 1, pan: 0,
+  startAtMs: 0, endAtMs: null, playbackRate: 1, pan: 0,
   loop: false, repeatCount: 1,
 });
 
@@ -26,6 +26,10 @@ export function normalizeCuePlayback(input = {}) {
   }
   if (!Number.isSafeInteger(value.startAtMs) || value.startAtMs < 0 || value.startAtMs > 600000) {
     fail('startAtMs must be 0–600000 ms, within the decoded file duration');
+  }
+  if (value.endAtMs !== null && (!Number.isSafeInteger(value.endAtMs) ||
+      value.endAtMs < 1 || value.endAtMs > 600000 || value.endAtMs <= value.startAtMs)) {
+    fail('endAtMs must be null or greater than startAtMs (up to 600000 ms)');
   }
   if (typeof value.playbackRate !== 'number' || !Number.isFinite(value.playbackRate) ||
       value.playbackRate < 0.5 || value.playbackRate > 2) fail('playbackRate must be 0.5–2');

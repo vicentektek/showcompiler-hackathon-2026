@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/src/ui/runq-stagecraft-v4.css">
   <link rel="stylesheet" href="/src/ui/runq-stagecraft-rebuild.css">
   <link rel="stylesheet" href="/src/ui/operator-keymapping.css">
+  <link rel="stylesheet" href="/src/ui/cue-studio-integration.css">
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
@@ -324,6 +325,8 @@
               <label class="runq-keymap-check"><input id="runqKeyboardInEditor" type="checkbox" checked><span id="runqKeyboardInEditorLabel">Active in Cue Editor</span></label>
               <label class="runq-keymap-check"><input id="runqKeyboardInOperation" type="checkbox" checked><span id="runqKeyboardInOperationLabel">Active in Operation</span></label>
             </div>
+            <label class="runq-keymap-check runq-quick-go"><input id="runqDoubleClickGo" type="checkbox"><span id="runqDoubleClickGoLabel">Operation: double-click cue to SET NEXT + GO immediately (opt-in)</span></label>
+            <p id="runqDoubleClickGoHelp" class="caption">Disabled by default. Double-click only the cue row in Operation. A single click never starts sound. No extra confirmation during the performance.</p>
             <div class="runq-keymap-columns">
               <label><span id="runqGoKeyLabel">GO / Next cue</span><select id="runqGoKey" aria-labelledby="runqGoKeyLabel"></select></label>
               <label><span id="runqStopKeyLabel">STOP ALL (emergency)</span><select id="runqStopKey" aria-labelledby="runqStopKeyLabel"></select></label>

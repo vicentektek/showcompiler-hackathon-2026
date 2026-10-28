@@ -7,6 +7,7 @@ export const OPERATOR_KEY_CHOICES = Object.freeze([
 ]);
 export const DEFAULT_OPERATOR_KEYMAP = Object.freeze({
   version: 1, enabled: true, inEditor: true, inOperation: true,
+  doubleClickGoOperation: false,
   go: 'Space', stopAll: 'None',
 });
 const KEYS = new Set(OPERATOR_KEY_CHOICES);
@@ -24,7 +25,7 @@ export function normalizeOperatorKeymap(value={}) {
   }
   const source = value.version === 1 ? value : {};
   const result={...DEFAULT_OPERATOR_KEYMAP};
-  for (const key of ['enabled','inEditor','inOperation']) {
+  for (const key of ['enabled','inEditor','inOperation','doubleClickGoOperation']) {
     if(typeof source[key] === 'boolean') result[key]=source[key];
   }
   for (const key of ['go','stopAll']) {
