@@ -170,3 +170,6 @@ artifacts/systematic-eval/
 
 # Private three-case paired provider evaluation evidence
 artifacts/three-case-quality/
+
+# Progressive curriculum offline readiness plans
+artifacts/curriculum-qa/
