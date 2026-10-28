@@ -59,10 +59,24 @@ try{
   // Local SFX status is localized by the current lab implementation.
   // Check that the genuine read-only status probe completed, not an obsolete
   // English-only badge copy from the original standalone sketch.
-  await page.waitForFunction(()=>{
-    const label=document.querySelector('#engineBadge')?.textContent?.trim();
-    return label && label!=='Checking engine' && label!=='Comprobando…';
-  },null,{timeout:10000});
+  try {
+    await page.waitForFunction(()=>{
+      const label=document.querySelector('#engineBadge')?.textContent?.trim();
+      return label && label!=='Checking engine' && label!=='Comprobando…';
+    },null,{timeout:10000});
+  } catch(error) {
+    console.error('SFX_INTEGRATED_BOOT_DIAGNOSTIC',JSON.stringify({
+      url:page.url(),pageErrors:errors,
+      state:await page.evaluate(()=>({
+        badge:document.querySelector('#engineBadge')?.textContent,
+        feedback:document.querySelector('#feedback')?.textContent,
+        audioPanel:!!document.querySelector('#waveCanvas'),
+        uiStudio:!!document.querySelector('#rqaiOpen'),
+        activeWorkspace:document.querySelector('.shell')?.dataset.activeWorkspace,
+      })),
+    }));
+    throw error;
+  }
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
   await page.locator('#demoAudioBtn').click();
