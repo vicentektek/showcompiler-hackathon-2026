@@ -110,11 +110,29 @@ function localized(){
  $('rqLiveCueTitle').textContent=$('rqLiveMode').value==='auto'
   ?t('AUTOPILOT · DETECTION / GO','AUTOPILOTO · DETECCIÓN / GO')
   :t('SUGGESTED CUE · MANUAL GO','CUE SUGERIDO · GO MANUAL');
+ $('rqLiveCueMapSummary').textContent=t('Show trigger phrases (','Pies hablados del espectáculo (')+
+  String(scenario?.cues?.length??0)+')';
  $('rqLivePrivacy').textContent=t(
   'Only completed turns are considered. Automatic playback requires explicit arming in Rehearsal; never active in Operation.',
   'Solo se consideran frases finalizadas. La reproducción automática requiere armado explícito en Ensayo; nunca funciona en Directo.'
  );
  display();
+}
+function renderCueMap(){
+ const list=$('rqLiveCueMap');
+ list.replaceChildren();
+ for(const cue of scenario?.cues??[]){
+  const item=document.createElement('li');
+  item.dataset.cueId=cue.id;
+  const number=document.createElement('b');number.textContent=String(cue.number??'?').padStart(2,'0');
+  const phrase=document.createElement('span');phrase.textContent=cue.trigger;
+  const label=document.createElement('small');label.textContent=cue.lineId+' · '+cue.label;
+  item.append(number,phrase,label);
+  if(autoState?.lastCueId===cue.id)item.classList.add('is-current');
+  list.append(item);
+ }
+ $('rqLiveCueMapSummary').textContent=t('Show trigger phrases (','Pies hablados del espectáculo (')+
+  String(scenario?.cues?.length??0)+')';
 }
 function ready(){
  listening=true;
@@ -122,6 +140,7 @@ function ready(){
  fingerprint=key(show);
  scenario=makeProjectVoiceScenario(show,{maxCues:200});
  disarm('session started');
+ renderCueMap();
  log(scenario?t('Loaded cue triggers: ','Pies de voz disponibles: ')+scenario.cues.length:
   t('No valid spoken cue triggers configured','No hay pies hablados configurados'));
  display();
@@ -178,6 +197,7 @@ async function finalTurn(detail){
  const message=kind+' · '+(cue?.number??a.cueId)+' '+(cue?.label??'')+
   ' · '+a.lineId+(a.skippedCount?' · '+a.skippedCount+' '+t('skipped','omitidos'):'');
  $('rqLiveCue').textContent=message;
+ renderCueMap();
  log(message);
  document.dispatchEvent(new CustomEvent('runq:voice-follow-highlight-line',{
   detail:{lineId:a.lineId},
