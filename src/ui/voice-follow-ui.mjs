@@ -12,7 +12,7 @@ const copy = {
   en: {
     title:'VOICE FOLLOW',sub:'OFFLINE REHEARSAL SIMULATOR · NO MICROPHONE · NO GO',
     source:'Scenario',fixture:'Example scene',project:'Current show (configured triggers)',
-    start:'Play',pause:'Pause',step:'Next event',reset:'Restart',
+    start:'Play',pause:'Pause',step:'Next event',reset:'Restart',loading:'Loading...',
     input:'TRANSCRIPT',result:'MATCH RESULT',history:'EVENT LOG',
     idle:'Ready. Select Play or Next event.',done:'Replay complete.',
     noProject:'No playable spoken triggers in the current show. Add a spoken trigger and L# reference to cues in Cue Editor.',
@@ -28,7 +28,7 @@ const copy = {
   es: {
     title:'VOICE FOLLOW',sub:'SIMULADOR DE ENSAYO LOCAL · SIN MICRÓFONO · SIN GO',
     source:'Escenario',fixture:'Escena de ejemplo',project:'Espectáculo actual (pies configurados)',
-    start:'Reproducir',pause:'Pausar',step:'Siguiente evento',reset:'Reiniciar',
+    start:'Reproducir',pause:'Pausar',step:'Siguiente evento',reset:'Reiniciar',loading:'Cargando...',
     input:'TRANSCRIPCIÓN',result:'COINCIDENCIA',history:'REGISTRO DE EVENTOS',
     idle:'Preparado. Pulsa Reproducir o Siguiente evento.',done:'Ensayo simulado completado.',
     noProject:'No hay pies hablados configurados. Añade un pie de voz y una referencia L# a los cues desde el editor.',
@@ -46,6 +46,8 @@ let fixture=null;
 let session=null;
 let stepIndex=0;
 let playing=false;
+let loading=false;
+let unavailable=false;
 let timer=null;
 let lastLog=[];
 let snapshotKey='';
@@ -70,7 +72,7 @@ function stop(){
   cleanTimer(); playing=false;
 }
 function reset({keepSource=true}={}){
-  stop();stepIndex=0;lastLog=[];snapshotKey='';
+  stop();stepIndex=0;lastLog=[];snapshotKey='';unavailable=false;
   if(!keepSource)$('rqvfSource').value='fixture';
   session=null;render();
 }
@@ -83,16 +85,20 @@ async function loadFixture(){
   fixture={...data,scriptText:''};return fixture;
 }
 async function loadScenario(){
-  stop();stepIndex=0;lastLog=[];session=null;
-  if($('rqvfSource').value==='fixture'){
-    session=await loadFixture();
-    snapshotKey='';
-  }else{
-    const project=getProject();
-    session=makeProjectVoiceScenario(project);
-    snapshotKey=projectKey(project);
-  }
-  render();return Boolean(session);
+  if(loading)return false;
+  loading=true;stop();stepIndex=0;lastLog=[];session=null;
+  render();
+  try{
+    if($('rqvfSource').value==='fixture'){
+      session=await loadFixture();snapshotKey='';
+    }else{
+      const project=getProject();
+      session=makeProjectVoiceScenario(project);
+      snapshotKey=projectKey(project);
+    }
+    unavailable=!session;
+    return Boolean(session);
+  }finally{loading=false;render();}
 }
 function replayCurrent(){
   if(!session)return null;
@@ -124,7 +130,7 @@ function planNext(){
   timer=setTimeout(()=>{timer=null;processNext();planNext();},wait);
 }
 async function play(){
-  if(playing)return;
+  if(playing||loading)return;
   try{
     if(!session||stepIndex>=session.events.length){
       if(!await loadScenario())return;
@@ -133,6 +139,7 @@ async function play(){
   }catch(error){stop();text('rqvfMessage',t('error'));}
 }
 async function next(){
+  if(loading)return;
   stop();
   try{
     if(!session||stepIndex>=session.events.length){
@@ -156,10 +163,13 @@ function render(){
   }
   const source=$('rqvfSource');
   source.options[0].textContent=t('fixture');source.options[1].textContent=t('project');
-  text('rqvfPlay',playing?t('running'):t('start'));
+  text('rqvfPlay',loading?t('loading'):playing?t('running'):t('start'));
   text('rqvfPause',t('pause'));text('rqvfStep',t('step'));text('rqvfReset',t('reset'));
-  $('rqvfPlay').disabled=playing;
+  $('rqvfPlay').disabled=playing||loading;
   $('rqvfPause').disabled=!playing;
+  $('rqvfStep').disabled=loading;
+  $('rqvfReset').disabled=loading;
+  $('rqvfSource').disabled=loading;
   const event=session?.events[stepIndex-1];
   const entry=lastLog.at(-1);
   const currentCue=session?.cues.find(c=>c.id===entry?.cueId);
@@ -170,7 +180,7 @@ function render(){
   text('rqvfResult',entry?describe(entry):t('noCue'));
   text('rqvfCue',currentCue?String(currentCue.number??currentCue.id)+' · '+(currentCue.label??currentCue.trigger??currentCue.id):t('noCue'));
   text('rqvfScore',entry?.score!=null?t('score')+': '+Math.round(entry.score*100)+'%':t('score')+': —');
-  const message=!session&&source.value==='project'?t('noProject'):
+  const message=!session&&source.value==='project'&&unavailable?t('noProject'):
     !session?t('idle'):stepIndex>=session.events.length?t('done'):
     playing?t('running'):stepIndex?t('paused'):t('idle');
   text('rqvfMessage',message);
