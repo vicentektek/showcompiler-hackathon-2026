@@ -70,7 +70,7 @@ let lastGoCueId = null;
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
-let player = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
+let player = createBrowserAudioBackend({ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); } });
 function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
@@ -510,7 +510,7 @@ function cueDetailsEditor(cue) {
   cancel.addEventListener('click', () => { inspectorPendingChanges = false; editingCueId = null; render(); });
   controls.append(save, cancel);
   form.append(labelCaption, triggerCaption, notesCaption, controls);
-  form.addEventListener('input', () => { inspectorPendingChanges = true; });
+  form.addEventListener('input', () => { inspectorPendingChanges = true; refreshPreviewStudio(); });
   form.addEventListener('submit', event => {
     event.preventDefault();
     try {
@@ -809,6 +809,299 @@ function render() {
   renderPreflight();
 }
 
+/** Read an editing snapshot without committing it or advancing the GO queue. */
+function stagedAudioSettings(form, saved) {
+  const next={...normalizeCuePlayback(saved)};
+  if (!form) return normalizeCuePlayback(next);
+  for (const input of form.querySelectorAll('input[name]')) {
+    if (!Object.hasOwn(next,input.name)) continue;
+    if (input.type==='checkbox') next[input.name]=input.checked;
+    else if (input.name==='endAtMs' && input.value.trim()==='') next.endAtMs=null;
+    else if (input.value.trim()!=='') next[input.name]=Number(input.value);
+    else throw new TypeError('Numeric audio property cannot be empty');
+  }
+  if (next.loop) {next.repeatCount=1;next.fadeOutMs=0;}
+  return normalizeCuePlayback(next);
+}
+function stagedPreviewCue(cue) {
+  if (cue.id!==selectedCueId || inspectorTab!=='audio') return cue;
+  const main=document.getElementById('cuePlaybackForm');
+  const playback=stagedAudioSettings(main,cue.playback);
+  const audioTracks=(cue.audioTracks??[]).map(track=>{
+    const form=[...document.querySelectorAll('[data-track-settings]')]
+      .find(item=>item.dataset.trackSettings===track.id);
+    return {...track,playback:stagedAudioSettings(form,track.playback)};
+  });
+  return {...cue,playback,audioTracks};
+}
+let previewTicker=null;
+function refreshPreviewStudio() {
+  const preview=player.getPreviewStatus();
+  const busy=player.getStatus();
+  const locked=audioInFlight || bundleInFlight || busy.activeCueCount>0 ||
+    busy.pendingGoCount>0 || busy.auditionActive || busy.auditionPending;
+  for(const button of document.querySelectorAll('[data-preview-cue]')) {
+    const cue=show.cues.find(c=>c.id===button.dataset.previewCue);
+    button.disabled=locked || !cue || cue.actions.some(a=>a.type!=='PLAY') ||
+      !cue.actions.every(a=>player.hasAsset(a.assetId)) ||
+      !(cue.audioTracks??[]).every(t=>player.hasAsset(t.assetId));
+  }
+  for(const button of document.querySelectorAll('[data-preview-track]')) {
+    button.disabled=locked || !player.hasAsset(button.dataset.previewAsset);
+  }
+  for(const button of document.querySelectorAll('[data-preview-stop]')) {
+    button.disabled=!busy.auditionActive && !busy.auditionPending;
+  }
+  for(const status of document.querySelectorAll('[data-preview-status]')) {
+    if(!preview) {
+      status.textContent=t(inspectorPendingChanges?'preview.stagedReady':'preview.ready');
+      status.dataset.playing='false';
+    } else {
+      const label=show.cues.find(c=>c.id===preview.cueId)?.label??preview.cueId;
+      status.textContent=t('preview.playing',{
+        label,elapsed:preview.elapsedSeconds.toFixed(1),
+        total:preview.durationSeconds===null?'∞':preview.durationSeconds.toFixed(1),
+      });
+      status.dataset.playing='true';
+    }
+  }
+  for(const marker of document.querySelectorAll('[data-preview-playhead]')) {
+    const isSelected=preview && preview.cueId===marker.dataset.previewCueId &&
+      preview.trackId===marker.dataset.previewTrackId &&
+      Number.isFinite(preview.positionMs);
+    marker.hidden=!isSelected;
+    if(isSelected) marker.style.left=Math.max(0,Math.min(100,
+      (preview.positionMs-Number(marker.dataset.viewStartMs||0)) / Number(marker.dataset.viewSpanMs||marker.dataset.durationMs)*100))+'%';
+  }
+  if(preview && previewTicker===null) {
+    previewTicker=window.setInterval(()=>refreshPreviewStudio(),125);
+  } else if(!preview && previewTicker!==null) {
+    window.clearInterval(previewTicker);
+    previewTicker=null;
+  }
+}
+async function listenToCue(cueId,{trackId=null,fromMs=null}={}) {
+  const cue=show.cues.find(c=>c.id===cueId);
+  if(!cue || audioInFlight || bundleInFlight) return;
+  if(!auditionAcknowledged) {
+    if(!window.confirm(t('audio.auditionConfirm'))) return;
+    auditionAcknowledged=true;
+  }
+  try {
+    const snapshot=stagedPreviewCue(cue);
+    await player.previewCue(snapshot,{trackId,fromMs});
+    feedback(trackId===null?'preview.started':'preview.trackStarted',
+      {number:cue.number},'success');
+    refreshPreviewStudio();
+  } catch(error) {showError(error);}
+}
+function stopCuePreview() {
+  if(player.stopAudition()) feedback('preview.stopped',{},'success');
+  refreshPreviewStudio();
+}
+
+/**
+ * PCM waveform is a read-only display of decoded local audio.
+ * Pointer edits change staged numeric fields; only Save persists them.
+ * Canvas is never a transport or GO control.
+ */
+function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } = {}) {
+  const summary=assetId?player.getWaveform(assetId):null;
+  const block=node('section','cue-waveform-editor');
+  block.append(node('strong','cue-waveform-title',t('waveform.heading')));
+  if(!summary) {
+    block.append(node('p','caption',t('waveform.unavailable')));
+    return block;
+  }
+  const duration=summary.durationMs;
+  const startField=inputs.get('startAtMs'),endField=inputs.get('endAtMs');
+  const canvas=node('canvas','cue-waveform-canvas');
+  canvas.width=800; canvas.height=144; canvas.tabIndex=0;
+  canvas.setAttribute('role','slider');
+  canvas.setAttribute('aria-label',t('waveform.dragHelp'));
+  canvas.setAttribute('aria-valuemin','0');
+  canvas.setAttribute('aria-valuemax',String(duration));
+  const stage=node('div','cue-waveform-stage');
+  const progress=node('span','cue-waveform-playhead');
+  progress.hidden=true;
+  progress.dataset.previewPlayhead='true';
+  progress.dataset.previewCueId=cueId??'';
+  progress.dataset.previewTrackId=trackId;
+  progress.dataset.durationMs=String(duration);
+  stage.append(canvas,progress);
+  const times=node('div','cue-waveform-times');
+  const toolbar=node('div','cue-waveform-toolbar');
+  const zoomOut=node('button','btn wave-zoom','−');
+  const zoomIn=node('button','btn wave-zoom','+');
+  const fit=node('button','btn wave-zoom',t('preview.fit'));
+  for(const button of [zoomOut,zoomIn,fit]) button.type='button';
+  zoomOut.setAttribute('aria-label',t('preview.zoomOut'));
+  zoomIn.setAttribute('aria-label',t('preview.zoomIn'));
+  fit.setAttribute('aria-label',t('preview.fit'));
+  const zoomReadout=node('span','wave-zoom-readout','1×');
+  const pan=node('input','wave-pan');
+  pan.type='range';pan.min='0';pan.max='0';pan.step='10';pan.value='0';
+  pan.setAttribute('aria-label',t('preview.panWave'));
+  pan.disabled=true;
+  let zoom=1,viewStart=0,cursorMs=null,dragging=null;
+  const clip=()=>({
+    start:Math.max(0,Math.min(duration,Number(startField.value)||0)),
+    end:endField.value.trim()===''?duration:
+      Math.max(0,Math.min(duration,Number(endField.value)||0)),
+  });
+  const viewSpan=()=>duration/zoom;
+  function refreshPan() {
+    const max=Math.max(0,duration-viewSpan());
+    viewStart=Math.min(viewStart,max);
+    pan.max=String(Math.round(max));
+    pan.value=String(Math.round(viewStart));
+    pan.disabled=zoom===1;
+    zoomReadout.textContent=zoom+'×';
+    zoomOut.disabled=zoom===1;
+    zoomIn.disabled=zoom===8;
+  }
+  function toX(milliseconds) {
+    return (milliseconds-viewStart)/viewSpan()*canvas.width;
+  }
+  function point(e) {
+    const rect=canvas.getBoundingClientRect();
+    return Math.max(0,Math.min(duration,viewStart+
+      ((e.clientX-rect.left)/Math.max(1,rect.width))*viewSpan()));
+  }
+  function redraw() {
+    const {start,end}=clip();
+    const ctx=canvas.getContext('2d');
+    if(!ctx) return;
+    const w=canvas.width,h=canvas.height,mid=h/2;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#0b1620';ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='#29414b';ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let i=0;i<=8;i++) {
+      const x=i*w/8;ctx.moveTo(x,0);ctx.lineTo(x,h);
+    }
+    ctx.moveTo(0,mid);ctx.lineTo(w,mid);ctx.stroke();
+    // Editing region is legible even when zoomed or partially off screen.
+    const left=toX(start),right=toX(end);
+    ctx.fillStyle='rgba(103,91,206,.14)';
+    ctx.fillRect(Math.max(0,left),0,Math.max(0,Math.min(w,right)-Math.max(0,left)),h);
+    const barWidth=w/(summary.peaks.length/zoom);
+    for(let i=0;i<summary.peaks.length;i++) {
+      const ms=i/summary.peaks.length*duration;
+      if(ms<viewStart-viewSpan()/summary.peaks.length ||
+          ms>viewStart+viewSpan()) continue;
+      const x=toX(ms);
+      const amplitude=Math.max(1,summary.peaks[i]*(mid-14));
+      ctx.fillStyle=ms>=start&&ms<=end?'#52d7c1':'#466372';
+      ctx.fillRect(x,mid-amplitude,Math.max(1,barWidth*.83),2*amplitude);
+    }
+    // Fade envelopes show the operator exactly what has been staged.
+    const readMs=key=>Number(inputs.get(key)?.value)||0;
+    const fadeIn=Math.max(0,readMs('fadeInMs'));
+    const fadeOut=Math.max(0,readMs('fadeOutMs'));
+    const rate=Math.max(.5,Number(inputs.get('playbackRate')?.value)||1);
+    ctx.strokeStyle='#b7a0ff';ctx.lineWidth=2;ctx.beginPath();
+    if(fadeIn>0) {
+      ctx.moveTo(toX(start),mid);
+      ctx.lineTo(toX(Math.min(end,start+fadeIn*rate)),15);
+    }
+    if(fadeOut>0) {
+      ctx.moveTo(toX(Math.max(start,end-fadeOut*rate)),15);
+      ctx.lineTo(toX(end),mid);
+    }
+    ctx.stroke();
+    for(const [ms,color] of [[start,'#f6c65d'],[end,'#f18794']]) {
+      const x=toX(ms);
+      if(x>=0&&x<=w) {
+        ctx.fillStyle=color;ctx.fillRect(x-2,0,4,h);
+      }
+    }
+    if(cursorMs!==null) {
+      const x=toX(cursorMs);
+      if(x>=0&&x<=w) {
+        ctx.setLineDash([4,4]);ctx.strokeStyle='#d7dcf1';
+        ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+    times.textContent=t('waveform.selection',{
+      start:(start/1000).toFixed(2),end:(end/1000).toFixed(2),
+      duration:((Math.max(0,end-start))/1000).toFixed(2),
+    })+(cursorMs===null?'':t('preview.cursorAt',{time:(cursorMs/1000).toFixed(2)}));
+    canvas.setAttribute('aria-valuenow',String(start));
+    canvas.setAttribute('aria-valuetext',times.textContent);
+    progress.dataset.viewStartMs=String(viewStart);
+    progress.dataset.viewSpanMs=String(viewSpan());
+    refreshPreviewStudio();
+  }
+  function place(handle,millis) {
+    const {start,end}=clip();
+    const value=Math.round(Math.max(0,Math.min(duration,millis))/10)*10;
+    if(handle==='in') startField.value=String(Math.max(0,Math.min(value,end-10)));
+    else {
+      const out=Math.max(start+10,Math.min(duration,value));
+      endField.value=out>=duration?'':String(out);
+    }
+    inspectorPendingChanges=true;
+    redraw();
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;
+    if(e.altKey) {
+      const {start,end}=clip();
+      cursorMs=Math.max(start,Math.min(end-10,Math.round(point(e)/10)*10));
+      redraw();return;
+    }
+    const {start,end}=clip(),ms=point(e);
+    dragging=Math.abs(ms-start)<=Math.abs(ms-end)?'in':'out';
+    canvas.setPointerCapture?.(e.pointerId);
+    place(dragging,ms);
+  });
+  canvas.addEventListener('pointermove',e=>{if(dragging)place(dragging,point(e));});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])
+    canvas.addEventListener(event,()=>{dragging=null;});
+  canvas.addEventListener('keydown',e=>{
+    if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
+    e.preventDefault();
+    const {start,end}=clip(),handle=e.shiftKey?'out':'in';
+    place(handle,(handle==='in'?start:end)+(e.key==='ArrowLeft'?-10:10));
+  });
+  for(const input of inputs.values())input.addEventListener('input',redraw);
+  zoomOut.addEventListener('click',()=>{
+    zoom=Math.max(1,zoom/2);
+    refreshPan();redraw();
+  });
+  zoomIn.addEventListener('click',()=>{
+    zoom=Math.min(8,zoom*2);
+    const {start,end}=clip();
+    viewStart=Math.max(0,Math.min(duration-viewSpan(),(start+end)/2-viewSpan()/2));
+    refreshPan();redraw();
+  });
+  fit.addEventListener('click',()=>{
+    zoom=1;viewStart=0;refreshPan();redraw();
+  });
+  pan.addEventListener('input',()=>{
+    viewStart=Number(pan.value);redraw();
+  });
+  const listen=node('button','btn wave-listen',t('preview.track'));
+  listen.type='button';listen.dataset.previewTrack=trackId;
+  listen.dataset.previewAsset=assetId;
+  listen.addEventListener('click',()=>listenToCue(cueId,{trackId}));
+  const fromCursor=node('button','btn wave-cursor',t('preview.fromCursor'));
+  fromCursor.type='button';
+  fromCursor.addEventListener('click',()=>{
+    const {start}=clip();
+    listenToCue(cueId,{trackId,fromMs:cursorMs??start});
+  });
+  const stop=node('button','btn wave-stop',t('preview.stop'));
+  stop.type='button';stop.dataset.previewStop='true';
+  stop.addEventListener('click',stopCuePreview);
+  toolbar.append(listen,fromCursor,stop,zoomOut,zoomIn,fit,zoomReadout);
+  block.append(stage,times,toolbar,pan,node('p','caption',t('preview.waveHint')));
+  refreshPan();redraw();
+  return block;
+}
+
 /**
  * Operator audio settings are persisted and actually executed by Web Audio.
  * This form is only mounted in the Cue Editor inspector; operation has one GO.
@@ -841,6 +1134,8 @@ function cuePlaybackEditor(cue) {
   const fadeOut = numericField('fadeOutMs', 0, 10000, 1);
   numericField('startDelayMs', 0, 10000, 1);
   numericField('startAtMs', 0, 600000, 1, 'audioProps.startAtHelp');
+  const endAt = numericField('endAtMs', 1, 600000, 1, 'audioProps.endAtHelp');
+  endAt.required=false;endAt.value=settings.endAtMs===null?'':String(settings.endAtMs);
   numericField('playbackRate', 0.5, 2, 0.05, 'audioProps.rateHelp');
   numericField('pan', -1, 1, 0.05, 'audioProps.panHelp');
   const repeats = numericField('repeatCount', 1, 20, 1, 'audioProps.repeatHelp');
@@ -861,17 +1156,22 @@ function cuePlaybackEditor(cue) {
   }
   loop.addEventListener('change', syncLoop);
   syncLoop();
+  if(cue.actions.length===1 && cue.actions[0].type==='PLAY') {
+    const gainField=inputs.get('gainDb').closest('label');
+    form.insertBefore(cueWaveformTrim(cue.actions[0].assetId, inputs,
+      {cueId:cue.id,trackId:'primary'}),gainField.nextSibling);
+  }
   form.append(node('p', 'caption', t('audioProps.noAuto')));
   const save = node('button', 'btn primary small', t('audioProps.save'));
   save.type = 'submit';
   form.append(save);
   form.addEventListener('input', () => { inspectorPendingChanges = true; });
-  form.addEventListener('change', () => { inspectorPendingChanges = true; });
+  form.addEventListener('change', () => { inspectorPendingChanges = true; refreshPreviewStudio(); });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = { loop: loop.checked };
     for (const [key, input] of inputs) {
-      next[key] = Number(input.value);
+      next[key] = key==='endAtMs' && input.value.trim()===''?null:Number(input.value);
     }
     if (loop.checked) { next.repeatCount = 1; next.fadeOutMs = 0; }
     try {
@@ -1068,7 +1368,7 @@ function cueAdditionalTracksEditor(cue) {
     const fields = new Map();
     for (const [key,min,max,step] of [
       ['gainDb',-60,0,.5],['fadeInMs',0,10000,1],['fadeOutMs',0,10000,1],
-      ['startDelayMs',0,10000,1],['startAtMs',0,600000,1],
+      ['startDelayMs',0,10000,1],['startAtMs',0,600000,1],['endAtMs',1,600000,1],
       ['playbackRate',.5,2,.05],['pan',-1,1,.05],['repeatCount',1,20,1],
     ]) {
       const label = node('label', 'field', t('audioProps.'+key));
@@ -1079,6 +1379,10 @@ function cueAdditionalTracksEditor(cue) {
       input.value=String(settings[key]); input.required=true;
       fields.set(key,input); label.append(input); form.append(label);
     }
+    const endAt = fields.get('endAtMs');
+    endAt.required=false;endAt.value=settings.endAtMs===null?'':String(settings.endAtMs);
+    form.insertBefore(cueWaveformTrim(track.assetId, fields,
+      {cueId:cue.id,trackId:track.id}),form.firstChild);
     const loopLabel = node('label','cue-loop-field');
     const loop = node('input');
     loop.type='checkbox'; loop.name='loop'; loop.checked=settings.loop;
@@ -1102,7 +1406,7 @@ function cueAdditionalTracksEditor(cue) {
     form.addEventListener('submit',event=>{
       event.preventDefault();
       const settingsNext={loop:loop.checked};
-      for(const [key,input] of fields) settingsNext[key]=Number(input.value);
+      for(const [key,input] of fields) settingsNext[key]=key==='endAtMs' && input.value.trim()===''?null:Number(input.value);
       if(loop.checked){settingsNext.repeatCount=1;settingsNext.fadeOutMs=0;}
       try {
         commit(()=>stageChangeCueTrack(show,cue.id,track.id,{playback:settingsNext}),'cueTracks.savedProperties');
@@ -1147,6 +1451,56 @@ function renderCueInspector() {
   inspector.append(header);
   inspector.append(node('p', 'cue-inspector-origin', cue.sourceLineIds.join(', ') + ' · ' +
     (cue.trigger || t('cueEditor.noTrigger'))));
+  if(cue.actions.every(a=>a.type==='PLAY')) {
+    const studio=node('section','cue-audition-studio');
+    studio.dataset.cueAuditionStudio=cue.id;
+    const kicker=node('span','studio-kicker',t('preview.kicker'));
+    const controls=node('div','cue-preview-controls');
+    const listen=node('button','btn cue-preview-play',t('preview.cue'));
+    listen.type='button';
+    listen.dataset.previewCue=cue.id;
+    listen.addEventListener('click',()=>listenToCue(cue.id));
+    const stop=node('button','btn cue-preview-stop',t('preview.stop'));
+    stop.type='button';
+    stop.dataset.previewStop='true';
+    stop.addEventListener('click',stopCuePreview);
+    const prepare=node('button','btn cue-preview-prepare',t('preview.prepare'));
+    prepare.type='button';
+    prepare.disabled=cue.id===operatorQueue.preparedCueId;
+    prepare.addEventListener('click',()=>{
+      operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cue.id);
+      render();
+      feedback('operator.preparedFeedback',{number:cue.number},'success');
+    });
+    controls.append(listen,stop,prepare);
+    const quickGain=node('label','studio-quick-gain');
+    const gainLabel=node('span','',t('preview.quickGain'));
+    const gainInput=node('input');
+    gainInput.type='number';gainInput.min='-60';gainInput.max='0';
+    gainInput.step='0.5';
+    gainInput.value=String(normalizeCuePlayback(cue.playback).gainDb);
+    gainInput.dataset.quickGainCue=cue.id;
+    gainInput.setAttribute('aria-label',t('preview.quickGainAria'));
+    gainInput.addEventListener('input',()=>{
+      const main=document.querySelector('#cuePlaybackForm [name="gainDb"]');
+      if(main) {
+        main.value=gainInput.value;
+        main.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+      inspectorPendingChanges=true;
+      refreshPreviewStudio();
+    });
+    quickGain.append(gainLabel,gainInput,node('span','', 'dB'));
+    const state=node('p','studio-preview-status',t('preview.ready'));
+    state.dataset.previewStatus='true';
+    state.setAttribute('role','status');
+    state.setAttribute('aria-live','off');
+    const outputCompact=node('p','studio-output-compact',t('preview.outputCompact'));
+    studio.append(kicker,controls,quickGain,state,
+      node('p','studio-output-warning',t('preview.outputWarning')),outputCompact);
+    inspector.append(studio);
+  }
+
   const available = cue.actions.some(a => a.type === 'PLAY')
     ? ['details', 'audio', 'actions'] : ['details', 'actions'];
   if (!available.includes(inspectorTab)) inspectorTab = available[0];
@@ -1199,6 +1553,7 @@ function renderCueInspector() {
   }
   inspector.append(panel);
   inspector.scrollTop = previousScrollTop;
+  refreshPreviewStudio();
 }
 
 function userAllowsReplacement() {
