@@ -2,6 +2,7 @@
  * No AI, network, or billable requests. Tests standard compressed ZIP.
  */
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {deflateRawSync} from 'node:zlib';
 import {createAppServer} from './dev-server.mjs';
 import {crc32} from '../src/core/zipStore.mjs';
@@ -105,6 +106,18 @@ try{
   // Waveform reads the exact newly loaded audio; not a placeholder.
   assert.equal(await page.locator('#rq5AudioSource option').count(),5); // four assets plus the empty selection
   assert.equal(await page.locator('#importAudioBatchBtn').isEnabled(),true);
+  // Real local WebAssembly extraction using a valid upstream 7z sample.
+  const fixture=await readFile(new URL('../test/fixtures/libarchive-example-7z.b64',import.meta.url),'utf8');
+  const packed7z=Buffer.from(fixture.split('\n').filter(line=>line&&!line.startsWith('#')).join(''),'base64');
+  await page.locator('#audioBatchZipInput').setInputFiles({
+    name:'test.7z',mimeType:'application/x-7z-compressed',buffer:packed7z,
+  });
+  await page.waitForFunction(()=>{
+    const status=document.querySelector('#audioBatchStatus')?.textContent??'';
+    return status.includes('Import finished')||status.includes('Unable to complete import');
+  },null,{timeout:20000});
+  const sevenResult=await page.locator('#audioBatchStatus').innerText();
+  assert.ok(!sevenResult.includes('Unable to complete'),sevenResult);
   // A show ZIP should never be mistaken for a set of audio library files.
   await page.locator('#audioBatchZipInput').setInputFiles({
     name:'show.zip',mimeType:'application/zip',
