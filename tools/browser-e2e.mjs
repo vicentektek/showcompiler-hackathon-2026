@@ -76,6 +76,7 @@ try {
   // This must never access audio playback, microphones or provider endpoints.
   await page.locator('[data-workspace-nav="rehearsal"]').click();
   assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
+  await page.locator('#rqvfAdvanced').evaluate(details=>{details.open=true;});
   await page.locator('#rqvfStep').click();
   await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4');
   assert.ok((await page.locator('#rqvfCue').textContent()).includes('C14'));
