@@ -2071,6 +2071,17 @@ $('operatorGoBtn').addEventListener('click',()=>{
  * Rehearsal session may send an explicit cue ID. Never allowed in Operation.
  * This event does not bypass the real engine's guards and does not fire skipped cues.
  */
+document.addEventListener('runq:rehearsal-auto-arm-audio',event=>{
+ const respond=event.detail?.respond;
+ if(typeof respond!=='function')return;
+ if(activeWorkspace!=='rehearsal'||document.hidden||bundleInFlight||audioInFlight){
+   respond({ok:false,reason:'REHEARSAL_NOT_READY'});return;
+ }
+ // Must be called synchronously from the operator's ARM gesture to unlock
+ // the Web Audio output without producing any sound.
+ void player.armAudioOutput().then(()=>respond({ok:true}),
+   ()=>respond({ok:false,reason:'AUDIO_OUTPUT_SUSPENDED'}));
+});
 document.addEventListener('runq:rehearsal-auto-go',event=>{
  const cueId=event.detail?.cueId,respond=event.detail?.respond;
  const report=payload=>{if(typeof respond==='function')respond(payload);};
