@@ -487,5 +487,6 @@
   "audioBatch.errorTitle": "Unable to complete import",
   "audioBatch.existing": "Already loaded in the library",
   "audioBatch.fileLimit": "Up to 100 files per batch; each up to 20 MB and 10 minutes.",
-  "audioBatch.missing": "Invalid files are not added to the library. Other files still import."
+  "audioBatch.missing": "Invalid files are not added to the library. Other files still import.",
+  "workspace.description.soundlab": "Design, listen to and review authentic sounds. Create a cue now or after selecting the sound."
 }
