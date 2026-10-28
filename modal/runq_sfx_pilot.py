@@ -73,7 +73,7 @@ def generate_sfx(prompt: str, duration_seconds: int, seed: int) -> bytes:
     if not isinstance(prompt, str) or not 0 < len(prompt.strip()) <= 1000:
         raise ValueError("Invalid prompt")
 
-    cold = get_model.cache_info().hits == 0
+    cold = get_model.cache_info().currsize == 0
     started_at = time.perf_counter()
     model = get_model()
     model_load_ms = round((time.perf_counter() - started_at) * 1000, 1)
