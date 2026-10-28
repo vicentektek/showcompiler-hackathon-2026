@@ -435,6 +435,10 @@ try {
   await page.locator('#rqaiDestination').selectOption('NEW_CUE');
   await page.locator('#rqaiNewCueName').fill('Stage door impact');
   await page.setViewportSize({width:1440,height:900});
+  await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
+  const useBounds=await page.locator('#rqaiUse').boundingBox();
+  assert.ok(useBounds && useBounds.y < 900 && useBounds.y + useBounds.height > 60,
+    'Selected sound destination must stay in view while the long audio workbench scrolls');
   await capture('11-ai-studio-use-sound.png');
   await page.setViewportSize({width:1093,height:614});
   await page.locator('#rqaiConfirm').click();
