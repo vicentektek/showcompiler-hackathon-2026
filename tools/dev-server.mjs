@@ -49,6 +49,7 @@ const allowed = new Map([
   ['/src/core/dramaticStructure.mjs', ['src/core/dramaticStructure.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/waveform.mjs', ['src/sfx/waveform.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/lab.css', ['src/sfx/lab.css', 'text/css; charset=utf-8']],
+  ['/src/ui/voice-microphone-test.mjs', ['src/ui/voice-microphone-test.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-follow-ui.mjs', ['src/ui/voice-follow-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-follow.css', ['src/ui/voice-follow.css', 'text/css; charset=utf-8']],
   ['/src/core/voiceFollow.mjs', ['src/core/voiceFollow.mjs', 'text/javascript; charset=utf-8']],
