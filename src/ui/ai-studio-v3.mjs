@@ -28,6 +28,8 @@ const messages={
     saved:'El sonido permanece disponible. NEXT GO no cambia.',
     selectCue:'Selecciona un cue existente.',openCue:'Ver cue en Editor',
     local:'Importar WAV local',localHint:'Archivo local: no requiere generación ni aceptación de proveedor.',
+    soundChoice:'SONIDO SELECCIONADO',soundGenerated:'Toma generada y aceptada',soundLocal:'WAV local',
+    soundSaved:'Audio ya importado',
     imported:'Recurso incorporado',offline:'Puedes crear cues manuales o usar archivos locales sin IA.',
     error:'No se ha podido completar la asignación. Se conserva el audio ya importado.',
     modified:'Ya existe una descripción: ¿reemplazarla por la sugerencia de guion?',
@@ -52,6 +54,8 @@ const messages={
     library:'No cue · Library only',saved:'The sound stays available. NEXT GO is unchanged.',
     selectCue:'Choose an existing cue.',openCue:'Open cue in Editor',
     local:'Import local WAV',localHint:'Local file: no model request or provider acceptance required.',
+    soundChoice:'SELECTED SOUND',soundGenerated:'Generated and accepted take',soundLocal:'Local WAV',
+    soundSaved:'Already imported audio',
     imported:'Sound added',offline:'Manual cue editing and local audio remain available without AI.',
     error:'Assignment failed. Already imported audio remains available.',
     modified:'Replace your current sound description with the script suggestion?',
@@ -202,7 +206,16 @@ function createShell(){
   const open=actionText('use','rqai-primary');
   open.id='rqaiOpen';open.disabled=true;
   open.addEventListener('click',()=>{state.open=!state.open;updateDestinations(true);});
-  useHead.append(useInfo,open);
+  const sourceBlock=node('label','rqai-input');
+  sourceBlock.id='rqaiSourceBlock';
+  sourceBlock.append(node('span','',t('soundChoice')));
+  const sourceSelect=node('select');sourceSelect.id='rqaiSourceChoice';
+  sourceSelect.setAttribute('aria-label',t('soundChoice'));
+  sourceBlock.append(sourceSelect);
+  sourceSelect.addEventListener('change',()=>{
+    updateReadiness();updateDestinations(false);
+  });
+  useHead.append(useInfo,sourceBlock,open);
   const options=node('div','rqai-options');options.id='rqaiOptions';options.hidden=true;
   const modeLabel=node('label','rqai-input');
   const modeSelect=node('select');modeSelect.id='rqaiDestination';
@@ -259,21 +272,51 @@ function createShell(){
     const observer=new MutationObserver(updateReadiness);
     observer.observe(importButton,{attributes:true,attributeFilter:['disabled']});
   }
-  $('localWav')?.addEventListener('change',()=>{state.importedAssetId=null;updateReadiness();});
+  $('localWav')?.addEventListener('change',()=>{
+    state.importedAssetId=null;updateReadiness();
+    const source=$('rqaiSourceChoice');
+    if(source&&[...source.options].some(opt=>opt.value==='LOCAL'))source.value='LOCAL';
+    updateReadiness();
+  });
+  // Do not reuse a previously imported asset as if it belonged to a newly
+  // generated take. Each true audio source selection is explicit.
+  const name=$('audioName');
+  let previousName=name?.textContent??'';
+  if(name)new MutationObserver(()=>{
+    const current=name.textContent??'';
+    if(current!==previousName){
+      previousName=current;
+      state.importedAssetId=null;
+      updateReadiness();
+    }
+  }).observe(name,{childList:true,characterData:true,subtree:true});
   updateReadiness();renderContext();
 }
 function updateReadiness(){
-  const reviewed=$('importLibraryBtn')&&!$('importLibraryBtn').disabled;
+  const reviewed=!!($('importLibraryBtn')&&!$('importLibraryBtn').disabled);
   const local=$('localWav')?.files?.[0]??null;
-  const ready=!!(reviewed||local||state.importedAssetId);
+  const sources=[
+    ...(state.importedAssetId?[['IMPORTED','soundSaved']]:[]),
+    ...(reviewed?[['GENERATED','soundGenerated']]:[]),
+    ...(local?[['LOCAL','soundLocal']]:[]),
+  ];
+  const source=$('rqaiSourceChoice');
+  if(source){
+    const previous=source.value;
+    source.replaceChildren(...sources.map(([value,key])=>{
+      const option=node('option','',t(key));option.value=value;option.dataset.rqaiText=key;return option;
+    }));
+    source.value=sources.some(([value])=>value===previous)?previous:sources[0]?.[0]??'';
+    $('rqaiSourceBlock').hidden=sources.length<2;
+  }
+  const chosen=source?.value??'';
+  const ready=!!chosen;
   const button=$('rqaiOpen');
   if(button)button.disabled=!ready;
   const hint=$('rqaiReadiness');
-  if(hint)hint.textContent=state.importedAssetId
-    ?t('saved')
-    :reviewed?t('available')
-      :local?t('localHint')
-        :t('need');
+  if(hint)hint.textContent=chosen==='IMPORTED'?t('saved'):
+    chosen==='GENERATED'?t('available'):
+      chosen==='LOCAL'?t('localHint'):t('need');
   updateDestinations(false);
 }
 function updateDestinations(rebuild){
@@ -348,26 +391,27 @@ async function commitDestination(){
     updateStatus(t('selectCue'),true);return;
   }
   const local=$('localWav')?.files?.[0]??null;
+  const source=$('rqaiSourceChoice')?.value??'';
   state.busy=true;updateDestinations(false);
   try{
-    if(state.importedAssetId){
+    if(source==='IMPORTED'&&state.importedAssetId){
       let result=null;
       document.dispatchEvent(new CustomEvent('runq:ai-studio:apply-existing',{
         detail:{assetId:state.importedAssetId,destination:choice,respond:value=>{result=value;}}
       }));
       if(!result||result.error)throw new Error(result?.error??'Destination unavailable');
       handleResult(result);
-    }else if(local){
+    }else if(source==='LOCAL'&&local){
       await new Promise((resolve,reject)=>{
         document.dispatchEvent(new CustomEvent('runq:ai-studio:import-local',{
           detail:{file:local,destination:choice,respond:r=>r?.error?reject(new Error(r.error)):resolve(r)}
         }));
       }); // The application publishes the result once through a shared event.
-    }else{
+    }else if(source==='GENERATED'){
       const button=$('importLibraryBtn');
       if(!button||button.disabled)throw new Error(t('need'));
       button.click(); // Existing lab demands a separate explicit confirmation.
-    }
+    }else throw new Error(t('need'));
   }catch(error){updateStatus(String(error.message??error),true);}
   finally{
     state.busy=false;updateReadiness();updateDestinations(false);
