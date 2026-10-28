@@ -178,7 +178,7 @@ export function createModalSfxPilotClient({
     },
     async cancel(jobId) {
       const result = await request('/jobs/' + encodeURIComponent(validId(jobId, 'job ID')) + '/cancel', 'POST');
-      if (result.jobId !== jobId || result.status !== 'CANCELLED') {
+      if (result.jobId !== jobId || result.status !== 'CANCEL_REQUESTED') {
         throw new TypeError('Invalid cancel response');
       }
       return Object.freeze(result);
