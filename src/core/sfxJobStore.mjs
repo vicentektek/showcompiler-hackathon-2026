@@ -121,6 +121,7 @@ export function createSfxJobStore({
       const today = now.slice(0, 10);
       const names = await readdir(root);
       let startsToday = 0;
+      let activeStarts = 0;
       for (const name of names) {
         if (!/^job-[a-f0-9]{64}\.json$/.test(name)) continue;
         const entry = internalEntry(JSON.parse(await readFile(join(root, name), 'utf8')));
@@ -130,6 +131,12 @@ export function createSfxJobStore({
           throw error;
         }
         if (entry.createdAt.slice(0, 10) === today) startsToday++;
+        if (['SUBMISSION_UNKNOWN','QUEUED','RUNNING','CANCEL_REQUESTED'].includes(entry.status)) activeStarts++;
+      }
+      if (activeStarts > 0) {
+        const error = new Error('An existing SFX job is unresolved');
+        error.code = 'SFX_ACTIVE_LIMIT';
+        throw error;
       }
       if (startsToday >= maxDailyStarts) {
         const error = new Error('SFX daily quota reached');
