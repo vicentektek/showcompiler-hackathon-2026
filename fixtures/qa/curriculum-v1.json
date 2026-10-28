@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "curriculum": "RUNQ_PROGRESSIVE_THEATRICAL_CURRICULUM",
+  "manifestKind": "CONFIG_ONLY_CURRICULUM_DEFINITION",
+  "provenance": "OPERATOR_DEFINED_CONFIGURATION_NO_MODEL_RESULTS_2026-10-28",
+  "purpose": "Defines six progressive levels of SCRIPT DIFFICULTY used to qualify sound-cue interpretation providers. This file is configuration only: it contains no scores, no provider results and no measured model quality claims. Levels qualify exclusively on human-reviewed provider responses; synthetic material, failed or incomplete responses and provisional-unreviewed gold never qualify.",
+  "policy": {
+    "progressionOrder": "STRICT_IN_ORDER",
+    "aggregation": "GLOBAL_TP_FP_FN_BEFORE_F1",
+    "evidencePolicy": "HUMAN_REVIEWED_PROVIDER_RESPONSES_ONLY",
+    "criticalErrorPolicy": "ANY_CRITICAL_ERROR_BLOCKS_ADVANCEMENT",
+    "heldOutPolicy": "LEVEL6_INDEPENDENT_REPORT_ONLY_NO_TUNING_NO_UNLOCK"
+  },
+  "providers": [
+    "META",
+    "BASETEN"
+  ],
+  "evidenceKinds": {
+    "MODEL_PROVIDER_RESPONSES": "Qualifying only when the stated gold review status is HUMAN_REVIEWED: event scores were derived from responses returned by the named provider run and were reviewed by a person.",
+    "SYNTHETIC_FIXTURE": "Never qualifies: illustrative or deterministic fixture material, not a provider response.",
+    "GENERATED_DEMO": "Never qualifies: demo or generated content, not a response from the target provider.",
+    "MISSING": "Never qualifies: no usable response accounting exists."
+  },
+  "goldReviewStatuses": {
+    "HUMAN_REVIEWED": "Only qualifying status: every gold annotation used was reviewed by a person.",
+    "PROVISIONAL_UNREVIEWED": "Treated as insufficient evidence for progression decisions, whatever the scores."
+  },
+  "caseCompletionStatuses": {
+    "COMPLETE": "Every scene window of the scenario was answered by the provider and the whole scenario appears in the scored report.",
+    "INCOMPLETE": "Some scene windows are still missing; the whole scenario is excluded from scoring because scripts span multiple model requests.",
+    "FAILED": "The provider run errored; the scenario provides no quality evidence for this milestone.",
+    "MISSING": "No provider response was obtained at all for the scenario."
+  },
+  "criticalErrorCategories": [
+    {
+      "code": "FORBIDDEN_PLAY",
+      "basis": "A gold forbiddenPlayLineIds line (a mentioned-only or practical stage sound) was turned into a PLAY cue."
+    },
+    {
+      "code": "FABRICATED_SOURCE_REFERENCE",
+      "basis": "A prediction referenced a source line that does not exist in the original script (exact-tuple HALLUCINATED_SOURCE issue)."
+    },
+    {
+      "code": "STOP_CONTINUE_MISCLASSIFICATION",
+      "basis": "An expected STOP or CONTINUE directive was missed or replaced at its exact source line; under exact-tuple scoring that produces a MISSED_EXPECTED_EVENT issue with transport STOP or CONTINUE."
+    }
+  ],
+  "levels": [
+    {
+      "level": 1,
+      "name": "Explicit versus false positives",
+      "focus": "Explicit sound cues versus false positives: PLAY on real cues only, never on mentions or practical sounds.",
+      "targetScenarioCount": 10,
+      "gate": {
+        "kind": "EXACT_CASES",
+        "exactCasesRequired": 10
+      },
+      "heldOut": false
+    },
+    {
+      "level": 2,
+      "name": "Transport and continuity",
+      "focus": "PLAY, STOP, CONTINUE, SILENCE cues plus loops and fades.",
+      "targetScenarioCount": 15,
+      "gate": {
+        "kind": "F1_THRESHOLD",
+        "minF1": 0.95
+      },
+      "heldOut": false
+    },
+    {
+      "level": 3,
+      "name": "Ambiguity and dramatic context",
+      "focus": "Ambiguous stage directions and dramatic context.",
+      "targetScenarioCount": 20,
+      "gate": {
+        "kind": "F1_THRESHOLD",
+        "minF1": 0.93
+      },
+      "heldOut": false
+    },
+    {
+      "level": 4,
+      "name": "Performance formats",
+      "focus": "Theatre, galas, musicals, dance, circus and conferences.",
+      "targetScenarioCount": 20,
+      "gate": {
+        "kind": "F1_THRESHOLD",
+        "minF1": 0.9
+      },
+      "heldOut": false
+    },
+    {
+      "level": 5,
+      "name": "Long adversarial material",
+      "focus": "Long, multilingual, multi-window and adversarial scripts.",
+      "targetScenarioCount": 15,
+      "gate": {
+        "kind": "F1_THRESHOLD",
+        "minF1": 0.88
+      },
+      "heldOut": false
+    },
+    {
+      "level": 6,
+      "name": "Independent held-out final evaluation",
+      "focus": "Independent held-out final evaluation: reporting only; never used for tuning and never unlocks a level.",
+      "targetScenarioCount": 20,
+      "gate": {
+        "kind": "REPORT_ONLY"
+      },
+      "heldOut": true
+    }
+  ]
+}
