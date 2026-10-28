@@ -2646,7 +2646,10 @@ if (availableWorkspaces.includes(requestedWorkspace)) activeWorkspace = requeste
 translateDocument(document, uiLocale);
 resetScriptLanguageHint();
 render();
-if (activeWorkspace === 'soundlab') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
+// The SFX status check is read-only. Eagerly bind the Sound Lab on page load
+// instead of depending on a specific navigation event from alternative menus.
+// No provider submission or paid generation can occur during initialization.
+void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
 refreshMetaMessage();
 feedback(statusState.key, statusState.values, statusState.tone);
 refreshMetaStatus();
