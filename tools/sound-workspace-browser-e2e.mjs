@@ -18,7 +18,7 @@ try{
   const page=await browser.newPage({viewport:{width:1366,height:768}});
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'networkidle'});
-  await page.waitForSelector('#rqSoundWorkspaceTabs');
+  await page.waitForSelector('#rqSoundWorkspaceTabs',{state:'attached'});
   for(const locale of ['en','es']){
     await page.locator('#uiLocaleSelect').selectOption(locale);
     for(const viewport of [{width:1366,height:768},{width:1093,height:614}]){
