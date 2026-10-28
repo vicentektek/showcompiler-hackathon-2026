@@ -107,6 +107,9 @@ function updateControls(){
     'Listo: puedes generar una toma.';
   const reconnect=$('sfxReconnectBtn');
   if(reconnect) reconnect.disabled=state.working;
+  const reviewButton=$('sfxCheckResultBtn');
+  if(reviewButton)reviewButton.disabled=state.working||!job||
+    !(ACTIVE_STATUS.has(job.status)||STATUS_WITH_AUDIO.has(job.status));
   $('openJobBtn').disabled=state.working;
   $('refreshBtn').disabled=state.working||!state.enabled||!job||!ACTIVE_STATUS.has(job.status);
   $('cancelBtn').disabled=state.working||!state.enabled||!job||!['QUEUED','RUNNING'].includes(job.status);
@@ -343,6 +346,26 @@ function bindEvents(){
     $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
   }
   $('loadPresetBtn').addEventListener('click',applyPreset);
+  // One explicit check combines the two safe steps users previously had to
+  // discover: refresh the remote status ONCE, then download WAV if ready.
+  // It never triggers a new generation, never retries an uncertain submission
+  // and never starts audio through the speakers automatically.
+  $('sfxCheckResultBtn')?.addEventListener('click',()=>void action(async()=>{
+    if(!state.job)throw new Error('Todavía no hay una toma para revisar');
+    let job=state.job;
+    if(ACTIVE_STATUS.has(job.status)){
+      const result=await request('/jobs/'+encodeURIComponent(job.requestId)+'/refresh',{method:'POST',data:{}});
+      job=await result.json();
+      viewJob(job);
+    }
+    if(STATUS_WITH_AUDIO.has(job.status)){
+      const result=await request('/jobs/'+encodeURIComponent(job.requestId)+'/audio');
+      await loadAudio(await result.arrayBuffer(),'Generado · '+job.requestId+'.wav','remote');
+      inform('WAV cargado. Pulsa Play para escucharlo antes de aceptarlo.');
+    }else{
+      inform('Estado: '+(STATUS_LABEL[job.status]??job.status)+'. Vuelve a comprobar cuando quieras.');
+    }
+  }));
   $('openJobBtn').addEventListener('click',()=>void action(async()=>{
     viewJob(await(await request('/jobs/'+encodeURIComponent(currentJobId()))).json());
     inform('Loaded the persistent local record. No provider call was made.');
@@ -479,5 +502,12 @@ export async function initializeSoundLab({onImportReviewed}={}){
   // Recheck on every workspace entry. A previous offline check must not
   // permanently disable generation after the user fixes local configuration.
   await checkConnection();
+  // Reopen the last LOCAL journal record, without remote polling or payment.
+  if(!state.job && $('requestId').value.trim()){
+    try{
+      const result=await request('/jobs/'+encodeURIComponent(currentJobId()));
+      viewJob(await result.json());
+    }catch{/* Old/missing local records are safely ignored. */}
+  }
   updateControls();drawWave();
 }
