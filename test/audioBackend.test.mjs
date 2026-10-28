@@ -55,3 +55,17 @@ test('backend facade passes through manual GO, STOP and panic', async () => {
   backend.reset();
   assert.equal(backend.hasAsset('asset-1'), false);
 });
+
+
+test('waveform is a read-only facade result, not raw AudioBuffer or playback control',async()=>{
+  const data=new Float32Array([0,.2,-.9,0]);
+  const backend=createBrowserAudioBackend({contextFactory:()=>({
+    decodeAudioData:async()=>({duration:1,numberOfChannels:1,getChannelData:()=>data}),
+  })});
+  await backend.loadFile({name:'wave.wav',size:10,arrayBuffer:async()=>new ArrayBuffer(10)},'asset-1');
+  const waveform=backend.getWaveform('asset-1');
+  assert.equal(waveform.durationMs,1000);
+  assert.ok(waveform.peaks.some(v=>Math.abs(v-.9)<.0001));
+  assert.equal(backend.buffers,undefined);
+  assert.equal(waveform.getChannelData,undefined);
+});
