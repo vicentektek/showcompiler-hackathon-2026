@@ -4,7 +4,7 @@ import {readSeminarCorpus} from '../tools/seminarCorpus.mjs';
 import {QUALITY_CASE_IDS,buildQualityEvidence,renderQualityEvidence} from '../tools/threeCaseQualityLab.mjs';
 
 const metaModel='muse-spark-1.3';
-const basetenModel='meta-models/muse-spark-open-1026';
+const basetenModel='meta-models/muse-spark-open';
 const makeReport=(c,model)=>({
   model,realInferenceExecuted:true,
   cases:[{id:c.id,status:'COMPLETE',
