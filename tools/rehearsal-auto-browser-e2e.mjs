@@ -38,7 +38,9 @@ try{
  page.on('dialog',dialog=>void dialog.accept());
  await page.route('**/*',route=>{
   const url=new URL(route.request().url());
-  if(url.hostname!=='127.0.0.1'||url.port!==String(port)||url.pathname.startsWith('/api/')){
+  const local=url.hostname==='127.0.0.1'&&url.port===String(port);
+  const readonly=local&&['/api/meta/status','/api/sfx/status'].includes(url.pathname);
+  if(!local||(url.pathname.startsWith('/api/')&&!readonly)){
    remote.push(url.href);return route.abort();
   }
   return route.continue();
