@@ -78,3 +78,6 @@
 .rqlive-results output:empty:after{content:'—';color:#526e75}
 .rqlive-panel .rqmic-consent{font-size:11px}
 @media(max-width:900px){.rqlive-results{grid-template-columns:1fr}.rqlive-settings{align-items:stretch}}
+
+.rqlive-cue-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.rqlive-cue-actions button:disabled{opacity:.4;cursor:not-allowed}
