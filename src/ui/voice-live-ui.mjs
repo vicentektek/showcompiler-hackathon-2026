@@ -75,15 +75,20 @@ function presentFinal(text,turnId){
  const eventDetail={text,turnId:resolvedTurn,handled:false};
  document.dispatchEvent(new CustomEvent('runq:voice-live-final',{detail:eventDetail}));
  if(eventDetail.handled)return; // Explicitly armed autopilot owns this final turn.
+ const assistMode=$('rqLiveMode').value==='assist';
  const result=currentMatches(text);
  if(result?.status==='SUGGEST_PREPARE'){
   suggestedCueId=result.cueId;
-  $('rqLivePrepare').disabled=false;$('rqLiveDismiss').disabled=false;
-  consumedIds.add(result.cueId);
-  focusLine=Number(result.lineId.slice(1));
-  $('rqLiveFocus').value=String(focusLine);
+  $('rqLivePrepare').disabled=!assistMode;$('rqLiveDismiss').disabled=!assistMode;
+  if(assistMode){
+   consumedIds.add(result.cueId);
+   focusLine=Number(result.lineId.slice(1));
+   $('rqLiveFocus').value=String(focusLine);
+  }
   const cue=scenario.cues.find(item=>item.id===result.cueId);
-  $('rqLiveCue').textContent=local('Suggested (GO remains manual): ','Sugerido (GO sigue manual): ')+
+  $('rqLiveCue').textContent=(assistMode
+   ?local('Suggested · operator GO required: ','Sugerido · GO manual: ')
+   :local('DETECTED, NOT FIRED · ARM AUTO GO: ','DETECTADO, NO EJECUTADO · ARMA EL GO: '))+
     String(cue?.number??cue?.id)+' · '+String(cue?.label||cue?.trigger||'')+
     ' · '+result.lineId+' · '+Math.round(result.score*100)+'%';
   document.dispatchEvent(new CustomEvent('runq:voice-follow-highlight-line',{detail:{lineId:result.lineId}}));
@@ -91,8 +96,8 @@ function presentFinal(text,turnId){
   suggestedCueId=null;
   $('rqLivePrepare').disabled=true;$('rqLiveDismiss').disabled=true;
   $('rqLiveCue').textContent=result?.status==='AMBIGUOUS'
-   ?local('Ambiguous cues: operator decision required.','Cues ambiguos: decide el operador.')
-   :local('No confident match; operator remains in control.','Sin coincidencia fiable; el operador mantiene el control.');
+   ?local('Ambiguous cue · no playback.','Cue ambiguo · sin reproducción.')
+   :local('No reliable cue detected · no playback.','No hay cue fiable detectado · sin reproducción.');
  }
 }
 function acceptEvent(event){
