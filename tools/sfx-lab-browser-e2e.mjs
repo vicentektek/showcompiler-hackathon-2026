@@ -54,6 +54,8 @@ try{
     return route.continue();
   });
   await page.goto('http://127.0.0.1:'+port+'/sound-lab',{waitUntil:'domcontentloaded'});
+  assert.equal(new URL(page.url()).searchParams.get('workspace'),'soundlab',
+    'Old standalone Sound Lab bookmark must open the working integrated studio');
   // Local SFX status is localized by the current lab implementation.
   // Check that the genuine read-only status probe completed, not an obsolete
   // English-only badge copy from the original standalone sketch.
@@ -64,7 +66,7 @@ try{
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
   await page.locator('#demoAudioBtn').click();
-  await page.getByText('Synthetic demo loaded (no AI request)',{exact:false}).waitFor();
+  await page.getByText('Synthetic test sound loaded locally.',{exact:false}).waitFor();
   assert.match(await page.locator('#audioName').innerText(),/NOT AI/);
   assert.equal(await page.locator('#playBtn').isEnabled(),true);
   assert.equal(await page.locator('#exportBtn').isEnabled(),true);
