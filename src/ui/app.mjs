@@ -43,6 +43,19 @@ let pendingAudioCueId = null;
 let audioInFlight = false;
 let bundleInFlight = false;
 let originalAudioFiles = new Map();
+/**
+ * Read-only source bridge for the Stagecraft waveform view. It returns the
+ * actual local File for a registered asset in the current project, never
+ * synthesizes a waveform and never initiates playback or provider traffic.
+ * The request/reply stays entirely in this browser document.
+ */
+document.addEventListener('runq:request-audio-source', event => {
+  const { assetId, respond } = event.detail ?? {};
+  if (typeof respond !== 'function' || typeof assetId !== 'string') return;
+  const registered = show.assets.some(asset => asset.id === assetId);
+  respond(registered ? (originalAudioFiles.get(assetId) ?? null) : null);
+});
+
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
@@ -51,7 +64,7 @@ let selectedCueId = null; // Selection inspects only; it never changes the GO qu
 let inspectorTab = 'audio';
 let inspectorPendingChanges = false;
 let activeWorkspace = 'home';
-const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'setup', 'operation']);
+const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'setup', 'rehearsal', 'operation']);
 let operatorQueue = startOperatorQueue(show.cues);
 let lastGoCueId = null;
 let auditionAcknowledged = false;

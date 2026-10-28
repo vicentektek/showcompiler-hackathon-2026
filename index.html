@@ -9,9 +9,11 @@
   <link rel="stylesheet" href="/src/ui/runq-theme.css">
   <link rel="stylesheet" href="/src/ui/runq-workspaces-v2.css">
   <link rel="stylesheet" href="/src/ui/runq-stagecraft-v4.css">
+  <link rel="stylesheet" href="/src/ui/runq-stagecraft-rebuild.css">
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
+  <script src="/src/ui/runq-stagecraft-rebuild.mjs" type="module"></script>
 </head>
 <body>
   <div class="shell" data-active-workspace="home">
@@ -48,6 +50,7 @@
       <button type="button" class="workspace-tab" data-workspace-nav="cues" aria-pressed="false" data-i18n="workspace.cues">Cue Editor</button>
       <button type="button" class="workspace-tab" data-workspace-nav="audio" aria-pressed="false" data-i18n="workspace.audio">Audio</button>
       <button type="button" class="workspace-tab" data-workspace-nav="setup" aria-pressed="false" data-i18n="workspace.setup">Setup</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="rehearsal" aria-pressed="false" data-i18n="workspace.rehearsal">Rehearsal</button>
       <button type="button" class="workspace-tab" data-workspace-nav="operation" aria-pressed="false" data-i18n="workspace.operation">Operation</button>
       <div class="workspace-mode"><span data-i18n="workspace.mode">MODE</span><strong data-i18n="workspace.design">DESIGN · MANUAL</strong></div>
     </nav>
@@ -89,7 +92,7 @@
           </div>
           <p class="home-disclaimer" data-i18n="workspace.noRecent">This browser does not maintain a permanent recent-project library. Save a complete ZIP to keep every original audio file.</p>
         </section>
-        <section class="panel" data-workspaces="script" aria-labelledby="scriptHeading">
+        <section class="panel" data-workspaces="script rehearsal" aria-labelledby="scriptHeading">
           <div class="panel-head">
             <div><span class="step">01</span><h2 id="scriptHeading" data-i18n="script.heading">Script</h2></div>
             <div class="item-actions"><button id="audibleExampleBtn" type="button" class="btn accent small" data-i18n="bundle.tryDemo">Try with real sounds</button><button id="exampleBtn" type="button" class="btn subtle small" data-i18n="script.example">Example</button></div>
@@ -240,7 +243,7 @@
           <div id="proposalList" class="item-list"></div>
         </section>
 
-        <section class="panel" data-workspaces="cues operation" aria-labelledby="cuesHeading">
+        <section class="panel" data-workspaces="cues operation rehearsal" aria-labelledby="cuesHeading">
           <div class="panel-head">
             <div><span class="step">03</span><h2 id="cuesHeading" data-i18n="cues.heading">Cue list</h2></div>
             <div class="cue-create-actions">

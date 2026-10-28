@@ -53,7 +53,7 @@ function routeButton(label,workspace){
   return button;
 }
 function createEditorEnhancements(){
-  const panel=document.querySelector('[data-workspaces="cues operation"]');
+  const panel=document.querySelector('[data-workspaces~="cues"]');
   const filter=panel?.querySelector('.cue-filter-bar');
   const list=$('cueList');
   if(!panel||!filter||!list||$('runqEditorToolbar'))return;
@@ -133,7 +133,7 @@ function createAudioEnhancements(){
   updateCounts();
 }
 function createScriptContext(){
-  const panel=document.querySelector('[data-workspaces="script"]');
+  const panel=document.querySelector('[data-workspaces~="script"]');
   if(!panel||$('runqScriptContext'))return;
   const ctx=elt('aside','runq-script-context');
   ctx.id='runqScriptContext';
