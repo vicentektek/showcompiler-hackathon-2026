@@ -104,15 +104,21 @@ function createStage(){
   const filterWrap=el('div','rq5-sequence-search');
   filterWrap.append(filter);
   if(editorTools)filterWrap.append(editorTools);
-  sequence.append(seqHeader,filterWrap);
-  if(columns)sequence.append(columns);
-  const stageBody=el('div','rq5-stage-body');
-  stageBody.append(cueBody);
-
+  sequence.append(filterWrap);
+  const cueList=get('cueList');
+  const inspector=get('cueInspector');
+  if(!cueList||!inspector)throw new Error('Expected cue sequence and inspector are missing');
+  const sequenceFrame=el('div','rq5-sequence-frame');
+  sequenceFrame.append(seqHeader);
+  if(columns)sequenceFrame.append(columns);
+  sequenceFrame.append(cueList);
+  const inspectorFrame=el('div','rq5-inspector-frame');
   const inspectorHeader=el('div','rq5-inspector-heading');
   inspectorHeader.append(label('properties'),linkButton('audio','audio'));
-  const inspector=get('cueInspector');
-  if(inspector)inspector.prepend(inspectorHeader); // Re-render replaces children; use external heading instead.
+  inspectorFrame.append(inspectorHeader,inspector);
+  cueBody.replaceChildren(sequenceFrame,inspectorFrame);
+  const stageBody=el('div','rq5-stage-body');
+  stageBody.append(cueBody);
   const footer=el('div','rq5-stage-bottom');
   footer.append(label('actual'),status);
 
