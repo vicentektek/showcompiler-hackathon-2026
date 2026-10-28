@@ -3,7 +3,7 @@
  * Checks waveform interaction, preview, STOP, PCM16 export and no paid requests.
  */
 import assert from 'node:assert/strict';
-import { readFile, mkdir } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { createAppServer } from './dev-server.mjs';
 import { chromium } from 'playwright-core';
 
@@ -83,7 +83,8 @@ try{
   await page.getByText('Synthetic test sound loaded locally.',{exact:false}).waitFor();
   assert.match(await page.locator('#audioName').innerText(),/NOT AI/);
   assert.equal(await page.locator('#playBtn').isEnabled(),true);
-  assert.equal(await page.locator('#exportBtn').isEnabled(),true);
+  assert.equal(await page.locator('#exportBtn').isDisabled(),true,
+    'Unreviewed synthetic test audio cannot be exported as approved model output');
   await page.locator('#inPoint').fill('0.250');
   await page.locator('#inPoint').dispatchEvent('change');
   await page.locator('#outPoint').fill('1.250');
@@ -95,23 +96,17 @@ try{
   assert.equal(await page.locator('#stopBtn').isEnabled(),true);
   await page.locator('#stopBtn').click();
   assert.equal(await page.evaluate(()=>window.__labStopped),1);
-  const downloadPromise=page.waitForEvent('download');
-  await page.locator('#exportBtn').click();
-  const download=await downloadPromise;
-  assert.equal(download.suggestedFilename(),'runq-local-trim.wav');
-  const bytes=await readFile(await download.path());
-  const header=new DataView(bytes.buffer,bytes.byteOffset,bytes.length);
-  assert.equal(bytes.toString('ascii',0,4),'RIFF');
-  assert.equal(header.getUint16(22,true),1);
-  assert.equal(header.getUint32(24,true),22050);
-  assert.equal(header.getUint32(40,true),22050*2);
+  assert.equal(await page.locator('#acceptBtn').isDisabled(),true,
+    'Synthetic locally generated demonstration must not be accepted as a provider take');
+  assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true,
+    'Unapproved test sound cannot bypass reviewed AI import');
   assert.equal(billableCalls,0);
   assert.deepEqual(errors,[]);
   if(process.env.RUNQ_CAPTURE_UI==='1'){
     await mkdir('artifacts/runq-ui',{recursive:true});
     await page.screenshot({path:'artifacts/runq-ui/sfx-lab-offline.png',fullPage:true});
   }
-  console.log('SFX Lab Chrome smoke PASS — offline waveform, preview, STOP, exported PCM16, zero provider requests.');
+  console.log('SFX Lab Chrome smoke PASS — integrated Sound Design, true PCM waveform, preview, STOP, synthetic export blocked, zero provider requests.');
 }finally{
   if(browser)await browser.close();
   await new Promise(resolve=>server.close(resolve));
