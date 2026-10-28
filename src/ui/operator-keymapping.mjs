@@ -20,6 +20,8 @@ const labels={
     duplicate:'GO and STOP ALL must use different keys.',restored:'Default keys restored.',
     none:'Unassigned',space:'Space bar',g:'G',enter:'Enter',esc:'Escape',
     f:'F',hint:'Keyboard GO:',
+    quickGo:'Operation: double-click cue = SET NEXT + GO immediately',
+    quickHelp:'Disabled by default. Use only on the cue row in Operation. A single click never triggers sound. During a show, no extra confirmation slows this command.',
   },
   es:{
     title:'Asignación de teclas',scope:'Preferencia de este equipo · no se guarda en el show',
@@ -32,6 +34,8 @@ const labels={
     restored:'Teclas predeterminadas restauradas.',none:'Sin asignar',
     space:'Barra espaciadora',g:'G',enter:'Intro',esc:'Escape',
     f:'F',hint:'GO por teclado:',
+    quickGo:'Directo: doble clic en un cue = PREPARAR + GO inmediato',
+    quickHelp:'Desactivado por defecto. Solo sobre la fila del cue en Directo. Un clic nunca dispara sonido; en directo no se pide confirmación adicional.',
   },
 };
 function locale(){return get('uiLocaleSelect')?.value==='es'?'es':'en';}
@@ -81,10 +85,13 @@ function refresh(){
   get('runqKeyboardEnabled').checked=settings.enabled;
   get('runqKeyboardInEditor').checked=settings.inEditor;
   get('runqKeyboardInOperation').checked=settings.inOperation;
+  get('runqDoubleClickGo').checked=settings.doubleClickGoOperation;
   for(const [id,key] of [
     ['runqKeymapTitle','title'],['runqKeymapScope','scope'],['runqKeymapHelp','help'],
     ['runqKeyboardEnabledLabel','enabled'],['runqKeyboardInEditorLabel','editor'],
-    ['runqKeyboardInOperationLabel','operation'],['runqGoKeyLabel','go'],
+    ['runqKeyboardInOperationLabel','operation'],
+    ['runqDoubleClickGoLabel','quickGo'],['runqDoubleClickGoHelp','quickHelp'],
+    ['runqGoKeyLabel','go'],
     ['runqStopKeyLabel','stop'],['runqKeyboardReset','reset'],
   ])get(id).textContent=t(key);
   updateHint();
@@ -107,6 +114,7 @@ for(const [id,key] of [
   ['runqKeyboardEnabled','enabled'],
   ['runqKeyboardInEditor','inEditor'],
   ['runqKeyboardInOperation','inOperation'],
+  ['runqDoubleClickGo','doubleClickGoOperation'],
 ]){
   get(id).addEventListener('change',event=>
     persist({...settings,[key]:event.target.checked}));
@@ -149,6 +157,20 @@ document.addEventListener('keydown',event=>{
   button.click(); // The ONE existing click handler; no duplicate audio path.
 });
 document.addEventListener('keyup',event=>held.delete(event.code||event.key));
+// Deliberate stage-manager quick action. Keep cue editor double-click for edits;
+// no single-click, keyboard typing, toolbar or cue-inspector triggers.
+document.getElementById('cueList')?.addEventListener('dblclick',event=>{
+  const workspace=document.querySelector('.shell')?.dataset.activeWorkspace;
+  if(workspace!=='operation' || !settings.doubleClickGoOperation ||
+     event.button!==0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+     event.target?.closest?.('[data-cue-action], .cue-edit-actions, .cue-audio-tools')) return;
+  const row=event.target?.closest?.('[data-cue-select]');
+  if(!row || !document.getElementById('cueList')?.contains(row)) return;
+  document.dispatchEvent(new CustomEvent('runq:operator-quick-go',{
+    detail:{cueId:row.dataset.cueSelect},
+  }));
+  event.preventDefault();
+});
 window.addEventListener('blur',()=>held.clear());
 document.addEventListener('visibilitychange',()=>{if(document.hidden)held.clear();});
 const shell=document.querySelector('.shell');
