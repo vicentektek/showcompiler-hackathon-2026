@@ -223,6 +223,17 @@ try {
   assert.match(await page.locator('#statusMessage').innerText(), /Target-stop actions saved/);
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('#scriptPreview').isVisible(), true);
+  assert.equal(await page.locator('.rq5-script-scenes').count(),1);
+  await capture('08-script-rebuilt.png');
+  // Rehearsal reuses real original script and operator queue simultaneously.
+  // Merely visiting this view never starts or prepares a cue.
+  const beforeRehearsalStarts=await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('[data-workspace-nav="rehearsal"]').click();
+  assert.equal(await page.locator('#scriptPreview').isVisible(),true);
+  assert.equal(await page.locator('#operatorGoBtn').isVisible(),true);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),preparedBeforeNavigation);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeRehearsalStarts);
+  await capture('09-rehearsal-manual.png');
   await page.locator('[data-workspace-nav="operation"]').click();
   await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
@@ -346,6 +357,10 @@ try {
     }) });
   });
   await page.locator('[data-workspace-nav="ai"]').click();
+  assert.equal(await page.locator('.rq5-ai-grid').count(),1);
+  assert.equal(await page.locator('.rq5-ai-engine #modelProviderSelect').count(),1);
+  assert.equal(await page.locator('.rq5-ai-review #proposalList').count(),1);
+  await capture('10-ai-three-pane.png');
   await page.locator('#modelProviderSelect').selectOption('baseten');
   await page.locator('#modelProviderSelect').selectOption('meta');
   await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
