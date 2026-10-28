@@ -21,14 +21,16 @@ SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$")
 
 app = modal.App(APP_NAME)
 
-# Deliberately a pilot, not an optimized production image. Pin the upstream
-# stable-audio-3 commit and benchmark GPU load/VRAM before production deployment.
+# Deliberately a pilot, not an optimized production image. The upstream
+# stable-audio-3 commit is pinned (never a moving branch) and GPU load/VRAM
+# must still be benchmarked before any production deployment.
+UPSTREAM_COMMIT = "77e0398c26f7d22d801ec1bb036307e8b231f741"
 worker_image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git", "libsndfile1")
     .pip_install(
         "torch==2.7.1", "torchaudio==2.7.1", "soundfile>=0.13.1",
-        "git+https://github.com/Stability-AI/stable-audio-3.git",
+        "git+https://github.com/Stability-AI/stable-audio-3.git@" + UPSTREAM_COMMIT,
     )
 )
 api_image = modal.Image.debian_slim(python_version="3.11").pip_install(
@@ -36,9 +38,15 @@ api_image = modal.Image.debian_slim(python_version="3.11").pip_install(
 )
 
 
+# HF_TOKEN is injected from the Modal secret "huggingface-secret" (workspace
+# audiomaclet, environment main). It exists only inside Modal volumes/secrets,
+# never in this repository or logs. The weights are gated on Hugging Face and
+# the operator account must have accepted stabilityai/stable-audio-3-small-sfx
+# terms before the token can download them.
 @app.function(
     image=worker_image, gpu="L4", timeout=180, retries=0,
     min_containers=0, max_containers=1, scaledown_window=5,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
 )
 def generate_sfx(prompt: str, duration_seconds: int, seed: int) -> bytes:
     """One short audio generation. FunctionCall result is never linked to cues."""
