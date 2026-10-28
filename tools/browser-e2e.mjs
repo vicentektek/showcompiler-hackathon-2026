@@ -38,7 +38,14 @@ try {
       constructor() { this.state = 'running'; this.currentTime = 1; this.destination = {}; }
       async resume() {}
       async close() { this.state = 'closed'; }
-      async decodeAudioData() { return { duration: 3, numberOfChannels: 1 }; }
+      async decodeAudioData() {
+        const samples=new Float32Array(1200);
+        for(let index=0;index<samples.length;index++)samples[index]=Math.sin(index/15)*.4;
+        return {
+          duration:3, numberOfChannels:1,length:samples.length,sampleRate:400,
+          getChannelData(channel){if(channel!==0)throw new RangeError('channel');return samples;}
+        };
+      }
       createGain() {
         const gain = { value: 1, cancelScheduledValues() {},
           setValueAtTime(v) { this.value = v; },
@@ -107,6 +114,13 @@ try {
     'Exactly one workspace should be pressed when Cue Editor is active');
   assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
     'Exactly one workspace should carry the current class');
+  assert.equal(await page.locator('.rq5-stage-body .rq5-sequence-frame #cueList').count(),1,
+    'Actual cue list must be mounted inside new Stagecraft sequence');
+  assert.equal(await page.locator('.rq5-inspector-frame #cueInspector').count(),1,
+    'Actual inspector must be mounted in the new dedicated pane');
+  assert.equal(await page.locator('.rq5-transport-dock #operatorGoBtn').count(),1,
+    'Stagecraft must rehome the existing operator GO, not duplicate it');
+  assert.equal(await page.locator('#runqStagecraftNonexistentGo').count(),0);
   await capture('02-editor-1366.png');
   const readEditorGeometry = () => page.evaluate(() => {
     const left=document.getElementById('cueList').getBoundingClientRect();
@@ -140,6 +154,12 @@ try {
   assert.equal(await page.locator('#runqAudioOverview').count(), 1);
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
   assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
+  assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1);
+  assert.equal(await page.locator('#rq5WaveCanvas').count(),1);
+  await page.waitForFunction(()=>document.querySelector('#rq5WaveStatus')?.textContent?.includes('Decoded audio'));
+  assert.equal(await page.locator('#rq5WaveChannels').innerText(),'1');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,
+    'Decoding a read-only PCM waveform must never start audio');
   await capture('05-audio-1366.png');
   await page.locator('[data-workspace-nav="setup"]').click();
   assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
