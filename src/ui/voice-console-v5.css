@@ -150,3 +150,31 @@
  .rq-voice-pane{padding:11px}
 }
 @media(prefers-reduced-motion:reduce){.rq-voice-tab{transition:none}}
+
+
+/* During rehearsal the show is being WORKED, not authored. Retain actual
+   script navigation and manual cue/transport nodes, hide editing forms. */
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="script"] .panel-head .item-actions,
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="script"] label[for="showName"],
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="script"] #showName,
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="script"] .line-actions,
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="cues"] .cue-create-actions,
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="cues"] .preflight-toolbar,
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="cues"] #preflightReport,
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="cues"] .cue-editor-hint,
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="cues"] .info,
+.shell[data-active-workspace="rehearsal"] #cueInspector{
+ display:none!important;
+}
+.shell[data-active-workspace="rehearsal"] .cue-workspace-body{
+ display:block!important;grid-template-columns:1fr!important;
+}
+.shell[data-active-workspace="rehearsal"] #cueList{
+ width:100%!important;min-width:0!important;
+}
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="script"]{
+ border-color:#2e4957;
+}
+.shell[data-active-workspace="rehearsal"] .panel[data-workspaces~="cues"]{
+ border-color:#3b545d;
+}
