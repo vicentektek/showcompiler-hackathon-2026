@@ -36,3 +36,13 @@ test('GPU scheduling can fall back to compatible A10 without permanent warm spen
   assert.match(code, /min_containers=0, max_containers=1, scaledown_window=120/);
   assert.match(code, /retries=0/);
 });
+
+test('GPU worker writes separate cold-load, inference and WAV encoding timing without leaking prompts', async () => {
+  const code = await worker();
+  assert.match(code,/RUNQ_SFX_TIMING/);
+  assert.match(code,/"modelLoadMs"/);
+  assert.match(code,/"inferenceMs"/);
+  assert.match(code,/"wavEncodeMs"/);
+  assert.match(code,/"coldModel"/);
+  assert.doesNotMatch(code,/print\(prompt\)/);
+});
