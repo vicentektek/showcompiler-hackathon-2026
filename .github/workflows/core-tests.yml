@@ -58,6 +58,10 @@ jobs:
 
       - name: Install pinned browser smoke driver (CI-only, no lockfile)
         run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Sound Lab Chrome smoke (offline, zero provider calls)
+        env:
+          RUNQ_CAPTURE_UI: '1'
+        run: node tools/sfx-lab-browser-e2e.mjs
       - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
         env:
           RUNQ_CAPTURE_UI: '1'
