@@ -441,7 +441,7 @@
   "proposals.reviewHintsSummary": "Independent check: {count} labelled audio-direction line(s) have no model proposal or observation. Review the source; an audio file is NOT necessarily required.",
   "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review.",
   "workspace.rehearsal": "Rehearsal",
-  "workspace.description.rehearsal": "Review the script and execute cues manually. No voice-driven automatic GO is enabled.",
+  "workspace.description.rehearsal": "Work with your script and cue sequence in manual, voice-assisted or explicitly armed automatic rehearsal. Operation stays manual.",
   "audioProps.endAtMs": "OUT trim (ms; empty = file end)",
   "audioProps.endAtHelp": "Optional end point; must be after IN and within the decoded file.",
   "waveform.heading": "Recorded audio waveform · IN / OUT",
