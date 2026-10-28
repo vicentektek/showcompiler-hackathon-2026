@@ -523,3 +523,5 @@ main{padding:9px 14px 12px!important}
 @media(prefers-reduced-motion:reduce){
  .rq5-show-workspace *,.rq5-audio-workspace *{scroll-behavior:auto;transition:none!important}
 }
+
+.rq5-show-workspace>.help{display:none!important}
