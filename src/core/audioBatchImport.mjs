@@ -200,9 +200,11 @@ export function planAudioLibraryBatch(files,assets,isLoaded){
     if(matching.length===1&&isLoaded(matching[0].id)){
       skipped.push({name,reason:'already loaded; no overwrite'});continue;
     }
+    if(accepted.length>=MAX_AUDIO_BATCH_FILES){
+      skipped.push({name,reason:'maximum 100 audio files per batch'});continue;
+    }
     accepted.push({file,assetId:matching[0]?.id??null,
       kind:matching.length?'restore':'new'});
-    if(accepted.length>=MAX_AUDIO_BATCH_FILES)break;
   }
   return {accepted,skipped};
 }
