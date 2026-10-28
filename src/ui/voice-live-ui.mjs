@@ -262,8 +262,8 @@ function localized(){
  $('rqLivePartialTitle').textContent=local('RECOGNIZING','RECONOCIENDO');
  $('rqLiveFinalTitle').textContent=local('FINAL TRANSCRIPT','TRANSCRIPCIÓN FINAL');
  $('rqLiveCueTitle').textContent=local('SUGGESTED CUE · MANUAL GO','CUE SUGERIDO · GO MANUAL');
- $('rqLivePrivacy').textContent=local('Only finalized speech can suggest cues. Partials never execute anything. No automatic GO.',
- 'Solo las frases finalizadas sugieren cues. Los parciales no ejecutan nada. Sin GO automático.');
+ $('rqLivePrivacy').textContent=local('Partial transcripts never execute sound. Automatic GO requires explicit arming in Rehearsal; Operation remains manual.',
+ 'Las transcripciones parciales nunca ejecutan audio. GO automático exige armado expreso en Ensayo; Directo sigue siendo manual.');
  $('rqLiveLang').options[0].textContent='Español';
  $('rqLiveLang').options[1].textContent='English';
  $('rqLiveLang').options[2].textContent=local('Spanish + English','Español + inglés');
@@ -300,7 +300,7 @@ function mount(){
  window.addEventListener('pagehide',()=>{if(active)void stop(true,'navigation');});
  const shell=document.querySelector('.shell');
  if(shell)new MutationObserver(()=>{
-  if(shell.dataset.activeWorkspace!=='rehearsal'&&active)void stop();
+  if(!['voice','rehearsal'].includes(shell.dataset.activeWorkspace)&&active)void stop();
  }).observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
  localized();refreshShow();void devices();controls();
 }
