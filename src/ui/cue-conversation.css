@@ -63,7 +63,7 @@
  .rq-chat-change{grid-template-columns:1fr 1fr 12px 1fr;font-size:11px}}
 
 /* Avoid growing the compact Stagecraft inspector header at 1093x614. */
-.rq5-show-workspace .cue-inspector .inspector-title{padding-right:127px}
+
 .rq5-show-workspace .cue-inspector .rq-chat-open{position:absolute;right:14px;top:7px;
  margin:0!important;max-width:120px;white-space:nowrap;
  padding:4px 7px!important;min-height:26px!important;height:26px!important;
