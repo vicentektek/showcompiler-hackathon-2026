@@ -10,10 +10,12 @@
   <link rel="stylesheet" href="/src/ui/runq-workspaces-v2.css">
   <link rel="stylesheet" href="/src/ui/runq-stagecraft-v4.css">
   <link rel="stylesheet" href="/src/ui/runq-stagecraft-rebuild.css">
+  <link rel="stylesheet" href="/src/ui/operator-keymapping.css">
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
   <script src="/src/ui/runq-stagecraft-rebuild.mjs" type="module"></script>
+  <script src="/src/ui/operator-keymapping.mjs" type="module"></script>
 </head>
 <body>
   <div class="shell" data-active-workspace="home">
@@ -311,6 +313,26 @@
             <div><span data-i18n="workspace.lights">LIGHT / VIDEO</span><strong data-i18n="workspace.unavailable">Not configured · no commands sent</strong></div>
             <div><span data-i18n="workspace.automation">AUTO FOLLOW</span><strong data-i18n="workspace.unwired">Not connected to playback</strong></div>
           </div>
+          <section class="runq-keymap" aria-labelledby="runqKeymapTitle">
+            <div class="runq-keymap-heading">
+              <h3 id="runqKeymapTitle">Keyboard mapping</h3>
+              <span id="runqKeymapScope" class="caption">Local device preference · not saved in shows</span>
+            </div>
+            <p id="runqKeymapHelp" class="caption">Space triggers the prepared NEXT cue, never the selected cue. Editable controls and held keys do not trigger GO.</p>
+            <label class="runq-keymap-check"><input id="runqKeyboardEnabled" type="checkbox" checked><span id="runqKeyboardEnabledLabel">Enable keyboard shortcuts</span></label>
+            <div class="runq-keymap-columns">
+              <label class="runq-keymap-check"><input id="runqKeyboardInEditor" type="checkbox" checked><span id="runqKeyboardInEditorLabel">Active in Cue Editor</span></label>
+              <label class="runq-keymap-check"><input id="runqKeyboardInOperation" type="checkbox" checked><span id="runqKeyboardInOperationLabel">Active in Operation</span></label>
+            </div>
+            <div class="runq-keymap-columns">
+              <label><span id="runqGoKeyLabel">GO / Next cue</span><select id="runqGoKey" aria-labelledby="runqGoKeyLabel"></select></label>
+              <label><span id="runqStopKeyLabel">STOP ALL (emergency)</span><select id="runqStopKey" aria-labelledby="runqStopKeyLabel"></select></label>
+            </div>
+            <div class="runq-keymap-foot">
+              <button type="button" id="runqKeyboardReset" class="btn subtle small">Restore default keys</button>
+              <span id="runqKeyboardFeedback" class="caption" role="status" aria-live="polite"></span>
+            </div>
+          </section>
           <div class="separator"></div>
           <h3 data-i18n="workspace.readiness">Show readiness</h3>
           <strong id="setupReadinessSummary" role="status" aria-live="polite"></strong>

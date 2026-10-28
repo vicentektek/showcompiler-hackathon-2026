@@ -192,8 +192,9 @@ try {
   assert.match(await page.locator('#statusMessage').innerText(), /Track settings saved/);
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
-  // Repositioning belongs to Operation, never to a simple editor click.
-  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),0);
+  // Restored Stagecraft editor action: explicit Set next is visible only for
+  // the selected cue. Merely clicking/inspecting does NOT reposition NEXT.
+  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),1);
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
