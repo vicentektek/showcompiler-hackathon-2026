@@ -98,7 +98,7 @@ export async function runSfxLatencyLab(opt,{serverFactory=createAppServer,envLoa
       return session;
     }
     if(!config.enabled)throw new Error('SFX provider is not configured in this checkout. No submissions.');
-    if(unfinished.length)throw new Error('Unresolved RunQ SFX job detected; reconcile/cancel first. No submissions.');
+    if(unfinished.length)throw new Error('Unresolved RunQ SFX jobs: '+unfinished.map(j=>j.requestId+' ('+j.status+')').join(', ')+'. Verify or cancel them in Modal and reconcile the journal first. No submissions.');
     const unit=config.estimatedMaxCostUsdPerRequest;
     if(!Number.isFinite(unit)||unit<=0||unit*opt.maxCalls>opt.budgetUsd+1e-9||
        unit*opt.maxCalls>config.dailyBudgetUsd+1e-9){
