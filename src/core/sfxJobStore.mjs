@@ -35,6 +35,9 @@ const ALLOWED = {
   FAILED: [],
 };
 const ACTIVE = new Set(['SUBMISSION_UNKNOWN','QUEUED','RUNNING','CANCEL_REQUESTED']);
+const ISO_Z = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/;
+const SINGLE_LINE = /^[^\r\n]{1,512}$/;
+const TERMINAL_STATUS = 'CANCELLED';
 const digest = id => createHash('sha256').update(id).digest('hex');
 const fileName = id => 'job-' + digest(id) + '.json';
 const hex = value => /^[a-f0-9]{64}$/.test(value ?? '');
@@ -153,7 +156,42 @@ function internalEntry(entry) {
   }
   if (entry.cost !== undefined) validateStoredCost(entry.cost);
   if (entry.latencies !== undefined) normalizeLatencies(entry.latencies);
+  if (entry.reconciliation !== undefined) validateReconciliation(entry.reconciliation);
   return entry;
+}
+
+function isoZ(value, name) {
+  if (typeof value !== 'string' || !ISO_Z.test(value) ||
+      Number.isNaN(Date.parse(value))) {
+    throw new TypeError('Invalid ' + name);
+  }
+  return value;
+}
+
+const RECONCILE_KEYS = new Set([
+  'at', 'fromStatus', 'remoteJobId', 'terminalStatus', 'verifiedAt',
+  'verifiedVia', 'verifiedBy', 'evidenceSha256', 'evidenceNote',
+]);
+
+// Reconciliation is a logged operator action, never an inferred state. The
+// fixed evidence fields keep the journal explainable without deleting
+// anything: the previous status, timestamps and verification provenance stay.
+function validateReconciliation(record) {
+  if (!record || typeof record !== 'object' || Array.isArray(record) ||
+      Object.keys(record).some(key => !RECONCILE_KEYS.has(key))) {
+    throw new Error('Invalid persisted SFX reconciliation');
+  }
+  isoZ(record.at, 'reconciliation timestamp');
+  isoZ(record.verifiedAt, 'reconciliation verification time');
+  if (typeof record.remoteJobId !== 'string' || !ID.test(record.remoteJobId) ||
+      record.fromStatus !== 'CANCEL_REQUESTED' || record.terminalStatus !== TERMINAL_STATUS ||
+      typeof record.verifiedVia !== 'string' || !SINGLE_LINE.test(record.verifiedVia) ||
+      typeof record.verifiedBy !== 'string' || !ID.test(record.verifiedBy) ||
+      !hex(record.evidenceSha256) ||
+      !(record.evidenceNote === null || (typeof record.evidenceNote === 'string' &&
+        SINGLE_LINE.test(record.evidenceNote)))) {
+    throw new Error('Invalid persisted SFX reconciliation');
+  }
 }
 
 export function createSfxJobStore({
@@ -407,5 +445,73 @@ export function createSfxJobStore({
     return bytes;
   }
 
-  return Object.freeze({ reserve, update, read, list, publicView, storeWav, wavBytes });
+  /**
+   * Audited reconciliation for a record stuck in a local-only state. It never
+   * calls the provider, never trusts an HTTP status alone and never deletes
+   * history: validated external evidence plus an immutable embedded audit
+   * record transitions CANCEL_REQUESTED -> CANCELLED exactly once.
+   */
+  async function reconcileCancelled(id, evidence) {
+    requireId(id);
+    if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
+      throw new TypeError('Invalid SFX reconciliation evidence');
+    }
+    const allowedKeys = ['remoteJobId','terminalStatus','verifiedAt','verifiedVia',
+      'verifiedBy','evidenceSha256','evidenceNote'];
+    for (const key of Object.keys(evidence)) {
+      if (!allowedKeys.includes(key)) {
+        const e = new TypeError('Invalid SFX reconciliation evidence');
+        e.code = 'SFX_RECONCILE_EVIDENCE'; throw e;
+      }
+    }
+    return locked(async () => {
+      const previous = await read(id);
+      if (!previous) {
+        const e = new Error('SFX job not found'); e.code = 'SFX_NOT_FOUND'; throw e;
+      }
+      if (previous.status === TERMINAL_STATUS && previous.reconciliation) {
+        const e = new Error('SFX job was already reconciled');
+        e.code = 'SFX_ALREADY_RECONCILED'; throw e;
+      }
+      if (previous.status !== 'CANCEL_REQUESTED') {
+        const e = new Error('Reconciliation only applies to CANCEL_REQUESTED records');
+        e.code = 'SFX_RECONCILE_STATE'; throw e;
+      }
+      if (typeof evidence.remoteJobId !== 'string' || !previous.remoteJobId ||
+          evidence.remoteJobId !== previous.remoteJobId ||
+          evidence.terminalStatus !== TERMINAL_STATUS ||
+          !ISO_Z.test(evidence.verifiedAt ?? '') || Number.isNaN(Date.parse(evidence.verifiedAt)) ||
+          typeof evidence.verifiedVia !== 'string' || !SINGLE_LINE.test(evidence.verifiedVia) ||
+          typeof evidence.verifiedBy !== 'string' || !ID.test(evidence.verifiedBy) ||
+          !hex(evidence.evidenceSha256) ||
+          !(evidence.evidenceNote === undefined ||
+            (typeof evidence.evidenceNote === 'string' &&
+             SINGLE_LINE.test(evidence.evidenceNote)))) {
+        const e = new TypeError('SFX reconciliation evidence does not match the journal');
+        e.code = 'SFX_RECONCILE_EVIDENCE'; throw e;
+      }
+      const at = clock().toISOString();
+      const verified = Date.parse(evidence.verifiedAt);
+      if (verified < Date.parse(previous.updatedAt) || verified > Date.parse(at)) {
+        const e = new TypeError('SFX verification time is outside the record window');
+        e.code = 'SFX_RECONCILE_EVIDENCE'; throw e;
+      }
+      const updated = {
+        ...previous,
+        status: TERMINAL_STATUS,
+        updatedAt: at,
+        reconciliation: {
+          at, fromStatus: previous.status, remoteJobId: previous.remoteJobId,
+          terminalStatus: TERMINAL_STATUS, verifiedAt: evidence.verifiedAt,
+          verifiedVia: evidence.verifiedVia, verifiedBy: evidence.verifiedBy,
+          evidenceSha256: evidence.evidenceSha256,
+          evidenceNote: evidence.evidenceNote === undefined ? null : evidence.evidenceNote,
+        },
+      };
+      await atomicWrite(updated);
+      return publicView(updated);
+    });
+  }
+
+  return Object.freeze({ reserve, update, read, list, publicView, storeWav, wavBytes, reconcileCancelled });
 }
