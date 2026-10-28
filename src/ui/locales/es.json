@@ -465,5 +465,8 @@
   "cueEditor.moveDown": "Bajar",
   "proposals.reviewHintsNone": "Comprobación independiente: no se han detectado líneas SONIDO/FX/AUDIO/MÚSICA sin abordar en las ventanas analizadas. Esto no garantiza que se hayan encontrado todos los cues.",
   "proposals.reviewHintsSummary": "Comprobación independiente: {count} línea(s) de instrucciones técnicas de audio sin propuesta ni observación del modelo. Revisa el guion; no implica necesariamente reproducir un archivo.",
-  "proposals.reviewHintsMore": "Mostrando las primeras {shown} líneas; las restantes requieren revisión manual."
+  "proposals.reviewHintsMore": "Mostrando las primeras {shown} líneas; las restantes requieren revisión manual.",
+  "preview.quickGain": "NIVEL",
+  "preview.quickGainAria": "Nivel de reproducción y preescucha del cue en decibelios",
+  "preview.outputCompact": "MISMA SALIDA QUE GO · sin PFL independiente"
 }
