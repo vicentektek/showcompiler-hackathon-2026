@@ -206,3 +206,8 @@
 .rqlive-awaiting-arm .rqlive-auto-mode{border:2px solid #b57f42;background:#293b43}
 .rqlive-awaiting-arm #rqLiveArm:not(:disabled){box-shadow:0 0 0 2px #6b995d;background:#21785f!important}
 @media(max-width:800px){.rqlive-cue-map li{grid-template-columns:25px 1fr}.rqlive-cue-map li small{grid-column:2;text-align:left}}
+
+.rqlive-auto-mode #rqLivePanicBtn{background:#8c302e!important;border-color:#cb625c!important;
+ color:#fff!important;font-weight:800;min-width:155px;min-height:44px}
+.rqlive-auto-mode #rqLivePanicBtn:hover{background:#b1423a!important}
+.rqlive-auto-mode #rqLivePanicBtn[hidden]{display:none!important}
