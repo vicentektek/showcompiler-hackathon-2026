@@ -30,6 +30,13 @@ export class BrowserAudioEngine {
     if (!this.context) this.context = this.contextFactory();
     return this.context;
   }
+  /** Unlock output from the operator's explicit rehearsal ARM gesture. No sound. */
+  async armAudioOutput(){
+    const ctx=this.getContext();
+    if(typeof ctx.resume==='function')await ctx.resume();
+    if(ctx.state==='suspended')throw new Error('Browser audio output is suspended');
+    return true;
+  }
 
   notify() {
     try { this.onStateChange(); } catch { /* Never let a UI error defeat STOP. */ }
