@@ -57,3 +57,23 @@ El **coste facturado real** solo se verifica en Usage/Credits de Modal.
 
 El código fuente reside en la rama
 `feat/stagecraft-modal-sfx-integration-2026-10-28`.
+
+## Resolución de una llamada antigua terminada sin arrancar (28 octubre)
+Si `modal function calls` devuelve un trabajo `status: "terminated"` con
+`started_at: null`, `container_id: null` y `execution_time_seconds: null`,
+y el mismo trabajo figura localmente en `RUNNING`, puede conciliarse
+con evidencia exacta (sin borrar el historial). NO aplicar a trabajos
+que hayan arrancado, o a otros estados.
+
+```powershell
+modal function calls runq-sfx-pilot/generate_sfx --tail 10 --json -e main | Set-Content -Encoding utf8 modal-calls-evidence.json
+node tools/sfx-reconcile-terminated.mjs --request-id req-1dd3d808-4a72-4381-80ce-58e481b2c6d0 --calls-json modal-calls-evidence.json
+node tools/sfx-reconcile-terminated.mjs --request-id req-1dd3d808-4a72-4381-80ce-58e481b2c6d0 --calls-json modal-calls-evidence.json --execute
+```
+
+El segundo comando es un ensayo sin cambios. El tercero solo actúa si el
+ID local coincide exactamente con una llamada remota terminada que nunca
+comenzó a ejecutarse. El laboratorio permite hasta 6 reservas al día
+en el mismo diario, para poder lanzar estas dos pruebas después de las
+3 reservas previas; mantienen el presupuesto diario existente. No
+reintentar un envío ambiguo.
