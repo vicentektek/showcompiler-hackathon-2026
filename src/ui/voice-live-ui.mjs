@@ -4,6 +4,7 @@
  * Final transcripts suggest cue candidates; neither this file nor the API can GO.
  */
 import {suggestVoiceCue} from '../core/voiceFollow.mjs';
+import {makeLivePcmEncoder} from '../core/livePcm.mjs';
 import {makeProjectVoiceScenario} from '../core/voiceScenario.mjs';
 
 const $=id=>document.getElementById(id);
@@ -11,7 +12,8 @@ const local=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
 const API='/api/voice/live/';
 let session=null,stream=null,context=null,source=null,processor=null,silence=null;
 let polling=null,stopping=false,starting=false,active=false,queue=Promise.resolve();
-let inputBuffer=[],transcriptHistory=[],consumedIds=new Set(),focusLine=1;
+let transcriptHistory=[],consumedIds=new Set(),focusLine=1;
+let pcmEncoder=null;
 let scenario=null,showFingerprint='',startedAt=0;
 const CHUNK_SAMPLES=2560,MAX_SECONDS=180;
 function report(en,es){$('rqLiveStatus').textContent=local(en,es);}
@@ -82,8 +84,7 @@ function presentFinal(text,turnId){
 }
 function acceptEvent(event){
  if(event.type==='transcript'&&typeof event.transcript==='string'){
-  if(event.final)presentFinal(event.transcript,event.turnId??'partial-final-'+event.audioProcessedMs);
-  else $('rqLivePartial').textContent=event.transcript;
+  if(!event.final)$('rqLivePartial').textContent=event.transcript; // ENDPOINTING commits only on speechComplete.
  }else if(event.type==='speechComplete'&&typeof event.transcript==='string'){
   presentFinal(event.transcript,event.turnId);
  }else if(event.type==='speaker'){
@@ -97,7 +98,7 @@ function teardownMic(){
  stream?.getTracks().forEach(track=>track.stop());
  stream=null;source=null;processor=null;silence=null;
  if(context){const old=context;context=null;void old.close().catch(()=>{});}
- inputBuffer=[];
+ pcmEncoder=null;
 }
 function controls(){
  const busy=starting||active||stopping;
@@ -121,31 +122,17 @@ async function devices(){
  }catch{ /* Browser may hide device names until permission granted. */ }
 }
 /** Resamples each input sample with a persistent phase to prevent chunk gaps. */
-function capture(event,state){
- const input=event.inputBuffer.getChannelData(0),rate=context.sampleRate;
- let energy=0;
- for(let i=0;i<input.length;i++)energy+=input[i]*input[i];
+function capture(event){
+ const input=event.inputBuffer.getChannelData(0);
+ let energy=0;for(let i=0;i<input.length;i++)energy+=input[i]*input[i];
  $('rqLiveMeter').value=Math.min(100,Math.round(Math.sqrt(energy/input.length)*350));
- for(let i=0;i<input.length;i++){
-  state.acc+=16000;
-  if(state.acc>=rate){
-   state.acc-=rate;
-   inputBuffer.push(Math.max(-1,Math.min(1,input[i])));
-  }
- }
- while(inputBuffer.length>=CHUNK_SAMPLES){
-  const out=new ArrayBuffer(CHUNK_SAMPLES*2),view=new DataView(out);
-  for(let i=0;i<CHUNK_SAMPLES;i++){
-   const value=inputBuffer[i];
-   view.setInt16(i*2,Math.round(value<0?value*32768:value*32767),true);
-  }
-  inputBuffer.splice(0,CHUNK_SAMPLES);
+ for(const frame of pcmEncoder.push(input)){
   queue=queue.then(()=>active?endpoint('chunk',{
-   method:'POST',body:out,contentType:'application/octet-stream'
-  }):null).catch(error=>{report('Audio transport stopped: '+error.message,
-   'Transporte de audio detenido: '+error.message);void stop(true,'transport_error');});
-  // Avoid an uncontrolled backlog of many outstanding POST requests.
-  if(inputBuffer.length>CHUNK_SAMPLES*4){void stop(true,'audio_overload');break;}
+   method:'POST',body:frame,contentType:'application/octet-stream'
+  }):null).catch(error=>{
+   report('Audio transport stopped: '+error.message,'Transporte de audio detenido: '+error.message);
+   void stop(true,'transport_error');
+  });
  }
 }
 async function poll(){
@@ -190,9 +177,9 @@ async function start(){
   processor=context.createScriptProcessor(4096,1,1);
   silence=context.createGain();silence.gain.value=0;
   source.connect(processor);processor.connect(silence);silence.connect(context.destination);
-  const resampler={acc:0};
+  pcmEncoder=makeLivePcmEncoder(context.sampleRate);
   startedAt=performance.now();active=true;starting=false;
-  processor.onaudioprocess=event=>{if(active)capture(event,resampler);};
+  processor.onaudioprocess=event=>{if(active)capture(event);};
   polling=setInterval(()=>void poll(),400);
   report('Listening with Muse. Stop at any time; maximum 3 minutes.',
     'Escuchando con Muse. Puedes detenerlo en cualquier momento; máximo 3 minutos.');
