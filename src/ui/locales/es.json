@@ -300,8 +300,8 @@
   "workspace.script": "Guion",
   "workspace.ai": "IA y revisión",
   "workspace.cues": "Editor de cues",
-  "workspace.audio": "Biblioteca de audio",
-  "workspace.soundlab": "Laboratorio de sonido",
+  "workspace.audio": "Sonido",
+  "workspace.soundlab": "Sonido",
   "workspace.setup": "Montaje",
   "workspace.operation": "Operación",
   "workspace.mode": "MODO",
@@ -309,7 +309,7 @@
   "workspace.description.script": "Importa y navega el guion original. Los cues conservan sus referencias exactas.",
   "workspace.description.ai": "Genera o simula sugerencias, consulta el origen y aprueba cada propuesta manualmente.",
   "workspace.description.cues": "Revisa la lista completa y edita el cue seleccionado sin cambiar el preparado para GO.",
-  "workspace.description.audio": "Gestiona archivos locales y preescúchalos por la MISMA salida que GO.",
+  "workspace.description.audio": "Importa, organiza y preescucha archivos de audio. La escucha usa la MISMA salida que GO.",
   "workspace.description.setup": "Consulta las capacidades reales del navegador y comprueba el estado del espectáculo.",
   "workspace.description.operation": "Ejecuta cues preparados mediante GO, STOP, FADE y PARAR TODO de forma manual.",
   "workspace.inspector": "Inspector de cues",
@@ -488,7 +488,7 @@
   "audioBatch.existing": "Ya existe en la biblioteca y está cargado",
   "audioBatch.fileLimit": "Máximo 100 archivos por lote; cada uno hasta 20 MB y 10 minutos.",
   "audioBatch.missing": "Los archivos que fallen no se añaden a la biblioteca; los demás continúan.",
-  "workspace.description.soundlab": "Prepara y revisa efectos de sonido antes de importarlos manualmente. La generación y el GO no se activan automáticamente.",
+  "workspace.description.soundlab": "Crea y revisa sonidos antes de incorporarlos o asignarlos manualmente a un cue. La generación y GO nunca se activan automáticamente.",
   "workspace.voice": "Voz y seguimiento",
   "workspace.description.voice": "Configura micrófonos, pies de voz, simulación y diagnósticos. GO automático solo puede armarse en Ensayo."
 }

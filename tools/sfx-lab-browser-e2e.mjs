@@ -56,7 +56,10 @@ try{
     return route.continue();
   });
   await page.goto('http://127.0.0.1:'+port+'/',{waitUntil:'domcontentloaded'});
-  await page.locator('[data-workspace-nav="soundlab"]').click();
+  // V5 combines the existing Sound Lab behind the visible Sonido workspace.
+  await page.locator('[data-workspace-nav="audio"]').click();
+  await page.locator('#rqSoundGeneratorBtn').click();
+  assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'soundlab');
   await page.waitForTimeout(900);
   console.log('SFX_BROWSER_DIAGNOSTIC',JSON.stringify({
     badge:await page.locator('#engineBadge').textContent(),

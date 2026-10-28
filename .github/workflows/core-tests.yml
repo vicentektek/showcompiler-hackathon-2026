@@ -64,6 +64,10 @@ jobs:
         env:
           RUNQ_CAPTURE_UI: '1'
         run: node tools/voice-follow-click-e2e.mjs
+      - name: RunQ Sound workspace Chrome E2E (bilingual, offline)
+        env:
+          RUNQ_CAPTURE_UI: '1'
+        run: node tools/sound-workspace-browser-e2e.mjs
       - name: Rehearsal Autopilot Chrome E2E (real local WAV, synthetic speech, no provider)
         run: node tools/rehearsal-auto-browser-e2e.mjs
       - name: Stagecraft cue controls and keyboard map Chrome smoke (mock only)

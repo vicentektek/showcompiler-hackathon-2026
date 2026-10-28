@@ -300,8 +300,8 @@
   "workspace.script": "Script",
   "workspace.ai": "AI & Review",
   "workspace.cues": "Cue Editor",
-  "workspace.audio": "Audio Library",
-  "workspace.soundlab": "Sound Lab",
+  "workspace.audio": "Sound",
+  "workspace.soundlab": "Sound",
   "workspace.setup": "Setup",
   "workspace.operation": "Operation",
   "workspace.mode": "MODE",
@@ -309,7 +309,7 @@
   "workspace.description.script": "Import and navigate the original script. Cue links always point to exact source lines.",
   "workspace.description.ai": "Generate or simulate sound suggestions, inspect source evidence and approve each proposal manually.",
   "workspace.description.cues": "Review the full cue list and edit the selected cue without changing the prepared GO.",
-  "workspace.description.audio": "Manage local audio files and audition them on the SAME output as GO.",
+  "workspace.description.audio": "Import, organize and preview audio files. Audio preview uses the SAME output as GO.",
   "workspace.description.setup": "Review real browser capabilities and check show readiness before playback.",
   "workspace.description.operation": "Operate prepared cues with explicit manual GO, STOP, FADE and STOP ALL.",
   "workspace.inspector": "Cue inspector",
@@ -488,7 +488,7 @@
   "audioBatch.existing": "Already loaded in the library",
   "audioBatch.fileLimit": "Up to 100 files per batch; each up to 20 MB and 10 minutes.",
   "audioBatch.missing": "Invalid files are not added to the library. Other files still import.",
-  "workspace.description.soundlab": "Prepare and review sound effects before manual import. No generation or cue playback starts automatically.",
+  "workspace.description.soundlab": "Create and review sounds before explicit import or cue assignment. No generation or GO starts automatically.",
   "workspace.voice": "Voice & Follow",
   "workspace.description.voice": "Set up microphones, spoken cue triggers, offline replay and voice diagnostics. Automatic GO is only armed in Rehearsal."
 }
