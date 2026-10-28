@@ -32,7 +32,7 @@ function display(){
  button.disabled=!armed&&(!listening||!scenario||mode!=='auto'||busy);
  button.textContent=armed?t('DISARM AUTO GO','DESARMAR GO AUTO'):t('ARM AUTO GO','ARMAR GO AUTOMÁTICO');
  $('rqLivePanel').classList.toggle('rqlive-armed',armed);
- $('rqLivePrepare').disabled=armed||!document.getElementById('rqLiveCue')?.textContent?.includes('Suggested (');
+ if(armed){$('rqLivePrepare').disabled=true;$('rqLiveDismiss').disabled=true;}
  if(!armed)status('DISARMED · VOICE CANNOT START AUDIO','DESARMADO · LA VOZ NO PUEDE DISPARAR AUDIO');
  else status('ARMED · SPOKEN CUES CAN START AUDIO','ARMADO · LOS PIES DE VOZ PUEDEN DISPARAR AUDIO');
 }
