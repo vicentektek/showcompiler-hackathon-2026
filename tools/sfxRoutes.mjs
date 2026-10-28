@@ -129,6 +129,17 @@ export function makeSfxRoute({
       dailyBudgetUsd: policy?.dailyBudgetUsd ?? null,
       actualBillingStatus: 'UNKNOWN',
       manualImportOnly: true,
+      // Diagnostic flags contain no credentials or provider addresses.
+      // They let the UI explain a disabled button without requiring users
+      // to disclose .env files or guess which setting is missing.
+      configurationChecks: {
+        pilotEnabled: config.enabled === true,
+        endpointConfigured: Boolean(config.endpointUrl),
+        proxyTokenIdConfigured: Boolean(config.proxyTokenId),
+        proxyTokenSecretConfigured: Boolean(config.proxyTokenSecret),
+        costPolicyValid: policy !== null,
+        modelRevisionValid: revision !== undefined,
+      },
     };
 
     if (pathname === '/api/sfx/status') {
