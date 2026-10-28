@@ -37,6 +37,9 @@ try{
   await page.locator('[data-rq-voice-tab="configure"]').click();
   await page.locator('[data-workspace-nav="rehearsal"]').click();
   assert.equal(await page.locator('#rqRehearsalDeck').isVisible(),true);
+  // A prior viewport may have left assisted mode selected; explicitly reset
+  // before asserting manual-mode progressive disclosure.
+  await page.locator('#rqRehMode').selectOption('manual');
   assert.equal(await page.locator('#rqvfPanel').isVisible(),false);
   assert.equal(await page.locator('#scriptPreview').isVisible(),true);
   assert.equal(await page.locator('#operatorGoBtn').isVisible(),true);
