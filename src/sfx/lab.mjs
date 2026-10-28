@@ -490,10 +490,10 @@ async function checkConnection(){
       state.settings=settings;
       state.enabled=settings.enabled===true;
       showCost(settings);
-      text('engineBadge',state.enabled?'Generador conectado':'Generador no disponible');
+      text('engineBadge',state.enabled?'Generador configurado':'Generador no disponible');
       $('engineBadge')?.classList.toggle('active',state.enabled);
       inform(state.enabled
-        ? 'Modal conectado. Puedes escribir cualquier prompt y autorizar una generación.'
+        ? 'El servidor tiene la configuración necesaria. Puedes autorizar una solicitud; la conexión real se comprobará al enviarla.'
         : connectionProblem(settings),!state.enabled);
     }catch(error){
       state.enabled=false;state.settings=null;showCost(null);
