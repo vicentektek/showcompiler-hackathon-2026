@@ -603,3 +603,13 @@
   .studio-quick-gain input{width:61px!important;min-height:25px!important}
   .studio-preview-status{font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+
+
+/* Less button clutter while editing: only show active STOP/FADE.
+   File replacement lives in the selected inspector, not in every row. */
+.shell[data-active-workspace="cues"] .cue-operation-actions [data-cue-action]:disabled{
+  display:none;
+}
+.shell[data-active-workspace="cues"] .cue-row-inline-replace{
+  display:none;
+}
