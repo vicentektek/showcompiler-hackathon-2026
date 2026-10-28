@@ -287,7 +287,7 @@ function setWorkspace(workspace) {
   }
   activeWorkspace = workspace;
   renderWorkspaceShell();
-  if (workspace === 'soundlab') void ensureSoundLabInitialized().catch(showError);
+  if (workspace === 'soundlab') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
   return true;
 }
 
@@ -2617,6 +2617,18 @@ async function importReviewedGeneratedSfx({ job, audioBytes, reviewedRegion } = 
   };
 }
 
+function reportSoundLabBootstrapError(error) {
+  // A missing ES module used to leave an apparently interactive Sound Lab
+  // with all controls inert. Make the loading failure visible in that workspace.
+  const reason=String(error?.message??'Error al cargar módulo').slice(0,220);
+  const badge=document.getElementById('engineBadge');
+  if(badge){badge.textContent='Error de carga';badge.classList.remove('active');}
+  const hint=document.getElementById('generationHint');
+  if(hint)hint.textContent='No se pudo iniciar Sound Lab. Revisa la consola y la ruta de los módulos.';
+  const detail=document.getElementById('feedback');
+  if(detail){detail.textContent='Sound Lab no se ha iniciado: '+reason;detail.classList.add('error');}
+  showError(error);
+}
 async function ensureSoundLabInitialized() {
   if (!soundLabModulePromise) {
     soundLabModulePromise = import('../sfx/lab.mjs').catch(error => {
@@ -2634,7 +2646,7 @@ if (availableWorkspaces.includes(requestedWorkspace)) activeWorkspace = requeste
 translateDocument(document, uiLocale);
 resetScriptLanguageHint();
 render();
-if (activeWorkspace === 'soundlab') void ensureSoundLabInitialized().catch(showError);
+if (activeWorkspace === 'soundlab') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
 refreshMetaMessage();
 feedback(statusState.key, statusState.values, statusState.tone);
 refreshMetaStatus();
