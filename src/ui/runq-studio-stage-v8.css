@@ -1,0 +1,970 @@
+/*
+ * RunQ V8 — STUDIO / STAGE
+ * A new spatial/visual system, not a recolour of V7:
+ *  - STUDIO: daylight editorial authoring, generous readable source surfaces.
+ *  - STAGE: blackout console with deliberately prominent NEXT / GO / STOP.
+ *  - REHEARSAL: script + live transport first, voice dock below.
+ * All original control IDs, safe GO semantics, input listeners and file flows remain.
+ */
+:root{
+ --rq8-ink:#172536;
+ --rq8-sub:#526476;
+ --rq8-paper:#ffffff;
+ --rq8-warm:#f8fafc;
+ --rq8-line:#cbd5df;
+ --rq8-surface:#e8eef4;
+ --rq8-blue:#215fa7;
+ --rq8-focus:#2d77bb;
+ --rq8-stage:#0a1119;
+ --rq8-stage-panel:#111c27;
+ --rq8-stage-line:#314251;
+ --rq8-stage-text:#edf5fa;
+ --rq8-amber:#f3c36b;
+ --rq8-onair:#55d5b7;
+ --rq8-stop:#ef747c;
+}
+.rq8 body{background:var(--rq8-surface)!important}
+.rq8 .shell{
+ width:100%!important;max-width:none!important;
+ min-height:100vh!important;
+ background:var(--rq8-surface)!important;
+ color:var(--rq8-ink)!important;
+ font-family:"Segoe UI Variable",Inter,"Segoe UI",system-ui,sans-serif!important;
+ font-size:13px;
+ grid-template-columns:184px minmax(0,1fr)!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"],
+.rq8 .shell[data-active-workspace="operation"]{
+ grid-template-columns:78px minmax(0,1fr)!important;
+ background:var(--rq8-stage)!important;color:var(--rq8-stage-text)!important;
+}
+.rq8 .shell > main{
+ background:var(--rq8-surface)!important;
+ padding:12px 15px 14px!important;
+ min-width:0!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] > main,
+.rq8 .shell[data-active-workspace="operation"] > main{
+ background:var(--rq8-stage)!important;padding:7px 10px 10px!important;
+}
+
+/* One application header, not a stack of similar dark bands. */
+.rq8 .topbar{
+ background:#142235!important;color:#edf5fc!important;
+ border-bottom:1px solid #304458!important;
+ min-height:54px!important;padding:7px 16px!important;
+ box-shadow:none!important;
+}
+.rq8 .brand-icon{
+ background:#f1c778!important;color:#162336!important;
+ border:0!important;width:34px!important;height:34px!important;
+ font:900 22px/34px Georgia,serif!important;
+ border-radius:5px!important;
+}
+.rq8 .brand strong{font-size:16px!important;letter-spacing:-.04em!important;color:#f6f9fc}
+.rq8 .brand div span{font-size:9px!important;letter-spacing:.1em!important;color:#9db3c9!important}
+.rq8 .project-identity{
+ border-left:1px solid #405268!important;
+ min-width:200px!important;max-width:450px!important;
+}
+.rq8 .project-identity>span{font-size:9px!important;color:#a5b6c8!important}
+.rq8 .project-identity>strong{font-size:13px!important;color:#f4f8fb!important}
+.rq8 .top-actions .btn,.rq8 .top-actions .locale-select{
+ min-height:32px!important;border-radius:4px!important;font-size:11px!important;
+}
+.rq8 .top-actions #saveBundleBtn{
+ background:#f3c36b!important;border-color:#f3c36b!important;color:#1c2b3a!important;
+ font-weight:850!important;
+}
+.rq8 .top-actions #saveProjectBtn{
+ background:transparent!important;color:#d5e0e9!important;border-color:#536779!important;
+}
+.rq8 .top-actions #stopAllBtn{
+ background:#6e2932!important;border:1px solid #d96a75!important;
+ color:#fff!important;padding:5px 13px!important;
+}
+.rq8 .runq-menubar{
+ background:#142235!important;border-color:#2c4154!important;
+ min-height:26px!important;color:#b8c9d9!important;
+}
+.rq8 .runq-menubar button{color:#c3d1df!important}
+
+/* The left column is the SINGLE authoritative tool navigation. */
+.rq8 .workspace-nav{
+ position:relative!important;display:flex!important;
+ flex-direction:column!important;flex-wrap:nowrap!important;
+ align-items:stretch!important;gap:3px!important;
+ background:#f8fafc!important;border:0!important;
+ border-right:1px solid #c4cfda!important;
+ padding:13px 9px!important;
+ min-height:0!important;overflow-y:auto!important;
+}
+.rq8 .workspace-nav::before{display:none!important}
+.rq8 .rq8-identity{
+ display:flex;align-items:center;gap:9px;
+ padding:0 4px 14px;margin:0 0 10px;
+ border-bottom:1px solid #cbd5df;min-width:0;
+}
+.rq8 .rq8-marker{
+ width:36px;height:36px;display:grid;place-items:center;
+ border-radius:7px;background:#1c3146;color:#f3c36b;
+ font:850 13px ui-monospace,"Cascadia Code",monospace;
+ flex:none;
+}
+.rq8 .rq8-identity-copy{display:flex;flex-direction:column;min-width:0;gap:2px}
+.rq8 .rq8-identity-copy strong{font-size:15px;color:#192c3d;letter-spacing:-.04em}
+.rq8 .rq8-identity-copy small{font-size:9px;letter-spacing:.04em;color:#687c8d;white-space:nowrap}
+.rq8 .rq7-nav-heading{
+ text-align:left!important;padding:12px 11px 5px!important;
+ border-top:1px solid #d7e0e8!important;
+ font-size:9px!important;color:#718598!important;letter-spacing:.13em!important;
+}
+.rq8 .workspace-tab{
+ display:flex!important;justify-content:flex-start!important;
+ align-items:center!important;gap:9px!important;
+ width:100%!important;min-height:41px!important;
+ padding:9px 12px!important;
+ font-size:12px!important;line-height:1.25!important;
+ text-align:left!important;
+ font-weight:650!important;border:1px solid transparent!important;
+ border-radius:5px!important;background:transparent!important;
+ color:#41576c!important;box-shadow:none!important;
+}
+.rq8 .workspace-tab::before{display:none!important}
+.rq8 .workspace-tab:hover{
+ background:#e5edf5!important;color:#172b41!important;
+}
+.rq8 .workspace-tab[aria-pressed="true"]{
+ background:#dbe9f7!important;color:#184f83!important;
+ border-color:#afcbe6!important;
+ box-shadow:inset 3px 0 #2469a9!important;
+ font-weight:800!important;
+}
+.rq8 .workspace-tab[data-workspace-nav="operation"]{
+ color:#954b44!important;
+}
+.rq8 .workspace-tab[data-workspace-nav="operation"][aria-pressed="true"]{
+ background:#f9e8df!important;color:#7e3b32!important;
+ box-shadow:inset 3px 0 #c87a51!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .workspace-nav,
+.rq8 .shell[data-active-workspace="rehearsal"] .workspace-nav{
+ background:#152333!important;border-color:#2b4052!important;
+ padding:11px 5px!important;gap:2px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq8-identity,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq8-identity{
+ justify-content:center;padding:0 0 11px!important;margin-bottom:5px!important;
+ border-color:#314658!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq8-identity-copy,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq8-identity-copy{display:none!important}
+.rq8 .shell[data-active-workspace="operation"] .rq8-marker,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq8-marker{
+ background:#293c4e;color:#f2c46f;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-nav-heading,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq7-nav-heading{
+ padding:8px 0 4px!important;font-size:7px!important;
+ text-align:center!important;color:#8ea4b7!important;border-color:#314658!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .workspace-tab,
+.rq8 .shell[data-active-workspace="rehearsal"] .workspace-tab{
+ justify-content:center!important;text-align:center!important;
+ min-height:37px!important;padding:5px 2px!important;
+ font-size:9px!important;color:#b4c6d5!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .workspace-tab[aria-pressed="true"],
+.rq8 .shell[data-active-workspace="rehearsal"] .workspace-tab[aria-pressed="true"]{
+ background:#293c4e!important;color:#f3c36b!important;
+ border-color:#546579!important;box-shadow:inset 3px 0 #f3c36b!important;
+}
+
+/* Workstation switch: oversized, unmistakable modes + workspace heading. */
+.rq8 .rq7-workbench{
+ display:flex!important;align-items:center!important;gap:16px!important;
+ min-height:57px!important;padding:7px 15px!important;margin:0 0 10px!important;
+ background:#fff!important;border:1px solid #c6d2de!important;
+ border-radius:7px!important;
+ box-shadow:0 2px 7px #2e4a6010!important;
+}
+.rq8 .rq7-tasks,.rq8 .rq7-sound-tabs{display:none!important}
+.rq8 .rq7-modes{
+ flex:none;gap:0!important;border:1px solid #c4d1dd!important;
+ border-radius:6px!important;padding:3px!important;
+ background:#edf2f7!important;
+}
+.rq8 .rq7-mode-button{
+ border-radius:4px!important;padding:10px 18px!important;
+ font-size:12px!important;min-height:36px!important;
+ color:#53677a!important;letter-spacing:.025em!important;
+}
+.rq8 .rq7-mode-button:hover{background:#e0e8f0!important;color:#213d58!important}
+.rq8 .rq7-mode-button[aria-pressed="true"]{
+ background:#1b3853!important;color:#fff!important;
+ border-color:#1b3853!important;box-shadow:0 1px 4px #17344b22!important;
+}
+.rq8 .rq7-mode-button[data-rq7-mode="show"][aria-pressed="true"]{
+ background:#f3c36b!important;border-color:#f3c36b!important;color:#152433!important;
+}
+.rq8 .rq8-ribbon-heading{
+ display:flex;flex-direction:column;gap:2px;min-width:0;
+ border-left:1px solid #d4dee7;padding-left:16px;
+}
+.rq8 .rq8-ribbon-heading strong{
+ font-size:16px;font-weight:800;line-height:1.25;color:#1b3044;
+ letter-spacing:-.025em;
+}
+.rq8 .rq8-ribbon-heading span{
+ font-size:11px;color:#62798e;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis;
+}
+.rq8 .rq7-ribbon-status{
+ font-size:10px!important;color:#70869a!important;
+ letter-spacing:.01em!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-workbench,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq7-workbench{
+ background:#1b2a38!important;border-color:#35495a!important;
+ box-shadow:none!important;min-height:54px!important;margin-bottom:7px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-modes,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq7-modes{
+ background:#101c27!important;border-color:#405464!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-mode-button,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq7-mode-button{
+ color:#c2d0db!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-mode-button[aria-pressed="true"],
+.rq8 .shell[data-active-workspace="rehearsal"] .rq7-mode-button[aria-pressed="true"]{
+ background:#f3c36b!important;color:#172432!important;border-color:#f3c36b!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq8-ribbon-heading,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq8-ribbon-heading{
+ border-color:#405464!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq8-ribbon-heading strong,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq8-ribbon-heading strong{
+ color:#f4f8fa!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq8-ribbon-heading span,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq8-ribbon-heading span{
+ color:#a5b8c8!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-ribbon-status,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq7-ribbon-status{
+ color:#b8c8d4!important;
+}
+
+/* STUDIO — high legibility editorial surfaces, dark waveforms as instruments. */
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro{
+ color:#172b3f!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro h1{
+ font-size:23px!important;color:#1d3144!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro p{
+ color:#5b6f82!important;font-size:12px!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) #statusMessage{
+ background:#dceaf5!important;border-color:#b7cfe2!important;
+ color:#2b506e!important;font-size:11px!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .layout>.panel{
+ background:#fff!important;border:1px solid #c6d2dd!important;
+ border-radius:7px!important;box-shadow:none!important;
+ color:#243a4d!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel-head h2,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .subheading{
+ color:#1c3042!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel label,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .help{
+ color:#40576b!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel input:not([type="checkbox"]):not([type="range"]),
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel textarea,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel select{
+ background:#f9fbfd!important;border:1px solid #b8c8d7!important;
+ color:#21384b!important;font-size:12px!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel input::placeholder,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel textarea::placeholder{
+ color:#7b8e9e!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .btn.subtle{
+ background:#eef3f7!important;border-color:#b7c7d6!important;color:#29465f!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .btn.primary{
+ background:#2367aa!important;border-color:#2367aa!important;color:#fff!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .btn:disabled{
+ opacity:.48!important;cursor:not-allowed!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .caption{
+ color:#647a8b!important;
+}
+.rq8 .shell[data-active-workspace="script"] .layout>.panel{
+ background:#fff!important;
+}
+.rq8 .shell[data-active-workspace="script"] .script-view,
+.rq8 .shell[data-active-workspace="script"] #scriptPreview{
+ background:#fff!important;border:1px solid #ccd7e1!important;
+ color:#1b2e41!important;box-shadow:0 1px 5px #18334d0a!important;
+}
+.rq8 .shell[data-active-workspace="script"] .script-line{
+ color:#24384b!important;font-size:14px!important;line-height:1.7!important;
+ border-bottom:1px solid #edf1f5;
+}
+.rq8 .shell[data-active-workspace="script"] .script-line:nth-child(even){
+ background:#f8fafc!important;
+}
+.rq8 .shell[data-active-workspace="script"] .line-ref{
+ color:#236ba9!important;font:700 11px ui-monospace,Consolas,monospace!important;
+}
+.rq8 .shell[data-active-workspace="script"] .rq5-script-scenes{
+ background:#f5f8fb!important;border-color:#c8d6e2!important;
+}
+.rq8 .shell[data-active-workspace="script"] .rq5-scene-link{
+ background:#fff!important;color:#2b465d!important;
+ border-color:#d7e1ea!important;font-size:12px!important;
+}
+.rq8 .shell[data-active-workspace="script"] .rq5-scene-link:hover{
+ background:#e8f2fa!important;border-color:#8db3d3!important;
+}
+.rq8 .shell[data-active-workspace="script"] .rq5-script-focused{
+ background:#dcebf7!important;color:#174d80!important;
+ box-shadow:inset 4px 0 #236ba9!important;
+}
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-manual,
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-engine,
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-review{
+ background:#fff!important;border-color:#cbd7e1!important;
+ border-radius:5px!important;
+}
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-workspace .meta-panel{
+ background:#f7f9fc!important;border-color:#cdd8e3!important;
+}
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-workspace .meta-panel label,
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-workspace .meta-panel p{
+ color:#405b71!important;
+}
+.rq8 .shell[data-active-workspace="ai"] #proposalList{
+ background:#f7fafc!important;
+}
+.rq8 .shell[data-active-workspace="ai"] #proposalList .item{
+ background:#fff!important;border:1px solid #d3dce6!important;
+ border-left:4px solid #527fa8!important;color:#253d51!important;
+}
+.rq8 .shell[data-active-workspace="ai"] #proposalList .item strong{
+ color:#1b344a!important;
+}
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-workspace .btn.primary{
+ background:#2367aa!important;color:#fff!important;
+}
+.rq8 .shell[data-active-workspace="home"] .home-tile{
+ background:#fff!important;border:1px solid #c4d4e2!important;
+ color:#1b344a!important;box-shadow:0 2px 9px #263e540b!important;
+ border-radius:8px!important;
+}
+.rq8 .shell[data-active-workspace="home"] .home-tile.featured{
+ background:#edf5fb!important;border-color:#86afd0!important;
+}
+.rq8 .shell[data-active-workspace="home"] .home-tile:hover{
+ border-color:#2367aa!important;
+}
+.rq8 .shell[data-active-workspace="setup"] .setup-grid>div{
+ background:#f7f9fc!important;border-color:#c6d5e1!important;color:#253d51!important;
+}
+.rq8 .shell[data-active-workspace="setup"] .setup-grid strong{color:#1a3348!important}
+
+/* CUES: flat, daylight sequence grid with a real dark waveform instrument. */
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace{
+ background:#fff!important;border:1px solid #c7d4e0!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-stage-actions{
+ background:#f6f9fc!important;border-color:#cbd7e1!important;
+ padding:7px 12px!important;min-height:43px!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace #cueAddBtn{
+ background:#2367aa!important;border-color:#2367aa!important;color:#fff!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace #cueDeleteBtn{
+ background:#f9eeee!important;color:#9b4049!important;border-color:#e6b8bc!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-sequence{
+ background:#f8fafc!important;border-color:#cbd7e1!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-sequence-frame{
+ background:#fff!important;border-color:#cbd7e1!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-inspector-frame{
+ background:#f8fafc!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-pane-heading,
+.rq8 .shell[data-active-workspace="cues"] .rq5-inspector-heading{
+ background:#eaf0f5!important;border-color:#c8d4de!important;
+ color:#304a60!important;font-size:11px!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .runq-cue-columns{
+ background:#eef3f7!important;color:#667d90!important;
+ border-bottom:1px solid #cbd7e1!important;
+}
+.rq8 .shell[data-active-workspace="cues"] #cueList{
+ background:#fff!important;scrollbar-color:#a7bacb #f1f5f8!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item{
+ background:#fff!important;border-bottom:1px solid #d9e2ea!important;
+ min-height:54px!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item:nth-child(even){
+ background:#f8fafc!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item.cue-selected{
+ background:#e5f0fa!important;border-left-color:#256ba7!important;
+ box-shadow:inset 0 0 0 1px #93badd!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item.cue-prepared{
+ background:#fff7e7!important;border-left-color:#d69d36!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item.cue-selected.cue-prepared{
+ background:#e6eef6!important;border-left-color:#d69d36!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-index{
+ color:#3b5970!important;font-size:13px!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-index::before{
+ color:#91a7b8!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item.cue-prepared .cue-row-index::before{
+ color:#c48a26!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-title{
+ color:#1b3448!important;font-size:13px!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-meta{
+ color:#63798a!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-next{
+ color:#a66d15!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector{
+ background:#fff!important;color:#1f374a!important;
+ padding:17px 20px!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .inspector-title strong{
+ color:#1b3449!important;font-size:17px!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-origin{
+ color:#61788b!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-tabs{
+ background:#fff!important;border-color:#ccd7e1!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-tab{
+ color:#526b80!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-tab[aria-selected="true"]{
+ color:#1d629e!important;border-bottom-color:#1d629e!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel label,
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel .caption{
+ color:#40596f!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-playback-editor{
+ background:#182939!important;color:#d7e6f2!important;
+ border:1px solid #395268!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-playback-editor label,
+.rq8 .shell[data-active-workspace="cues"] .cue-playback-editor .caption{
+ color:#d3e2ed!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-inspector .btn.primary{
+ background:#2367aa!important;border-color:#2367aa!important;color:#fff!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-queue{
+ background:#eff4f8!important;border-color:#d0dce6!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-prepared{
+ color:#23465f!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-kicker{
+ color:#426d91!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace>.rq5-transport-dock{
+ background:#f7fafc!important;border-color:#ccd8e3!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-queue-controls #operatorGoBtn{
+ background:#2367aa!important;color:#fff!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-queue-controls #operatorPanicBtn{
+ background:#a9454c!important;color:#fff!important;
+}
+
+/* Sound library: daylight catalogue, dark editing waveform/timeline. */
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library{
+ background:#fff!important;border-color:#cbd8e3!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor{
+ background:#172533!important;border-color:#536779!important;color:#e9f2f7!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library>.rq5-pane-heading{
+ background:#eaf1f6!important;color:#2b4c64!important;border-color:#cad6e1!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor>.rq5-pane-heading{
+ background:#263848!important;color:#e6f0f6!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library #assetList{
+ background:#f4f8fb!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library .asset-list-row{
+ background:#fff!important;border-color:#d1dce6!important;
+ color:#2d465b!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library .runq-audio-overview{
+ background:#f1f6fa!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor .rq5-wave-controls{
+ background:#203140!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor .rq5-wave-status,
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor .rq5-wave-note{
+ color:#d3e1eb!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor label{
+ color:#d3e1eb!important;
+}
+
+/* STAGE: show control as a genuine high-contrast, low-distraction console. */
+.rq8 .shell[data-active-workspace="operation"] #statusMessage,
+.rq8 .shell[data-active-workspace="rehearsal"] #statusMessage{
+ background:#1c3040!important;border:1px solid #314b5c!important;
+ color:#b9cddc!important;font-size:11px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .layout>.rq5-show-workspace,
+.rq8 .shell[data-active-workspace="rehearsal"] .layout>.rq5-show-workspace{
+ background:#0c1620!important;border:1px solid #344655!important;
+ border-radius:6px!important;color:#e8f1f6!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-show-workspace>.rq5-transport-dock{
+ background:#0b141e!important;border:0!important;
+ border-bottom:1px solid #35495a!important;
+ padding:12px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-show-workspace .operator-queue{
+ min-height:139px!important;grid-template-columns:minmax(0,1fr) minmax(370px,470px)!important;
+ background:#192b39!important;border:1px solid #5d7486!important;
+ border-left:7px solid var(--rq8-amber)!important;
+ padding:13px 18px!important;border-radius:5px!important;
+ box-shadow:0 4px 16px #00000029!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .operator-kicker{
+ color:var(--rq8-amber)!important;font-size:12px!important;
+ font-weight:850!important;letter-spacing:.12em!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .operator-prepared{
+ color:#fff5dd!important;font-size:27px!important;
+ font-weight:850!important;line-height:1.25!important;
+ letter-spacing:-.035em!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .operator-trigger,
+.rq8 .shell[data-active-workspace="operation"] .operator-effect-summary,
+.rq8 .shell[data-active-workspace="operation"] .operator-progress{
+ color:#b9cedb!important;font-size:12px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .operator-queue-controls #operatorGoBtn{
+ min-height:77px!important;font-size:32px!important;font-weight:900!important;
+ background:#f3c36b!important;color:#172535!important;border:2px solid #ffdd96!important;
+ border-radius:5px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .operator-queue-controls #operatorPanicBtn{
+ min-height:77px!important;font-size:19px!important;font-weight:900!important;
+ background:#8b3039!important;color:#fff!important;border:2px solid #e16b76!important;
+ border-radius:5px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .operator-queue-controls #operatorGoBtn:disabled{
+ background:#42505b!important;border-color:#63717d!important;color:#aab6be!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-active-cues{
+ background:#122b31!important;border:1px solid #3a6d6d!important;
+ border-left:5px solid var(--rq8-onair)!important;
+ padding:8px 12px!important;margin:9px 0 0!important;
+ border-radius:4px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-active-title{
+ color:#7ce1ca!important;letter-spacing:.09em!important;font-size:11px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-show-workspace .rq5-sequence{
+ background:#111f2c!important;border-color:#344758!important;
+ padding:9px 12px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-sequence-frame{
+ background:#0c151e!important;border-color:#35495a!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-pane-heading,
+.rq8 .shell[data-active-workspace="operation"] .rq5-inspector-heading{
+ background:#203241!important;color:#d8e5ee!important;
+ border-color:#395367!important;font-size:11px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .runq-cue-columns{
+ background:#1a2a38!important;color:#a9becd!important;
+ border-color:#334a5d!important;
+}
+.rq8 .shell[data-active-workspace="operation"] #cueList{
+ background:#0d1721!important;scrollbar-color:#526b7d #152432!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-item{
+ min-height:53px!important;background:#13212e!important;
+ border-bottom:1px solid #304453!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-item:nth-child(even){
+ background:#162634!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-item.cue-selected{
+ background:#243d52!important;border-left-color:#78aee1!important;
+ box-shadow:inset 0 0 0 1px #547da1!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-item.cue-prepared{
+ background:#383021!important;border-left:5px solid var(--rq8-amber)!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-item.cue-selected.cue-prepared{
+ background:#403a2b!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-item.cue-prepared .cue-row-index::before{
+ color:var(--rq8-amber)!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-row-title{
+ font-size:14px!important;color:#f0f6fa!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-row-index{
+ font-size:13px!important;color:#a9c6db!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-row-meta{
+ font-size:11px!important;color:#a1b9c9!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .cue-row-next{
+ color:var(--rq8-amber)!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-live-navigator{
+ min-height:42px!important;background:#1c2e3c!important;
+ border-color:#395164!important;padding:6px 9px!important;gap:10px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-nav-action{
+ min-height:29px!important;background:#293e4f!important;
+ border:1px solid #4a667a!important;color:#e3eef5!important;
+ font-size:11px!important;border-radius:3px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-nav-action.rq7-following{
+ color:#f6d89d!important;border-color:#c8a366!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-live-jump input{
+ background:#101e2a!important;color:#edf6fa!important;border-color:#536b7d!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-browse-position{
+ color:#b2c7d6!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq5-inspector-frame{
+ background:#172634!important;border-left:1px solid #40576a!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-inspector-title{
+ color:#b7cedd!important;background:#1e3242!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-inspector-content{
+ padding:17px!important;color:#e5f0f6!important;font-size:13px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-info-name{
+ font-size:18px!important;color:#fff!important;line-height:1.4!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-info-fields{
+ grid-template-columns:85px minmax(0,1fr)!important;gap:11px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-info-note{
+ background:#2a362e!important;border-color:var(--rq8-amber)!important;
+ color:#e8ddc4!important;padding:10px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq7-inspect-prepare{
+ width:100%;padding:9px 10px!important;min-height:36px!important;
+ border:1px solid #b38f57!important;color:#f5dfb3!important;
+ background:#3a3529!important;
+}
+
+/* REHEARSAL: script + transport occupy the main working area. Voice follows
+   as a compact, independently scrollable bottom dock, not a 500px form header. */
+.rq8 .shell[data-active-workspace="rehearsal"] main{
+ display:flex!important;flex-direction:column!important;
+ min-height:0!important;overflow:hidden!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .workspace-intro{
+ display:none!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .layout{
+ order:2!important;flex:1 1 auto!important;min-height:240px!important;
+ display:grid!important;grid-template-columns:minmax(290px,1fr) minmax(420px,1.2fr)!important;
+ gap:9px!important;margin-bottom:8px!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] #rqvfPanel{
+ order:3!important;flex:0 0 auto!important;
+ min-height:0!important;max-height:215px!important;
+ overflow:auto!important;overscroll-behavior:contain!important;
+ border:1px solid #385367!important;border-radius:5px!important;
+ background:#172938!important;color:#e8f1f7!important;
+ padding:0 10px 8px!important;margin:0!important;gap:6px!important;
+ scrollbar-color:#4d6a7d #1c3040;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] #rqvfPanel[data-rq8-voice="expanded"]{
+ max-height:min(58vh,600px)!important;
+}
+.rq8 #rqvfPanel[hidden]{display:none!important}
+.rq8 #rqvfPanel .rqvf-primary-head{
+ position:sticky;top:0;z-index:6;
+ background:#1d3445!important;border-bottom:1px solid #456074!important;
+ padding:7px 9px!important;min-height:40px!important;
+ gap:10px!important;
+}
+.rq8 #rqvfPanel .rqvf-primary-head strong{
+ font-size:12px!important;letter-spacing:.07em!important;
+}
+.rq8 #rqvfPanel .rqvf-primary-head span{
+ font-size:10px!important;color:#a8bfcd!important;
+}
+.rq8 #rqvfPanel .rqvf-primary-head output{
+ font-size:10px!important;padding:5px 9px!important;border-radius:3px!important;
+}
+.rq8 .rq8-voice-toggle{
+ margin-left:auto;cursor:pointer;
+ border:1px solid #617d8f;border-radius:3px;
+ padding:6px 9px;background:#2d4758;color:#edf6fb;
+ font-size:10px;font-weight:750;
+}
+.rq8 .rq8-voice-toggle:hover{background:#3b5a6e}
+.rq8 #rqvfPanel #rqLivePanel{
+ padding:9px!important;border:0!important;background:#172938!important;
+ border-radius:0!important;margin:0!important;
+}
+.rq8 #rqvfPanel .rqlive-head{
+ margin:0 0 5px!important;
+}
+.rq8 #rqvfPanel .rqlive-head strong{font-size:11px!important;color:#b9d4e3!important}
+.rq8 #rqvfPanel .rqlive-settings{margin:5px 0!important;gap:7px!important}
+.rq8 #rqvfPanel .rqlive-settings label{font-size:10px!important}
+.rq8 #rqvfPanel .rqlive-settings select,
+.rq8 #rqvfPanel .rqlive-settings input{
+ min-height:27px!important;padding:4px 7px!important;font-size:11px!important;
+}
+.rq8 #rqvfPanel .rqlive-auto-mode{
+ margin:6px 0!important;padding:7px 9px!important;gap:7px!important;
+ border-radius:3px!important;
+}
+.rq8 #rqvfPanel .rqlive-auto-mode label{font-size:10px!important;flex:1 1 170px!important}
+.rq8 #rqvfPanel .rqlive-auto-mode select{
+ min-height:30px!important;padding:5px!important;font-size:11px!important;
+}
+.rq8 #rqvfPanel .rqlive-auto-mode button{
+ min-height:31px!important;min-width:125px!important;font-size:11px!important;padding:6px 9px!important;
+}
+.rq8 #rqvfPanel .rqlive-auto-mode output{
+ font-size:10px!important;padding:5px 8px!important;flex:1 1 160px!important;
+}
+.rq8 #rqvfPanel .rqlive-auto-help{
+ font-size:10px!important;margin:3px 0!important;
+}
+.rq8 #rqvfPanel .rqlive-controls{
+ padding:6px 8px!important;margin:5px 0!important;border-radius:3px!important;
+}
+.rq8 #rqvfPanel .rqlive-controls button{min-height:29px!important;font-size:11px!important}
+.rq8 #rqvfPanel .rqlive-results{
+ margin:6px 0!important;gap:5px!important;
+}
+.rq8 #rqvfPanel .rqlive-results>div{
+ min-height:53px!important;padding:7px!important;border-radius:3px!important;
+}
+.rq8 #rqvfPanel .rqlive-results small{font-size:9px!important;margin-bottom:3px!important}
+.rq8 #rqvfPanel .rqlive-results output{font-size:12px!important}
+.rq8 #rqvfPanel .rqmic-consent{font-size:10px!important;margin:4px 0!important}
+.rq8 #rqvfPanel .rqmic-consent span{font-size:10px!important}
+.rq8 #rqvfPanel .rqvf-advanced summary{
+ padding:8px 10px!important;font-size:10px!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]{
+ background:#12212e!important;border:1px solid #354b5c!important;
+ border-radius:5px!important;color:#dbe8f1!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] #scriptPreview{
+ background:#0e1a26!important;border-color:#344a5b!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .script-line{
+ font-size:14px!important;line-height:1.75!important;color:#e6eef4!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .rq5-show-workspace>.rq5-transport-dock{
+ background:#101d29!important;padding:9px!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .rq5-show-workspace .operator-queue{
+ background:#233341!important;border:1px solid #65717c!important;
+ border-left:5px solid var(--rq8-amber)!important;
+ min-height:110px!important;padding:8px 10px!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .operator-kicker{
+ color:var(--rq8-amber)!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .operator-prepared{
+ font-size:20px!important;color:#fff4dc!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] #operatorGoBtn{
+ background:#f3c36b!important;color:#1c2b3a!important;border-color:#f3c36b!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] #operatorPanicBtn{
+ background:#8d323b!important;color:#fff!important;border-color:#e46c75!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .rq5-sequence-frame{
+ background:#0d1823!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] #cueList{
+ background:#101e2a!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .cue-item{
+ background:#142635!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .cue-item:nth-child(even){
+ background:#192b3a!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .cue-row-title{
+ color:#edf5fa!important;font-size:13px!important;
+}
+.rq8 .shell[data-active-workspace="rehearsal"] .cue-row-meta{
+ color:#a7c0cf!important;
+}
+
+/* Shared focus / typography / compact desktop safety. */
+.rq8 button:focus-visible,.rq8 input:focus-visible,.rq8 select:focus-visible,
+.rq8 textarea:focus-visible,.rq8 [role="separator"]:focus-visible{
+ outline:2px solid #4b9ad2!important;outline-offset:2px!important;
+}
+.rq8 .shell[data-active-workspace="operation"] button:focus-visible,
+.rq8 .shell[data-active-workspace="rehearsal"] button:focus-visible{
+ outline-color:#f3c36b!important;
+}
+.rq8 .shell[data-active-workspace="operation"] #operatorPanicBtn:focus-visible,
+.rq8 .shell[data-active-workspace="rehearsal"] #operatorPanicBtn:focus-visible{
+ outline-color:#ff8c96!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq7-split-handle::after{
+ background:#c0d0dd!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq7-split-handle:hover::after{
+ background:#2367aa!important;
+}
+@media(max-width:1250px){
+ .rq8 .shell{grid-template-columns:150px minmax(0,1fr)!important}
+ .rq8 .rq7-workbench{padding:6px 9px!important;gap:9px!important}
+ .rq8 .rq7-mode-button{padding:8px 11px!important}
+ .rq8 .rq8-ribbon-heading span{display:none}
+ .rq8 .shell[data-active-workspace="operation"] .operator-queue{
+  grid-template-columns:minmax(0,1fr) minmax(310px,390px)!important;
+ }
+ .rq8 .shell[data-active-workspace="rehearsal"] .layout{
+  grid-template-columns:minmax(270px,.9fr) minmax(350px,1.1fr)!important;
+ }
+}
+@media(max-width:900px){
+ .rq8 .shell{grid-template-columns:75px minmax(0,1fr)!important}
+ .rq8 .workspace-nav{padding:7px 4px!important}
+ .rq8 .rq8-identity-copy{display:none!important}
+ .rq8 .rq8-identity{justify-content:center!important}
+ .rq8 .rq7-nav-heading{text-align:center!important;font-size:8px!important;padding:8px 1px 4px!important}
+ .rq8 .workspace-tab{text-align:center!important;justify-content:center!important;
+  padding:7px 2px!important;font-size:9px!important}
+ .rq8 .rq7-ribbon-status{display:none!important}
+ .rq8 .rq8-ribbon-heading strong{font-size:13px!important}
+ .rq8 .shell[data-active-workspace="operation"] .operator-queue{
+  grid-template-columns:minmax(0,1fr) minmax(245px,310px)!important;
+ }
+ .rq8 .shell[data-active-workspace="rehearsal"] .layout{
+  display:flex!important;flex-direction:column!important;overflow:auto!important;
+ }
+ .rq8 .shell[data-active-workspace="rehearsal"] .layout>.panel[data-workspaces~="script"]{
+  min-height:210px!important;
+ }
+ .rq8 .shell[data-active-workspace="rehearsal"] .layout>.rq5-show-workspace{
+  min-height:360px!important;
+ }
+}
+@media(max-height:690px) and (min-width:901px){
+ .rq8 .topbar{min-height:44px!important}
+ .rq8 .rq7-workbench{min-height:43px!important;margin-bottom:5px!important;padding:3px 9px!important}
+ .rq8 .rq7-mode-button{min-height:29px!important;padding:6px 9px!important}
+ .rq8 .shell[data-active-workspace="operation"] .operator-queue{
+  min-height:85px!important;padding:6px 9px!important;
+ }
+ .rq8 .shell[data-active-workspace="operation"] #operatorGoBtn,
+ .rq8 .shell[data-active-workspace="operation"] #operatorPanicBtn{
+  min-height:45px!important;font-size:17px!important;
+ }
+ .rq8 .shell[data-active-workspace="operation"] .operator-prepared{
+  font-size:18px!important;
+ }
+ .rq8 .shell[data-active-workspace="rehearsal"] #rqvfPanel{
+  max-height:165px!important;
+ }
+ .rq8 .shell[data-active-workspace="rehearsal"] .layout{
+  min-height:205px!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .rq8 *{transition:none!important;animation:none!important}
+}
+
+/* Real Chrome regression: at 1093x614 the Studio editor must still show
+   its gain field, cue list, and actual GO/STOP without scrolling the page.
+   Compactness is a functional requirement, not merely a screenshot target. */
+@media(max-height:690px) and (min-width:901px){
+ .rq8 .topbar{
+  min-height:37px!important;padding:2px 10px!important;
+ }
+ .rq8 .brand-icon{width:27px!important;height:27px!important;font-size:18px!important;line-height:27px!important}
+ .rq8 .top-actions .btn,.rq8 .top-actions .locale-select{
+  min-height:26px!important;padding:3px 6px!important;
+ }
+ .rq8 .runq-menubar{min-height:20px!important}
+ .rq8 .shell[data-active-workspace="cues"] .rq7-workbench{
+  min-height:32px!important;padding:2px 7px!important;
+  margin-bottom:2px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq7-mode-button{
+  min-height:26px!important;padding:4px 7px!important;font-size:10px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq8-ribbon-heading strong{font-size:12px!important}
+ .rq8 .shell[data-active-workspace="cues"] .rq8-ribbon-heading span{display:none!important}
+ .rq8 .shell[data-active-workspace="cues"] .rq5-stage-actions{
+  min-height:28px!important;padding:2px 8px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq5-stage-actions .cue-create-actions .btn{
+  min-height:25px!important;padding:3px 6px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-sequence{
+  padding:2px 7px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-inspector{
+  padding:6px 10px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .inspector-title{
+  padding-bottom:4px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-tabs{
+  margin-bottom:4px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-tab{
+  min-height:27px!important;padding:4px 6px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-origin{
+  margin:4px 0 5px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel input,
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel select{
+  min-height:29px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel .field{
+  margin-top:5px!important;
+ }
+}

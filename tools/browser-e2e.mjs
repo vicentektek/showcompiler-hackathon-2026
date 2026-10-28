@@ -72,10 +72,29 @@ try {
     }
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
+  // V8 composition contract: daylight Studio vs blackout Stage and a
+  // subordinate voice dock. These are visual layout checks, not fake playback.
+  assert.equal(await page.locator('html.rq8').count(),1);
+  assert.equal(await page.locator('#rq8Identity').count(),1);
+  const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
+  assert.equal(studioColor,'rgb(232, 238, 244)','Studio should use a daylight editorial surface');
+  assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
+    'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.
   // This must never access audio playback, microphones or provider endpoints.
   await page.locator('[data-workspace-nav="rehearsal"]').click();
   assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
+  assert.equal(await page.locator('#rq8VoiceToggle').getAttribute('aria-expanded'),'false');
+  const voiceDockPosition=await page.evaluate(()=>{
+    const script=document.querySelector('.layout').getBoundingClientRect();
+    const voice=document.querySelector('#rqvfPanel').getBoundingClientRect();
+    return {scriptBottom:script.bottom,voiceTop:voice.top};
+  });
+  assert.ok(voiceDockPosition.voiceTop>=voiceDockPosition.scriptBottom-2,
+    'V8 voice must dock below the script and real operator transport');
+  await page.locator('#rq8VoiceToggle').click();
+  assert.equal(await page.locator('#rq8VoiceToggle').getAttribute('aria-expanded'),'true');
+  await page.locator('#rq8VoiceToggle').click();
   await page.locator('#rqvfAdvanced').evaluate(details=>{details.open=true;});
   await page.locator('#rqvfStep').click();
   await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4');
@@ -284,6 +303,8 @@ try {
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeRehearsalStarts);
   await capture('09-rehearsal-manual.png');
   await page.locator('[data-workspace-nav="operation"]').click();
+  assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor),
+    'rgb(10, 17, 25)','Stage must be a blackout console, distinct from Studio');
   await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
