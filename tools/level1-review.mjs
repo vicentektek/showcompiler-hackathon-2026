@@ -41,7 +41,8 @@ export function renderLevel1ReviewText(corpus) {
     '# RunQ — Level 1 corpus human review (OFFLINE DRAFT)',
     '',
     '**Status: ' + totals.humanReviewStatus + '.** This document is generated offline from the original',
-    'Level 1 corpus (ten original scenarios). No provider was called, no model quality is measured,',
+    'Level 1 corpus (sixteen original scenarios: six development + ten locked qualification).',
+    'No provider was called, no model quality is measured,',
     'and nothing here runs, approves or triggers a cue.',
     '',
     'Curriculum level: ' + corpus.level.index + ' — ' + corpus.level.name +

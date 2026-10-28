@@ -1,0 +1,8 @@
+RUN OF SHOW 6 — Sales kickoff, main hall
+09:00 | AUDIO 3: play the recorded walk-in playlist from the door, moderate level.
+09:05 | AUDIO 3: stop the recorded walk-in playlist exactly at the countdown.
+09:08 | HOST (live desk mic): Good morning, this hall hums on its own.
+09:12 | AUDIO 4: play the recorded sponsor voice-over while the year's reel rolls.
+09:16 | PROPS: the confetti cannons fire for real above the stage.
+09:20 | AUDIO 4: cut the recorded voice-over as the panel walks in from the wings.
+09:25 | WRAP: no more files at the booth today; the hallway keeps its own echo.

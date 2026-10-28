@@ -6,6 +6,9 @@
  * Contract of this corpus:
  * - Level 1 of fixtures/qa/curriculum-v1.json: explicit recorded cues versus
  *   false positives (mentioned-only sounds and practical stage sounds).
+ * - Exactly sixteen original cases: six development cases for human-guided
+ *   iteration and exactly ten locked qualification cases matching the level
+ *   curriculum gate (EXACT_CASES = 10).
  * - All gold is PROVISIONAL_UNREVIEWED: a theatrical sound operator must
  *   approve each case; this module never self-certifies HUMAN_REVIEWED.
  * - Qualification-pool cases support level 1 qualification evidence only and
@@ -28,7 +31,9 @@ const POOLS = new Set(['development', 'qualification']);
 const DOCUMENT_KINDS = new Set(['dramatic_script', 'running_order', 'libretto', 'calling_script', 'cue_sheet']);
 const CASE_ID = /^[a-z][a-z0-9-]{1,60}$/;
 const LINE_ID = /^L[1-9]\d*$/;
-const CASE_COUNT = 10;
+const TOTAL_CASE_COUNT = 16;
+const QUALIFICATION_CASE_COUNT = 10;
+const DEVELOPMENT_CASE_COUNT = TOTAL_CASE_COUNT - QUALIFICATION_CASE_COUNT;
 const MAX_EVENTS = 128;
 const MAX_WINDOWS = 512;
 const MAX_SCRIPT_CHARS = 100_000;
@@ -95,8 +100,8 @@ function validateLevelEntry(level) {
   if (level.name !== 'Explicit versus false positives') fail('Level 1 name mismatch with curriculum manifest');
   if (level.manifest !== 'fixtures/qa/curriculum-v1.json') fail('Level 1 must reference the curriculum manifest');
   if (!level.gate || typeof level.gate !== 'object' || Array.isArray(level.gate) ||
-      level.gate.kind !== 'EXACT_CASES' || level.gate.exactCasesRequired !== CASE_COUNT) {
-    fail('Level 1 gate must require exactly ' + CASE_COUNT + ' exact cases');
+      level.gate.kind !== 'EXACT_CASES' || level.gate.exactCasesRequired !== QUALIFICATION_CASE_COUNT) {
+    fail('Level 1 gate must require exactly ' + QUALIFICATION_CASE_COUNT + ' exact qualification cases');
   }
   return deepFreeze({...level, gate: deepFreeze({...level.gate})});
 }
@@ -117,7 +122,7 @@ export function validateLevel1Manifest(manifest) {
     fail('New level1 gold must stay ' + PROVISIONAL + ' until an operator signs off');
   }
   const level = validateLevelEntry(manifest.level);
-  boundedCount(manifest.cases?.length, 'level1 cases length', CASE_COUNT, CASE_COUNT);
+  boundedCount(manifest.cases?.length, 'level1 cases length', TOTAL_CASE_COUNT, TOTAL_CASE_COUNT);
   const ids = new Set();
   for (const entry of manifest.cases) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) fail('Invalid level1 case');
@@ -149,6 +154,16 @@ export function validateLevel1Manifest(manifest) {
       fail('Level 1 case ' + entry.id + ' must keep review status ' + PROVISIONAL);
     }
     boundedCount(entry.sceneWindowCount, 'level1 sceneWindowCount', MAX_WINDOWS, 1);
+  }
+  const qualificationCases = manifest.cases.filter(entry => entry.pool === 'qualification').length;
+  if (qualificationCases !== QUALIFICATION_CASE_COUNT) {
+    fail('Level 1 qualification pool must reserve exactly ' + QUALIFICATION_CASE_COUNT +
+      ' cases for the curriculum gate (found ' + qualificationCases + ')');
+  }
+  const developmentCases = manifest.cases.filter(entry => entry.pool === 'development').length;
+  if (developmentCases !== DEVELOPMENT_CASE_COUNT) {
+    fail('Level 1 development pool must keep exactly ' + DEVELOPMENT_CASE_COUNT +
+      ' cases (found ' + developmentCases + ')');
   }
   if (manifest.caseOrder?.length !== manifest.cases.length ||
       !Array.isArray(manifest.caseOrder) ||
