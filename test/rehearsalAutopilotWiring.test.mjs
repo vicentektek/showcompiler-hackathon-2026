@@ -13,8 +13,12 @@ test('rehearsal-only auto GO has conspicuous manual arming, safe default and bil
  assert.ok(ui.includes("runq:voice-live-stopping"));
  assert.ok(ui.includes("runq:rehearsal-auto-disarm"));
  assert.ok(ui.includes('window.confirm('));
- assert.ok(ui.includes('DISARM AUTO GO'));
- assert.ok(ui.includes('DESARMAR GO AUTO'));
+ assert.ok(ui.includes('DISARM AUTOMATIC GO'));
+ assert.ok(ui.includes('ARM AUTOMATIC GO'));
+ assert.ok(ui.includes('DESARMAR GO AUTOMÁTICO'));
+ assert.ok(ui.includes('ARMAR GO AUTOMÁTICO'));
+ assert.ok(ui.includes('STEP 2 · ARM AUTO GO TO PLAY CUES'));
+ assert.ok(ui.includes('LISTENING · AUTO GO NOT ARMED'));
  assert.ok(ui.includes("if(!armed)return;"));
 });
 test('speech can request GO only through the existing guarded operator playback path',()=>{
