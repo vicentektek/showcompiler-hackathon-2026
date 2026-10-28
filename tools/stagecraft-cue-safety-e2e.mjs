@@ -67,6 +67,27 @@ try {
   assert.ok(pixels>100,'real PCM waveform must be drawn onto canvas');
   const originalPrepared=await page.locator('#preparedCueStatus').innerText();
   const form=page.locator('#cuePlaybackForm');
+  assert.equal(await form.locator('[data-timecode="startAtMs"]').inputValue(),'00:00.000');
+  assert.equal(await form.locator('[data-timecode="endAtMs"]').inputValue(),'00:03.000');
+  // Human-readable editor: entering a timecode changes ONLY this cue's staged ms.
+  await form.locator('[data-timecode="startAtMs"]').fill('00:00.180');
+  await form.locator('[data-timecode="startAtMs"]').press('Tab');
+  assert.equal(await form.locator('[name="startAtMs"]').inputValue(),'180');
+  await form.locator('[data-timecode="endAtMs"]').fill('00:01.560');
+  await form.locator('[data-timecode="endAtMs"]').press('Tab');
+  assert.equal(await form.locator('[name="endAtMs"]').inputValue(),'1560');
+  const wave=page.locator('.cue-waveform-canvas').first();
+  await wave.scrollIntoViewIfNeeded();
+  const box=await wave.boundingBox();
+  assert.ok(box&&box.width>200,'waveform is visible and touchable');
+  // Drag upper fade-in handle at 180ms to 0.6s; markers are cue-local.
+  const px=ms=>box.x+box.width*ms/3000;
+  await page.mouse.move(px(180),box.y+10);
+  await page.mouse.down();
+  await page.mouse.move(px(650),box.y+10,{steps:4});
+  await page.mouse.up();
+  const dragged=Number(await form.locator('[name="fadeInMs"]').inputValue());
+  assert.ok(dragged>=350 && dragged<=600,'wave fade handle updates actual cue fade');
   await form.locator('.cue-wave-ms-advanced summary').click();
   await form.locator('[name="startAtMs"]').fill('180');
   await form.locator('[name="endAtMs"]').fill('1560');
@@ -102,11 +123,19 @@ try {
   await page.locator('#runqDoubleClickGo').check();
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.locator('#operatorGoBtn').click(); // GO #1 (trimmed)
+  await page.waitForFunction(()=>document.querySelectorAll('#runqActiveCuesList [data-running-cue]').length===1);
+  assert.equal(await page.locator('#runqActiveCues').isVisible(),true);
+  assert.equal(await page.locator('#runqActiveCuesList [data-running-cue="cue-1"] [data-active-action="stop"]').count(),1);
+  assert.match(await page.locator('#runqActiveCuesList [data-running-cue="cue-1"] .rq5-active-time').innerText(),/PLAYING/);
   await page.waitForFunction(n=>window.__started.length===n+1,beforeOperation);
   assert.ok((await page.locator('#preparedCueStatus').innerText()).includes('2'));
   const stopCount=await page.evaluate(()=>window.__stopped.length);
   await rows.nth(1).dblclick(); // SET NEXT + GO #2; stop #1 with 500ms fade
   await page.waitForFunction(n=>window.__started.length===n+2,beforeOperation);
+  assert.equal(await page.locator('#runqActiveCuesList [data-running-cue]').count(),2);
+  assert.equal(await page.locator('#runqActiveCuesList [data-running-cue="cue-1"].is-fading').count(),1);
+  await page.locator('#runqActiveCuesList [data-running-cue="cue-2"] [data-active-action="fade"]').click();
+  assert.equal(await page.locator('#runqActiveCuesList [data-running-cue="cue-2"].is-fading').count(),1);
   assert.ok((await page.evaluate(n=>window.__stopped.length>n,stopCount)));
   assert.ok((await page.locator('#preparedCueStatus').innerText()).includes('3'));
   const afterQuick=await page.evaluate(()=>window.__started.length);
