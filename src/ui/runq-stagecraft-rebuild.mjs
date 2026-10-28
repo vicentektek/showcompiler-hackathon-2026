@@ -115,7 +115,27 @@ function createStage(){
   const inspectorFrame=el('div','rq5-inspector-frame');
   const inspectorHeader=el('div','rq5-inspector-heading');
   inspectorHeader.append(label('properties'),linkButton('audio','audio'));
-  inspectorFrame.append(inspectorHeader,inspector);
+  const selectedTools=el('div','rq5-selected-tools');
+  selectedTools.setAttribute('aria-label','Selected cue source and media actions');
+  inspectorFrame.append(inspectorHeader,selectedTools,inspector);
+  const syncSelectedTools=()=>{
+    const current=cueList.querySelector('.cue-item.cue-selected');
+    const actions=current?[...current.querySelectorAll(':scope > .cue-edit-actions, :scope > .cue-audio-tools')]:[];
+    selectedTools.replaceChildren(...actions);
+    selectedTools.hidden=actions.length===0;
+  };
+  // The source application fully recreates list items after project changes.
+  // Rehost the newly-created SOURCE/REPLACE controls without cloning handlers.
+  new MutationObserver(()=>queueMicrotask(syncSelectedTools))
+    .observe(cueList,{childList:true});
+  cueList.addEventListener('click',event=>{
+    if(event.target.closest('[data-cue-select]'))queueMicrotask(syncSelectedTools);
+  });
+  cueList.addEventListener('keydown',event=>{
+    if(['ArrowUp','ArrowDown','Home','End'].includes(event.key))
+      queueMicrotask(syncSelectedTools);
+  });
+  syncSelectedTools();
   cueBody.replaceChildren(sequenceFrame,inspectorFrame);
   const stageBody=el('div','rq5-stage-body');
   stageBody.append(cueBody);
