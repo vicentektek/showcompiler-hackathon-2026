@@ -152,7 +152,7 @@ try {
   await page.waitForFunction(()=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value==='4000');
   assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),'-9');
   await page.locator('#rqChatUndo').click();
-  await page.waitForFunction(()=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value===String(originalFade));
+  await page.waitForFunction(expected=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value===expected,originalFade);
   assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),originalGain);
   await page.locator('#rqChatClose').click();
   assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
