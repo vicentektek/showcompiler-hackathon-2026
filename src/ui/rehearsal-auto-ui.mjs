@@ -31,6 +31,7 @@ function display(){
  const button=$('rqLiveArm'),mode=$('rqLiveMode').value;
  const auto=mode==='auto';
  button.hidden=!auto;
+ $('rqLivePanicBtn').hidden=!auto;
  $('rqLiveArmStatus').hidden=!auto;
  $('rqLiveAutoHelp').hidden=!auto;
  $('rqLiveAutoHistory').hidden=!auto;
@@ -105,6 +106,7 @@ function localized(){
   'Voz en directo, reconocimiento de pies y GO automático opcional.');
  $('rqvfAdvancedLabel').textContent=t('Diagnostic tools · microphone test and offline simulation',
   'Herramientas de diagnóstico · micrófono y simulación');
+ $('rqLivePanicBtn').textContent=t('STOP ALL AUDIO','PARAR TODO EL AUDIO');
  $('rqLiveModeLabel').textContent=t('Cue follow mode','Modo de seguimiento de cues');
  $('rqLiveMode').options[0].textContent=t('Assist · suggest NEXT','Asistente · sugerir NEXT');
  $('rqLiveMode').options[1].textContent=t('Rehearsal autopilot · automatic GO','Autopiloto de ensayo · GO automático');
@@ -211,6 +213,13 @@ async function finalTurn(detail){
 function mount(){
  if(!$('rqLiveMode'))return;
  $('rqLiveArm').addEventListener('click',()=>void arm());
+ $('rqLivePanicBtn').addEventListener('click',()=>{
+  const emergency=$('stopAllBtn');
+  if(emergency){emergency.click();disarm('STOP ALL');}
+  else{disarm('STOP ALL unavailable');
+   status('STOP ALL unavailable · use Operation emergency stop',
+    'PARAR TODO no disponible · usa la parada de emergencia de Operación');}
+ });
  $('rqLiveMode').addEventListener('change',()=>{
   disarm('mode changed');
   $('rqLiveCue').textContent=$('rqLiveMode').value==='auto'
