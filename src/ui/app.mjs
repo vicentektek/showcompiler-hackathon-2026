@@ -351,7 +351,7 @@ document.addEventListener('runq:voice-open-cue',event=>{
  if(typeof cueId!=='string'||!show.cues.some(c=>c.id===cueId))return;
  if(!setWorkspace('cues'))return;
  selectedCueId=cueId;
- inspectorTab='basics';
+ inspectorTab='details';
  renderCueList();
  renderCueInspector();
 });
