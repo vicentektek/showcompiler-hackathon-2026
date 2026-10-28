@@ -23,7 +23,7 @@ const BASES=new Set(['EXPLICIT','SUGGESTED']);
 const round=x=>Number(x.toFixed(6));
 const sha=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 const event=e=>{
-  if(!e||!/^L[1-9]\\d*$/.test(e.sourceLineId)||!EVENTS.has(e.transport)||
+  if(!e||!/^L[1-9]\d*$/.test(e.sourceLineId)||!EVENTS.has(e.transport)||
       !KINDS.has(e.cueKind)||!BASES.has(e.basis))throw new TypeError('Invalid classified event');
   return {sourceLineId:e.sourceLineId,transport:e.transport,cueKind:e.cueKind,basis:e.basis};
 };
@@ -37,7 +37,7 @@ export function parseCampaignArgs(args=[]){
     seen.add(key);
     if(key==='--live'||key==='--ack-paid'){result[key==='--live'?'live':'ackPaid']=true;continue}
     const value=args[++i];
-    if(!value||!/^(?:0|[1-9]\\d*)(?:\\.\\d+)?$/.test(value))
+    if(!value||!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value))
       throw new TypeError('Invalid numeric campaign option');
     result[key==='--budget-usd'?'budgetUsd':'maxRequests']=Number(value);
   }
