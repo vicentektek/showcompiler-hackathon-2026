@@ -79,6 +79,17 @@ test('unauthorized realtime requests cannot open a Muse socket',async()=>{
   assert.equal(upstream.WebSocketCtor.latest,null);
  });
 });
+test('malformed or cross-origin browser requests cannot open upstream sessions',async()=>{
+ await withServer(async(base,upstream)=>{
+  for(const origin of ['https://evil.example','this-is-not-a-url']){
+   const res=await fetch(base+'/api/voice/live/start',{method:'POST',
+    headers:{Origin:origin,'X-RunQ-Voice-Consent':'yes','Content-Type':'application/json'},
+    body:JSON.stringify({language:'es'})});
+   assert.equal(res.status,403);
+  }
+  assert.equal(upstream.WebSocketCtor.latest,null);
+ });
+});
 test('one bilingual live session, simulated event delivery, bounded PCM, explicit endStream',async()=>{
  await withServer(async(base,upstream)=>{
   const start=await api(base,'start',{lang:'mixed'});
