@@ -2693,6 +2693,60 @@ async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,destina
   document.dispatchEvent(new CustomEvent('runq:ai-studio:imported',{detail:outcome}));
   return outcome;
 }
+/**
+ * Local-file alternative from the same Sound Design destination sheet.
+ * The actual File is supplied by a native file picker; no provider call or
+ * synthetic model output is involved. A failure cannot resubmit a SFX job.
+ */
+document.addEventListener('runq:ai-studio:import-local',event=>{
+  const {file,destination,respond}=event.detail??{};
+  if(typeof respond!=='function')return;
+  void (async()=>{
+    if(!(file instanceof File)||!file.name.toLowerCase().endsWith('.wav'))
+      throw new TypeError('Choose a genuine local WAV file');
+    if(destination?.projectId!==show.id||
+       destination?.projectGeneration!==projectGeneration)
+      throw new Error('The project changed. Re-select your destination.');
+    if(destination.mode==='EXISTING_CUE' &&
+        !show.cues.some(c=>c.id===destination.targetCueId))
+      throw new TypeError('The destination cue is no longer present.');
+    const result=await importSingleAudioFile(file);
+    if(!result)throw new Error('Local WAV import did not finish');
+    let applied=null,warning=null;
+    try{
+      const audioState=player.getStatus();
+      if(audioState.activeCueCount||audioState.pendingGoCount||
+         audioState.auditionActive||audioState.auditionPending)
+        throw new Error('Stop audio before editing cue assignments');
+      const start=Math.round(Number($('inPoint')?.value)*1000);
+      const end=Math.round(Number($('outPoint')?.value)*1000);
+      const selectedRegion=Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&
+        start>=0&&end>start&&end<=Math.round(result.info.durationSeconds*1000)
+        ?{inMs:start,outMs:end}:null;
+      applied=applyAiStudioDestination(show,{
+        ...destination,assetId:result.assetId,
+        reviewedRegion:selectedRegion,
+      });
+      show=applied.project;
+      dirty=true;
+      if(applied.cueId)selectedCueId=applied.cueId;
+      render();
+    }catch(error){
+      warning='Local WAV imported to library. Cue assignment failed: '+
+        String(error.message??error)+'. Retry without importing another file.';
+    }
+    const outcome={
+      assetId:result.assetId,cueId:applied?.cueId??null,
+      trackId:applied?.trackId??null,projectId:show.id,
+      imported:true,assigned:!!applied?.cueId,warning,
+      message:warning??(applied?.cueId
+        ?'Local WAV added to '+applied.cueId+'. NEXT GO unchanged.'
+        :'Local WAV stored in the library. No cue changed.'),
+    };
+    document.dispatchEvent(new CustomEvent('runq:ai-studio:imported',{detail:outcome}));
+    return outcome;
+  })().then(respond,error=>respond({error:String(error.message??error)}));
+});
 document.addEventListener('runq:ai-studio:apply-existing',event=>{
   const {assetId,destination,respond}=event.detail??{};
   if(typeof respond!=='function')return;
