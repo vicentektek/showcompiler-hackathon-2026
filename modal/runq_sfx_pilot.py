@@ -43,6 +43,18 @@ api_image = modal.Image.debian_slim(python_version="3.11").pip_install(
 # never in this repository or logs. The weights are gated on Hugging Face and
 # the operator account must have accepted stabilityai/stable-audio-3-small-sfx
 # terms before the token can download them.
+# Keep the model resident across calls handled by the SAME warm GPU worker.
+# A cache declared inside generate_sfx was recreated on every request, causing
+# avoidable model initialization. New containers still load once on first use.
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def get_model():
+    from stable_audio_3 import StableAudioModel
+    return StableAudioModel.from_pretrained("small-sfx", device="cuda")
+
+
 @app.function(
     image=worker_image, gpu="L4", timeout=180, retries=0,
     min_containers=0, max_containers=1, scaledown_window=5,
@@ -50,13 +62,7 @@ api_image = modal.Image.debian_slim(python_version="3.11").pip_install(
 )
 def generate_sfx(prompt: str, duration_seconds: int, seed: int) -> bytes:
     """One short audio generation. FunctionCall result is never linked to cues."""
-    from functools import lru_cache
     import soundfile as sf
-    from stable_audio_3 import StableAudioModel
-
-    @lru_cache(maxsize=1)
-    def get_model():
-        return StableAudioModel.from_pretrained("small-sfx", device="cuda")
 
     if not 1 <= duration_seconds <= MAX_SECONDS or not 0 <= seed <= 2147483647:
         raise ValueError("Out of pilot bounds")
@@ -114,7 +120,7 @@ def web():
     class JobRequest(BaseModel):
         requestId: str
         authorizationId: str
-        sourceLineId: str
+        sourceLineId: str | None = None
         kind: str
         modelCandidate: str
         prompt: str = Field(min_length=1, max_length=1000)
@@ -140,9 +146,11 @@ def web():
 
     @api.post("/jobs", status_code=202)
     def start_job(data: JobRequest):
-        for field in (data.requestId, data.authorizationId, data.sourceLineId):
+        for field in (data.requestId, data.authorizationId):
             if not SAFE_ID.fullmatch(field):
                 raise HTTPException(status_code=422, detail="Invalid request identifier")
+        if data.sourceLineId is not None and not SAFE_ID.fullmatch(data.sourceLineId):
+            raise HTTPException(status_code=422, detail="Invalid script reference")
         if data.kind not in ("SFX", "ENVIRONMENT") or data.modelCandidate != MODEL_ID:
             raise HTTPException(status_code=422, detail="Unsupported pilot model or kind")
         if re.search(r"(?:https?|data|file):", data.prompt, flags=re.I):
