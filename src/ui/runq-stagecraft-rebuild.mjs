@@ -120,9 +120,13 @@ function createStage(){
   inspectorFrame.append(inspectorHeader,selectedTools,inspector);
   const syncSelectedTools=()=>{
     const current=cueList.querySelector('.cue-item.cue-selected');
+    const cueId=current?.querySelector('[data-cue-select]')?.dataset.cueSelect??'';
     const actions=current?[...current.querySelectorAll(':scope > .cue-edit-actions, :scope > .cue-audio-tools')]:[];
-    selectedTools.replaceChildren(...actions);
-    selectedTools.hidden=actions.length===0;
+    if(actions.length || cueId!==selectedTools.dataset.cueId){
+      selectedTools.replaceChildren(...actions);
+      selectedTools.dataset.cueId=cueId;
+    }
+    selectedTools.hidden=selectedTools.childElementCount===0;
   };
   // The source application fully recreates list items after project changes.
   // Rehost the newly-created SOURCE/REPLACE controls without cloning handlers.
