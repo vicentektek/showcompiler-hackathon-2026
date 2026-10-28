@@ -103,7 +103,7 @@ try{
   assert.match(await page.locator('#audioBatchStatus').innerText(),/1 skipped/);
   assert.equal(await page.locator('#assetList [data-asset-audition]').count(),4);
   // Waveform reads the exact newly loaded audio; not a placeholder.
-  assert.equal(await page.locator('#rq5AudioSource option').count(),4);
+  assert.equal(await page.locator('#rq5AudioSource option').count(),5); // four assets plus the empty selection
   assert.equal(await page.locator('#importAudioBatchBtn').isEnabled(),true);
   // A show ZIP should never be mistaken for a set of audio library files.
   await page.locator('#audioBatchZipInput').setInputFiles({
