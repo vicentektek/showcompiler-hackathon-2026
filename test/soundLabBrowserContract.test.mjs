@@ -87,8 +87,10 @@ test('local SFX settings repair empty process values without leaking or overwrit
 
 test('Sound Lab initializes once at application startup independently of route selection',async()=>{
   const app=await load('src/ui/app.mjs');
-  const anchor='render();\n// The SFX status check is read-only.';
-  assert.ok(app.includes(anchor),'Safe SFX initialization must not depend on navigation');
+  // Git on Windows may check out CRLF; compare structural order rather than LF bytes.
+  const normalized=app.replace(/\r\n?/g,'\n');
+  assert.match(normalized,/render\(\);\s*\/\/ The SFX status check is read-only\./,
+    'Safe SFX initialization must follow the initial render');
   assert.match(app,/void ensureSoundLabInitialized\(\)\.catch\(reportSoundLabBootstrapError\);/);
   const lab=await load('src/sfx/lab.mjs');
   assert.match(lab,/if\(!state\.initialized\)/);

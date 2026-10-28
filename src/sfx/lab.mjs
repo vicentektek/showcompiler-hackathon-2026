@@ -30,7 +30,7 @@ const state = {
   initialized:false, enabled:false, working:false, job:null, audio:null,
   sourceBytes:null, context:null, source:null, gain:null, peaks:null,
   fileOrigin:null, loadedRemoteRequestId:null, auditionedRemoteRequestId:null,
-  inSeconds:0, outSeconds:0, dragStart:null, settings:null,
+  inSeconds:0, outSeconds:0, fadeInSeconds:0, fadeOutSeconds:0, dragStart:null, settings:null,
   onImportReviewed:null,
 };
 const $ = id => document.getElementById(id);
@@ -122,13 +122,16 @@ function updateControls(){
   $('stopBtn').disabled=!state.source;
   $('inPoint').disabled=!state.audio;
   $('outPoint').disabled=!state.audio;
+  $('sfxFadeIn').disabled=!state.audio;
+  $('sfxFadeOut').disabled=!state.audio;
   $('exportBtn').disabled=state.working||!canUseAcceptedSource();
   $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
+  $('importCueBtn').disabled=$('importLibraryBtn').disabled;
 }
 function clearReviewedAudio(){
   stopSoundLabAudition();
   state.audio=null;state.sourceBytes=null;state.fileOrigin=null;state.peaks=null;
-  state.inSeconds=0;state.outSeconds=0;
+  state.inSeconds=0;state.outSeconds=0;state.fadeInSeconds=0;state.fadeOutSeconds=0;
   text('audioName','Ningún WAV cargado');
   text('waveDuration','00:00.000');
   $('sfxWaveEmpty')?.removeAttribute('hidden');
@@ -199,13 +202,42 @@ function drawWave(){
     context.fillStyle=x>=x1&&x<=x2?'#d9f877':'#658497';
     context.fillRect(x,middle-amplitude,Math.max(1,width/state.peaks.length),amplitude*2);
   }
-  for(const x of [x1,x2]){
+  const fadeStart=x1+width*state.fadeInSeconds/duration;
+  const fadeEnd=x2-width*state.fadeOutSeconds/duration;
+  context.strokeStyle='#8ad4f7';context.lineWidth=3;
+  context.beginPath();context.moveTo(x1,height);context.lineTo(fadeStart,0);
+  context.moveTo(fadeEnd,0);context.lineTo(x2,height);context.stroke();
+  for(const x of [x1,x2,fadeStart,fadeEnd]){
     context.strokeStyle='#efffba';context.lineWidth=2;
     context.beginPath();context.moveTo(x,0);context.lineTo(x,height);context.stroke();
   }
   context.fillStyle='#d5e2bb';context.font='12px ui-monospace,monospace';
   context.fillText(formatTime(state.inSeconds),Math.min(width-85,x1+5),16);
   context.fillText(formatTime(state.outSeconds),Math.max(5,Math.min(width-85,x2-85)),height-10);
+}
+function updateFades(fadeIn,fadeOut){
+ if(!state.audio)return;
+ const duration=state.outSeconds-state.inSeconds;
+ const max=Math.min(10,duration);
+ const first=Math.max(0,Math.min(max,Number(fadeIn)||0));
+ const last=Math.max(0,Math.min(max-first,Number(fadeOut)||0));
+ state.fadeInSeconds=first;state.fadeOutSeconds=last;
+ $('sfxFadeIn').max=String(max);$('sfxFadeOut').max=String(max);
+ $('sfxFadeIn').value=String(first);$('sfxFadeOut').value=String(last);
+ const spanish=$('uiLocaleSelect')?.value==='es';
+ text('sfxFadeInLabel',(spanish?'Entrada gradual':'Fade in')+' · '+first.toFixed(2)+' s');
+ text('sfxFadeOutLabel',(spanish?'Salida gradual':'Fade out')+' · '+last.toFixed(2)+' s');
+ drawWave();
+}
+function updateSfxEditorLocale(){
+ const es=$('uiLocaleSelect')?.value==='es';
+ text('sfxDragLabel',es?'Acción al arrastrar':'Waveform gesture');
+ const modes=$('sfxDragMode').options;
+ modes[0].textContent=es?'Seleccionar IN/OUT':'Select IN/OUT';
+ modes[1].textContent=es?'Mover fundido de entrada':'Move fade-in edge';
+ modes[2].textContent=es?'Mover fundido de salida':'Move fade-out edge';
+ text('importCueBtn',es?'Importar y crear cue':'Import + create cue');
+ updateFades(state.fadeInSeconds,state.fadeOutSeconds);
 }
 function updateTrim(inSeconds,outSeconds){
   if(!state.audio)return;
@@ -214,7 +246,7 @@ function updateTrim(inSeconds,outSeconds){
     state.inSeconds=bounds.inSeconds;state.outSeconds=bounds.outSeconds;
     $('inPoint').value=String(Number(bounds.inSeconds.toFixed(3)));
     $('outPoint').value=String(Number(bounds.outSeconds.toFixed(3)));
-    drawWave();
+    updateFades(state.fadeInSeconds,state.fadeOutSeconds);
     inform(`Reviewed region ${formatTime(state.inSeconds)} → ${formatTime(state.outSeconds)}. The source WAV is unchanged.`);
   }catch{inform('Select at least 10 ms of sound.',true);}
 }
@@ -234,7 +266,7 @@ async function loadAudio(bytes,name,origin='local'){
   $('waveCanvas')?.classList.add('sfx-has-audio');
   state.loadedRemoteRequestId=origin==='remote'?state.job?.requestId:null;
   state.auditionedRemoteRequestId=null;
-  state.inSeconds=0;state.outSeconds=decoded.duration;
+  state.inSeconds=0;state.outSeconds=decoded.duration;state.fadeInSeconds=0;state.fadeOutSeconds=0;
   state.peaks=waveformPeaks(Array.from({length:decoded.numberOfChannels},(_,channel)=>decoded.getChannelData(channel)),600);
   text('audioName',`${name} · ${decoded.numberOfChannels} ch · ${decoded.sampleRate} Hz`);
   text('waveDuration',formatTime(decoded.duration));
@@ -423,7 +455,18 @@ function bindEvents(){
     if(!state.audio)return;
     stopSoundLabAudition();
     const context=await ensureContext();const source=context.createBufferSource();const gain=context.createGain();
-    source.buffer=state.audio;gain.gain.value=Number($('monitorLevel').value)/100;
+    source.buffer=state.audio;
+    const level=Number($('monitorLevel').value)/100;
+    const now=context.currentTime;
+    const length=state.outSeconds-state.inSeconds;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(state.fadeInSeconds>0?0:level,now);
+    if(state.fadeInSeconds>0)gain.gain.linearRampToValueAtTime(level,now+state.fadeInSeconds);
+    if(state.fadeOutSeconds>0){
+      const fadeOutAt=now+length-state.fadeOutSeconds;
+      gain.gain.setValueAtTime(level,fadeOutAt);
+      gain.gain.linearRampToValueAtTime(0,now+length);
+    }
     source.connect(gain);gain.connect(context.destination);state.source=source;state.gain=gain;
     source.onended=()=>{if(state.source===source){state.source=null;gain.disconnect();state.gain=null;updateControls();}};
     source.start(0,state.inSeconds,state.outSeconds-state.inSeconds);
@@ -434,6 +477,10 @@ function bindEvents(){
   for(const id of ['inPoint','outPoint'])$(id).addEventListener('change',()=>{
     if(state.audio)updateTrim(Number($('inPoint').value),Number($('outPoint').value));
   });
+  for(const id of ['sfxFadeIn','sfxFadeOut'])$(id).addEventListener('input',()=>{
+    updateFades(Number($('sfxFadeIn').value),Number($('sfxFadeOut').value));
+  });
+  $('uiLocaleSelect')?.addEventListener('change',updateSfxEditorLocale);
   const canvas=$('waveCanvas');
   canvas.addEventListener('pointerdown',event=>{
     if(!state.audio)return;const rectangle=canvas.getBoundingClientRect();
@@ -444,7 +491,10 @@ function bindEvents(){
     if(!state.audio||state.dragStart===null)return;const rectangle=canvas.getBoundingClientRect();
     const end=Math.max(0,Math.min(1,(event.clientX-rectangle.left)/rectangle.width));
     const start=state.dragStart;state.dragStart=null;
-    updateTrim(Math.min(start,end)*state.audio.duration,Math.max(start,end)*state.audio.duration);
+    const mode=$('sfxDragMode').value;
+    if(mode==='fadeIn')updateFades(Math.max(0,end*state.audio.duration-state.inSeconds),state.fadeOutSeconds);
+    else if(mode==='fadeOut')updateFades(state.fadeInSeconds,Math.max(0,state.outSeconds-end*state.audio.duration));
+    else updateTrim(Math.min(start,end)*state.audio.duration,Math.max(start,end)*state.audio.duration);
   });
   $('exportBtn').addEventListener('click',()=>void action(async()=>{
     if(!canUseAcceptedSource())throw new Error('Only an accepted verified generated source can be downloaded');
@@ -458,9 +508,20 @@ function bindEvents(){
     if(!confirm('Import the verified original WAV into this show library? It will not be assigned to a cue automatically.'))return;
     const result=await state.onImportReviewed({
       job:structuredClone(state.job),audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
-      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds}),
+      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
     });
     inform(result?.message??'Accepted source imported to the local library. Assign it to a cue manually.');
+  }));
+  $('importCueBtn').addEventListener('click',()=>void action(async()=>{
+    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accept and review a generated take first');
+    if(!confirm('Import verified WAV AND create one manual cue? GO stays manual.'))return;
+    const result=await state.onImportReviewed({
+      createCue:true,job:structuredClone(state.job),
+      audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
+      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,
+        fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
+    });
+    inform(result?.message??'Created an editable sound cue.');
   }));
   window.addEventListener('resize',drawWave);
   window.addEventListener('pagehide',()=>{stopSoundLabAudition();if(state.context)void state.context.close();});
@@ -521,5 +582,5 @@ export async function initializeSoundLab({onImportReviewed}={}){
       viewJob(await result.json());
     }catch{/* Old/missing local records are safely ignored. */}
   }
-  updateControls();drawWave();
+  updateSfxEditorLocale();updateControls();drawWave();
 }

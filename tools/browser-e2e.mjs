@@ -72,6 +72,26 @@ try {
     }
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
+  // Voice Follow: real DOM integration against a checked-in offline transcript.
+  // This must never access audio playback, microphones or provider endpoints.
+  await page.locator('[data-workspace-nav="rehearsal"]').click();
+  assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
+  await page.locator('#rqvfAdvanced').evaluate(details=>{details.open=true;});
+  await page.locator('#rqvfStep').click();
+  await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4');
+  assert.ok((await page.locator('#rqvfCue').textContent()).includes('C14'));
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  await page.locator('#rqvfStep').click();
+  await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='2 / 4');
+  assert.ok((await page.locator('#rqvfResult').textContent()).includes('No reliable cue match'));
+  await page.locator('#rqvfStep').click();
+  await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='3 / 4');
+  assert.ok((await page.locator('#rqvfCue').textContent()).includes('C15'));
+  await capture('00-rehearsal-voice-follow.png');
+  await page.locator('#rqvfReset').click();
+  assert.equal(await page.locator('#rqvfCounter').textContent(),'0 / 0');
+  await page.locator('[data-workspace-nav="home"]').click();
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
   // New visual shell must be present and its menus only navigate, never play.
   assert.equal(await page.locator('.runq-menu').count(), 6);
   await capture('01-home-1366.png');

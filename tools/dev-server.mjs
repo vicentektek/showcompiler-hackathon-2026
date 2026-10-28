@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { makeMetaRoute } from './metaRoutes.mjs';
 import { makeBasetenRoute } from './basetenRoutes.mjs';
 import { makeSfxRoute } from './sfxRoutes.mjs';
+import { makeVoiceTranscribeRoute } from './voiceTranscribeRoutes.mjs';
+import { makeVoiceLiveRoute } from './voiceLiveRoutes.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 /**
@@ -49,6 +51,18 @@ const allowed = new Map([
   ['/src/core/dramaticStructure.mjs', ['src/core/dramaticStructure.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/waveform.mjs', ['src/sfx/waveform.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/lab.css', ['src/sfx/lab.css', 'text/css; charset=utf-8']],
+  ['/src/ui/rehearsal-auto-ui.mjs', ['src/ui/rehearsal-auto-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/rehearsalAutopilot.mjs', ['src/core/rehearsalAutopilot.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-live-ui.mjs', ['src/ui/voice-live-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-microphone-test.mjs', ['src/ui/voice-microphone-test.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-follow-ui.mjs', ['src/ui/voice-follow-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-follow.css', ['src/ui/voice-follow.css', 'text/css; charset=utf-8']],
+  ['/src/core/reviewedSfxCue.mjs', ['src/core/reviewedSfxCue.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/livePcm.mjs', ['src/core/livePcm.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/voiceFollow.mjs', ['src/core/voiceFollow.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/voiceScenario.mjs', ['src/core/voiceScenario.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/voiceRehearsal.mjs', ['src/core/voiceRehearsal.mjs', 'text/javascript; charset=utf-8']],
+  ['/test/fixtures/voice-rehearsal.json', ['test/fixtures/voice-rehearsal.json', 'application/json; charset=utf-8']],
   ['/src/ui/app.mjs', ['src/ui/app.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/style.css', ['src/ui/style.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-theme.css', ['src/ui/runq-theme.css', 'text/css; charset=utf-8']],
@@ -104,6 +118,8 @@ export function createAppServer(options = {}) {
     getKey: options.getBasetenKey,
   });
   const sfxRoute = makeSfxRoute(options);
+  const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
+  const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',
@@ -117,6 +133,8 @@ export function createAppServer(options = {}) {
     if (await metaRoute(request, response, pathname, headers)) return;
     if (await basetenRoute(request, response, pathname, headers)) return;
     if (await sfxRoute(request, response, pathname, headers)) return;
+    if (await voiceRoute(request, response, pathname, headers)) return;
+    if (await voiceLiveRoute(request, response, pathname, headers)) return;
     if (!['GET', 'HEAD'].includes(request.method)) {
       response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
       response.end();

@@ -12,6 +12,7 @@ import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '
 import { planAudioLibraryBatch } from '../core/audioBatchImport.mjs';
 import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
 import { prepareReviewedSfxImport } from '../core/sfxImportCandidate.mjs';
+import { createCueFromReviewedAudio } from '../core/reviewedSfxCue.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -59,6 +60,49 @@ document.addEventListener('runq:request-audio-source', event => {
   if (typeof respond !== 'function' || typeof assetId !== 'string') return;
   const registered = show.assets.some(asset => asset.id === assetId);
   respond(registered ? (originalAudioFiles.get(assetId) ?? null) : null);
+});
+
+/** Read-only Voice Follow interface; never touches operator queue or playback. */
+document.addEventListener('runq:voice-follow-read-project', event => {
+  const respond=event.detail?.respond;
+  if(typeof respond!=='function')return;
+  respond({
+    scriptText:show.scriptText,
+    cues:show.cues.map(cue=>({
+      id:cue.id,number:cue.number,label:cue.label,trigger:cue.trigger??'',
+      sourceLineIds:[...cue.sourceLineIds],
+    })),
+  });
+});
+document.addEventListener('runq:voice-follow-highlight-line', event => {
+  const lineId=event.detail?.lineId;
+  if(typeof lineId!=='string'||!/^L[1-9]\d*$/.test(lineId))return;
+  if(!parseScript(show.scriptText).some(line=>line.id===lineId))return;
+  scriptFocusLineId=lineId;
+  render(); // Source navigation only, never changes prepared queue.
+  const target=[...$('scriptPreview').querySelectorAll('[data-script-line-id]')]
+    .find(row=>row.dataset.scriptLineId===lineId);
+  target?.scrollIntoView({block:'nearest'});
+});
+
+/**
+ * Voice Follow never prepares or fires anything on ASR events. Only the explicit
+ * operator click on Set as NEXT may modify the prepared cue. GO remains manual.
+ */
+document.addEventListener('runq:voice-follow-prepare-cue',event=>{
+  const cueId=event.detail?.cueId,respond=event.detail?.respond;
+  const done=ok=>{if(typeof respond==='function')respond(ok);};
+  if(activeWorkspace!=='rehearsal'||typeof cueId!=='string'){done(false);return;}
+  const cue=show.cues.find(c=>c.id===cueId);
+  if(!cue||audioInFlight||bundleInFlight){done(false);return;}
+  const status=player.getStatus();
+  if(status.pendingGoCount||status.auditionPending){done(false);return;}
+  try{
+    operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cueId);
+    render();
+    feedback('operator.preparedFeedback',{number:cue.number},'success');
+    done(true);
+  }catch(error){showError(error);done(false);}
 });
 
 let scriptFocusLineId = null;
@@ -1986,35 +2030,95 @@ document.addEventListener('runq:operator-quick-go',event=>{
   }
 });
 
-$('operatorGoBtn').addEventListener('click', async () => {
-  const id = operatorQueue.preparedCueId;
-  if (!id || audioInFlight) return;
-  const generation = projectGeneration;
-  const cue = normalizeShowProject(show).cues.find(item => item.id === id);
-  if (!cue) return;
-  try {
-    // Per-cue overlap policy is operator-authored and applies only on actual GO.
-    // "STOP PREVIOUS" fades/stops all earlier cue runs but does not cancel
-    // the incoming cue or mutate any source media.
-    for (const stop of planEntryStops(show.cues,id,cue.entryPolicy,cue.automation?.stopCueIds ?? [])) {
-      player.stopCue(stop.cueId,stop.fadeMs);
-    }
-    // Operator-authored stop targets execute before this cue's PLAY; an AI
-    // proposal cannot insert stop targets or start automatic following.
-    for (const targetId of cue.automation?.stopCueIds ?? []) {
-      const target = show.cues.find(item => item.id === targetId);
-      player.stopCue(targetId, cue.stopFadeOverrides?.[targetId] ?? target?.playback?.fadeOutMs ?? 0);
-    }
-    await player.go(cue);
-    if (generation !== projectGeneration) return; // The previous show must not move the new playhead.
-    lastGoCueId = id;
-    if (operatorQueue.preparedCueId === id) {
-      operatorQueue = completePreparedCue(operatorQueue, show.cues, id);
-    }
-    render();
-    feedback('operator.goFeedback', { number: cue.number }, 'success');
-  } catch (error) { showError(error); }
+// Shared guarded path for manual GO and explicitly ARMED rehearsal auto-GO.
+// Both use the same audio engine, cue entry policies and completion logic.
+let goTransportPending=false;
+async function executePreparedGo(){
+ const id=operatorQueue.preparedCueId;
+ if(!id||goTransportPending||audioInFlight||bundleInFlight)return false;
+ const generation=projectGeneration;
+ const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
+ if(!cue||cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+   (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)))return false;
+ const status=player.getStatus();
+ if(status.pendingGoCount||status.auditionActive||status.auditionPending||
+    player.isPlaying(id))return false;
+ goTransportPending=true;
+ try{
+   for(const stop of planEntryStops(show.cues,id,cue.entryPolicy,cue.automation?.stopCueIds??[])){
+     player.stopCue(stop.cueId,stop.fadeMs);
+   }
+   for(const targetId of cue.automation?.stopCueIds??[]){
+     const target=show.cues.find(item=>item.id===targetId);
+     player.stopCue(targetId,cue.stopFadeOverrides?.[targetId]??target?.playback?.fadeOutMs??0);
+   }
+   await player.go(cue);
+   if(generation!==projectGeneration)return false;
+   lastGoCueId=id;
+   if(operatorQueue.preparedCueId===id)operatorQueue=completePreparedCue(operatorQueue,show.cues,id);
+   render();
+   feedback('operator.goFeedback',{number:cue.number},'success');
+   return true;
+ }catch(error){showError(error);return false;}
+ finally{goTransportPending=false;refreshAudioControls();}
+}
+$('operatorGoBtn').addEventListener('click',()=>{ 
+ document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'manual_go'}}));
+ void executePreparedGo();
 });
+/**
+ * Deliberately scoped machine GO: only an actively streaming, manually ARMED
+ * Rehearsal session may send an explicit cue ID. Never allowed in Operation.
+ * This event does not bypass the real engine's guards and does not fire skipped cues.
+ */
+document.addEventListener('runq:rehearsal-auto-arm-audio',event=>{
+ const respond=event.detail?.respond;
+ if(typeof respond!=='function')return;
+ if(activeWorkspace!=='rehearsal'||document.hidden||bundleInFlight||audioInFlight){
+   respond({ok:false,reason:'REHEARSAL_NOT_READY'});return;
+ }
+ // Must be called synchronously from the operator's ARM gesture to unlock
+ // the Web Audio output without producing any sound.
+ void player.armAudioOutput().then(()=>respond({ok:true}),
+   ()=>respond({ok:false,reason:'AUDIO_OUTPUT_SUSPENDED'}));
+});
+document.addEventListener('runq:rehearsal-auto-go',event=>{
+ const cueId=event.detail?.cueId,respond=event.detail?.respond;
+ const report=payload=>{if(typeof respond==='function')respond(payload);};
+ if(activeWorkspace!=='rehearsal'||document.hidden||
+   document.body?.dataset.runqVoiceCapture!=='live'||
+   $('rqLiveArm')?.getAttribute('aria-pressed')!=='true'||
+   typeof cueId!=='string'||goTransportPending||audioInFlight||bundleInFlight){
+   report({ok:false,reason:'NOT_ARMED_OR_BUSY'});return;
+ }
+ const cue=show.cues.find(c=>c.id===cueId);
+ if(!cue){report({ok:false,reason:'UNKNOWN_CUE'});return;}
+ if(cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+    (cue.audioTracks??[]).some(t=>!player.hasAsset(t.assetId))){
+   report({ok:false,reason:'AUDIO_NOT_READY'});return;
+ }
+ const state=player.getStatus();
+ if(state.pendingGoCount||state.auditionActive||state.auditionPending){
+   report({ok:false,reason:'TRANSPORT_BUSY'});return;
+ }
+ const prior=operatorQueue,projectAtStart=projectGeneration;
+ // Rehearsal REPEAT explicitly restarts the previous cue.
+ // All other overlap/stop policies remain whatever the operator authored.
+ if(player.isPlaying(cueId)){
+   try{player.stopCue(cueId,0);}catch{report({ok:false,reason:'REPEAT_STOP_FAILED'});return;}
+ }
+ try{
+   operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cueId);
+   refreshAudioControls();
+   void executePreparedGo().then(ok=>{
+     if(!ok&&projectAtStart===projectGeneration&&operatorQueue.preparedCueId===cueId){
+       operatorQueue=prior;render();
+     }
+     report({ok,reason:ok?'FIRED':'GO_FAILED'});
+   }).catch(()=>report({ok:false,reason:'GO_FAILED'}));
+ }catch(error){operatorQueue=prior;report({ok:false,reason:'PREPARE_FAILED'});}
+});
+
 $('operatorSkipBtn').addEventListener('click', () => {
   if (!operatorQueue.preparedCueId || audioInFlight) return;
   const cue = show.cues.find(item => item.id === operatorQueue.preparedCueId);
@@ -2412,6 +2516,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
 });
 
 function emergencyStopAllAudio() {
+  document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'stop_all'}}));
   player.stopAll();
   feedback('status.panic', {}, 'success');
 }
@@ -2603,18 +2708,28 @@ $('audioFileInput').addEventListener('change', async event => {
   catch (error) { showError(error); }
 });
 
-async function importReviewedGeneratedSfx({ job, audioBytes, reviewedRegion } = {}) {
-  const candidate = await prepareReviewedSfxImport({ job, audioBytes, reviewedRegion });
-  const result = await importSingleAudioFile(candidate.file, {
-    provenance: candidate.provenance,
-    refuseReplacement: true,
+async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,createCue=false}={}){
+  const candidate=await prepareReviewedSfxImport({job,audioBytes,reviewedRegion});
+  const result=await importSingleAudioFile(candidate.file,{
+    provenance:candidate.provenance,refuseReplacement:true,
   });
-  if (!result) throw new Error('Generated audio was not imported');
+  if(!result)throw new Error('Generated WAV was not imported');
+  if(createCue){
+    // Human confirmed this additional edit; never changes or fires the GO queue.
+    const next=createCueFromReviewedAudio(show,{
+      assetId:result.assetId,job,reviewedRegion,
+    });
+    show=next.project;
+    selectedCueId=next.cueId;
+    dirty=true;
+    render();
+    setWorkspace('cues');
+    return {assetId:result.assetId,cueId:next.cueId,
+      message:'Generated WAV imported and editable audio cue created. GO is still manual.'};
+  }
   setWorkspace('audio');
-  return {
-    assetId: result.assetId,
-    message: `Imported ${candidate.file.name} as ${result.assetId}. Choose a cue explicitly; no cue was changed.`,
-  };
+  return {assetId:result.assetId,
+    message:'Generated WAV imported to library. No cue was changed.'};
 }
 
 function reportSoundLabBootstrapError(error) {

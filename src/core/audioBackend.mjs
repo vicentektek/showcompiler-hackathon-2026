@@ -50,6 +50,7 @@ export function createBrowserAudioBackend(options = {}) {
     capabilities: BROWSER_AUDIO_CAPABILITIES,
     loadFile: (file, assetId) => engine.loadFile(file, assetId),
     go: cue => engine.go(cue),
+    armAudioOutput: () => engine.armAudioOutput(),
     auditionAsset: assetId => engine.auditionAsset(assetId),
     previewCue: (cue, options) => engine.previewCue(cue, options),
     getPreviewStatus: () => engine.getPreviewStatus(),

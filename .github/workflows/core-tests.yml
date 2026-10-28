@@ -60,6 +60,10 @@ jobs:
 
       - name: Install pinned browser smoke driver (CI-only, no lockfile)
         run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Voice Follow click and navigation Chrome smoke (offline)
+        run: node tools/voice-follow-click-e2e.mjs
+      - name: Rehearsal Autopilot Chrome E2E (real local WAV, synthetic speech, no provider)
+        run: node tools/rehearsal-auto-browser-e2e.mjs
       - name: Stagecraft cue controls and keyboard map Chrome smoke (mock only)
         run: node tools/stagecraft-keymap-browser-e2e.mjs
       - name: Stagecraft cue waveform and operation quick-GO Chrome smoke

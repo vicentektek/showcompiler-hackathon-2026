@@ -15,6 +15,11 @@
   <link rel="stylesheet" href="/src/ui/operator-workbench.css">
   <link rel="stylesheet" href="/src/ui/audio-library-batch.css">
   <link rel="stylesheet" href="/src/sfx/lab.css">
+  <link rel="stylesheet" href="/src/ui/voice-follow.css">
+  <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
+  <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
+  <script type="module" src="/src/ui/voice-live-ui.mjs"></script>
+  <script type="module" src="/src/ui/rehearsal-auto-ui.mjs"></script>
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
@@ -76,6 +81,143 @@
       </section>
 
       <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
+      <section id="rqvfPanel" class="rqvf-panel" data-workspaces="rehearsal" hidden aria-labelledby="rqvfPrimaryTitle">
+        <div class="rqvf-primary-head">
+          <div><strong id="rqvfPrimaryTitle">SEGUIMIENTO DE VOZ</strong>
+          <span id="rqvfPrimarySubtitle">Reconocimiento de voz y ejecución de cues en ensayo.</span></div>
+          <output id="rqvfPrimaryState">Sin escuchar</output>
+        </div>
+<section id="rqLivePanel" class="rqmic-panel rqlive-panel" aria-labelledby="rqLiveTitle">
+          <header class="rqlive-head">
+            <strong id="rqLiveTitle">LIVE VOICE FOLLOW · MUSE</strong>
+            <output id="rqLiveElapsed" aria-label="Audio duration">0 / 180 s</output>
+            <output id="rqLiveSpeaker"></output>
+          </header>
+          <div class="rqlive-settings">
+            <label for="rqLiveLang"><span id="rqLiveLangLabel">Spoken language</span>
+              <select id="rqLiveLang"><option value="es">Español</option><option value="en">English</option><option value="mixed">Spanish + English</option></select>
+            </label>
+            <label for="rqLiveDevice"><span id="rqLiveDeviceLabel">Input</span><select id="rqLiveDevice"><option value="">Default microphone</option></select></label>
+            <button type="button" class="btn subtle small" id="rqLiveRefresh">Refresh microphones</button>
+            <label for="rqLiveFocus"><span id="rqLiveFocusLabel">Script focus line</span>
+              <input id="rqLiveFocus" type="number" min="1" max="100000" step="1" value="1">
+            </label>
+          </div>
+          <div class="rqlive-auto-mode" role="group" aria-label="Modo de disparo">
+            <label for="rqLiveMode"><span id="rqLiveModeLabel">Cue follow mode</span>
+              <select id="rqLiveMode">
+                <option value="assist">Assist · suggest NEXT</option>
+                <option value="auto">Rehearsal autopilot · automatic GO</option>
+              </select>
+            </label>
+            <button type="button" id="rqLiveArm" class="btn danger-outline small" aria-pressed="false" disabled>ARM AUTO GO</button>
+            <button type="button" id="rqLivePanicBtn" class="btn danger small" hidden>STOP ALL</button>
+            <output id="rqLiveArmStatus" role="status" aria-live="polite">AUTOPILOTO DESARMADO · SIN GO AUTOMÁTICO</output>
+          </div>
+          <p id="rqLiveAutoHelp" class="rqlive-auto-help">Primero activa el micrófono, después pulsa ARMAR GO AUTOMÁTICO. Si está desarmado, nunca reproducirá audio por voz.</p>
+          <ol id="rqLiveAutoHistory" class="rqlive-auto-history" aria-label="Automatic rehearsal cue events"></ol>
+          <details id="rqLiveCueMapDetails" class="rqlive-cue-map">
+            <summary id="rqLiveCueMapSummary">Ver pies hablados del espectáculo</summary>
+            <ol id="rqLiveCueMap" aria-label="Pies hablados disponibles"></ol>
+          </details>
+          <label class="rqmic-consent"><input type="checkbox" id="rqLiveConsent">
+            <span id="rqLiveConsentText">I authorize sending my microphone to Meta Muse for this session (max 3 min).</span>
+          </label>
+          <label class="rqmic-consent"><input type="checkbox" id="rqLiveContextHints">
+            <span id="rqLiveContextHintsText">Optional: share up to 12 cue-name words to improve proper-name recognition.</span>
+          </label>
+          <div class="rqlive-controls">
+            <button id="rqLiveStart" class="btn accent small" type="button">Start listening</button>
+            <button id="rqLiveStop" class="btn subtle small" type="button" disabled>Stop listening</button>
+            <meter id="rqLiveMeter" min="0" max="100" value="0" aria-label="Live microphone level"></meter>
+            <output id="rqLiveStatus" role="status" aria-live="polite">Ready · microphone not transmitting</output>
+          </div>
+          <div class="rqlive-results">
+            <div class="rqlive-partial"><small id="rqLivePartialTitle">RECONOCIENDO AHORA</small><output id="rqLivePartial" aria-live="off"></output></div>
+            <div class="rqlive-transcript"><small id="rqLiveFinalTitle">ÚLTIMAS FRASES RECONOCIDAS</small><div id="rqLiveTranscript" aria-live="polite"></div></div>
+            <div class="rqlive-cue-result"><small id="rqLiveCueTitle">CUE DETECTADO</small><output id="rqLiveCue" aria-live="polite"></output><div class="rqlive-cue-actions"><button type="button" class="btn accent small" id="rqLivePrepare" disabled>Set as NEXT</button><button type="button" class="btn subtle small" id="rqLiveDismiss" disabled>Ignore</button></div></div>
+          </div>
+          <small id="rqLivePrivacy">Only finalized speech can suggest cues. No automatic GO.</small>
+        </section>
+        
+        <details id="rqvfAdvanced" class="rqvf-advanced">
+          <summary id="rqvfAdvancedLabel">Herramientas de diagnóstico · grabación corta y simulador</summary>
+          <div class="rqvf-advanced-content">
+<div class="rqvf-head">
+          <div class="rqvf-brand">
+            <strong id="rqvfTitle">VOICE FOLLOW</strong>
+            <small id="rqvfSub">OFFLINE CUE SIMULATOR · DOES NOT EXECUTE GO</small>
+          </div>
+          <div class="rqvf-actions">
+            <label for="rqvfSource"><span id="rqvfSourceLabel">Scenario</span>
+              <select id="rqvfSource">
+                <option value="fixture">Example scene</option>
+                <option value="project">Current show (configured triggers)</option>
+              </select>
+            </label>
+            <button type="button" id="rqvfPlay">Play</button>
+            <button type="button" id="rqvfPause" disabled>Pause</button>
+            <button type="button" id="rqvfStep">Next event</button>
+            <button type="button" id="rqvfReset">Restart</button>
+          </div>
+        </div>
+        <section id="rqMicPanel" class="rqmic-panel" aria-labelledby="rqMicTitle">
+          <div class="rqmic-head">
+            <strong id="rqMicTitle">MICROPHONE TEST · LOCAL</strong>
+            <label for="rqMicLang"><span id="rqMicLangLabel">Spoken language</span>
+              <select id="rqMicLang"><option value="es">Español</option><option value="en">English</option></select>
+            </label>
+            <button id="rqMicStart" class="btn accent small" type="button">Record 10s</button>
+            <button id="rqMicStop" class="btn subtle small" type="button" disabled>Stop</button>
+            <meter id="rqMicMeter" min="0" max="100" value="0" aria-label="Microphone input level"></meter>
+          </div>
+          <p id="rqMicStatus" role="status" aria-live="polite"></p>
+          <div class="rqmic-review">
+            <audio id="rqMicListen" controls hidden></audio>
+            <a id="rqMicDownload" hidden download="runq-microphone.wav">Save WAV</a>
+          </div>
+          <small id="rqMicPrivacy">Local recording and playback only. No automatic GO. Nothing sent to Meta.</small>
+          <div class="rqmic-transcribe">
+            <label class="rqmic-consent"><input id="rqMicConsent" type="checkbox"> <span id="rqMicConsentLabel">I authorize one recording to be sent to Meta Muse for transcription.</span></label>
+            <button type="button" id="rqMicTranscribe" class="btn accent small" disabled>Transcribe with Muse</button>
+            <p id="rqMicTranscribeStatus" role="status" aria-live="polite">Record a phrase first. Remote transcription is optional.</p>
+            <output id="rqMicTranscript" class="rqmic-transcript" aria-live="polite"></output>
+            <output id="rqMicCueMatch" class="rqmic-transcript" aria-live="polite"></output>
+          </div>
+
+        </section>
+        <div class="rqvf-grid">
+          <div class="rqvf-cell">
+            <small id="rqvfInputHeading">TRANSCRIPT</small>
+            <div id="rqvfSnippet" class="rqvf-snippet"></div>
+            <span id="rqvfOrigin" class="rqvf-small"></span>
+          </div>
+          <div class="rqvf-cell">
+            <small id="rqvfResultHeading">MATCH RESULT</small>
+            <strong id="rqvfTranscript" class="rqvf-main-text"></strong>
+            <span id="rqvfLine" class="rqvf-small"></span>
+            <span id="rqvfScore" class="rqvf-small"></span>
+          </div>
+          <div class="rqvf-cell rqvf-results">
+            <small id="rqvfReadonly">SIMULATION ONLY</small>
+            <strong id="rqvfCue"></strong>
+            <span id="rqvfResult" class="rqvf-small"></span>
+          </div>
+        </div>
+        <div class="rqvf-foot">
+          <div class="rqvf-status">
+            <output id="rqvfClock">00:00</output>
+            <output id="rqvfCounter">0 / 0</output>
+            <p id="rqvfMessage" role="status" aria-live="polite">Ready.</p>
+          </div>
+          <div><small id="rqvfLogHeading">EVENT LOG</small>
+            <ol id="rqvfLog" class="rqvf-log" aria-label="Voice simulation log"></ol>
+          </div>
+        </div>
+      
+          </div>
+        </details>
+      </section>
       <div class="layout">
         <section class="panel home-panel" data-workspaces="home" aria-labelledby="homeHeading">
           <div class="panel-head"><div><span class="step">00</span><h2 id="homeHeading" data-i18n="workspace.homeTitle">Start your show</h2></div></div>
@@ -226,7 +368,7 @@
                   <summary>Historial y controles técnicos</summary>
                   <div class="sfx-advanced-content">
                     <label>ID de solicitud<input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
-                    <p id="jobTechnicalDetails" class="sfx-muted sfx-small" style="white-space:pre-wrap;overflow-wrap:anywhere"></p>
+                    <p id="jobTechnicalDetails" class="sfx-muted sfx-small sfx-technical-details"></p>
                     <div class="sfx-buttons">
                       <button class="btn" id="openJobBtn" type="button">Abrir registro</button>
                       <button class="btn" id="refreshBtn" type="button">Actualizar estado</button>
@@ -242,9 +384,16 @@
               <div class="sfx-source-file"><label for="localWav">Open a local WAV for zero-cost editing checks</label><input id="localWav" type="file" accept=".wav,audio/wav"><button class="btn" id="demoAudioBtn" type="button">Load offline synthetic test sound</button><span id="audioName" class="sfx-muted sfx-small">No audio loaded</span></div>
               <div class="sfx-wavepanel"><p class="sfx-wave-empty" id="sfxWaveEmpty">Cuando generes o cargues un WAV aparecerá aquí su onda de audio.</p><div class="sfx-wave-top"><span id="waveDuration">00:00.000</span><span>Real decoded PCM waveform · drag to select</span></div><canvas id="waveCanvas" width="900" height="250" aria-label="Waveform and selected non-destructive review region"></canvas><div class="sfx-time-ruler"><span>IN</span><span>Reviewed region</span><span>OUT</span></div></div>
               <div class="sfx-row-fields"><label>IN (seconds)<input id="inPoint" type="number" min="0" step="0.001" value="0" disabled></label><label>OUT (seconds)<input id="outPoint" type="number" min="0" step="0.001" value="0" disabled></label></div>
+              <div class="sfx-fade-editor">
+                <label><span id="sfxFadeInLabel">Fade in · 0.00 s</span><input id="sfxFadeIn" type="range" min="0" max="10" step="0.05" value="0" disabled></label>
+                <label><span id="sfxFadeOutLabel">Fade out · 0.00 s</span><input id="sfxFadeOut" type="range" min="0" max="10" step="0.05" value="0" disabled></label>
+                <label><span id="sfxDragLabel">Waveform gesture</span><select id="sfxDragMode">
+                  <option value="trim">Select IN/OUT</option><option value="fadeIn">Move fade-in edge</option><option value="fadeOut">Move fade-out edge</option>
+                </select></label>
+              </div>
               <div class="sfx-transport"><button class="btn primary" id="playBtn" type="button" disabled>▶ Preview selection</button><button class="btn" id="stopBtn" type="button" disabled>■ Stop</button><label class="sfx-level">Monitor level <input id="monitorLevel" type="range" min="0" max="50" value="15" aria-label="Audition volume"></label></div>
               <div class="sfx-notice sfx-muted">Preview uses the computer's default output, not an isolated PFL bus. Start at low volume. GO, NEXT and the running show are untouched.</div>
-              <div class="sfx-export"><div><h3>Commit the accepted source</h3><p>The original verified WAV is preserved. IN/OUT remain review metadata and can become non-destructive cue settings after manual assignment.</p></div><div class="sfx-buttons"><button class="btn" id="exportBtn" type="button" disabled>Download original WAV</button><button class="btn primary-secondary" id="importLibraryBtn" type="button" disabled>Import accepted WAV to library</button></div></div>
+              <div class="sfx-export"><div><h3>Commit the accepted source</h3><p>The original verified WAV is preserved. IN/OUT remain review metadata and can become non-destructive cue settings after manual assignment.</p></div><div class="sfx-buttons"><button class="btn" id="exportBtn" type="button" disabled>Download original WAV</button><button class="btn primary-secondary" id="importLibraryBtn" type="button" disabled>Import accepted WAV to library</button><button class="btn accent" id="importCueBtn" type="button" disabled>Import + create cue</button></div></div>
               <div role="status" aria-live="polite" class="sfx-feedback" id="feedback">Sound Lab is idle. No provider request has been made.</div>
             </section>
           </div>
