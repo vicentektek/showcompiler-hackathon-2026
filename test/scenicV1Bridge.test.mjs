@@ -38,6 +38,12 @@ test('V1 STOP with no cue identity is suggestion, not STOP ALL',()=>{
   assert.equal(item.disposition,'OPERATOR_SUGGESTION');
   assert.equal(item.operation,null);
 });
+test('STOP with a named cue but unknown playback state still needs review',()=>{
+  const [item]=bridge({scriptText,events:[event('L4','STOP')],
+    operatorBindings:{L4:{sourceCueId:'loop-1'}}}).items;
+  assert.equal(item.disposition,'OPERATOR_SUGGESTION');
+  assert.equal(item.operation,null);
+});
 test('operator-verified ended one-shot creates no STOP action',()=>{
   const [item]=bridge({scriptText,events:[event('L4','STOP')],
     operatorBindings:{L4:{sourceCueId:'boing',playbackMode:'ONE_SHOT',playbackState:'ENDED'}}}).items;
