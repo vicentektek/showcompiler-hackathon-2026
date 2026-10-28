@@ -114,6 +114,13 @@
             <a id="rqMicDownload" hidden download="runq-microphone.wav">Save WAV</a>
           </div>
           <small id="rqMicPrivacy">Local recording and playback only. No automatic GO. Nothing sent to Meta.</small>
+          <div class="rqmic-transcribe">
+            <label class="rqmic-consent"><input id="rqMicConsent" type="checkbox"> <span id="rqMicConsentLabel">I authorize one recording to be sent to Meta Muse for transcription.</span></label>
+            <button type="button" id="rqMicTranscribe" class="btn accent small" disabled>Transcribe with Muse</button>
+            <p id="rqMicTranscribeStatus" role="status" aria-live="polite">Record a phrase first. Remote transcription is optional.</p>
+            <output id="rqMicTranscript" class="rqmic-transcript" aria-live="polite"></output>
+          </div>
+
         </section>
         <div class="rqvf-grid">
           <div class="rqvf-cell">
