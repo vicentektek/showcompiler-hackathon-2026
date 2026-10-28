@@ -1,0 +1,26 @@
+/* Settings panel: honest local-only keyboard map, integrated into Stagecraft Setup. */
+.runq-keymap{
+ display:grid;gap:12px;margin-top:17px;padding:16px 18px;
+ background:#121b24;border:1px solid #394650;border-radius:7px;
+ color:#e8efed;
+}
+.runq-keymap-heading{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.runq-keymap-heading h3{margin:0;font-size:17px;color:#e9f2e4}
+.runq-keymap .caption{color:#b6c2c9;font-size:12px;line-height:1.45}
+.runq-keymap p{margin:0}
+.runq-keymap-check{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px}
+.runq-keymap-check input{width:17px;height:17px;accent-color:var(--rq5-lime,#d9f877)}
+.runq-keymap-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.runq-keymap-columns>label:not(.runq-keymap-check){
+ display:grid;gap:6px;font-size:12px;color:#c7d3d5;
+}
+.runq-keymap-columns select{
+ width:100%;max-width:100%;min-height:38px;
+ padding:7px 10px;border:1px solid #62717b;border-radius:5px;
+ background:#0c141c;color:#f1f4f0;
+}
+.runq-keymap select:focus-visible,.runq-keymap button:focus-visible,
+.runq-keymap input:focus-visible{outline:2px solid var(--rq5-lime,#d9f877);outline-offset:2px}
+.runq-keymap-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#runqKeyboardFeedback{min-height:1.2em;color:#d9f877}
+@media(max-width:700px){.runq-keymap-columns{grid-template-columns:1fr}}
