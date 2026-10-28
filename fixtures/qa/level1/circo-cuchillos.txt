@@ -2,7 +2,7 @@ NÚMERO 3 — Los cuchillos del aire
 (SONIDO 9: reproducir la entrada grabada de tambores mientras el lanzador sube al plato alto.)
 (EL LANZADOR sube con sus pasos reales sobre la tarima; la madera cede de verdad.)
 (SONIDO 9: detener la entrada grabada de tambores con un corte exacto.)
-(SONIDO 9: pasar el número al SILENCIO ABSOLUTO de seguridad mientras vuelan los cuchillos de la rutina.)
+(SONIDO 9: pasar el número al SILENCIO ABSOLUTO de seguridad mientras vuelan los cuchillos; la orden queda preparada y revisada, la dispara el operador y ninguna rutina automática se salta los mandos de seguridad.)
 OFICIAL (voz real, sin micro del ring): Ningún altavoz, ningún playback y ningún archivo de audio hasta el final del número.
 (La banda en directo espera callada al borde de la pista.)
 (El público sigue la respiración del lanzador; la sala es quien sonríe y calla.)

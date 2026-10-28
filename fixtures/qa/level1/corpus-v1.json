@@ -4,9 +4,9 @@
   "manifestKind": "ORIGINAL_PROVISIONAL_GOLD_NOT_A_MODEL_BENCHMARK",
   "provenance": "ORIGINAL_SYNTHETIC_MANUSCRIPT_CORPUS_NOT_LIVE_MODEL_MEASUREMENTS",
   "humanReviewStatus": "PROVISIONAL_UNREVIEWED",
-  "purpose": "Level 1 of the six-level progressive curriculum (fixtures/qa/curriculum-v1.json): explicit recorded audio cues versus ordinary script content, mentioned-only sounds and practical stage sounds. Every script, event and justification is original hackathon material written for this corpus. No provider response, score or measured model quality lives here, and nothing in this file may run, approve or trigger a cue.",
+  "purpose": "Level 1 of the six-level progressive curriculum (fixtures/qa/curriculum-v1.json): explicit recorded audio cues versus ordinary script content, mentioned-only sounds and practical stage sounds. Every script, event and justification is original hackathon material written for this corpus. No provider response, score or measured model quality lives here, and nothing in this file may run, approve or trigger a cue. The qualification pool reserves exactly ten locked cases matching the level gate, and an operator reviews every annotation before any paid model use.",
   "poolPolicy": "DEVELOPMENT_CASES_SUPPORT_HUMAN-GUIDED_ITERATION_QUALIFICATION_CASES_SUPPORT_LEVEL1_QUALIFICATION_EVIDENCE_ONLY",
-  "qualificationPolicy": "QUALIFICATION_POOL_MUST_NOT_FEED_PROMPT_OPTIMIZATION_OR_TUNING_AND_STAYS_LOCKED_UNTIL_OPERATOR_SIGNOFF",
+  "qualificationPolicy": "QUALIFICATION_POOL_RESERVES_EXACTLY_TEN_LOCKED_CASES_MATCHING_THE_LEVEL_GATE_MUST_NOT_FEED_PROMPT_OPTIMIZATION_OR_TUNING_AND_STAYS_LOCKED_UNTIL_OPERATOR_SIGNOFF",
   "level": {
     "index": 1,
     "name": "Explicit versus false positives",
@@ -26,7 +26,13 @@
     "circo-cuchillos",
     "keynote-rundown",
     "monologo-farola",
-    "despedida-mixta"
+    "despedida-mixta",
+    "reloj-muerto",
+    "barn-nap-puppets",
+    "pizarra-comica",
+    "echo-ferry-choir",
+    "patinaje-hielo-nocturno",
+    "sales-kickoff-hall"
   ],
   "cases": [
     {
@@ -85,11 +91,11 @@
         "expected": [
           {
             "lineId": "L2",
-            "text": "La tormenta entra como ambiente desde archivo, con orden técnica de sonido 7 y volumen marcado: playback real de ambiente."
+            "text": "La tormenta entra como ambiente grabado sostenido con trueno largo rodante en bucle (no un golpe one-shot de archivo), orden técnica de sonido 7 y volumen medio: playback real de ambiente."
           },
           {
             "lineId": "L5",
-            "text": "El trueno grabado sigue en función bajo el diálogo: acción de continuidad sobre la misma pista, sin reproducir nada nuevo."
+            "text": "El mismo ambiente de tormenta de archivo sigue rodando bajo el diálogo: CONTINUE sobre la pista ya lanzada, sin reproducir nada nuevo; un trueno one-shot no sería continuable."
           },
           {
             "lineId": "L9",
@@ -168,11 +174,11 @@
         "expected": [
           {
             "lineId": "L3",
-            "text": "El boing de dibujos animados entra desde el archivo indicado por sonido 12: PLAY explícito del gag grabado."
+            "text": "El boing se lanza como vaivén repetido que persiste hasta nueva orden: PLAY explícito del gag grabado por sonido 12; un one-shot ya extinto no podría recibir stop."
           },
           {
             "lineId": "L8",
-            "text": "Corte seco del mismo boing grabado al caer el portazo real: STOP determinista del gag."
+            "text": "El vaivén del boing sigue sonando y se corta en seco al caer el portazo real: STOP determinista válido sobre la misma pista del gag."
           }
         ],
         "negative": [
@@ -619,7 +625,7 @@
           },
           {
             "lineId": "L5",
-            "text": "Pasar el número al silencio absoluto de seguridad mientras vuelan los cuchillos: transporte SILENCE; el silencio es crítico para la seguridad."
+            "text": "Pasar el número al silencio absoluto de seguridad mientras vuelan los cuchillos: propuesta de cue SILENCE revisada por el operador, preparada y disparada a mano con los mandos deterministas existentes; nunca es un mute automático ni anula STOP ALL."
           },
           {
             "lineId": "L9",
@@ -633,15 +639,15 @@
           },
           {
             "lineId": "L6",
-            "text": "Banda en directo callada al borde de la pista: ejecución humana sin archivo."
+            "text": "El oficial anuncia en directo, sin micro del ring, que no habrá altavoz, playback ni archivo hasta el final del número: prohibición hablada, no una orden de transporte ni un silencio automático."
           },
           {
             "lineId": "L7",
-            "text": "La sala calla y acompaña la respiración del lanzador; ningún altavoz reproduce eso."
+            "text": "La banda en directo espera callada al borde de la pista: ejecución humana sin archivo."
           },
           {
             "lineId": "L8",
-            "text": "Responsabilidad del silencio en la sala durante el juego: no hay orden técnica de PLAY ni archivo."
+            "text": "La sala calla y acompaña la respiración del lanzador; ningún altavoz reproduce eso."
           },
           {
             "lineId": "L10",
@@ -700,11 +706,11 @@
         "expected": [
           {
             "lineId": "L2",
-            "text": "The promo video rolls with its recorded soundtrack: the file's production audio is an explicit playback cue."
+            "text": "The promo video rolls with its recorded production soundtrack: one pre-mixed canned media file played back through the existing FX kind; the schema adds no new VIDEO category and the bed is not live voice, music-only or room ambience."
           },
           {
             "lineId": "L4",
-            "text": "The promo video audio is stopped while the picture stays frozen: deterministic STOP of that file."
+            "text": "The promo video's recorded audio cuts while the picture stays frozen on screen: deterministic STOP of the same canned FX file; the picture is video engineering, not audio transport."
           },
           {
             "lineId": "L6",
@@ -771,7 +777,7 @@
         "expected": [
           {
             "lineId": "L9",
-            "text": "Orden técnica explícita de silencio absoluto hasta la salida de la actriz: transporte SILENCE del sistema."
+            "text": "Orden técnica explícita de silencio absoluto hasta la salida de la actriz: propuesta de cue SILENCE que el operador prepara y dispara con los mandos deterministas; ninguna rutina automática ejecuta el silencio ni anula los controles de seguridad en vivo."
           }
         ],
         "negative": [
@@ -897,6 +903,507 @@
         ]
       },
       "sceneWindowCount": 2,
+      "reviewStatus": "PROVISIONAL_UNREVIEWED"
+    },
+    {
+      "id": "reloj-muerto",
+      "title": "El reloj muerto",
+      "file": "fixtures/qa/level1/reloj-muerto.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "pool": "qualification",
+      "tuningUse": false,
+      "difficulty": {
+        "rating": 2,
+        "focus": "tic-tac de ambiente sostenido frente al reloj y las campanadas reales del atrezo y el sonajero prohibido del ensayo"
+      },
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L6",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L9",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L3",
+        "L4",
+        "L5",
+        "L7",
+        "L8",
+        "L10"
+      ],
+      "justifications": {
+        "expected": [
+          {
+            "lineId": "L2",
+            "text": "El tic-tac grave entra en bucle como ambiente grabado de sala durante todo el velatorio, no como golpe puntual: PLAY del archivo."
+          },
+          {
+            "lineId": "L6",
+            "text": "El mismo tic-tac grabado sigue sonando bajo los diálogos sin lanzar nada nuevo: CONTINUE sobre la pista ya lanzada."
+          },
+          {
+            "lineId": "L9",
+            "text": "Quitar el tic-tac grabado en el apagón exacto del cuadro: STOP determinista del ambiente."
+          }
+        ],
+        "negative": [
+          {
+            "lineId": "L3",
+            "text": "El reloj de atrezo se puntea en directo con la mano: objeto físico, nunca archivo."
+          },
+          {
+            "lineId": "L4",
+            "text": "La liebre del reloj es metáfora de diálogo: nadie lanza pista alguna."
+          },
+          {
+            "lineId": "L5",
+            "text": "El sonajero se ensayó con grabación y hoy existe una negación explícita: no hay playback del sonajero."
+          },
+          {
+            "lineId": "L7",
+            "text": "El tic-tac descrito hasta la salida es imagen del diálogo, no orden técnica."
+          },
+          {
+            "lineId": "L8",
+            "text": "Las diez campanadas salen del mecanismo real del atrezo: sonido práctico en vivo."
+          },
+          {
+            "lineId": "L10",
+            "text": "Salida en silencio real y nadie pide archivo hasta el cuadro dos: cierre sin playback."
+          }
+        ]
+      },
+      "sceneWindowCount": 1,
+      "reviewStatus": "PROVISIONAL_UNREVIEWED"
+    },
+    {
+      "id": "barn-nap-puppets",
+      "title": "The Barn Nap",
+      "file": "fixtures/qa/level1/barn-nap-puppets.txt",
+      "type": "children-theatre",
+      "documentKind": "cue_sheet",
+      "language": "en",
+      "pool": "qualification",
+      "tuningUse": false,
+      "difficulty": {
+        "rating": 3,
+        "focus": "operator-held dead silence with rooster fanfare FX against live sneaker squeaks and hall applause"
+      },
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L4",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L6",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L8",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L3",
+        "L5",
+        "L7",
+        "L9",
+        "L10"
+      ],
+      "justifications": {
+        "expected": [
+          {
+            "lineId": "L2",
+            "text": "The rooster fanfare is a canned gag file prepared for the wake-up: explicit FX playback."
+          },
+          {
+            "lineId": "L4",
+            "text": "The same recorded rooster fades at the first huge yawn: deterministic STOP of that FX file."
+          },
+          {
+            "lineId": "L6",
+            "text": "The nap silence is reserved as an operator-reviewed SILENCE cue proposal: prepared and fired by the operator with the existing deterministic controls, never an automatic mute of the hall."
+          },
+          {
+            "lineId": "L8",
+            "text": "The recorded morning bell plays softly until the puppets dance: explicit FX playback from a file."
+          }
+        ],
+        "negative": [
+          {
+            "lineId": "L3",
+            "text": "Squeaking sneakers are live puppeteer action on the boards; every step is real, never a file."
+          },
+          {
+            "lineId": "L5",
+            "text": "The owl's dream merely mentions the rooster again; a mention without a technical order is not playback."
+          },
+          {
+            "lineId": "L7",
+            "text": "The children's held breath is the room's own live sound; no speaker carries it."
+          },
+          {
+            "lineId": "L9",
+            "text": "The grown-ups clap in the room: hall applause and nobody's file."
+          },
+          {
+            "lineId": "L10",
+            "text": "End of show announces no file at the barn door: explicit no-playback closure."
+          }
+        ]
+      },
+      "sceneWindowCount": 1,
+      "reviewStatus": "PROVISIONAL_UNREVIEWED"
+    },
+    {
+      "id": "pizarra-comica",
+      "title": "La velada cómica de la pizarra",
+      "file": "fixtures/qa/level1/pizarra-comica.txt",
+      "type": "comedy",
+      "documentKind": "running_order",
+      "language": "es",
+      "pool": "qualification",
+      "tuningUse": false,
+      "difficulty": {
+        "rating": 2,
+        "focus": "gag grabado en vaivén repetido con corte válido frente a chapuzones prácticos, timbre real y risa en directo"
+      },
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L4",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L6",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L3",
+        "L5",
+        "L7",
+        "L8"
+      ],
+      "justifications": {
+        "expected": [
+          {
+            "lineId": "L2",
+            "text": "El chapuzón de dibujos entra como vaivén repetido que persiste hasta nueva orden: PLAY explícito del gag grabado."
+          },
+          {
+            "lineId": "L4",
+            "text": "El vaivén del chapuzón sigue sonando y se corta en seco al bajar el telón corto: STOP determinista válido sobre la misma pista."
+          },
+          {
+            "lineId": "L6",
+            "text": "El platillo grabado del récord trimestral es el stinger puntual del anuncio: golpe de archivo."
+          }
+        ],
+        "negative": [
+          {
+            "lineId": "L3",
+            "text": "El cubo real cae y chapotea sobre la tarima: acción física con su propio sonido, sin cue."
+          },
+          {
+            "lineId": "L5",
+            "text": "La directora recuerda el chapuzón del ensayo y lo niega para esta noche: memoria con negación tajante."
+          },
+          {
+            "lineId": "L7",
+            "text": "El timbre real del escritorio lo toca el contable tres veces: sonido práctico en vivo."
+          },
+          {
+            "lineId": "L8",
+            "text": "La risa de la sala es en directo y el cierre descarta archivo: referencia negativa rotunda."
+          }
+        ]
+      },
+      "sceneWindowCount": 1,
+      "reviewStatus": "PROVISIONAL_UNREVIEWED"
+    },
+    {
+      "id": "echo-ferry-choir",
+      "title": "The Ferryman's Deck",
+      "file": "fixtures/qa/level1/echo-ferry-choir.txt",
+      "type": "musical",
+      "documentKind": "libretto",
+      "language": "en",
+      "pool": "qualification",
+      "tuningUse": false,
+      "difficulty": {
+        "rating": 3,
+        "focus": "recorded backing track under live vocals beside a live pit-band overture and a living audience hum"
+      },
+      "expected": [
+        {
+          "lineId": "L3",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L6",
+          "transport": "CONTINUE",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L8",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L2",
+        "L4",
+        "L5",
+        "L9",
+        "L10"
+      ],
+      "justifications": {
+        "expected": [
+          {
+            "lineId": "L3",
+            "text": "The backing track of \"Anchors of Midnight\" plays from a recorded file under the vocals: explicit music playback."
+          },
+          {
+            "lineId": "L6",
+            "text": "The same recorded backing track keeps running under the second chorus with no new files: CONTINUE."
+          },
+          {
+            "lineId": "L8",
+            "text": "The recorded track is softened and stopped under the captain's speech: deterministic STOP of that file."
+          }
+        ],
+        "negative": [
+          {
+            "lineId": "L2",
+            "text": "The pit band plays the overture live and any recorded overture is explicitly excluded: live music, not playback."
+          },
+          {
+            "lineId": "L4",
+            "text": "HELSA's counting of the waves is dialogue metaphor; that line directs no file."
+          },
+          {
+            "lineId": "L5",
+            "text": "HELSA sings live over the backing track: her voice never sits in a file."
+          },
+          {
+            "lineId": "L9",
+            "text": "The audience hums live in its seats; nobody loads that hum today."
+          },
+          {
+            "lineId": "L10",
+            "text": "The finale is sung live by three voices; no file carries a single note."
+          }
+        ]
+      },
+      "sceneWindowCount": 2,
+      "reviewStatus": "PROVISIONAL_UNREVIEWED"
+    },
+    {
+      "id": "patinaje-hielo-nocturno",
+      "title": "El lago de hielo",
+      "file": "fixtures/qa/level1/patinaje-hielo-nocturno.txt",
+      "type": "dance",
+      "documentKind": "calling_script",
+      "language": "es",
+      "pool": "qualification",
+      "tuningUse": false,
+      "difficulty": {
+        "rating": 2,
+        "focus": "tambor parlante y viento grabados frente a patines reales, sirena de ensayo y cierre sin archivo"
+      },
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L4",
+          "transport": "CONTINUE",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L8",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L9",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L3",
+        "L5",
+        "L6",
+        "L10"
+      ],
+      "justifications": {
+        "expected": [
+          {
+            "lineId": "L2",
+            "text": "El tambor parlante grabado entra desde la botella con niveles de caldera marcados: playback de pista musical."
+          },
+          {
+            "lineId": "L4",
+            "text": "El mismo tambor grabado sigue bajo la segunda variación sin cargar nada nuevo: CONTINUE de la pista."
+          },
+          {
+            "lineId": "L8",
+            "text": "El viento del desfiladero sale grabado y muy bajo para abrigar la reverencia: ambiente desde archivo."
+          },
+          {
+            "lineId": "L9",
+            "text": "El viento grabado se quita en la reverencia final: STOP determinista del ambiente."
+          }
+        ],
+        "negative": [
+          {
+            "lineId": "L3",
+            "text": "El roce de los patines reales sobre la pista es acción física en vivo; ningún archivo lo guarda."
+          },
+          {
+            "lineId": "L5",
+            "text": "El tambor que cuenta lo no dicho es metáfora de diálogo, no orden técnica."
+          },
+          {
+            "lineId": "L6",
+            "text": "La sirena del estreno vuelve a la carpeta y no sale esta noche: memoria con negación explícita."
+          },
+          {
+            "lineId": "L10",
+            "text": "El abrazo final sucede sin corneta y sin archivo; en la salida no se pide pista alguna."
+          }
+        ]
+      },
+      "sceneWindowCount": 2,
+      "reviewStatus": "PROVISIONAL_UNREVIEWED"
+    },
+    {
+      "id": "sales-kickoff-hall",
+      "title": "Sales kickoff, main hall",
+      "file": "fixtures/qa/level1/sales-kickoff-hall.txt",
+      "type": "corporate",
+      "documentKind": "running_order",
+      "language": "en",
+      "pool": "qualification",
+      "tuningUse": false,
+      "difficulty": {
+        "rating": 2,
+        "focus": "walk-in playlist and sponsor voice-over against a live host microphone and physical confetti cannons"
+      },
+      "expected": [
+        {
+          "lineId": "L2",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L3",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L7",
+          "transport": "STOP",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L4",
+        "L6",
+        "L8"
+      ],
+      "justifications": {
+        "expected": [
+          {
+            "lineId": "L2",
+            "text": "The walk-in playlist is a recorded file played from the door at moderate level: explicit music playback."
+          },
+          {
+            "lineId": "L3",
+            "text": "The same playlist ends exactly at the countdown: deterministic music STOP."
+          },
+          {
+            "lineId": "L5",
+            "text": "The sponsor voice-over is recorded speech over the yearly reel: playback of a VOICE file."
+          },
+          {
+            "lineId": "L7",
+            "text": "The sponsor voice-over is cut as the panel walks in from the wings: deterministic STOP of the same VOICE cue."
+          }
+        ],
+        "negative": [
+          {
+            "lineId": "L4",
+            "text": "The host speaks from a live desk mic and the hall hums on its own: live capture, not playback."
+          },
+          {
+            "lineId": "L6",
+            "text": "The confetti cannons fire physically above the stage: practical action with no file."
+          },
+          {
+            "lineId": "L8",
+            "text": "Wrap declares no more files at the booth: the hallway keeps its real echo."
+          }
+        ]
+      },
+      "sceneWindowCount": 1,
       "reviewStatus": "PROVISIONAL_UNREVIEWED"
     }
   ]

@@ -13,6 +13,8 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CASE_IDS = [
   'marina-house', 'pastel-company', 'bosque-narrado', 'gala-estelar', 'obertura-viva',
   'glass-river-dance', 'circo-cuchillos', 'keynote-rundown', 'monologo-farola', 'despedida-mixta',
+  'reloj-muerto', 'barn-nap-puppets', 'pizarra-comica', 'echo-ferry-choir',
+  'patinaje-hielo-nocturno', 'sales-kickoff-hall',
 ];
 const SHOW_TYPES = ['play', 'comedy', 'children-theatre', 'gala', 'musical', 'dance', 'circus', 'corporate', 'monologue', 'mixed-programme'];
 
@@ -37,7 +39,7 @@ test('level1 corpus loads, stays provisional and matches the level 1 contract', 
   assert.equal(corpus.level.name, 'Explicit versus false positives');
   assert.equal(corpus.level.gate.kind, 'EXACT_CASES');
   assert.equal(corpus.level.gate.exactCasesRequired, 10);
-  assert.equal(corpus.cases.length, 10);
+  assert.equal(corpus.cases.length, 16);
   assert.deepEqual(corpus.caseOrder, CASE_IDS);
   for (const item of corpus.cases) {
     assert.equal(item.reviewStatus, 'PROVISIONAL_UNREVIEWED');
@@ -53,13 +55,30 @@ test('level1 corpus loads, stays provisional and matches the level 1 contract', 
     assert.ok(item.justifications.negative.length === item.forbiddenPlayLineIds.length);
   }
   const totals = summarizeLevel1Corpus(corpus);
-  assert.equal(totals.cases, 10);
-  assert.equal(totals.windows, 15);
-  assert.equal(totals.expectedEvents, 34);
-  assert.equal(totals.forbiddenPlayLines, 54);
-  assert.deepEqual(totals.languages, {es: 8, en: 2});
-  assert.deepEqual(totals.pools, {development: 6, qualification: 4});
+  assert.equal(totals.cases, 16);
+  assert.equal(totals.windows, 23);
+  assert.equal(totals.expectedEvents, 55);
+  assert.equal(totals.forbiddenPlayLines, 81);
+  assert.deepEqual(totals.languages, {es: 11, en: 5});
+  assert.deepEqual(totals.pools, {development: 6, qualification: 10});
   assert.deepEqual([...new Set(corpus.cases.map(item => item.type))].sort(), [...SHOW_TYPES].sort());
+});
+
+test('the qualification pool reserves exactly ten locked cases for the level gate', () => {
+  const qualification = corpus.cases.filter(item => item.pool === 'qualification');
+  const development = corpus.cases.filter(item => item.pool === 'development');
+  assert.equal(qualification.length, 10);
+  assert.equal(development.length, 6);
+  assert.deepEqual(qualification.map(item => item.id), [
+    'obertura-viva', 'glass-river-dance', 'keynote-rundown', 'monologo-farola',
+    'reloj-muerto', 'barn-nap-puppets', 'pizarra-comica',
+    'echo-ferry-choir', 'patinaje-hielo-nocturno', 'sales-kickoff-hall',
+  ]);
+  for (const item of qualification) assert.equal(item.tuningUse, false);
+  assert.throws(tamper(manifest => {
+    manifest.cases[4].pool = 'development';
+    manifest.cases[4].tuningUse = true;
+  }), TypeError, /qualification pool must reserve exactly 10/);
 });
 
 test('window accounting matches the deterministic offline planner', () => {
@@ -84,9 +103,18 @@ test('designed traps exist verbatim in the scripts', () => {
   assert.match(byId['bosque-narrado'].scriptText, /NO reproducimos la música de la cueva/);
   assert.match(byId['pastel-company'].scriptText, /resbala con el jabón real del suelo/);
   assert.match(byId['pastel-company'].scriptText, /no se reproduce ninguna risa grabada/);
+  assert.match(byId['pastel-company'].scriptText, /en vaivén repetido hasta nueva orden/);
   assert.match(byId['marina-house'].scriptText, /El teléfono real del atrezo suena/);
+  assert.match(byId['marina-house'].scriptText, /con trueno largo rodante, volumen medio/);
   assert.match(byId['circo-cuchillos'].scriptText, /SILENCIO ABSOLUTO/);
+  assert.match(byId['circo-cuchillos'].scriptText, /la dispara el operador/);
   assert.match(byId['despedida-mixta'].scriptText, /se acabó el archivo/);
+  assert.match(byId['reloj-muerto'].scriptText, /NO entra ningún sonajero grabado/);
+  assert.match(byId['barn-nap-puppets'].scriptText, /held by the operator's own hand/);
+  assert.match(byId['pizarra-comica'].scriptText, /en la carpeta; esta noche no sale/);
+  assert.match(byId['echo-ferry-choir'].scriptText, /no recorded overture is allowed/);
+  assert.match(byId['patinaje-hielo-nocturno'].scriptText, /La sirena del estreno/);
+  assert.match(byId['sales-kickoff-hall'].scriptText, /no more files at the booth/);
 });
 
 test('duplicate case ids are rejected', () => {
@@ -156,7 +184,7 @@ test('strict schema consistency for cases and manifest', () => {
   assert.throws(tamper(manifest => { manifest.humanReviewStatus = 'HUMAN_REVIEWED'; }),
     TypeError, /PROVISIONAL_UNREVIEWED/);
   assert.throws(tamper(manifest => { manifest.level.gate.exactCasesRequired = 9; }),
-    TypeError, /exactly 10 exact cases/);
+    TypeError, /exactly 10 exact qualification cases/);
   assert.throws(tamper(manifest => {
     [manifest.caseOrder[0], manifest.caseOrder[1]] = [manifest.caseOrder[1], manifest.caseOrder[0]];
   }), TypeError, /caseOrder must list the exact case ids/);
@@ -173,8 +201,8 @@ test('the corpus feeds the offline scorer without any provider claim', () => {
     predictionsByCase: {},
   });
   assert.equal(empty.modelQualityMeasured, false);
-  assert.equal(empty.summary.expectedEvents, 34);
-  assert.equal(empty.summary.falseNegatives, 34);
+  assert.equal(empty.summary.expectedEvents, 55);
+  assert.equal(empty.summary.falseNegatives, 55);
   assert.equal(empty.summary.forbiddenPlay, 0);
   assert.match(empty.goldProvenance, /HUMAN_REVIEW_STATUS_PROVISIONAL_UNREVIEWED$/);
 
@@ -227,8 +255,8 @@ test('the offline review command renders the human review draft', async () => {
     for (const id of ['pastel-company', 'monologo-farola', 'circo-cuchillos']) {
       assert.ok(md.includes('## ' + id + ' —'), 'review md includes case ' + id);
     }
-    assert.match(md, /L2\s{2}\(SONIDO 7: reproducir el trueno largo grabado, volumen medio\.\)/);
-    assert.equal(md.split('### Operator sign-off').length - 1, 10);
+    assert.match(md, /L2\s{2}\(SONIDO 7: reproducir el ambiente de tormenta grabado, con trueno largo rodante, volumen medio\.\)/);
+    assert.equal(md.split('### Operator sign-off').length - 1, 16);
   } finally {
     await rm(temp, {recursive: true, force: true});
   }
@@ -241,7 +269,7 @@ test('the reader reports missing script files cleanly on disk', async () => {
     await mkdir(root, {recursive: true});
     await cp(join(ROOT, 'fixtures'), join(root, 'fixtures'), {recursive: true});
     const diskCorpus = await readLevel1Corpus({rootDir: root});
-    assert.equal(diskCorpus.cases.length, 10);
+    assert.equal(diskCorpus.cases.length, 16);
     await unlink(join(root, 'fixtures/qa/level1/gala-estelar.txt'));
     await assert.rejects(() => readLevel1Corpus({rootDir: root}),
       TypeError, /Missing level1 script file for gala-estelar/);

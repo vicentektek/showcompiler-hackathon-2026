@@ -1,8 +1,8 @@
 ESCENA 1 — La casa frente al mar
-(SONIDO 7: reproducir el trueno largo grabado, volumen medio.)
+(SONIDO 7: reproducir el ambiente de tormenta grabado, con trueno largo rodante, volumen medio.)
 MARINA: Esta casa escucha todo lo que decimos.
 MARINA: El mar golpea las ventanas como un animal encerrado.
-(SONIDO 7: mantener el trueno grabado bajo el diálogo.)
+(SONIDO 7: mantener el mismo ambiente de tormenta grabado rodando bajo el diálogo.)
 TOÑO: Anoche sonó el timbre del teléfono de la mesa y nadie descolgó.
 TOÑO: Sigo oyendo ese timbre dentro de la cabeza.
 (El teléfono real del atrezo suena una sola vez sobre la mesa.)
