@@ -66,16 +66,24 @@ def get_model():
 def generate_sfx(prompt: str, duration_seconds: int, seed: int) -> bytes:
     """One short audio generation. FunctionCall result is never linked to cues."""
     import soundfile as sf
+    import time
 
     if not 1 <= duration_seconds <= MAX_SECONDS or not 0 <= seed <= 2147483647:
         raise ValueError("Out of pilot bounds")
     if not isinstance(prompt, str) or not 0 < len(prompt.strip()) <= 1000:
         raise ValueError("Invalid prompt")
 
-    audio = get_model().generate(
+    cold = get_model.cache_info().hits == 0
+    started_at = time.perf_counter()
+    model = get_model()
+    model_load_ms = round((time.perf_counter() - started_at) * 1000, 1)
+    inference_at = time.perf_counter()
+    audio = model.generate(
         prompt=prompt, duration=duration_seconds, seed=seed,
         steps=8, batch_size=1,
     )
+    inference_ms = round((time.perf_counter() - inference_at) * 1000, 1)
+    write_at = time.perf_counter()
     if audio.ndim == 3:
         audio = audio[0]
     if audio.ndim != 2 or audio.shape[0] not in (1, 2):
@@ -88,6 +96,19 @@ def generate_sfx(prompt: str, duration_seconds: int, seed: int) -> bytes:
     wav = wav_io.getvalue()
     if not 44 <= len(wav) <= MAX_WAV_BYTES:
         raise ValueError("Generated audio exceeds the 12-second pilot envelope")
+    # Structured timing logs; never log prompt, credentials or audio.
+    import json
+    import torch
+    print("RUNQ_SFX_TIMING " + json.dumps({
+        "gpu": torch.cuda.get_device_name(0),
+        "coldModel": cold,
+        "modelLoadMs": model_load_ms,
+        "inferenceMs": inference_ms,
+        "wavEncodeMs": round((time.perf_counter() - write_at) * 1000, 1),
+        "workerTotalMs": round((time.perf_counter() - started_at) * 1000, 1),
+        "durationSeconds": duration_seconds,
+        "outputBytes": len(wav),
+    }), flush=True)
     return wav
 
 
