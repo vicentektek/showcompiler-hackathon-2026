@@ -46,7 +46,11 @@ export function decideOperatorShortcut(event={}, settings={}, workspace='') {
   // Keyboard Space already activates a focused native button; intercepting
   // there would cause double GO or steal the key from a form control.
   const target=event.target;
-  if (target?.closest?.(EDITABLE) || target?.isContentEditable) return null;
+  // Cue sequence rows are focusable buttons. In the editor these rows are
+  // dedicated keyboard command surfaces: Enter still selects the cue, while
+  // mapped Space/GO fires the prepared NEXT (not the selected row).
+  const cueRow=target?.closest?.('[data-cue-select]');
+  if ((target?.closest?.(EDITABLE) && !cueRow) || target?.isContentEditable) return null;
   if (event.inModal===true) return null;
   const code=event.code || (event.key===' ' ? 'Space' :
     /^[a-z]$/i.test(event.key??'')?'Key'+event.key.toUpperCase():event.key);
