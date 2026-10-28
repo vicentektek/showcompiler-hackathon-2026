@@ -63,9 +63,10 @@ async function arm(){
  busy=false;
  if(epoch!==armEpoch||!listening||$('rqLiveMode').value!=='auto')return;
  if(!result?.ok){
+  display();
   status('Cannot arm audio: '+(result?.reason??'OUTPUT_ERROR'),
    'No se puede armar audio: '+(result?.reason??'OUTPUT_ERROR'));
-  display();return;
+  return;
  }
  const focus=Number($('rqLiveFocus').value);
  autoState=initialRehearsalAutoState({
