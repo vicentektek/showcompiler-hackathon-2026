@@ -123,7 +123,8 @@ export async function runSfxLatencyLab(opt,{serverFactory=createAppServer,envLoa
       }catch(error){
         record.status='SUBMISSION_UNKNOWN_OR_REJECTED';
         record.reason=error.code??'UNKNOWN';
-        throw error;
+        session.stoppedReason='Submission failed or outcome is unknown; inspect Modal before any new paid call.';
+        return session;
       }
       record.submitHttpMs=round(now()-first);
       record.status=start.status??'QUEUED';
