@@ -140,9 +140,12 @@ html[data-rqai-mounted] .rqai-library-shortcut{
 .rqai-sound-workspace .sfx-transport .btn.primary{background:var(--rqai-lime)!important;color:#1a2014!important}
 .rqai-sound-workspace .sfx-transport .sfx-level input{accent-color:var(--rqai-teal)}
 .rqai-use{
-  align-self:stretch;min-width:0;
+  /* Decision controls stay available while the user edits/listens to the
+     waveform or scrolls long provider history on a desktop monitor. */
+  position:sticky;top:12px;align-self:start;min-width:0;
   display:flex!important;flex-direction:column;gap:12px!important;
-  min-height:530px;padding:16px!important;overflow-y:auto;
+  min-height:380px;max-height:calc(100dvh - 145px);
+  padding:16px!important;overflow-y:auto;
 }
 .rqai-use>.rqai-kicker{color:var(--rqai-lime)}
 .rqai-use-head{display:flex;flex-direction:column;gap:11px}
@@ -183,7 +186,10 @@ html[data-rqai-mounted] .rqai-library-shortcut{
   .rqai-sound-workspace .sfx-layout{
     grid-template-columns:minmax(258px,.78fr) minmax(0,1.22fr)!important;
   }
-  .rqai-use{grid-column:1/-1;min-height:0;padding:14px!important}
+  .rqai-use{
+    grid-column:1/-1;min-height:0;max-height:none;position:relative;top:auto;
+    padding:14px!important;overflow:visible;
+  }
   .rqai-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
   .rqai-confirm-actions{grid-column:1/-1;flex-direction:row}
   .rqai-sound-workspace .sfx-audio-panel{min-height:480px}
