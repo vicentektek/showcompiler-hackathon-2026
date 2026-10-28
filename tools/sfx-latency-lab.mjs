@@ -10,6 +10,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createAppServer, loadLocalSfxEnvironment } from './dev-server.mjs';
+import { createSfxJobStore } from '../src/core/sfxJobStore.mjs';
 
 const ACTIVE=new Set(['SUBMISSION_UNKNOWN','QUEUED','RUNNING','CANCEL_REQUESTED']);
 const CASES=Object.freeze([
@@ -52,7 +53,9 @@ export function parseSfxLatencyArgs(args=[]) {
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const round=n=>Number(n.toFixed(3));
 
-export async function runSfxLatencyLab(opt,{serverFactory=createAppServer,envLoader=loadLocalSfxEnvironment,
+export async function runSfxLatencyLab(opt,{serverFactory=()=>createAppServer({
+  sfxStore:createSfxJobStore({directory:resolve('.runq-local/sfx-generation'),maxDailyStarts:6}),
+}),envLoader=loadLocalSfxEnvironment,
   fetchImpl=globalThis.fetch,now=()=>Date.now(),sleep=pause}={}){
   await envLoader();
   const server=serverFactory();
