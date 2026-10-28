@@ -15,7 +15,7 @@ let polling=null,stopping=false,starting=false,active=false,queue=Promise.resolv
 let transcriptHistory=[],consumedIds=new Set(),focusLine=1;
 let pcmEncoder=null,queuedFrames=0;
 let scenario=null,showFingerprint='',startedAt=0;
-let suggestedCueId=null;
+let suggestedCueId=null,focusManuallySelected=false;
 const CHUNK_SAMPLES=2560,MAX_SECONDS=180;
 function report(en,es){$('rqLiveStatus').textContent=local(en,es);}
 function safeResponse(res){return res.json().then(data=>{if(!res.ok)throw Error(data.error||'HTTP '+res.status);return data;});}
@@ -34,7 +34,7 @@ function refreshShow(){
  scenario=makeProjectVoiceScenario(show,{maxCues:50});
  showFingerprint=JSON.stringify({script:show?.scriptText,cues:show?.cues});
  const value=Number($('rqLiveFocus').value);
- focusLine=Number.isInteger(value)&&value>0?value:(scenario?.initialFocusLine??1);
+ focusLine=focusManuallySelected&&Number.isInteger(value)&&value>0?value:(scenario?.initialFocusLine??1);
  $('rqLiveFocus').value=String(focusLine);
  consumedIds.clear();
  suggestedCueId=null;
@@ -276,7 +276,7 @@ function mount(){
  });
  $('rqLiveFocus').addEventListener('change',()=>{
   const value=Number($('rqLiveFocus').value);
-  if(Number.isInteger(value)&&value>=1&&value<=100000){focusLine=value;consumedIds.clear();}
+  if(Number.isInteger(value)&&value>=1&&value<=100000){focusLine=value;focusManuallySelected=true;consumedIds.clear();}
  });
  $('uiLocaleSelect')?.addEventListener('change',()=>{localized();void devices();});
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&active)void stop();});
