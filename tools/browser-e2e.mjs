@@ -74,7 +74,8 @@ try {
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
   // Voice Follow: real DOM integration against a checked-in offline transcript.
   // This must never access audio playback, microphones or provider endpoints.
-  await page.locator('[data-workspace-nav="rehearsal"]').click();
+  await page.locator('[data-workspace-nav="voice"]').click();
+  await page.locator('[data-rq-voice-tab="simulator"]').click();
   assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
   await page.locator('#rqvfStep').click();
   await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4');
@@ -86,7 +87,7 @@ try {
   await page.locator('#rqvfStep').click();
   await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='3 / 4');
   assert.ok((await page.locator('#rqvfCue').textContent()).includes('C15'));
-  await capture('00-rehearsal-voice-follow.png');
+  await capture('00-voice-offline-simulation.png');
   await page.locator('#rqvfReset').click();
   assert.equal(await page.locator('#rqvfCounter').textContent(),'0 / 0');
   await page.locator('[data-workspace-nav="home"]').click();
