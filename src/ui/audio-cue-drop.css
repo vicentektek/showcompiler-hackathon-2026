@@ -1,0 +1,20 @@
+/* Manual show-building from local audio; compositional layer over V8, no new player. */
+#cueList .rq-audio-cue-import {
+  display:flex;align-items:center;flex-wrap:wrap;gap:.65rem;
+  border:1px dashed var(--line, #425568);
+  padding:.65rem .75rem;border-radius:10px;margin-bottom:.65rem;
+  background:color-mix(in srgb,var(--surface, #17202a) 80%, transparent);
+}
+#cueList .rq-audio-cue-hint {font-size:.78rem;line-height:1.4;opacity:.78}
+#cueList .rq-audio-cue-report {margin:.45rem 0 .75rem;font-size:.82rem;overflow-wrap:anywhere}
+#cueList.rq-audio-cue-dragover {
+  outline:2px dashed var(--accent, #69a8e4);outline-offset:-3px;
+  border-radius:10px;min-height:120px;
+}
+#cueList .rq-cue-drop-target {box-shadow:inset 0 3px var(--accent,#69a8e4)}
+#cueList [data-rq-cue-row] {cursor:grab}
+#cueList [data-rq-cue-row]:active {cursor:grabbing}
+#assetList .asset-list-row[draggable="true"] {cursor:grab}
+@media (prefers-reduced-motion:reduce) {
+  #cueList.rq-audio-cue-dragover {transition:none}
+}
