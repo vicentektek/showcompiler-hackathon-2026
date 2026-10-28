@@ -21,6 +21,7 @@ const allowed = new Map([
   ['/src/ui/operator-keymapping.css', ['src/ui/operator-keymapping.css', 'text/css; charset=utf-8']],
   ['/src/ui/cue-studio-integration.css', ['src/ui/cue-studio-integration.css', 'text/css; charset=utf-8']],
   ['/src/core/audioWaveform.mjs', ['src/core/audioWaveform.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cueEntryPolicy.mjs', ['src/core/cueEntryPolicy.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-stagecraft-rebuild.mjs', ['src/ui/runq-stagecraft-rebuild.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/operator-keymapping.mjs', ['src/ui/operator-keymapping.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/operatorKeymap.mjs', ['src/core/operatorKeymap.mjs', 'text/javascript; charset=utf-8']],
