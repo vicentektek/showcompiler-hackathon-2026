@@ -5,11 +5,11 @@ import {makeProjectVoiceScenario} from '../src/core/voiceScenario.mjs';
 import {replayVoiceRehearsal} from '../src/core/voiceRehearsal.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
-test('offline UI is wired into the existing rehearsal workspace',()=>{
+test('offline replay is isolated in the dedicated Voice workspace while rehearsal retains live transport',()=>{
  const html=read('index.html');
  const server=read('tools/dev-server.mjs');
  const app=read('src/ui/app.mjs');
- for(const token of ['id="rqvfPanel"','data-workspaces="rehearsal"','id="rqvfPlay"','id="rqvfPause"','id="rqvfStep"','id="rqvfSource"','/src/ui/voice-follow-ui.mjs','/src/ui/voice-follow.css'])
+ for(const token of ['id="rqvfPanel"','data-workspaces="voice"','id="rqRehearsalDeck"','data-workspaces="rehearsal"','id="rqvfPlay"','id="rqvfPause"','id="rqvfStep"','id="rqvfSource"','/src/ui/voice-follow-ui.mjs','/src/ui/voice-follow.css'])
    assert.ok(html.includes(token),token);
  for(const path of ['/src/ui/voice-follow-ui.mjs','/src/ui/voice-follow.css','/src/core/voiceScenario.mjs','/src/core/voiceRehearsal.mjs','/src/core/voiceFollow.mjs','/test/fixtures/voice-rehearsal.json'])
    assert.ok(server.includes(path),path);
@@ -22,8 +22,8 @@ test('simulator UI has no audio transport, microphone or model service calls',()
  for(const dangerous of ['player.go','player.play','operatorGoBtn','operatorPanicBtn','completePreparedCue(','navigator.mediaDevices','api.meta.ai','MODEL_API_KEY'])
    assert.equal(code.includes(dangerous),false,dangerous);
  assert.ok(code.includes('replayVoiceRehearsal('));
- assert.ok(code.includes('GO ALWAYS MANUAL'));
- assert.ok(code.includes('GO SIEMPRE MANUAL'));
+ assert.ok(code.includes('SIMULATION ONLY'));
+ assert.ok(code.includes('SOLO SIMULACIÓN'));
  assert.equal(code.includes('runq:voice-follow-prepare-cue'),false,'offline simulator never prepares cues');
 });
 

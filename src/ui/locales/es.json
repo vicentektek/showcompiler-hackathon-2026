@@ -441,7 +441,7 @@
   "proposals.reviewHintsSummary": "Comprobación independiente: {count} línea(s) de instrucciones técnicas de audio sin propuesta ni observación del modelo. Revisa el guion; no implica necesariamente reproducir un archivo.",
   "proposals.reviewHintsMore": "Mostrando las primeras {shown} líneas; las restantes requieren revisión manual.",
   "workspace.rehearsal": "Ensayo",
-  "workspace.description.rehearsal": "Consulta el guion y ejecuta cues manualmente. No se habilita GO automático por voz.",
+  "workspace.description.rehearsal": "Ensaya con guion y cues en modo manual, asistido por voz o automático con armado explícito. Directo permanece manual.",
   "audioProps.endAtMs": "Recorte OUT (ms; vacío = final del archivo)",
   "audioProps.endAtHelp": "Final opcional; debe estar después del IN y dentro del archivo decodificado.",
   "waveform.heading": "Forma de onda real · IN / OUT",
@@ -488,5 +488,7 @@
   "audioBatch.existing": "Ya existe en la biblioteca y está cargado",
   "audioBatch.fileLimit": "Máximo 100 archivos por lote; cada uno hasta 20 MB y 10 minutos.",
   "audioBatch.missing": "Los archivos que fallen no se añaden a la biblioteca; los demás continúan.",
-  "workspace.description.soundlab": "Prepara y revisa efectos de sonido antes de importarlos manualmente. La generación y el GO no se activan automáticamente."
+  "workspace.description.soundlab": "Prepara y revisa efectos de sonido antes de importarlos manualmente. La generación y el GO no se activan automáticamente.",
+  "workspace.voice": "Voz y seguimiento",
+  "workspace.description.voice": "Configura micrófonos, pies de voz, simulación y diagnósticos. GO automático solo puede armarse en Ensayo."
 }

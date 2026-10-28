@@ -4,7 +4,7 @@ import en from '../src/ui/locales/en.json' with {type:'json'};
 import es from '../src/ui/locales/es.json' with {type:'json'};
 import { translate } from '../src/ui/i18n.mjs';
 
-const workspaces=['home','script','ai','cues','audio','soundlab','setup','rehearsal','operation'];
+const workspaces=['home','script','ai','cues','audio','soundlab','voice','setup','rehearsal','operation'];
 for(const [locale,catalog] of [['en',en],['es',es]]){
  test(`all workspace navigation titles/descriptions exist in ${locale}`,()=>{
    for(const workspace of workspaces){

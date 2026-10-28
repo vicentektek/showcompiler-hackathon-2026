@@ -441,7 +441,7 @@
   "proposals.reviewHintsSummary": "Independent check: {count} labelled audio-direction line(s) have no model proposal or observation. Review the source; an audio file is NOT necessarily required.",
   "proposals.reviewHintsMore": "Showing the first {shown} source lines; additional lines require manual review.",
   "workspace.rehearsal": "Rehearsal",
-  "workspace.description.rehearsal": "Review the script and execute cues manually. No voice-driven automatic GO is enabled.",
+  "workspace.description.rehearsal": "Work with your script and cue sequence in manual, voice-assisted or explicitly armed automatic rehearsal. Operation stays manual.",
   "audioProps.endAtMs": "OUT trim (ms; empty = file end)",
   "audioProps.endAtHelp": "Optional end point; must be after IN and within the decoded file.",
   "waveform.heading": "Recorded audio waveform · IN / OUT",
@@ -488,5 +488,7 @@
   "audioBatch.existing": "Already loaded in the library",
   "audioBatch.fileLimit": "Up to 100 files per batch; each up to 20 MB and 10 minutes.",
   "audioBatch.missing": "Invalid files are not added to the library. Other files still import.",
-  "workspace.description.soundlab": "Prepare and review sound effects before manual import. No generation or cue playback starts automatically."
+  "workspace.description.soundlab": "Prepare and review sound effects before manual import. No generation or cue playback starts automatically.",
+  "workspace.voice": "Voice & Follow",
+  "workspace.description.voice": "Set up microphones, spoken cue triggers, offline replay and voice diagnostics. Automatic GO is only armed in Rehearsal."
 }

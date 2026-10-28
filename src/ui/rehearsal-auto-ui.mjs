@@ -4,6 +4,7 @@
  * This module has no audio engine, network endpoint, or credentials.
  */
 import {makeProjectVoiceScenario} from '../core/voiceScenario.mjs';
+import {armRehearsalVoice,disarmRehearsalVoice,authorizeRehearsalVoice,rehearsalArmState} from '../core/rehearsalArmSession.mjs';
 import {initialRehearsalAutoState,decideRehearsalAutoGo,
  acknowledgeRehearsalAutoGo,discardRehearsalTurn} from '../core/rehearsalAutopilot.mjs';
 
@@ -35,14 +36,20 @@ function display(){
  if(armed){$('rqLivePrepare').disabled=true;$('rqLiveDismiss').disabled=true;}
  if(!armed)status('DISARMED · VOICE CANNOT START AUDIO','DESARMADO · LA VOZ NO PUEDE DISPARAR AUDIO');
  else status('ARMED · SPOKEN CUES CAN START AUDIO','ARMADO · LOS PIES DE VOZ PUEDEN DISPARAR AUDIO');
+ document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-state',{
+   detail:{armed,mode,listening,busy,gateEpoch:rehearsalArmState().epoch}
+ }));
 }
 function disarm(reason='operator'){
  if(armed)log(t('Disarmed: ','Desarmado: ')+reason);
+ disarmRehearsalVoice(reason);
  armed=false;epoch++;display();
 }
 async function arm(){
  if(armed){disarm('operator');return;}
- if(!listening||busy||$('rqLiveMode').value!=='auto')return;
+ if(!listening||busy||$('rqLiveMode').value!=='auto'||
+   document.querySelector('.shell')?.dataset.activeWorkspace!=='rehearsal'||
+   document.hidden)return;
  const show=currentShow();
  if(!scenario||key(show)!==fingerprint){disarm('show changed');return;}
  const accepted=window.confirm(t(
@@ -68,6 +75,11 @@ async function arm(){
    'No se puede armar audio: '+(result?.reason??'OUTPUT_ERROR'));
   return;
  }
+ if(!armRehearsalVoice({
+   workspace:document.querySelector('.shell')?.dataset.activeWorkspace,
+   live:listening&&document.body?.dataset.runqVoiceCapture==='live',
+   visible:!document.hidden,fingerprint,
+ }))return;
  const focus=Number($('rqLiveFocus').value);
  autoState=initialRehearsalAutoState({
   focusLine:Number.isInteger(focus)&&focus>0?focus:scenario.initialFocusLine,
@@ -105,6 +117,11 @@ function ready(){
 }
 async function finalTurn(detail){
  if(!armed||!listening||busy)return;
+ if(!authorizeRehearsalVoice({
+   workspace:document.querySelector('.shell')?.dataset.activeWorkspace,
+   live:document.body?.dataset.runqVoiceCapture==='live',
+   visible:!document.hidden,fingerprint:key(currentShow())
+ })){disarm('authorization lost');return;}
  if(key(currentShow())!==fingerprint){
   disarm('show changed');
   status('Show changed · autopilot disarmed','Guion cambiado · autopiloto desarmado');
