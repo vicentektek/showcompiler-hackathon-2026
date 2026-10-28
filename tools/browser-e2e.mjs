@@ -132,14 +132,36 @@ try {
   assert.ok(compactGeometry.right.x >= compactGeometry.left.right-2,'Compact inspector stays next to cue list');
   assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
     'Compact GO and STOP ALL remain visible without scrolling');
-  const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
-  assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
-    'Compact inspector must show real editable audio settings without page scroll');
+  const visibleInspectorField=await page.locator('[data-quick-gain-cue]').boundingBox();
+  if(!visibleInspectorField || visibleInspectorField.y>=614) {
+    console.error('COMPACT_AUDIO_LAYOUT',JSON.stringify(await page.evaluate(()=>{
+      const ids=['cueInspector','cuePlaybackForm','cueInspectorPanel'];
+      const rect=element=>element?{top:element.getBoundingClientRect().top,
+        bottom:element.getBoundingClientRect().bottom,height:element.getBoundingClientRect().height,
+        scrollTop:element.scrollTop,scrollHeight:element.scrollHeight}:null;
+      return {areas:Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))])),
+        gain:rect(document.querySelector('[data-quick-gain-cue]')),
+        audition:rect(document.querySelector('.cue-audition-studio')),
+        tab:rect(document.querySelector('.cue-inspector-tabs')),
+        waveform:rect(document.querySelector('.cue-waveform-editor'))};
+    })));
+  }
+  assert.ok(visibleInspectorField && visibleInspectorField.y < 614 &&
+    visibleInspectorField.y+visibleInspectorField.height <= 614,
+    'Compact inspector must show editable quick gain without scrolling');
+  const previewControl=await page.locator('.cue-audition-studio .cue-preview-play').boundingBox();
+  assert.ok(previewControl && previewControl.y+previewControl.height<=614,
+    'Compact inspector must show the audition control without scrolling');
+  await page.locator('[data-quick-gain-cue]').fill('-8');
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),'-8',
+    'Quick gain must edit the same staged playback field');
+  // Unsaved quick gain is protected by the existing discard guard on navigation.
   await page.setViewportSize({width:1366,height:768});
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'true');
+  page.once('dialog',dialog=>dialog.accept());
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('[data-workspace-nav="audio"]').getAttribute('aria-pressed'), 'true');
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
@@ -172,6 +194,33 @@ try {
   await inspector.locator('[name="startAtMs"]').fill('125');
   await inspector.locator('[name="playbackRate"]').fill('1.25');
   await inspector.locator('[name="pan"]').fill('-0.5');
+  // Unsaved audition must play the staged edit, not move NEXT GO or trigger
+  // stop targets / auto-follow. The preview path shares the system output
+  // but never calls the operator GO control.
+  const nextBeforePreview=await page.locator('#preparedCueStatus').innerText();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('.cue-audition-studio [data-preview-cue]').click();
+  await page.waitForFunction(()=>window.__testAudioStarts>=1);
+  const previewLaunch=await page.evaluate(()=>window.__testAudioStartsWithTrim.at(-1));
+  assert.equal(previewLaunch.offset,.125,'Preview reads UNSAVED IN');
+  assert.ok(Math.abs(previewLaunch.duration-1.675)<.05,'Preview reads UNSAVED OUT');
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforePreview,
+    'Preview never advances the operator queue');
+  assert.match(await page.locator('[data-preview-status]').innerText(),/LISTENING/);
+  await page.locator('.cue-audition-studio [data-preview-stop]').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforePreview);
+  // Scoped editing keys are preview/stop only. Never an operator GO.
+  const startsAfterButton=await page.evaluate(()=>window.__testAudioStarts);
+  await page.keyboard.press('v');
+  await page.waitForFunction(count=>window.__testAudioStarts>count,startsAfterButton);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforePreview);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('[data-preview-status]').getAttribute('data-playing'),'false');
+  // Reset smoke counters so the existing GO-only assertions remain meaningful.
+  await page.evaluate(()=>{
+    window.__testAudioStarts=0;window.__testAudioStops=0;
+    window.__testAudioStartsWithTrim=[];window.__testStopTimes=[];
+  });
   await inspector.getByRole('button', {name:'Save playback settings'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');

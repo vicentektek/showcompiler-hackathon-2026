@@ -51,6 +51,167 @@ export class BrowserAudioEngine {
   activeCueCount() { return this.playing.size; }
   isAuditioning() { return this.auditionVoice !== null || this.auditionPending; }
 
+  /** Audition is never a show GO. These voices cannot change the operator playhead. */
+  createPreviewVoice(ctx, track, clockStart) {
+    const playback = track.playback;
+    const source = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    source.buffer = this.buffers.get(track.assetId);
+    const startAt = clockStart; // Preview intentionally skips waits.
+    const offsetSeconds = playback.startAtMs / 1000;
+    const targetGain = 0.25 * 10 ** (playback.gainDb / 20);
+    if (playback.playbackRate !== 1) {
+      if (!source.playbackRate) throw new Error('Control de velocidad no disponible.');
+      source.playbackRate.value = playback.playbackRate;
+    }
+    source.loop = playback.loop || playback.repeatCount > 1;
+    const clipEndSeconds = playback.endAtMs === null
+      ? source.buffer.duration : playback.endAtMs / 1000;
+    const clipSeconds = clipEndSeconds - offsetSeconds;
+    if (source.loop) {
+      source.loopStart = offsetSeconds;
+      source.loopEnd = clipEndSeconds;
+    }
+    const duration = clipSeconds * playback.repeatCount / playback.playbackRate;
+    const fadeIn = Math.min(playback.fadeInMs / 1000, duration);
+    const fadeOut = playback.loop ? 0 : Math.min(playback.fadeOutMs / 1000, Math.max(0, duration - fadeIn));
+    gain.gain.value = fadeIn ? 0 : targetGain;
+    if (fadeIn) {
+      gain.gain.setValueAtTime(0, startAt);
+      gain.gain.linearRampToValueAtTime(targetGain, startAt + fadeIn);
+    }
+    if (fadeOut) {
+      gain.gain.setValueAtTime(targetGain, startAt + duration - fadeOut);
+      gain.gain.linearRampToValueAtTime(0, startAt + duration);
+    }
+    const panner = playback.pan === 0 ? null : ctx.createStereoPanner();
+    if (panner) panner.pan.value = playback.pan;
+    source.connect(gain);
+    if (panner) { gain.connect(panner); panner.connect(ctx.destination); }
+    else gain.connect(ctx.destination);
+    return {source,gain,panner,duration,repeatCount:playback.repeatCount,
+      loop:playback.loop,startAt,offsetSeconds,
+      startDuration:source.loop || playback.endAtMs === null ? null : clipSeconds};
+
+  }
+
+  /** Preview a complete cue or one stem, including UNSAVED editor settings.
+   * The default physical output is shared with GO, never a private monitor bus.
+   */
+  async previewCue(cue, { trackId = null, fromMs = null } = {}) {
+    if (!cue || cue.status !== 'DRAFT' || typeof cue.id !== 'string' ||
+        !Array.isArray(cue.actions) || !cue.actions.length ||
+        cue.actions.some(action => action?.type !== 'PLAY')) {
+      throw new TypeError('Preview requires a playable DRAFT cue');
+    }
+    if (this.playing.size || this.pending.size || this.isAuditioning()) {
+      throw new Error('Detén el transporte o la escucha antes de preescuchar.');
+    }
+    let tracks = [
+      ...cue.actions.map((action,i) => ({ id:i===0?'primary':'action-'+i,
+        assetId:action.assetId, playback:normalizeCuePlayback(cue.playback) })),
+      ...(cue.audioTracks??[]).map(track => ({ id:track.id, assetId:track.assetId,
+        playback:normalizeCuePlayback(track.playback) })),
+    ];
+    if (tracks.length > 12 || tracks.some(t=>!this.hasAsset(t.assetId))) {
+      throw new Error('Cue inválido o sin todos sus audios cargados.');
+    }
+    if (trackId !== null) {
+      if (typeof trackId !== 'string' || !tracks.some(track=>track.id===trackId)) {
+        throw new RangeError('Preview track missing');
+      }
+      tracks = tracks.filter(track=>track.id===trackId);
+    }
+    if (fromMs !== null) {
+      if (trackId === null || !Number.isSafeInteger(fromMs)) {
+        throw new RangeError('Preview from cursor requires one track');
+      }
+      tracks = tracks.map(track=>{
+        const endMs=track.playback.endAtMs??Math.floor(this.buffers.get(track.assetId).duration*1000);
+        if (fromMs < track.playback.startAtMs || fromMs >= endMs) {
+          throw new RangeError('Cursor must be inside current IN/OUT region');
+        }
+        return {...track,playback:normalizeCuePlayback({
+          ...track.playback,startAtMs:fromMs,loop:false,repeatCount:1,
+        })};
+      });
+    }
+    for (const track of tracks) {
+      const lengthMs=this.buffers.get(track.assetId).duration*1000;
+      if (track.playback.startAtMs>=lengthMs ||
+          (track.playback.endAtMs!==null &&
+            (track.playback.endAtMs>lengthMs || track.playback.endAtMs<=track.playback.startAtMs))) {
+        throw new RangeError('Preview IN/OUT outside audio');
+      }
+    }
+    const epoch=this.transportEpoch;
+    this.auditionPending=true;
+    this.notify();
+    const voices=[];
+    let run=null;
+    try {
+      const ctx=this.getContext();
+      if (typeof ctx.resume==='function') await ctx.resume();
+      if (epoch!==this.transportEpoch) throw new Error('Preescucha cancelada por PARAR TODO.');
+      if (ctx.state==='suspended') throw new Error('El navegador ha bloqueado el audio.');
+      if (tracks.some(t=>t.playback.pan!==0) && typeof ctx.createStereoPanner!=='function') {
+        throw new Error('Este navegador no admite panorama estéreo.');
+      }
+      const clockStart=ctx.currentTime+0.02;
+      for (const track of tracks) voices.push(this.createPreviewVoice(ctx,track,clockStart));
+      run={voices:new Set(voices),cueId:cue.id,trackId:trackId??(tracks.length===1?tracks[0].id:null),
+        startedAt:clockStart,
+        previewFromMs:tracks.length===1?tracks[0].playback.startAtMs:null,
+        previewEndMs:tracks.length===1
+          ? (tracks[0].playback.endAtMs??Math.round(this.buffers.get(tracks[0].assetId).duration*1000))
+          : null,
+        playbackRate:tracks.length===1?tracks[0].playback.playbackRate:1,
+        repeating:tracks.length===1 ? (tracks[0].playback.loop || tracks[0].playback.repeatCount>1) : false,
+        durationSeconds:tracks.some(track=>track.playback.loop)?null:Math.max(...voices.map(voice=>voice.duration))};
+      this.auditionVoice=run;
+      for (const voice of voices) {
+        voice.source.onended=()=>{
+          try{voice.source.disconnect();voice.gain.disconnect();voice.panner?.disconnect();}catch{}
+          run.voices.delete(voice);
+          if (!run.voices.size && this.auditionVoice===run) this.auditionVoice=null;
+          this.notify();
+        };
+      }
+      for (const voice of voices) {
+        if (voice.startDuration===null) voice.source.start(voice.startAt,voice.offsetSeconds);
+        else voice.source.start(voice.startAt,voice.offsetSeconds,voice.startDuration);
+        if (!voice.loop && voice.repeatCount>1) voice.source.stop(voice.startAt+voice.duration);
+      }
+      this.notify();
+      return true;
+    } catch(error) {
+      for (const voice of voices) {
+        try{voice.gain.gain.value=0;voice.source.stop();}catch{}
+        try{voice.source.disconnect();voice.gain.disconnect();voice.panner?.disconnect();}catch{}
+      }
+      if (this.auditionVoice===run) this.auditionVoice=null;
+      throw error;
+    } finally {
+      this.auditionPending=false;
+      this.notify();
+    }
+  }
+
+  /** Read-only audition feedback; time is audio-context time, not setInterval time. */
+  getPreviewStatus() {
+    const run=this.auditionVoice;
+    if (!run || !run.cueId) return null;
+    const elapsedSeconds=Math.max(0,(this.context?.currentTime??run.startedAt)-run.startedAt);
+    const length=run.previewEndMs-run.previewFromMs;
+    const position=run.previewFromMs===null ? null : run.previewFromMs+
+      (run.repeating ? (elapsedSeconds*1000*run.playbackRate)%length
+        : Math.min(length,elapsedSeconds*1000*run.playbackRate));
+    return Object.freeze({
+      cueId:run.cueId,trackId:run.trackId,elapsedSeconds,
+      durationSeconds:run.durationSeconds,positionMs:position,
+    });
+  }
+
   /** Same-output audition for checking a decoded local file before cue assignment.
    * This is NOT an independent monitor/headphone bus.
    */
@@ -105,11 +266,14 @@ export class BrowserAudioEngine {
     this.auditionVoice = null;
     if (voice) {
       const now = this.context?.currentTime ?? 0;
-      try {
-        voice.gain.gain.cancelScheduledValues(now);
-        voice.gain.gain.setValueAtTime(0, now);
-      } catch { try { voice.gain.gain.value = 0; } catch {} }
-      try { voice.source.stop(now); } catch {}
+      const voices = voice.voices ? [...voice.voices] : [voice];
+      for (const item of voices) {
+        try {
+          item.gain.gain.cancelScheduledValues(now);
+          item.gain.gain.setValueAtTime(0, now);
+        } catch { try { item.gain.gain.value = 0; } catch {} }
+        try { item.source.stop(now); } catch {}
+      }
     }
     this.notify();
     return true;
