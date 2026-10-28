@@ -23,7 +23,7 @@ try{
   await page.addInitScript(()=>{
     window.__labStarted=0;window.__labStopped=0;
     window.AudioContext=class{
-      constructor(){this.state='running';this.destination={};}
+      constructor(){this.state='running';this.destination={};this.currentTime=0;}
       async resume(){}
       async close(){this.state='closed';}
       async decodeAudioData(b){
@@ -39,7 +39,7 @@ try{
         return {sampleRate,numberOfChannels:channels,length:frames,
           duration:frames/sampleRate,getChannelData:c=>data[c]};
       }
-      createGain(){return {gain:{value:1},connect(){},disconnect(){}};}
+      createGain(){return {gain:{value:1,cancelScheduledValues(){},setValueAtTime(){},linearRampToValueAtTime(){}},connect(){},disconnect(){}};}
       createBufferSource(){return {buffer:null,onended:null,connect(){},disconnect(){},
         start(){window.__labStarted++},stop(){window.__labStopped++}};}
     };
