@@ -186,7 +186,7 @@ try {
   await page.locator('#cueAddTrackBtn').click();
   assert.match(await page.locator('#statusMessage').innerText(), /Audio track added/);
   assert.equal(await page.locator('[data-extra-track="track-1"]').count(), 1);
-  await page.locator('[data-extra-track="track-1"] summary').click();
+  await page.locator('[data-extra-track="track-1"] .cue-track-details > summary').click();
   await page.locator('[data-track-settings="track-1"] [name="gainDb"]').fill('-12');
   await page.locator('[data-track-settings="track-1"] [name="startDelayMs"]').fill('1250');
   await page.locator('[data-track-settings="track-1"]').getByRole('button',{name:'Save track settings'}).click();
