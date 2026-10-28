@@ -1,0 +1,117 @@
+/**
+ * RunQ microphone preflight: explicit consent, local capture only.
+ * No speech service, external upload, cue preparation or GO.
+ */
+const $=id=>document.getElementById(id);
+let stream=null,ctx=null,source=null,processor=null,mutedGain=null,timer=null;
+let recording=false,frames=[],samples=0,started=0;
+const MAX_MS=10000;
+const t=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
+function status(en,es){$('rqMicStatus').textContent=t(en,es)}
+function update(){
+ const busy=Boolean(stream);
+ $('rqMicStart').disabled=busy;
+ $('rqMicStop').disabled=!busy;
+ $('rqMicLang').disabled=busy;
+ $('rqMicMeter').value=0;
+ if(!busy)$('rqMicMeter').value=0;
+}
+function wav(pcm,sampleRate){
+ const buffer=new ArrayBuffer(44+pcm.length*2),view=new DataView(buffer);
+ const ascii=(offset,s)=>{for(let i=0;i<s.length;i++)view.setUint8(offset+i,s.charCodeAt(i));};
+ ascii(0,'RIFF');view.setUint32(4,36+pcm.length*2,true);ascii(8,'WAVE');
+ ascii(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);
+ view.setUint16(22,1,true);view.setUint32(24,sampleRate,true);
+ view.setUint32(28,sampleRate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);
+ ascii(36,'data');view.setUint32(40,pcm.length*2,true);
+ for(let i=0;i<pcm.length;i++){
+   const v=Math.max(-1,Math.min(1,pcm[i]));
+   view.setInt16(44+i*2,Math.round(v<0?v*32768:v*32767),true);
+ }
+ return new Blob([buffer],{type:'audio/wav'});
+}
+function shutdown(){
+ if(timer!==null){clearTimeout(timer);timer=null;}
+ processor?.disconnect();source?.disconnect();mutedGain?.disconnect();
+ processor=null;source=null;mutedGain=null;
+ stream?.getTracks().forEach(track=>track.stop());stream=null;
+ if(ctx){const closing=ctx;ctx=null;void closing.close().catch(()=>{});}
+ recording=false;update();
+}
+function complete(){
+ if(!stream)return;
+ const rate=ctx?.sampleRate??48000;
+ const result=new Float32Array(samples);
+ let pos=0;
+ for(const frame of frames){result.set(frame,pos);pos+=frame.length;}
+ shutdown();frames=[];samples=0;
+ if(result.length<rate/5){status('No useful audio captured.','No se ha capturado audio suficiente.');return;}
+ const blob=wav(result,rate);
+ if(window.__runqMicTakeUrl)URL.revokeObjectURL(window.__runqMicTakeUrl);
+ window.__runqMicTakeUrl=URL.createObjectURL(blob);
+ $('rqMicListen').src=window.__runqMicTakeUrl;
+ $('rqMicListen').hidden=false;
+ $('rqMicDownload').hidden=false;
+ $('rqMicDownload').href=window.__runqMicTakeUrl;
+ $('rqMicDownload').download='runq-microphone-'+$('rqMicLang').value+'.wav';
+ status('Recording saved locally. Listen to verify both languages. No audio uploaded.',
+        'Grabación local lista. Escúchala para comprobar ambos idiomas. No se ha enviado audio.');
+}
+async function begin(){
+ if(stream)return;
+ try{
+   if(!navigator.mediaDevices?.getUserMedia)throw Error('unsupported');
+   stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:false,noiseSuppression:false},video:false});
+   const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
+   ctx=new AudioContextCtor();
+   await ctx.resume();
+   source=ctx.createMediaStreamSource(stream);
+   processor=ctx.createScriptProcessor(2048,1,1);
+   mutedGain=ctx.createGain();mutedGain.gain.value=0;
+   source.connect(processor);processor.connect(mutedGain);mutedGain.connect(ctx.destination);
+   frames=[];samples=0;started=performance.now();recording=true;
+   processor.onaudioprocess=event=>{
+     if(!recording)return;
+     const input=event.inputBuffer.getChannelData(0);
+     const frame=new Float32Array(input);
+     if(samples+frame.length<=ctx.sampleRate*11){frames.push(frame);samples+=frame.length;}
+     let total=0;for(let i=0;i<input.length;i++)total+=input[i]*input[i];
+     $('rqMicMeter').value=Math.min(100,Math.round(Math.sqrt(total/input.length)*350));
+     if(performance.now()-started>=MAX_MS)complete();
+   };
+   timer=setTimeout(complete,MAX_MS);
+   update();
+   status('Recording locally. Speak now; maximum 10 seconds.',
+     'Grabando localmente. Habla ahora; máximo 10 segundos.');
+ }catch(error){
+   shutdown();
+   status('Microphone unavailable or permission denied: '+(error?.name||'Unknown'),
+     'Micrófono no disponible o permiso denegado: '+(error?.name||'Desconocido'));
+ }
+}
+function localize(){
+ $('rqMicTitle').textContent=t('MICROPHONE TEST · LOCAL','PRUEBA DE MICRÓFONO · LOCAL');
+ $('rqMicStart').textContent=t('Record 10s','Grabar 10 s');
+ $('rqMicStop').textContent=t('Stop','Detener');
+ $('rqMicLangLabel').textContent=t('Spoken language','Idioma hablado');
+ $('rqMicLang').options[0].textContent='Español';
+ $('rqMicLang').options[1].textContent='English';
+ $('rqMicPrivacy').textContent=t('Local recording and playback only. No automatic GO. Nothing sent to Meta.',
+ 'Grabación y escucha locales. Sin GO automático. No se envía nada a Meta.');
+ $('rqMicDownload').textContent=t('Save WAV','Guardar WAV');
+ if(!stream&&!$('rqMicListen').src)status('Ready. Select a language and record a short phrase.',
+ 'Preparado. Elige idioma y graba una frase corta.');
+}
+function mount(){
+ if(!$('rqMicStart'))return;
+ $('rqMicStart').addEventListener('click',()=>void begin());
+ $('rqMicStop').addEventListener('click',complete);
+ $('uiLocaleSelect')?.addEventListener('change',localize);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)complete();});
+ window.addEventListener('pagehide',shutdown,{once:true});
+ const shell=document.querySelector('.shell');
+ if(shell)new MutationObserver(()=>{if(shell.dataset.activeWorkspace!=='rehearsal'&&stream)complete();})
+   .observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
+ localize();update();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
