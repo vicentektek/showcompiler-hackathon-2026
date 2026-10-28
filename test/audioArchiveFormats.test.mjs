@@ -45,6 +45,7 @@ test('libarchive listing rejects traversal, encryption and bounded per-entry siz
   const file=mk(sig.rar5,'bad.rar');
   await assert.rejects(extractAudioArchive(file,{openArchive:async()=>({
     async hasEncryptedData(){return true},
+    async getFilesArray(){return []},
     async close(){},
   })}),/protegido con contraseña/);
   await assert.rejects(extractAudioArchive(file,{openArchive:async()=>({
