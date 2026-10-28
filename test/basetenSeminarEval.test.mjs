@@ -10,6 +10,15 @@ import {BASETEN_MODEL} from '../src/core/basetenCueProvider.mjs';
 
 const prepared=()=>prepareTheatricalCueAnalysis(createNewShow({name:'test',scriptText:'A bell rings in the distance.'}),{designMode:'literal'});
 
+test('safe nested local report outputs are allowed without accepting traversal or absolute paths',()=>{
+  const ok=parseBasetenEvalOptions(['--case','hotel-door','--output','artifacts/three-case-quality/baseten-hotel-door']);
+  assert.equal(ok.output,'artifacts/three-case-quality/baseten-hotel-door');
+  for(const unsafe of ['../outside','artifacts/../outside','artifacts/three-case-quality/../../outside',
+    'C:\\\\secrets','artifacts/three-case-quality/too/deep','artifacts/three-case-quality\\\\bad']){
+    assert.throws(()=>parseBasetenEvalOptions(['--output',unsafe]),/Invalid bounded/);
+  }
+});
+
 test('default is offline, paid mode needs both switches, bounded requests',()=>{
   assert.equal(parseBasetenEvalOptions([]).live,false);
   assert.throws(()=>parseBasetenEvalOptions(['--live']),/Invalid bounded/);
@@ -18,7 +27,11 @@ test('default is offline, paid mode needs both switches, bounded requests',()=>{
 test('Baseten request uses exact hackathon model, same source window and no unsupported JSON schema flag',()=>{
   const r=makeBasetenTheatreRequest(prepared());
   assert.equal(r.model,BASETEN_MODEL);
+  assert.equal(r.model,'meta-models/muse-spark-open');
   assert.equal(r.response_format,undefined);
+  assert.equal(r.max_completion_tokens,undefined);
+  assert.equal(r.max_tokens,8192);
+  assert.deepEqual(Object.keys(r).filter(k=>k==='max_tokens'||k==='max_completion_tokens'),['max_tokens']);
   assert.match(r.messages[0].content,/sourceEvidence/);
   assert.match(r.messages[1].content,/A bell rings/);
 });

@@ -37,13 +37,13 @@ export function parseBasetenEvalOptions(argv=[]){
   if(o.live!==o.ackPaid||!Number.isSafeInteger(o.maxRequests)||o.maxRequests<1||o.maxRequests>MAX_REQUESTS||
     !['literal','balanced','expressive'].includes(o.mode)||
     (o.caseId!==null&&!/^[a-z][a-z0-9-]{1,60}$/.test(o.caseId))||
-    !/^artifacts\/[a-z0-9-]{1,60}$/.test(o.output))throw new TypeError('Invalid bounded evaluation options');
+    !/^artifacts\/[a-z0-9-]{1,60}(?:\/[a-z0-9-]{1,60})?$/.test(o.output))throw new TypeError('Invalid bounded evaluation options');
   return o;
 }
 
 /** Baseten hackathon model does not support constrained JSON response_format. */
 export function makeBasetenTheatreRequest(prepared){
-  const {response_format,reasoning_effort,store,...base}=prepared.request;
+  const {response_format,reasoning_effort,store,max_completion_tokens,...base}=prepared.request;
   const schema=response_format.json_schema.schema;
   const system=base.messages[0].content+
     '\nReturn ONLY a complete JSON object with a proposals array, no markdown or commentary. '+

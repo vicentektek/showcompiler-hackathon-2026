@@ -8,7 +8,7 @@ import { parseScript } from './script.mjs';
 import { normalizeScriptLanguageHint } from './scriptLanguage.mjs';
 
 export const BASETEN_PROVIDER = 'BASETEN_MUSE_SPARK_OPEN';
-export const BASETEN_MODEL = 'meta-models/muse-spark-open-1026';
+export const BASETEN_MODEL = 'meta-models/muse-spark-open';
 export const BASETEN_URL = 'https://inference.baseten.co/v1/chat/completions';
 const MAX_SUGGESTIONS = 8;
 const MAX_BYTES = 100_000;

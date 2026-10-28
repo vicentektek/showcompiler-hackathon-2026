@@ -20,7 +20,7 @@ function envelope(proposals, content = JSON.stringify({proposals}), finish_reaso
 
 test('Baseten uses verified hackathon Muse Spark Open model and endpoint', () => {
   const request = makeBasetenCueRequest(show());
-  assert.equal(request.model, 'meta-models/muse-spark-open-1026');
+  assert.equal(request.model, 'meta-models/muse-spark-open');
   assert.equal(BASETEN_MODEL, request.model);
   assert.equal(BASETEN_URL, 'https://inference.baseten.co/v1/chat/completions');
   assert.equal(request.messages[0].role, 'system');

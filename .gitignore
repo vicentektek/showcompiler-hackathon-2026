@@ -167,3 +167,6 @@ artifacts/seminar-compare/
 
 # Local systematic A/B Muse experiments and private typed traces.
 artifacts/systematic-eval/
+
+# Private three-case paired provider evaluation evidence
+artifacts/three-case-quality/
