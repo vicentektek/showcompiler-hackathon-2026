@@ -870,7 +870,7 @@ function refreshPreviewStudio() {
       Number.isFinite(preview.positionMs);
     marker.hidden=!isSelected;
     if(isSelected) marker.style.left=Math.max(0,Math.min(100,
-      preview.positionMs/Number(marker.dataset.durationMs)*100))+'%';
+      (preview.positionMs-Number(marker.dataset.viewStartMs||0)) / Number(marker.dataset.viewSpanMs||marker.dataset.durationMs)*100))+'%';
   }
   if(preview && previewTicker===null) {
     previewTicker=window.setInterval(()=>refreshPreviewStudio(),125);
@@ -904,100 +904,200 @@ function stopCuePreview() {
  * Pointer edits change staged numeric fields; only Save persists them.
  * Canvas is never a transport or GO control.
  */
-function cueWaveformTrim(assetId, inputs) {
-  const summary = assetId ? player.getWaveform(assetId) : null;
-  const block = node('section', 'cue-waveform-editor');
-  block.append(node('strong', 'cue-waveform-title', t('waveform.heading')));
-  if (!summary) {
-    block.append(node('p', 'caption', t('waveform.unavailable')));
+function cueWaveformTrim(assetId, inputs, { cueId = null, trackId = 'primary' } = {}) {
+  const summary=assetId?player.getWaveform(assetId):null;
+  const block=node('section','cue-waveform-editor');
+  block.append(node('strong','cue-waveform-title',t('waveform.heading')));
+  if(!summary) {
+    block.append(node('p','caption',t('waveform.unavailable')));
     return block;
   }
-  const canvas = node('canvas', 'cue-waveform-canvas');
-  canvas.width = 640;
-  canvas.height = 118;
-  canvas.tabIndex = 0;
-  canvas.setAttribute('role', 'slider');
-  canvas.setAttribute('aria-label', t('waveform.dragHelp'));
-  canvas.setAttribute('aria-valuemin', '0');
-  canvas.setAttribute('aria-valuemax', String(summary.durationMs));
-  const current = node('div', 'cue-waveform-times');
-  const duration = summary.durationMs;
-  const startField = inputs.get('startAtMs');
-  const endField = inputs.get('endAtMs');
-  const inputRange = () => {
-    const start = Math.max(0, Math.min(duration, Number(startField.value) || 0));
-    const end = endField.value.trim() === ''
-      ? duration : Math.max(0, Math.min(duration, Number(endField.value) || 0));
-    return {start, end};
-  };
-  function redraw() {
-    const {start,end} = inputRange();
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const w = canvas.width, h = canvas.height, middle = h / 2;
-    ctx.clearRect(0,0,w,h);
-    ctx.fillStyle = '#0b1821';
-    ctx.fillRect(0,0,w,h);
-    ctx.strokeStyle = '#33505b';
-    ctx.beginPath(); ctx.moveTo(0,middle); ctx.lineTo(w,middle); ctx.stroke();
-    const inX = start / duration * w, outX = end / duration * w;
-    const spacing = w / summary.peaks.length;
-    for (let i=0; i<summary.peaks.length; i++) {
-      const x = i * spacing;
-      const magnitude = Math.max(1,summary.peaks[i]*(middle-12));
-      ctx.fillStyle = x >= inX && x <= outX ? '#49d4be' : '#45606b';
-      ctx.fillRect(x,middle-magnitude,Math.max(1,spacing*.8),magnitude*2);
-    }
-    for (const [x,color] of [[inX,'#f4c36a'],[outX,'#f08d91']]) {
-      ctx.fillStyle = color;
-      ctx.fillRect(Math.max(0,Math.min(w-2,x-1)),0,2,h);
-    }
-    current.textContent = t('waveform.selection', {
-      start:(start/1000).toFixed(2), end:(end/1000).toFixed(2),
-      duration:((Math.max(0,end-start))/1000).toFixed(2),
-    });
-    canvas.setAttribute('aria-valuenow',String(start));
-    canvas.setAttribute('aria-valuetext',current.textContent);
+  const duration=summary.durationMs;
+  const startField=inputs.get('startAtMs'),endField=inputs.get('endAtMs');
+  const canvas=node('canvas','cue-waveform-canvas');
+  canvas.width=800; canvas.height=144; canvas.tabIndex=0;
+  canvas.setAttribute('role','slider');
+  canvas.setAttribute('aria-label',t('waveform.dragHelp'));
+  canvas.setAttribute('aria-valuemin','0');
+  canvas.setAttribute('aria-valuemax',String(duration));
+  const stage=node('div','cue-waveform-stage');
+  const progress=node('span','cue-waveform-playhead');
+  progress.hidden=true;
+  progress.dataset.previewPlayhead='true';
+  progress.dataset.previewCueId=cueId??'';
+  progress.dataset.previewTrackId=trackId;
+  progress.dataset.durationMs=String(duration);
+  stage.append(canvas,progress);
+  const times=node('div','cue-waveform-times');
+  const toolbar=node('div','cue-waveform-toolbar');
+  const zoomOut=node('button','btn wave-zoom','−');
+  const zoomIn=node('button','btn wave-zoom','+');
+  const fit=node('button','btn wave-zoom',t('preview.fit'));
+  for(const button of [zoomOut,zoomIn,fit]) button.type='button';
+  zoomOut.setAttribute('aria-label',t('preview.zoomOut'));
+  zoomIn.setAttribute('aria-label',t('preview.zoomIn'));
+  fit.setAttribute('aria-label',t('preview.fit'));
+  const zoomReadout=node('span','wave-zoom-readout','1×');
+  const pan=node('input','wave-pan');
+  pan.type='range';pan.min='0';pan.max='0';pan.step='10';pan.value='0';
+  pan.setAttribute('aria-label',t('preview.panWave'));
+  pan.disabled=true;
+  let zoom=1,viewStart=0,cursorMs=null,dragging=null;
+  const clip=()=>({
+    start:Math.max(0,Math.min(duration,Number(startField.value)||0)),
+    end:endField.value.trim()===''?duration:
+      Math.max(0,Math.min(duration,Number(endField.value)||0)),
+  });
+  const viewSpan=()=>duration/zoom;
+  function refreshPan() {
+    const max=Math.max(0,duration-viewSpan());
+    viewStart=Math.min(viewStart,max);
+    pan.max=String(Math.round(max));
+    pan.value=String(Math.round(viewStart));
+    pan.disabled=zoom===1;
+    zoomReadout.textContent=zoom+'×';
+    zoomOut.disabled=zoom===1;
+    zoomIn.disabled=zoom===8;
   }
-  function place(handle, millis) {
-    const {start,end} = inputRange();
-    const value = Math.round(Math.max(0,Math.min(duration,millis))/10)*10;
-    if(handle==='in') {
-      startField.value=String(Math.max(0,Math.min(value,end-10)));
-    } else {
+  function toX(milliseconds) {
+    return (milliseconds-viewStart)/viewSpan()*canvas.width;
+  }
+  function point(e) {
+    const rect=canvas.getBoundingClientRect();
+    return Math.max(0,Math.min(duration,viewStart+
+      ((e.clientX-rect.left)/Math.max(1,rect.width))*viewSpan()));
+  }
+  function redraw() {
+    const {start,end}=clip();
+    const ctx=canvas.getContext('2d');
+    if(!ctx) return;
+    const w=canvas.width,h=canvas.height,mid=h/2;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#0b1620';ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='#29414b';ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let i=0;i<=8;i++) {
+      const x=i*w/8;ctx.moveTo(x,0);ctx.lineTo(x,h);
+    }
+    ctx.moveTo(0,mid);ctx.lineTo(w,mid);ctx.stroke();
+    // Editing region is legible even when zoomed or partially off screen.
+    const left=toX(start),right=toX(end);
+    ctx.fillStyle='rgba(103,91,206,.14)';
+    ctx.fillRect(Math.max(0,left),0,Math.max(0,Math.min(w,right)-Math.max(0,left)),h);
+    const barWidth=w/(summary.peaks.length/zoom);
+    for(let i=0;i<summary.peaks.length;i++) {
+      const ms=i/summary.peaks.length*duration;
+      if(ms<viewStart-viewSpan()/summary.peaks.length ||
+          ms>viewStart+viewSpan()) continue;
+      const x=toX(ms);
+      const amplitude=Math.max(1,summary.peaks[i]*(mid-14));
+      ctx.fillStyle=ms>=start&&ms<=end?'#52d7c1':'#466372';
+      ctx.fillRect(x,mid-amplitude,Math.max(1,barWidth*.83),2*amplitude);
+    }
+    // Fade envelopes show the operator exactly what has been staged.
+    const readMs=key=>Number(inputs.get(key)?.value)||0;
+    const fadeIn=Math.max(0,readMs('fadeInMs'));
+    const fadeOut=Math.max(0,readMs('fadeOutMs'));
+    const rate=Math.max(.5,Number(inputs.get('playbackRate')?.value)||1);
+    ctx.strokeStyle='#b7a0ff';ctx.lineWidth=2;ctx.beginPath();
+    if(fadeIn>0) {
+      ctx.moveTo(toX(start),mid);
+      ctx.lineTo(toX(Math.min(end,start+fadeIn*rate)),15);
+    }
+    if(fadeOut>0) {
+      ctx.moveTo(toX(Math.max(start,end-fadeOut*rate)),15);
+      ctx.lineTo(toX(end),mid);
+    }
+    ctx.stroke();
+    for(const [ms,color] of [[start,'#f6c65d'],[end,'#f18794']]) {
+      const x=toX(ms);
+      if(x>=0&&x<=w) {
+        ctx.fillStyle=color;ctx.fillRect(x-2,0,4,h);
+      }
+    }
+    if(cursorMs!==null) {
+      const x=toX(cursorMs);
+      if(x>=0&&x<=w) {
+        ctx.setLineDash([4,4]);ctx.strokeStyle='#d7dcf1';
+        ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+    times.textContent=t('waveform.selection',{
+      start:(start/1000).toFixed(2),end:(end/1000).toFixed(2),
+      duration:((Math.max(0,end-start))/1000).toFixed(2),
+    })+(cursorMs===null?'':t('preview.cursorAt',{time:(cursorMs/1000).toFixed(2)}));
+    canvas.setAttribute('aria-valuenow',String(start));
+    canvas.setAttribute('aria-valuetext',times.textContent);
+    progress.dataset.viewStartMs=String(viewStart);
+    progress.dataset.viewSpanMs=String(viewSpan());
+    refreshPreviewStudio();
+  }
+  function place(handle,millis) {
+    const {start,end}=clip();
+    const value=Math.round(Math.max(0,Math.min(duration,millis))/10)*10;
+    if(handle==='in') startField.value=String(Math.max(0,Math.min(value,end-10)));
+    else {
       const out=Math.max(start+10,Math.min(duration,value));
-      endField.value=out>=duration ? '' : String(out);
+      endField.value=out>=duration?'':String(out);
     }
     inspectorPendingChanges=true;
     redraw();
   }
-  let dragging=null;
-  const point=e=>{
-    const rect=canvas.getBoundingClientRect();
-    return Math.max(0,Math.min(duration,((e.clientX-rect.left)/Math.max(1,rect.width))*duration));
-  };
   canvas.addEventListener('pointerdown',e=>{
-    if(e.button!==0) return;
-    const {start,end}=inputRange();
-    const ms=point(e);
-    dragging=Math.abs(ms-start)<=Math.abs(ms-end) ? 'in':'out';
+    if(e.button!==0)return;
+    if(e.altKey) {
+      const {start,end}=clip();
+      cursorMs=Math.max(start,Math.min(end-10,Math.round(point(e)/10)*10));
+      redraw();return;
+    }
+    const {start,end}=clip(),ms=point(e);
+    dragging=Math.abs(ms-start)<=Math.abs(ms-end)?'in':'out';
     canvas.setPointerCapture?.(e.pointerId);
     place(dragging,ms);
   });
   canvas.addEventListener('pointermove',e=>{if(dragging)place(dragging,point(e));});
-  canvas.addEventListener('pointerup',()=>{dragging=null;});
-  canvas.addEventListener('pointercancel',()=>{dragging=null;});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])
+    canvas.addEventListener(event,()=>{dragging=null;});
   canvas.addEventListener('keydown',e=>{
     if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
     e.preventDefault();
-    const {start,end}=inputRange();
-    const handle=e.shiftKey?'out':'in';
+    const {start,end}=clip(),handle=e.shiftKey?'out':'in';
     place(handle,(handle==='in'?start:end)+(e.key==='ArrowLeft'?-10:10));
   });
-  startField.addEventListener('input',redraw);
-  endField.addEventListener('input',redraw);
-  block.append(canvas,current,node('p','caption',t('waveform.dragHelp')));
-  redraw();
+  for(const input of inputs.values())input.addEventListener('input',redraw);
+  zoomOut.addEventListener('click',()=>{
+    zoom=Math.max(1,zoom/2);
+    refreshPan();redraw();
+  });
+  zoomIn.addEventListener('click',()=>{
+    zoom=Math.min(8,zoom*2);
+    const {start,end}=clip();
+    viewStart=Math.max(0,Math.min(duration-viewSpan(),(start+end)/2-viewSpan()/2));
+    refreshPan();redraw();
+  });
+  fit.addEventListener('click',()=>{
+    zoom=1;viewStart=0;refreshPan();redraw();
+  });
+  pan.addEventListener('input',()=>{
+    viewStart=Number(pan.value);redraw();
+  });
+  const listen=node('button','btn wave-listen',t('preview.track'));
+  listen.type='button';listen.dataset.previewTrack=trackId;
+  listen.dataset.previewAsset=assetId;
+  listen.addEventListener('click',()=>listenToCue(cueId,{trackId}));
+  const fromCursor=node('button','btn wave-cursor',t('preview.fromCursor'));
+  fromCursor.type='button';
+  fromCursor.addEventListener('click',()=>{
+    const {start}=clip();
+    listenToCue(cueId,{trackId,fromMs:cursorMs??start});
+  });
+  const stop=node('button','btn wave-stop',t('preview.stop'));
+  stop.type='button';stop.dataset.previewStop='true';
+  stop.addEventListener('click',stopCuePreview);
+  toolbar.append(listen,fromCursor,stop,zoomOut,zoomIn,fit,zoomReadout);
+  block.append(stage,times,toolbar,pan,node('p','caption',t('preview.waveHint')));
+  refreshPan();redraw();
   return block;
 }
 
@@ -1057,7 +1157,7 @@ function cuePlaybackEditor(cue) {
   loop.addEventListener('change', syncLoop);
   syncLoop();
   if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
-    form.insertBefore(cueWaveformTrim(cue.actions[0].assetId, inputs), form.children[1]);
+    form.insertBefore(cueWaveformTrim(cue.actions[0].assetId, inputs, {cueId:cue.id,trackId:'primary'}), form.children[1]);
   }
   form.append(node('p', 'caption', t('audioProps.noAuto')));
   const save = node('button', 'btn primary small', t('audioProps.save'));
@@ -1280,7 +1380,7 @@ function cueAdditionalTracksEditor(cue) {
     const endAt = fields.get('endAtMs');
     endAt.required = false;
     endAt.value = settings.endAtMs === null ? '' : String(settings.endAtMs);
-    form.insertBefore(cueWaveformTrim(track.assetId, fields),form.firstChild);
+    form.insertBefore(cueWaveformTrim(track.assetId, fields, {cueId:cue.id,trackId:track.id}),form.firstChild);
     const loopLabel = node('label','cue-loop-field');
     const loop = node('input');
     loop.type='checkbox'; loop.name='loop'; loop.checked=settings.loop;
