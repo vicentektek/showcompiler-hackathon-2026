@@ -149,7 +149,7 @@
             </div>
             <div class="audio-batch-actions">
               <button id="importAudioBatchBtn" class="btn accent" type="button" data-i18n="audioBatch.selectMany">Select audio files</button>
-              <button id="importAudioZipBtn" class="btn subtle" type="button" data-i18n="audioBatch.selectZip">Import audio ZIP</button>
+              <button id="importAudioZipBtn" class="btn subtle" type="button" data-i18n="audioBatch.selectZip">Import ZIP / RAR / 7z</button>
             </div>
             <p class="audio-batch-guide" data-i18n="audioBatch.safety">Files are decoded locally. Existing loaded files are never replaced automatically. A show ZIP belongs in Open Show, not here.</p>
             <div class="audio-batch-report" id="audioBatchReport" role="status" aria-live="polite" hidden>
@@ -377,6 +377,7 @@
   <input id="bundleFileInput" type="file" accept=".zip,.showcompiler.zip,application/zip" hidden>
   <input id="audioFileInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" hidden>
   <input id="audioBatchFilesInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" multiple hidden>
-  <input id="audioBatchZipInput" type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden>
+  <!-- Omitting accept is intentional: Chrome/Windows custom file-type filters can hide .zip/.rar/.7z, especially when extensions are hidden. Archive signatures are validated after selection. -->
+  <input id="audioBatchZipInput" type="file" hidden>
 </body>
 </html>
