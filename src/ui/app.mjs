@@ -13,6 +13,7 @@ import { planAudioLibraryBatch } from '../core/audioBatchImport.mjs';
 import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
 import { prepareReviewedSfxImport } from '../core/sfxImportCandidate.mjs';
 import { createCueFromReviewedAudio } from '../core/reviewedSfxCue.mjs';
+import {stageCueConversationChange} from '../core/cueConversation.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -701,6 +702,7 @@ function selectCueForInspection(cueId) {
   if (cueId === selectedCueId) return true;
   if (!confirmDiscardInspectorEdits()) return false;
   selectedCueId = cueId;
+  document.dispatchEvent(new CustomEvent('runq:cue-chat-selection',{detail:{cueId}}));
   editingCueId = null;
   // Keep the same property section when reviewing consecutive cues;
   // only fall back if the newly selected cue has no playable audio.
@@ -1764,7 +1766,14 @@ function renderCueInspector() {
   header.append(node('strong', '', cue.number + ' · ' + cue.label),
     node('span', 'state', cue.id === operatorQueue.preparedCueId
       ? t('workspace.prepared') : t('workspace.selected')));
+  const chatButton=node('button','btn rq-chat-open','Editar con IA');
+  chatButton.type='button';
+  chatButton.textContent=uiLocale==='es'?'Editar conversando':'Edit with AI';
+  chatButton.addEventListener('click',()=>{
+    document.dispatchEvent(new CustomEvent('runq:cue-chat-open',{detail:{cueId:cue.id}}));
+  });
   inspector.append(header);
+  inspector.append(chatButton);
   inspector.append(node('p', 'cue-inspector-origin', cue.sourceLineIds.join(', ') + ' · ' +
     (cue.trigger || t('cueEditor.noTrigger'))));
   if(cue.actions.every(a=>a.type==='PLAY')) {
@@ -1871,6 +1880,50 @@ function renderCueInspector() {
   inspector.scrollTop = previousScrollTop;
   refreshPreviewStudio();
 }
+
+/**
+ * Conversational editor is advisory. Project state is changed only when the
+ * operator clicks Apply. This bridge reuses native cue validators, never GO.
+ */
+let cueChatUndo=null;
+function safeCueChatEditState(){
+ const status=player.getStatus();
+ return activeWorkspace==='cues'&&!audioInFlight&&!bundleInFlight&&
+  !status.activeCueCount&&!status.pendingGoCount&&!status.auditionActive&&!status.auditionPending&&
+  !inspectorPendingChanges;
+}
+document.addEventListener('runq:cue-chat-context',event=>{
+ const respond=event.detail?.respond;
+ if(typeof respond!=='function')return;
+ respond({project:show,cueId:selectedCueId,language:uiLocale,canApply:safeCueChatEditState(),
+  undoAvailable:Boolean(cueChatUndo&&cueChatUndo.after===JSON.stringify(show))});
+});
+document.addEventListener('runq:cue-chat-apply',event=>{
+ const respond=event.detail?.respond,request=event.detail;
+ const answer=value=>{if(typeof respond==='function')respond(value);};
+ if(!safeCueChatEditState()){answer({ok:false,error:'STOP_AUDIO_OR_SAVE_MANUAL_EDITS'});return;}
+ if(typeof request?.cueId!=='string'||request.cueId!==selectedCueId||
+    request?.base!==JSON.stringify(show)){answer({ok:false,error:'STALE_PROJECT_OR_SELECTION'});return;}
+ try{
+  const result=stageCueConversationChange(show,request.cueId,request.changes);
+  if(!result.diff.length){answer({ok:false,error:'NO_CHANGES'});return;}
+  const before=show;
+  show=result.project;
+  cueChatUndo={before,after:JSON.stringify(show),cueId:request.cueId};
+  dirty=true;inspectorPendingChanges=false;render();
+  answer({ok:true,changes:result.diff.length});
+ }catch(error){answer({ok:false,error:'INVALID_CUE_CHANGE',detail:String(error.message).slice(0,120)});}
+});
+document.addEventListener('runq:cue-chat-undo',event=>{
+ const respond=event.detail?.respond;
+ const answer=value=>{if(typeof respond==='function')respond(value);};
+ if(!safeCueChatEditState()){answer({ok:false,error:'STOP_AUDIO_OR_SAVE_MANUAL_EDITS'});return;}
+ if(!cueChatUndo||cueChatUndo.after!==JSON.stringify(show)){
+  cueChatUndo=null;answer({ok:false,error:'PROJECT_CHANGED'});return;
+ }
+ show=cueChatUndo.before;cueChatUndo=null;dirty=true;
+ render();answer({ok:true});
+});
 
 function userAllowsReplacement() {
   if (inspectorPendingChanges && !window.confirm(t('cueEditor.discardChanges'))) return false;

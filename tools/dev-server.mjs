@@ -8,6 +8,7 @@ import { makeBasetenRoute } from './basetenRoutes.mjs';
 import { makeSfxRoute } from './sfxRoutes.mjs';
 import { makeVoiceTranscribeRoute } from './voiceTranscribeRoutes.mjs';
 import { makeVoiceLiveRoute } from './voiceLiveRoutes.mjs';
+import { makeCueConversationRoute } from './cueConversationRoutes.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 /**
@@ -56,6 +57,9 @@ const allowed = new Map([
   ['/src/ui/voice-live-ui.mjs', ['src/ui/voice-live-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-microphone-test.mjs', ['src/ui/voice-microphone-test.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-follow-ui.mjs', ['src/ui/voice-follow-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/cue-conversation-ui.mjs', ['src/ui/cue-conversation-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/cue-conversation.css', ['src/ui/cue-conversation.css', 'text/css; charset=utf-8']],
+  ['/src/core/cueConversation.mjs', ['src/core/cueConversation.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-follow.css', ['src/ui/voice-follow.css', 'text/css; charset=utf-8']],
   ['/src/core/reviewedSfxCue.mjs', ['src/core/reviewedSfxCue.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/livePcm.mjs', ['src/core/livePcm.mjs', 'text/javascript; charset=utf-8']],
@@ -120,6 +124,7 @@ export function createAppServer(options = {}) {
   const sfxRoute = makeSfxRoute(options);
   const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
   const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
+  const cueConversationRoute = makeCueConversationRoute({getKey:options.getCueChatKey,fetchImpl:options.cueChatFetch});
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',
@@ -135,6 +140,7 @@ export function createAppServer(options = {}) {
     if (await sfxRoute(request, response, pathname, headers)) return;
     if (await voiceRoute(request, response, pathname, headers)) return;
     if (await voiceLiveRoute(request, response, pathname, headers)) return;
+    if (await cueConversationRoute(request, response, pathname, headers)) return;
     if (!['GET', 'HEAD'].includes(request.method)) {
       response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
       response.end();

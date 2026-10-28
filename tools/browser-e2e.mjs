@@ -163,6 +163,30 @@ try {
   assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
     'Compact inspector must show real editable audio settings without page scroll');
   await page.setViewportSize({width:1366,height:768});
+  // Conversational cue editor: offline text -> draft -> correction -> apply -> undo.
+  assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
+  const originalFade=await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue();
+  const originalGain=await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue();
+  await page.locator('.rq-chat-open').click();
+  assert.equal(await page.locator('#rqCueChatPanel').isVisible(),true);
+  await page.locator('#rqChatPrompt').fill('Pon un fade in de 3 segundos y volumen a -9 dB');
+  await page.locator('#rqChatSubmit').click();
+  await page.waitForFunction(()=>document.querySelectorAll('.rq-chat-change').length===2);
+  assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),originalFade,
+    'Draft must not mutate cue');
+  await page.locator('#rqChatPrompt').fill('Mejor que sean cuatro segundos');
+  await page.locator('#rqChatSubmit').click();
+  await page.waitForFunction(()=>document.querySelector('#rqChatDiff')?.textContent?.includes('4 s'));
+  await page.locator('#rqChatApply').click();
+  await page.waitForFunction(()=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value==='4000');
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),'-9');
+  await page.locator('#rqChatUndo').click();
+  await page.waitForFunction(expected=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value===expected,originalFade);
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),originalGain);
+  await page.locator('#rqChatClose').click();
+  assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,'Cue chat must never GO');
+
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
