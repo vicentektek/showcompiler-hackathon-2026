@@ -1,5 +1,11 @@
 {
   "brand.prototype": "HACKATHON 2026 · PROTOTYPE",
+  "audioProps.endAtMs": "OUT trim (ms; empty = file end)",
+  "audioProps.endAtHelp": "Optional end point; must be after IN and within the decoded file.",
+  "waveform.heading": "Recorded audio waveform · IN / OUT",
+  "waveform.unavailable": "Load the local audio file to display its real waveform. Numeric trims remain available.",
+  "waveform.dragHelp": "Drag the nearest amber IN or red OUT marker. Arrow keys adjust IN by 10 ms; Shift + arrows adjust OUT. Save to apply.",
+  "waveform.selection": "IN {start} s · OUT {end} s · Selection {duration} s",
   "script.searchLabel": "Find in script",
   "script.searchPlaceholder": "Search dialogue or stage directions",
   "script.previousMatch": "Previous match",
