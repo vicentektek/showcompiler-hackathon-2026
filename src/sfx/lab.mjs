@@ -65,7 +65,7 @@ function showCost(settings) {
   element.classList.toggle('ready',ready);
   element.textContent=ready
     ? `Límite estimado por solicitud: ${money(policy.perRequest)}. Presupuesto diario: ${money(policy.daily)}. Son límites preventivos, no el importe facturado.`
-    : 'Cost estimate unavailable. Generation is blocked until the local service exposes a configured maximum.';
+    : 'No hay una política de coste válida; la generación está bloqueada.';
   text('confirmRequestLabel',ready
     ? `Autorizo UNA generación con un límite estimado de ${money(policy.perRequest)}.`
     : 'Autorizo una única solicitud con el límite indicado.');
@@ -125,8 +125,19 @@ function updateControls(){
   $('exportBtn').disabled=state.working||!canUseAcceptedSource();
   $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
 }
+function clearReviewedAudio(){
+  stopSoundLabAudition();
+  state.audio=null;state.sourceBytes=null;state.fileOrigin=null;state.peaks=null;
+  state.inSeconds=0;state.outSeconds=0;
+  text('audioName','Ningún WAV cargado');
+  text('waveDuration','00:00.000');
+  $('sfxWaveEmpty')?.removeAttribute('hidden');
+  $('waveCanvas')?.classList.remove('sfx-has-audio');
+  drawWave();
+}
 function viewJob(job){
   const changed=state.job?.requestId!==job?.requestId;
+  if(changed)clearReviewedAudio();
   state.job=job;
   if(changed){
     state.loadedRemoteRequestId=null;
