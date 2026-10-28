@@ -462,7 +462,8 @@ function updateScriptCompletion(){
   const name=show.assets.find(a=>a.id===state.importedAssetId)?.name??'WAV';
   const matched=show.cues.find(c=>c.sourceProposalId===state.context.proposalId);
   const isAssigned=matched && (
-    matched.mainType==='PLAY'||matched.audioTracks.some(track=>track.assetId===state.importedAssetId)
+    matched.mainAssetId===state.importedAssetId ||
+    matched.audioTracks.some(track=>track.assetId===state.importedAssetId)
   );
   target.append(node('strong','',t('scriptReady')+' · '+name));
   if(isAssigned){
