@@ -172,6 +172,26 @@ try {
   await inspector.locator('[name="startAtMs"]').fill('125');
   await inspector.locator('[name="playbackRate"]').fill('1.25');
   await inspector.locator('[name="pan"]').fill('-0.5');
+  // Unsaved audition must play the staged edit, not move NEXT GO or trigger
+  // stop targets / auto-follow. The preview path shares the system output
+  // but never calls the operator GO control.
+  const nextBeforePreview=await page.locator('#preparedCueStatus').innerText();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('.cue-audition-studio [data-preview-cue]').click();
+  await page.waitForFunction(()=>window.__testAudioStarts>=1);
+  const previewLaunch=await page.evaluate(()=>window.__testAudioStartsWithTrim.at(-1));
+  assert.equal(previewLaunch.offset,.125,'Preview reads UNSAVED IN');
+  assert.ok(Math.abs(previewLaunch.duration-1.675)<.05,'Preview reads UNSAVED OUT');
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforePreview,
+    'Preview never advances the operator queue');
+  assert.match(await page.locator('[data-preview-status]').innerText(),/LISTENING/);
+  await page.locator('.cue-audition-studio [data-preview-stop]').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforePreview);
+  // Reset smoke counters so the existing GO-only assertions remain meaningful.
+  await page.evaluate(()=>{
+    window.__testAudioStarts=0;window.__testAudioStops=0;
+    window.__testAudioStartsWithTrim=[];window.__testStopTimes=[];
+  });
   await inspector.getByRole('button', {name:'Save playback settings'}).click();
   assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
   assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
