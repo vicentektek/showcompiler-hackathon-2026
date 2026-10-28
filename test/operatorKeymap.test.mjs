@@ -26,9 +26,9 @@ test('keyboard input/editor/menu, modifiers, repeat, IME, modal and handled even
     {repeat:true},{isComposing:true},{keyCode:229},
     {altKey:true},{ctrlKey:true},{metaKey:true},{shiftKey:true},
     {defaultPrevented:true},{inModal:true},
-    {target:{closest:()=>({tagName:'INPUT'})}},
-    {target:{closest:()=>({tagName:'BUTTON'})}},
-    {target:{closest:()=>({tagName:'SELECT'})}},
+    {target:{closest:selector=>selector==='[data-cue-select]'?null:{tagName:'INPUT'}}},
+    {target:{closest:selector=>selector==='[data-cue-select]'?null:{tagName:'BUTTON'}}},
+    {target:{closest:selector=>selector==='[data-cue-select]'?null:{tagName:'SELECT'}}},
     {target:{closest:()=>null,isContentEditable:true}},
   ]){
     assert.equal(decideOperatorShortcut(mock('Space',override),p,'cues'),null);
@@ -56,7 +56,7 @@ test('emergency STOP ALL only with explicit separate assignment and active works
   assert.equal(decideOperatorShortcut(mock('Escape'),p,'operation'),'STOP_ALL');
   assert.equal(decideOperatorShortcut(mock('Escape'),p,'cues'),'STOP_ALL');
   assert.equal(decideOperatorShortcut(mock('Escape'),p,'setup'),null);
-  assert.equal(decideOperatorShortcut(mock('Escape',{target:{closest:()=>({})}}),p,'operation'),null);
+  assert.equal(decideOperatorShortcut(mock('Escape',{target:{closest:selector=>selector==='[data-cue-select]'?null:{}}}),p,'operation'),null);
 });
 test('storage normalization refuses unsupported codes, null, conflicts and invalid version',()=>{
   assert.equal(OPERATOR_KEY_CHOICES.includes('Space'),true);
