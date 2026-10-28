@@ -1,0 +1,33 @@
+/* RunQ Sound V5 — one primary workspace, two real existing routes. */
+.workspace-nav[data-rq-sound-ready="true"] > [data-workspace-nav="soundlab"]{
+  display:none!important;
+}
+.rq-sound-workspace-switch{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  gap:12px;margin:0 0 12px;padding:12px 17px;
+  border:1px solid #335760;border-radius:8px;
+  background:linear-gradient(110deg,#172b34,#183b39);
+}
+.rq-sound-workspace-switch[hidden]{display:none!important}
+.rq-sound-switch-intro{min-width:220px;flex:1 1 280px}
+.rq-sound-switch-intro strong{font-size:13px;color:#edfcf7;letter-spacing:.025em}
+.rq-sound-switch-intro p{margin:4px 0 0;font-size:11px;line-height:1.5;color:#b5ccd0}
+.rq-sound-switch-actions{
+  display:flex;flex-wrap:wrap;gap:5px;padding:4px;
+  border:1px solid #36535b;border-radius:7px;background:#10222c;
+}
+.rq-sound-switch-button{
+  min-height:39px;min-width:135px;padding:8px 14px;cursor:pointer;
+  border:1px solid transparent;border-radius:5px;background:transparent;
+  color:#b7ccd0;font-size:12px;font-weight:750;
+}
+.rq-sound-switch-button:hover{background:#25434b;color:#f1fffd}
+.rq-sound-switch-button[aria-pressed="true"]{
+  background:#255249;border-color:#579b8e;color:#e9fff8;
+}
+.rq-sound-switch-button:focus-visible{outline:2px solid #daee84;outline-offset:2px}
+@media(max-width:640px){
+  .rq-sound-workspace-switch{padding:10px;align-items:stretch}
+  .rq-sound-switch-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .rq-sound-switch-button{min-width:0;padding:8px 6px}
+}
