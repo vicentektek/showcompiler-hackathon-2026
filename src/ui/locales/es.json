@@ -488,5 +488,7 @@
   "audioBatch.existing": "Ya existe en la biblioteca y está cargado",
   "audioBatch.fileLimit": "Máximo 100 archivos por lote; cada uno hasta 20 MB y 10 minutos.",
   "audioBatch.missing": "Los archivos que fallen no se añaden a la biblioteca; los demás continúan.",
-  "workspace.description.soundlab": "Prepara y revisa efectos de sonido antes de importarlos manualmente. La generación y el GO no se activan automáticamente."
+  "workspace.description.soundlab": "Prepara y revisa efectos de sonido antes de importarlos manualmente. La generación y el GO no se activan automáticamente.",
+  "workspace.voice": "Voz y seguimiento",
+  "workspace.description.voice": "Configura micrófonos, pies de voz, simulación y diagnósticos. GO automático solo puede armarse en Ensayo."
 }
