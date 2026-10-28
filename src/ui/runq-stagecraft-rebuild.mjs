@@ -200,7 +200,7 @@ function createAudio(){
   const grid=el('div','rq5-audio-grid');
   grid.append(library,editor);
   if(panelHead)panelHead.after(grid);else panel.prepend(grid);
-  waveformUi={canvas,select,zoom,status,channelCount,durationValue,peaks:null,assetId:null,error:null,sourceLabel:null};
+  waveformUi={canvas,select,zoom,status,channelCount,durationValue,peaks:null,assetId:null,sourceFile:null,error:null,sourceLabel:null};
   select.addEventListener('change',()=>void selectSource(select.value));
   zoom.addEventListener('input',drawWave);
   const observer=new MutationObserver(()=>queueMicrotask(refreshAssetPicker));
@@ -216,7 +216,10 @@ function refreshAssetPicker(){
   const ids=[...new Set(buttons.map(button=>button.dataset.assetAudition).filter(Boolean))];
   const before=select.value;
   const current=ids.join('|');
-  if(select.dataset.assetIds===current)return;
+  // The same asset ID can be reused by a different imported show or replaced
+  // with a different File: never leave stale PCM from the previous source.
+  if(select.dataset.assetIds===current &&
+      requestAssetSource(select.value)===waveformUi.sourceFile)return;
   selecting=true;
   select.dataset.assetIds=current;
   select.replaceChildren();
@@ -250,6 +253,7 @@ async function selectSource(assetId){
   drawWave();updateWaveformStatus();
   if(!assetId)return;
   const file=requestAssetSource(assetId);
+  waveformUi.sourceFile=file;
   if(!file||typeof file.arrayBuffer!=='function')return;
   waveformUi.status.textContent='Decoding local PCM…';
   let context=null;
