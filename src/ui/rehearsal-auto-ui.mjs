@@ -10,6 +10,7 @@ import {initialRehearsalAutoState,decideRehearsalAutoGo,
 const $=id=>document.getElementById(id);
 const t=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
 let listening=false,armed=false,busy=false,epoch=0;
+let persistentWarning='';
 let scenario=null,fingerprint='',autoState=initialRehearsalAutoState();
 function currentShow(){
  let found=null;
@@ -28,17 +29,39 @@ function log(value){
 }
 function display(){
  const button=$('rqLiveArm'),mode=$('rqLiveMode').value;
+ const auto=mode==='auto';
+ button.hidden=!auto;
+ $('rqLiveArmStatus').hidden=!auto;
+ $('rqLiveAutoHelp').hidden=!auto;
+ $('rqLiveAutoHistory').hidden=!auto;
  button.setAttribute('aria-pressed',String(armed));
- button.disabled=!armed&&(!listening||!scenario||mode!=='auto'||busy);
- button.textContent=armed?t('DISARM AUTO GO','DESARMAR GO AUTO'):t('ARM AUTO GO','ARMAR GO AUTOMÁTICO');
+ button.disabled=!armed&&(!listening||!scenario||!auto||busy);
+ button.textContent=armed?t('DISARM AUTOMATIC GO','DESARMAR GO AUTOMÁTICO'):
+  t('ARM AUTOMATIC GO','ARMAR GO AUTOMÁTICO');
  $('rqLivePanel').classList.toggle('rqlive-armed',armed);
+ $('rqLivePanel').classList.toggle('rqlive-awaiting-arm',auto&&listening&&!armed);
  if(armed){$('rqLivePrepare').disabled=true;$('rqLiveDismiss').disabled=true;}
- if(!armed)status('DISARMED · VOICE CANNOT START AUDIO','DESARMADO · LA VOZ NO PUEDE DISPARAR AUDIO');
- else status('ARMED · SPOKEN CUES CAN START AUDIO','ARMADO · LOS PIES DE VOZ PUEDEN DISPARAR AUDIO');
+ const headline=armed?
+  t('ARMED · SPEECH CAN PLAY AUDIO','ARMADO · LA VOZ PUEDE REPRODUCIR AUDIO'):
+  !auto?t('ASSIST MODE · GO MANUAL','MODO ASISTENTE · GO MANUAL'):
+  !listening?t('STEP 1 · START LISTENING','PASO 1 · INICIA LA ESCUCHA'):
+  !scenario?t('NO SPOKEN CUES AVAILABLE','NO HAY PIES HABLADOS CONFIGURADOS'):
+  t('STEP 2 · ARM AUTO GO TO PLAY CUES','PASO 2 · ARMA EL GO PARA REPRODUCIR CUES');
+ status(persistentWarning||headline,persistentWarning||headline);
+ const primary=$('rqvfPrimaryState');
+ if(primary){
+  primary.textContent=armed?t('AUTO GO ARMED · AUDIO ENABLED','GO AUTOMÁTICO ARMADO · AUDIO ACTIVO'):
+   auto&&listening?t('LISTENING · AUTO GO NOT ARMED','ESCUCHANDO · GO AUTO SIN ARMAR'):
+   auto?t('AUTO GO DISARMED','GO AUTOMÁTICO DESARMADO'):
+   listening?t('LISTENING · MANUAL MODE','ESCUCHANDO · MODO MANUAL'):
+   t('MICROPHONE STOPPED','MICRÓFONO DETENIDO');
+  primary.dataset.state=armed?'armed':auto&&listening?'needs-arm':listening?'listening':'idle';
+ }
 }
+
 function disarm(reason='operator'){
  if(armed)log(t('Disarmed: ','Desarmado: ')+reason);
- armed=false;epoch++;display();
+ armed=false;epoch++;persistentWarning='';display();
 }
 async function arm(){
  if(armed){disarm('operator');return;}
@@ -63,29 +86,29 @@ async function arm(){
  busy=false;
  if(epoch!==armEpoch||!listening||$('rqLiveMode').value!=='auto')return;
  if(!result?.ok){
+  persistentWarning=t('Cannot arm audio: ','No se puede armar audio: ')+(result?.reason??'OUTPUT_ERROR');
   display();
-  status('Cannot arm audio: '+(result?.reason??'OUTPUT_ERROR'),
-   'No se puede armar audio: '+(result?.reason??'OUTPUT_ERROR'));
   return;
  }
  const focus=Number($('rqLiveFocus').value);
  autoState=initialRehearsalAutoState({
   focusLine:Number.isInteger(focus)&&focus>0?focus:scenario.initialFocusLine,
  });
- armed=true;epoch++;
+ armed=true;epoch++;persistentWarning='';
  display();
- log(t('Automatic GO ARMED','GO automático ARMADO'));
+ log(t('Automatic GO ARMED · output unlocked','GO automático ARMADO · salida de audio activa'));
+ $('rqLiveCue').textContent=t('Ready · say a configured cue trigger','Preparado · di un pie configurado');
 }
 function localized(){
  $('rqLiveModeLabel').textContent=t('Cue follow mode','Modo de seguimiento de cues');
  $('rqLiveMode').options[0].textContent=t('Assist · suggest NEXT','Asistente · sugerir NEXT');
  $('rqLiveMode').options[1].textContent=t('Rehearsal autopilot · automatic GO','Autopiloto de ensayo · GO automático');
  $('rqLiveAutoHelp').textContent=t(
-  'Rehearsal only. Arm after starting the microphone. A unique completed cue phrase can replay, jump ahead, or rewind. STOP ALL disarms. GO uses the show audio output.',
-  'Solo ensayo. Arma después de activar el micrófono. Un pie inequívoco y finalizado puede repetir, avanzar o retroceder. PARAR TODO desarma. GO usa la salida de audio del espectáculo.'
+  'Listening alone does NOT start cues. Click ARM AUTOMATIC GO to enable playback. STOP ALL disarms instantly. Repeats, rewinds and jumps are supported.',
+  'Escuchar NO ejecuta cues. Pulsa ARMAR GO AUTOMÁTICO para permitir la reproducción. PARAR TODO desarma de inmediato. Puedes repetir, retroceder o saltar.'
  );
  $('rqLiveCueTitle').textContent=$('rqLiveMode').value==='auto'
-  ?t('AUTOPILOT · LAST CUE','AUTOPILOTO · ÚLTIMO CUE')
+  ?t('AUTOPILOT · DETECTION / GO','AUTOPILOTO · DETECCIÓN / GO')
   :t('SUGGESTED CUE · MANUAL GO','CUE SUGERIDO · GO MANUAL');
  $('rqLivePrivacy').textContent=t(
   'Only completed turns are considered. Automatic playback requires explicit arming in Rehearsal; never active in Operation.',
@@ -164,7 +187,11 @@ function mount(){
  if(!$('rqLiveMode'))return;
  $('rqLiveArm').addEventListener('click',()=>void arm());
  $('rqLiveMode').addEventListener('change',()=>{
-  disarm('mode changed');localized();
+  disarm('mode changed');
+  $('rqLiveCue').textContent=$('rqLiveMode').value==='auto'
+   ?t('Autopilot disarmed. Start listening, then ARM.','Autopiloto desarmado. Inicia escucha y después ARMA.')
+   :t('Assist mode: recognized cues will be suggested.','Asistente: los cues reconocidos se sugerirán.');
+  localized();
  });
  document.addEventListener('runq:voice-live-ready',ready);
  document.addEventListener('runq:voice-live-stopping',()=>{listening=false;disarm('microphone stopped');});
