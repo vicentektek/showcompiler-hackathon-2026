@@ -14,6 +14,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Static validation of SFX pilot (no Modal deployment)
+        run: |
+          node --check src/core/modalSfxPilotClient.mjs
+          python -m py_compile modal/runq_sfx_pilot.py
       - name: Full Codex QA (offline syntax, unit tests and synthetic cue comparisons)
         run: npm run qa:codex
       - name: Upload concise Codex task report (synthetic fixtures only)
