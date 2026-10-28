@@ -257,6 +257,14 @@ function mount(){
  const shell=document.querySelector('.shell');
  if(shell)new MutationObserver(()=>{
   if(shell.dataset.activeWorkspace==='voice')renderTriggers();
+  // A listening session started in Voice continues into rehearsal as
+  // ASSISTED, never invisibly under a label saying MANUAL.
+  if(shell.dataset.activeWorkspace==='rehearsal'&&
+     document.body.dataset.runqVoiceCapture==='live'&&
+     $('rqRehMode').value==='manual'){
+     $('rqRehMode').value='assist';
+     changeMode();
+  }
   syncRehearsal();
  }).observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
  for(const id of ['rqLiveStart','rqLiveStop','rqLiveArm','rqLivePrepare','rqLiveDismiss',
