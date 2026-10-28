@@ -17,7 +17,9 @@ try{
   browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
   const ctx=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:900}});
   const page=await ctx.newPage(),errors=[];
-  page.on('pageerror',e=>errors.push(e.message));
+  page.on('pageerror',e=>errors.push('JS '+e.message));
+  page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE '+m.text());});
+  page.on('response',r=>{if(r.status()>=400)errors.push('HTTP '+r.status()+' '+r.url());});
   await page.addInitScript(()=>{
     window.__labStarted=0;window.__labStopped=0;
     window.AudioContext=class{
@@ -54,7 +56,13 @@ try{
     return route.continue();
   });
   await page.goto('http://127.0.0.1:'+port+'/sound-lab',{waitUntil:'domcontentloaded'});
-  await page.locator('#engineBadge').getByText('Offline editing',{exact:true}).waitFor();
+  await page.waitForTimeout(900);
+  console.log('SFX_BROWSER_DIAGNOSTIC',JSON.stringify({
+    badge:await page.locator('#engineBadge').textContent(),
+    currentUrl:page.url(),
+    errors
+  }));
+  await page.locator('#engineBadge').getByText('Offline editing',{exact:true}).waitFor({timeout:4000});
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
   await page.locator('#demoAudioBtn').click();
