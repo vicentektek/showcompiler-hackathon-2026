@@ -167,7 +167,7 @@ export class BrowserAudioEngine {
           : null,
         playbackRate:tracks.length===1?tracks[0].playback.playbackRate:1,
         repeating:tracks.length===1 ? (tracks[0].playback.loop || tracks[0].playback.repeatCount>1) : false,
-        durationSeconds:voices.some(voice=>voice.loop)?null:Math.max(...voices.map(voice=>voice.duration))};
+        durationSeconds:tracks.some(track=>track.playback.loop)?null:Math.max(...voices.map(voice=>voice.duration))};
       this.auditionVoice=run;
       for (const voice of voices) {
         voice.source.onended=()=>{
