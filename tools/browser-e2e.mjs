@@ -241,7 +241,10 @@ try {
   // the selected cue. Merely clicking/inspecting does NOT reposition NEXT.
   assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),1);
   await page.locator('[data-workspace-nav="operation"]').click();
-  await page.getByRole('button', { name: 'Set next', exact: true }).nth(1).click();
+  await page.locator('#cueList [data-cue-select]').nth(1).click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),preparedBeforeNavigation,
+    'Inspection in Live must not prepare NEXT');
+  await page.locator('#cueList .cue-item.cue-selected .cue-operation-actions button').first().click();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   await page.locator('#operatorBackBtn').click();
