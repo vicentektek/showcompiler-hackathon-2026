@@ -4,7 +4,7 @@ const $ = id => document.getElementById(id);
 const api = '/api/sfx';
 const state = {
   enabled: false, working: false, job: null, audio: null, context: null,
-  source: null, gain: null, peaks: null, fileOrigin: null,
+  source: null, gain: null, peaks: null, fileOrigin: null, loadedRemoteRequestId: null,
   inSeconds: 0, outSeconds: 0, dragStart: null,
 };
 const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT']);
@@ -45,7 +45,9 @@ function updateControls() {
   $('inPoint').disabled = !state.audio;
   $('outPoint').disabled = !state.audio;
   $('exportBtn').disabled = !state.audio || state.working ||
-    (state.fileOrigin === 'remote' && state.job?.status !== 'ACCEPTED_FOR_MANUAL_IMPORT');
+    (state.fileOrigin === 'remote' &&
+      (state.job?.status !== 'ACCEPTED_FOR_MANUAL_IMPORT' ||
+       state.job?.requestId !== state.loadedRemoteRequestId));
 }
 function viewJob(job) {
   state.job=job;
@@ -135,6 +137,7 @@ async function loadAudio(bytes, name, origin='local') {
     throw new Error('Unsupported audio layout or duration');
   state.audio=decoded;
   state.fileOrigin=origin;
+  state.loadedRemoteRequestId=origin==='remote' ? state.job?.requestId : null;
   state.inSeconds=0;state.outSeconds=decoded.duration;
   state.peaks=waveformPeaks(Array.from({length:decoded.numberOfChannels},(_,c)=>decoded.getChannelData(c)),600);
   text('audioName',name+' · '+decoded.numberOfChannels+' ch · '+decoded.sampleRate+' Hz');
@@ -252,7 +255,9 @@ canvas.addEventListener('pointerup',event=>{
 });
 $('exportBtn').addEventListener('click',()=>action(async()=>{
   if(!state.audio)throw new Error('No WAV loaded');
-  if(state.fileOrigin==='remote' && state.job?.status!=='ACCEPTED_FOR_MANUAL_IMPORT')
+  if(state.fileOrigin==='remote' &&
+     (state.job?.status!=='ACCEPTED_FOR_MANUAL_IMPORT' ||
+      state.job?.requestId!==state.loadedRemoteRequestId))
     throw new Error('Operator acceptance required before exporting remote generation');
   const audio=makeTrimmedPcm16Wav(state.audio,state.inSeconds,state.outSeconds);
   const filename=state.fileOrigin==='remote'?'runq-'+state.job.requestId+'-trim.wav':'runq-local-trim.wav';
