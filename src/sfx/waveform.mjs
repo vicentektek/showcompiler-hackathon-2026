@@ -78,3 +78,22 @@ export function trimBounds(inSeconds, outSeconds, duration) {
   if (upper-lower<0.01) throw new RangeError('Selection must be at least 10 milliseconds');
   return Object.freeze({ inSeconds:lower,outSeconds:upper });
 }
+
+/** Original synthesized impact sample to exercise offline waveform/preview paths. NOT AI. */
+export function makeOfflineImpactDemoWav() {
+  const rate=22050, frames=rate*2, ch=new Float32Array(frames);
+  let noise=123456789;
+  for(let i=0;i<frames;i++){
+    const t=i/rate;
+    noise=(Math.imul(1664525,noise)+1013904223)>>>0;
+    const random=(noise/4294967296)*2-1;
+    const tail=Math.exp(-5.4*t);
+    ch[i]=(Math.sin(2*Math.PI*(84-18*t)*t)*.36+
+      random*.24)*tail;
+  }
+  const buffer={
+    sampleRate:rate,numberOfChannels:1,length:frames,duration:frames/rate,
+    getChannelData:()=>ch,
+  };
+  return makeTrimmedPcm16Wav(buffer,0,2);
+}
