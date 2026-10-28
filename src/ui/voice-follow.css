@@ -95,3 +95,96 @@
 .rqlive-armed .rqlive-auto-mode{background:#42251b;border-color:#db8e4d}
 .rqlive-armed #rqLiveArm{background:#a73829;color:#fff}
 .rqlive-armed #rqLiveArmStatus{color:#ffbd91}
+
+/* Rehearsal 2026 UX pass: primary operation vs optional diagnostics.
+   Explicit controls override the generic form rules from Stagecraft. */
+.shell[data-active-workspace="rehearsal"] .rqvf-panel {
+  width:100%;max-width:100%;padding:14px;gap:12px;
+  background:#111c25;border:1px solid #304858;
+}
+.rqvf-primary-head{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  border-bottom:1px solid #304858;padding-bottom:12px;flex-wrap:wrap}
+.rqvf-primary-head>div{display:flex;flex-direction:column;gap:4px}
+.rqvf-primary-head strong{font-size:16px;font-weight:750;letter-spacing:.01em;color:#f2f8fa}
+.rqvf-primary-head span{font-size:12px;color:#9fb4c4}
+#rqvfPrimaryState{font-size:12px;font-weight:700;color:#aac0ce;
+  background:#203040;border-radius:6px;padding:8px 12px}
+.rqvf-advanced{border:1px solid #344855;border-radius:7px;background:#17242e;min-width:0}
+.rqvf-advanced summary{cursor:pointer;padding:12px 14px;color:#cad8df;font-size:12px;
+ font-weight:650;list-style:revert}
+.rqvf-advanced summary:hover{color:white;background:#21313b}
+.rqvf-advanced-content{padding:8px 12px 14px;display:flex;flex-direction:column;gap:10px}
+.rqvf-advanced:not([open]) .rqvf-advanced-content{display:none}
+.rqlive-panel{padding:15px!important; background:linear-gradient(130deg,#182e3b,#14242e);
+ border:1px solid #3c5868;border-radius:9px;margin:0}
+.rqlive-head strong{font-size:14px;letter-spacing:.025em}
+.rqlive-head output{font-size:12px}
+.rqlive-settings{margin:12px 0;gap:12px}
+.rqlive-settings label{font-size:12px;gap:8px}
+.rqlive-settings select,.rqlive-settings input,
+.rqlive-auto-mode select{font-size:13px;min-height:34px;max-width:none}
+.rqlive-settings input{max-width:80px}
+.rqlive-auto-mode{background:#223542;gap:12px;justify-content:space-between;padding:14px;
+ border:1px solid #49697a;border-radius:8px}
+.rqlive-auto-mode label{font-size:12px;gap:6px}
+.rqlive-auto-mode button{min-height:44px;padding:9px 17px;font-size:14px;
+ min-width:200px;background:#256b5c!important;border:1px solid #3d947a!important;color:#fff!important;
+ opacity:1!important}
+.rqlive-auto-mode button:disabled{background:#2b3f49!important;
+ border-color:#46606c!important;color:#92a5b1!important;opacity:.7!important}
+.rqlive-auto-mode output{display:block;flex:1 1 250px;max-width:420px;
+ font-size:12px;line-height:1.5;padding:8px 10px;background:#162730;border-radius:6px}
+.rqlive-panel.rqlive-armed{outline:3px solid #db8955;box-shadow:inset 0 0 0 1px #ac5e34}
+.rqlive-armed .rqlive-auto-mode{background:#422a23;border-color:#cb8255}
+.rqlive-armed .rqlive-auto-mode button{background:#af4337!important;border-color:#d96250!important}
+.rqlive-armed #rqLiveArmStatus{color:#ffddbe;background:#633628}
+.rqlive-auto-help{font-size:12px!important;color:#c2d3db!important;
+ line-height:1.5;margin:6px 0 10px!important}
+.rqlive-auto-history{max-height:75px;gap:7px;margin:5px 0 12px;font-size:11px}
+.rqlive-auto-history li{color:#c5d7e2;padding:5px 9px;background:#213846}
+.rqlive-controls{background:#11212c;padding:10px 12px;border-radius:7px;gap:10px}
+.rqlive-controls button{font-size:12px;min-height:36px}
+.rqlive-controls output{font-size:12px;line-height:1.4}
+.rqlive-controls meter{width:115px;min-width:95px}
+.rqlive-results{grid-template-columns:minmax(0,.8fr) minmax(0,1.55fr);gap:10px;margin:12px 0}
+.rqlive-results>div{min-height:95px;padding:13px;border-radius:7px;background:#101f29;
+ border:1px solid #38515d}
+.rqlive-results .rqlive-partial{grid-column:1/-1;min-height:55px}
+.rqlive-results .rqlive-transcript{grid-column:1;grid-row:2}
+.rqlive-results .rqlive-cue-result{grid-column:2;grid-row:2;border-color:#4a7169;
+ background:#122a2d}
+.rqlive-results small{font-size:11px;letter-spacing:.04em;margin-bottom:8px}
+.rqlive-results output{font-size:14px;font-weight:600;line-height:1.5}
+.rqlive-results p{font-size:12px!important;line-height:1.5;margin:0 0 7px!important}
+#rqLiveTranscript{max-height:112px;overflow:auto;scrollbar-width:thin}
+#rqLiveCue{min-height:36px}
+.rqlive-cue-actions{margin-top:12px}
+.rqlive-panel .rqmic-consent,.rqmic-panel .rqmic-consent{
+ display:flex!important;align-items:center!important;justify-content:flex-start!important;
+ gap:10px!important;flex-wrap:nowrap!important;width:100%;max-width:100%;
+ margin:8px 0!important;padding:0!important;font-size:12px!important;
+ cursor:pointer;text-align:left
+}
+.rqlive-panel .rqmic-consent input[type="checkbox"],
+.rqmic-panel .rqmic-consent input[type="checkbox"]{
+ appearance:auto!important;-webkit-appearance:checkbox!important;
+ display:inline-block!important;width:17px!important;height:17px!important;min-width:17px!important;
+ min-height:17px!important;max-width:17px!important;max-height:17px!important;
+ flex:0 0 17px!important;margin:0!important;padding:0!important;vertical-align:middle!important;
+ position:static!important;transform:none!important;opacity:1!important;
+ border-radius:3px!important;accent-color:#5cbda3;box-shadow:none!important;
+}
+.rqlive-panel .rqmic-consent span,.rqmic-panel .rqmic-consent span{
+ display:inline!important;width:auto!important;flex:1!important;min-width:0;
+ font-size:12px!important;line-height:1.45;white-space:normal
+}
+.rqlive-panel button:focus-visible,.rqlive-panel select:focus-visible,
+.rqlive-panel input:focus-visible{outline:2px solid #a5f7d7;outline-offset:2px}
+@media(max-width:850px){
+ .rqlive-results{grid-template-columns:1fr}
+ .rqlive-results .rqlive-partial,.rqlive-results .rqlive-transcript,
+ .rqlive-results .rqlive-cue-result{grid-column:auto;grid-row:auto}
+ .rqlive-auto-mode button{width:100%}
+ .rqlive-settings label{flex:1 1 180px}
+ .rqvf-primary-head{align-items:flex-start}
+}
