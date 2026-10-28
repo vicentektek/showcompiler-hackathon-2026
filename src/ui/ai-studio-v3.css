@@ -199,3 +199,15 @@ html[data-rqai-mounted] .rqai-library-shortcut{
 @media(prefers-reduced-motion:reduce){
   .rqai-btn{transition:none}
 }
+
+
+/* The same actual source destination is reachable without scrolling through
+   the waveform on compact laptop screens. Avoid duplicate actions on desktop. */
+.rqai-compact-jump{display:none!important}
+@media(max-width:1170px){
+  .rqai-compact-jump{display:inline-flex!important;min-height:32px!important;font-size:11px!important}
+  .rqai-sound-workspace .sfx-lab-intro .sfx-connection{
+    display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  }
+  .rqai-use{scroll-margin-top:15px}
+}
