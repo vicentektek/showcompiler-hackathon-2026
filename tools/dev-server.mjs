@@ -125,6 +125,14 @@ export function createAppServer(options = {}) {
       response.end();
       return;
     }
+    // The historical experimental lab is now integrated into AI Studio.
+    // Redirect old bookmarks to the ONE real generator implementation rather
+    // than serving a disconnected page whose controls cannot initialize.
+    if (pathname === '/sound-lab' || pathname === '/sound-lab.html') {
+      response.writeHead(302, { ...headers, Location: '/?workspace=soundlab' });
+      response.end();
+      return;
+    }
     const entry = allowed.get(pathname);
     if (!entry) { response.writeHead(404, headers); response.end(); return; }
     try {
