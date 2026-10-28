@@ -754,3 +754,10 @@ main{padding:9px 14px 12px!important}
 .rq5-selected-tools select{width:auto!important;max-width:190px;min-height:29px!important}
 .rq5-selected-tools .cue-edit-actions:empty,
 .rq5-selected-tools .cue-audio-tools:empty{display:none!important}
+
+.rq5-pan-label{
+ display:flex;flex-direction:column;gap:5px;
+ font-size:10px;font-weight:750;color:#a2b2bd;
+}
+.rq5-wave-pan{width:145px!important;min-height:20px!important;accent-color:var(--rq5-violet)}
+.rq5-wave-pan:disabled{opacity:.4}
