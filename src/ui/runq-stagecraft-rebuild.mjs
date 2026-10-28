@@ -313,10 +313,74 @@ function drawWave(){
     context.stroke();
   }
 }
+
+/**
+ * Script scene navigator derives headings from the ORIGINAL visible script.
+ * Navigation scrolls source text only; it cannot prepare/execute a cue.
+ */
+function createScript(){
+  const panel=document.querySelector('[data-workspaces~="script"]');
+  const preview=get('scriptPreview');
+  if(!panel||!preview||panel.dataset.rq5Script)return;
+  panel.dataset.rq5Script='true';panel.classList.add('rq5-script-workspace');
+  const sidebar=el('aside','rq5-script-scenes');
+  const heading=el('div','rq5-pane-heading');
+  heading.append(label('script'),linkButton('editor','cues'));
+  const items=el('div','rq5-script-scene-list');
+  sidebar.append(heading,items);
+  const context=get('runqScriptContext');
+  if(context)sidebar.append(context);
+  preview.before(sidebar);
+  const refresh=()=>{
+    const lines=[...preview.querySelectorAll('.script-line')];
+    items.replaceChildren();
+    const index=[];
+    for(const row of lines){
+      const text=row.querySelector('.line-text')?.textContent?.trim()??'';
+      if(/^(?:ACT|SCENE|ESCENA|ACTO|CUADRO|PART|PARTIE)\b[\s:.\dIVXLCDM-]*/i.test(text)){
+        index.push({row,text});
+      }
+    }
+    if(!index.length && lines.length)index.push({row:lines[0],text:lang()==='es'?'Inicio del guion':'Script beginning'});
+    for(const item of index.slice(0,60)){
+      const button=el('button','rq5-scene-link',item.text.slice(0,90));
+      button.type='button';
+      button.addEventListener('click',()=>{
+        // This is plain source navigation: never call GO or prepare.
+        item.row.scrollIntoView({block:'center',behavior:'instant'});
+        item.row.classList.add('rq5-script-focused');
+        setTimeout(()=>item.row.classList.remove('rq5-script-focused'),1200);
+      });
+      items.append(button);
+    }
+  };
+  new MutationObserver(()=>queueMicrotask(refresh)).observe(preview,{childList:true});
+  refresh();
+}
+function createAI(){
+  const panel=document.querySelector('[data-workspaces~="ai"]');
+  const form=get('proposalForm');
+  const meta=panel?.querySelector('.meta-panel');
+  const list=get('proposalList');
+  if(!panel||!form||!meta||!list||panel.dataset.rq5Ai)return;
+  panel.dataset.rq5Ai='true';panel.classList.add('rq5-ai-workspace');
+  const grid=el('div','rq5-ai-grid');
+  const manual=el('section','rq5-ai-manual');
+  const engine=el('section','rq5-ai-engine');
+  const proposals=el('section','rq5-ai-review');
+  const head1=el('div','rq5-pane-heading');head1.append(label('controls'));
+  const head2=el('div','rq5-pane-heading');head2.append(label('workspace'));
+  const head3=el('div','rq5-pane-heading');head3.append(label('selected'),linkButton('editor','cues'));
+  manual.append(head1,form);engine.append(head2,meta);proposals.append(head3,list);
+  grid.append(manual,engine,proposals);
+  panel.append(grid);
+  const heading=panel.querySelector('.subheading');
+  if(heading&&heading!==head1&&heading!==head2&&heading!==head3)heading.classList.add('rq5-ai-original-heading');
+}
 function mount(){
   if(document.documentElement.dataset.rq5Mounted)return;
   document.documentElement.dataset.rq5Mounted='true';
-  createStage();createAudio();
+  createStage();createAudio();createScript();createAI();
   get('uiLocaleSelect')?.addEventListener('change',()=>{translate();refreshAssetPicker();});
   translate();
 }
