@@ -434,7 +434,9 @@ try {
   await page.locator('#rqaiOpen').click();
   await page.locator('#rqaiDestination').selectOption('NEW_CUE');
   await page.locator('#rqaiNewCueName').fill('Stage door impact');
+  await page.setViewportSize({width:1440,height:900});
   await capture('11-ai-studio-use-sound.png');
+  await page.setViewportSize({width:1093,height:614});
   await page.locator('#rqaiConfirm').click();
   await page.waitForFunction(()=>document.querySelectorAll('#cueList .cue-item').length===3);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeStudioStarts,
@@ -471,6 +473,9 @@ try {
   await page.waitForFunction(()=>document.querySelector('#rqaiStatus')?.textContent?.includes('library'));
   await page.locator('[data-workspace-nav="ai"]').click();
   assert.match(await page.locator('#rqaiScriptCompletion').innerText(),/unique-stage-door/);
+  await page.setViewportSize({width:1440,height:900});
+  await capture('12-ai-studio-inline-script.png');
+  await page.setViewportSize({width:1093,height:614});
   const beforeScriptAttachStarts=await page.evaluate(()=>window.__testAudioStarts);
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#rqaiScriptCompletion button').click();
