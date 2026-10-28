@@ -8,6 +8,36 @@ import { makeBasetenRoute } from './basetenRoutes.mjs';
 import { makeSfxRoute } from './sfxRoutes.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+/**
+ * Development-only environment bootstrap. Some Windows/PowerShell sessions
+ * export a blank variable that masks an otherwise valid local .env entry.
+ * Read only the SFX pilot's allowlisted settings; never print credentials.
+ * Explicitly populated process variables always take precedence.
+ * Merely enabling this configuration does NOT submit a generation request.
+ */
+export async function loadLocalSfxEnvironment({ filePath = join(projectRoot,'.env'), env = process.env } = {}) {
+  let content;
+  try { content=await readFile(filePath,'utf8'); }
+  catch(error) { if(error?.code==='ENOENT')return; throw error; }
+  const allowedKeys=new Set([
+    'RUNQ_SFX_PILOT_ENABLED','MODAL_SFX_ENDPOINT',
+    'MODAL_PROXY_TOKEN_ID','MODAL_PROXY_TOKEN_SECRET',
+    'RUNQ_SFX_ESTIMATED_MAX_COST_USD','RUNQ_SFX_DAILY_BUDGET_USD',
+    'RUNQ_SFX_MODEL_REVISION',
+  ]);
+  for(const raw of content.replace(/^\uFEFF/,'').split(/\r?\n/)) {
+    const match=/^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(raw);
+    if(!match||!allowedKeys.has(match[1]))continue;
+    const key=match[1];
+    if(typeof env[key]==='string'&&env[key].trim())continue;
+    const entry=match[2].trim();
+    const value=((entry.startsWith('"')&&entry.endsWith('"'))||
+      (entry.startsWith("'")&&entry.endsWith("'")))
+      ?entry.slice(1,-1):entry;
+    if(value.trim())env[key]=value.trim();
+  }
+}
+
 const allowed = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
@@ -111,6 +141,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error('PORT must be between 1024 and 65535');
     process.exitCode = 1;
   } else {
+    await loadLocalSfxEnvironment();
     const server = createAppServer();
     server.once('error', error => {
       console.error(error.code === 'EADDRINUSE' ? `Port ${port} is busy; set PORT=5174` : error.message);
