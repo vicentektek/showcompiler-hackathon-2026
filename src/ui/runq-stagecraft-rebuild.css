@@ -734,3 +734,23 @@ main{padding:9px 14px 12px!important}
  .rq5-ai-manual,.rq5-ai-engine,.rq5-ai-review{min-height:200px;max-height:none;overflow:visible}
  .rq5-ai-workspace #proposalList{max-height:48vh!important}
 }
+
+
+/* Real source and replacement commands belong to the selected cue inspector.
+   The cue list is for scanning and inspection, never a tall card editor. */
+.rq5-selected-tools{
+ display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex:none;
+ min-height:0;padding:7px 12px;border-bottom:1px solid #36424d;background:#17212a;
+}
+.rq5-selected-tools[hidden]{display:none!important}
+.rq5-selected-tools .cue-edit-actions,
+.rq5-selected-tools .cue-audio-tools{
+ display:flex!important;align-items:center;flex-wrap:wrap;gap:7px;
+ margin:0!important;padding:0!important;
+}
+.rq5-selected-tools .btn{
+ font-size:11px!important;min-height:28px!important;padding:5px 8px!important;
+}
+.rq5-selected-tools select{width:auto!important;max-width:190px;min-height:29px!important}
+.rq5-selected-tools .cue-edit-actions:empty,
+.rq5-selected-tools .cue-audio-tools:empty{display:none!important}
