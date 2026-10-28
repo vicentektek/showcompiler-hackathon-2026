@@ -11,7 +11,8 @@ test('SFX model cache is module-scoped so warm worker reuses loaded weights', as
   assert.ok(modelIndex > 0 && generateIndex > modelIndex,
     'Model should be initialized by reusable module-level get_model');
   assert.match(code.slice(modelIndex - 40, modelIndex), /@lru_cache\(maxsize=1\)/);
-  assert.match(code.slice(generateIndex), /get_model\(\)\.generate\(/);
+  assert.match(code.slice(generateIndex), /model\s*=\s*get_model\(\)/);
+  assert.match(code.slice(generateIndex), /audio\s*=\s*model\.generate\(/);
   assert.match(code, /min_containers=0, max_containers=1/,
     'Pilot must default to scale-to-zero until operator explicitly authorizes warm GPU spend');
 });
