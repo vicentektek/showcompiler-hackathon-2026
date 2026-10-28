@@ -155,11 +155,13 @@ try {
   await page.locator('[data-quick-gain-cue]').fill('-8');
   assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),'-8',
     'Quick gain must edit the same staged playback field');
+  // Unsaved quick gain is protected by the existing discard guard on navigation.
   await page.setViewportSize({width:1366,height:768});
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'true');
+  page.once('dialog',dialog=>dialog.accept());
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('[data-workspace-nav="audio"]').getAttribute('aria-pressed'), 'true');
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
