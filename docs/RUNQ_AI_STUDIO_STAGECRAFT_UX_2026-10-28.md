@@ -69,6 +69,12 @@ A cue may be created and edited entirely without AI. Alternatives are always ava
 - Show and Sound Lab branches are developed in parallel; integrate via a small adapter and test, not a blanket copy of independent audio engines or competing UI components.
 - The sound audition currently shares the system output with live audio; do not call it isolated PFL.
 
+## Hackathon positioning: model value must be observable
+
+The central model-assisted moment is **script understanding with verifiable stage directions and editable cue proposals**. Show the exact input lines, the output actions, the operator corrections, and the resulting runnable sequence. This is the clear domain-specific contribution.
+
+The sound synthesis pilot may be implemented through a separate provider. It completes the production workflow but should **not** be described as output of the script-understanding model. In the demo, distinguish the two services and their actual responsibilities, and avoid spending most of the time on an unrelated SFX playground. Prioritize a complete end-to-end working flow over model-count or decorative output.
+
 ## One focused demo scenario (65–90 seconds)
 
 1. Show a previously imported short scene. Highlight the stage direction "the iron door slams" and its original Lxx.
