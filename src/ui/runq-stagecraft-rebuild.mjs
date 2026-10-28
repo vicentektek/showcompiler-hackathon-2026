@@ -91,6 +91,18 @@ function createStage(){
   const tabs=el('div','rq5-stage-tabs');
   tabs.append(linkButton('editor','cues'),linkButton('script','script'),linkButton('audio','audio'),linkButton('rehearsal','rehearsal'),linkButton('operation','operation'));
   mast.append(identity,tabs);
+  const refreshStageTitle=()=>{
+    const current=document.querySelector('.shell')?.dataset.activeWorkspace;
+    const titleKey=current==='operation'?'operation':current==='rehearsal'?'rehearsal':'editor';
+    const eyebrowKey=current==='operation'||current==='rehearsal'?'working':'workspace';
+    const title=identity.querySelector('h2');
+    const eyebrow=identity.querySelector('.rq5-eyebrow');
+    if(title){title.dataset.rq5Label=titleKey;title.textContent=tr(titleKey);}
+    if(eyebrow){eyebrow.dataset.rq5Label=eyebrowKey;eyebrow.textContent=tr(eyebrowKey);}
+  };
+  const shell=document.querySelector('.shell');
+  if(shell)new MutationObserver(refreshStageTitle).observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
+  refreshStageTitle();
 
   const actions=el('div','rq5-stage-actions');
   actions.append(label('controls'));
