@@ -138,7 +138,7 @@ N. Registro de sesión para QA: cueId, version, action, result, duration, warnin
 O. Ensayos humanos: operadores novatos y especializados completan 8 tareas sin instrucción previa; medir errores críticos, intentos, tiempo de tarea y preguntas. Objetivos propuestos, no resultados medidos.
 
 ## 12. Plan de integración con ramas reales (NO hacer merge automático)
-**Paso 0 — integración de ramas:** elegir base compatible y resolver PR #90 (conversación), #88 (voz), #89 (sonido), revisar especialmente CI fallida de #89 antes de introducir V6. Conservar PR separados y verificar CI en branch integrador.
+**Paso 0 — integración de ramas:** elegir base compatible y resolver PR #90 (conversación), #88 (voz), #89 (sonido), PR #89 ya supera CI #627 tras adaptar el smoke de Sound Lab a la nueva navegación; falta verificar la integración cruzada con #90 y #88 antes de introducir V6. Conservar PR separados y verificar CI en branch integrador.
 **P0 — base profesional antes del 4/11:** nuevo shell 3 modos, separación real editor/ensayo/show, estado coherente, assistant dock contextual, sonido en una navegación, rutas de ida/vuelta, CSS responsive y harness de regresión. Conservar todas las funcionalidades ya verificadas.
 **P1 — experiencia de producción:** diff anclado en campo y forma de onda, historial transaccional/undo, proyectos recientes reales, warnings con reparación, enfoque multi-cue solo tras soporte y pruebas.
 **P2 — hardware / nivel industria:** audio nativo WASAPI/ASIO, salidas físicas y PFL independiente, redundancia, timecode, vídeo/luces, sincronización. Mostrar estos como futura capacidad, nunca afirmar que existen sin verificarlos.
