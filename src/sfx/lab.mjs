@@ -242,6 +242,8 @@ function showScriptProposal(){
   if(!p)return;
   $('scriptSfxSource').value=p.soundSource??'';
   $('scriptSfxAction').value=p.action??'';
+  $('scriptSfxMaterial').value=p.material??'';
+  $('scriptSfxSpace').value=p.acousticSpace?.id??'UNSPECIFIED';
   $('scriptSfxIntensity').value=p.intensity??'';
   $('scriptSfxDuration').value=String(p.suggestedDurationSeconds??8);
   $('scriptSfxPrompt').value=p.prompt;
@@ -273,7 +275,7 @@ function bindScriptCompiler(){
       showScriptProposal();
     }catch(error){$('scriptSfxStatus').textContent=error.message;}
   });
-  for(const [id,key] of [['scriptSfxSource','soundSource'],['scriptSfxAction','action'],['scriptSfxIntensity','intensity'],['scriptSfxDuration','suggestedDurationSeconds']]){
+  for(const [id,key] of [['scriptSfxSource','soundSource'],['scriptSfxAction','action'],['scriptSfxMaterial','material'],['scriptSfxSpace','acousticSpace'],['scriptSfxIntensity','intensity'],['scriptSfxDuration','suggestedDurationSeconds']]){
     $(id).addEventListener('change',()=>{
       const index=scriptProposalState.selected,p=scriptProposalState.proposals[index];if(!p)return;
       try{const value=key==='suggestedDurationSeconds'?Number($(id).value):key==='intensity'?($(id).value||null):$(id).value;
@@ -302,6 +304,7 @@ function bindScriptCompiler(){
     $('duration').value=String(p.suggestedDurationSeconds??8);
     $('confirmRequest').checked=false;updateControls();
     $('scriptSfxStatus').textContent='Transferido al formulario. No se ha enviado ninguna solicitud.';
+    $('soundPrompt').focus();
   });
 }
 function bindEvents(){
