@@ -56,3 +56,31 @@ test('Sound Lab prioritizes free prompt generation with optional script interpre
     assert.equal(count(id),1,id+' must be unique');
   }
 });
+
+// The dev server may read a local .env when the shell exported a blank ID.
+// This parser must never expose keys, enable a pilot implicitly, or clobber
+// existing nonempty values.
+test('local SFX settings repair empty process values without leaking or overwriting',async t=>{
+  const { mkdtemp,writeFile,rm }=await import('node:fs/promises');
+  const { tmpdir }=await import('node:os');
+  const { join }=await import('node:path');
+  const { loadLocalSfxEnvironment }=await import('../tools/dev-server.mjs');
+  const folder=await mkdtemp(join(tmpdir(),'runq-env-contract-'));
+  t.after(()=>rm(folder,{recursive:true,force:true}));
+  const filePath=join(folder,'.env');
+  await writeFile(filePath,[
+    'RUNQ_SFX_PILOT_ENABLED=1',
+    'MODAL_PROXY_TOKEN_ID="PRIVATE_TEST_ID"',
+    "MODAL_PROXY_TOKEN_SECRET='PRIVATE_TEST_SECRET'",
+    'MODEL_API_KEY=DO_NOT_IMPORT_OTHER_KEYS',
+  ].join('\n'));
+  const env={
+    MODAL_PROXY_TOKEN_ID:'',
+    MODAL_PROXY_TOKEN_SECRET:'ALREADY_SET',
+  };
+  await loadLocalSfxEnvironment({filePath,env});
+  assert.equal(env.MODAL_PROXY_TOKEN_ID,'PRIVATE_TEST_ID');
+  assert.equal(env.MODAL_PROXY_TOKEN_SECRET,'ALREADY_SET');
+  assert.equal(env.RUNQ_SFX_PILOT_ENABLED,'1');
+  assert.equal(env.MODEL_API_KEY,undefined);
+});
