@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install pinned local RAR / 7z WASM codec
+        run: npm install --no-audit --no-fund
       - name: Full Codex QA (offline syntax, unit tests and synthetic cue comparisons)
         run: npm run qa:codex
       - name: Upload concise Codex task report (synthetic fixtures only)
