@@ -5,7 +5,7 @@ import { parseScript } from './script.mjs';
 import { normalizeSpeech } from './voiceFollow.mjs';
 
 export function makeProjectVoiceScenario(project,{maxCues=20}={}){
-  if(!Number.isInteger(maxCues)||maxCues<1||maxCues>50)throw new TypeError('Invalid simulation limit');
+  if(!Number.isInteger(maxCues)||maxCues<1||maxCues>200)throw new TypeError('Invalid simulation limit');
   const scriptText=typeof project?.scriptText==='string'?project.scriptText:'';
   if(!scriptText)return null;
   const validLines=new Set(parseScript(scriptText).map(row=>row.id));
