@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAppServer } from '../tools/dev-server.mjs';
-import { waveformPeaks, makeTrimmedPcm16Wav, trimBounds } from '../src/sfx/waveform.mjs';
+import { waveformPeaks, makeTrimmedPcm16Wav, trimBounds, makeOfflineImpactDemoWav } from '../src/sfx/waveform.mjs';
 
 function mockBuffer({sampleRate=16000,channels=2,frames=32000}={}){
   const data=Array.from({length:channels},()=>new Float32Array(frames));
@@ -74,4 +74,14 @@ test('Sound Lab is served separately and app/Cue Editor entrypoint remains uncha
   }
   assert.equal((await fetch(base+'/')).status,200);
   assert.equal((await fetch(base+'/src/sfx/credentials.env')).status,404);
+});
+
+test('offline original demo produces stable valid mono WAV without any provider',()=>{
+  const a=makeOfflineImpactDemoWav(), b=makeOfflineImpactDemoWav();
+  assert.deepEqual(a,b);
+  const view=new DataView(a.buffer,a.byteOffset,a.byteLength);
+  assert.equal(view.getUint16(22,true),1);
+  assert.equal(view.getUint32(24,true),22050);
+  assert.equal(view.getUint32(40,true),22050*2*2);
+  assert.notEqual(view.getInt16(44+100,true),0);
 });
