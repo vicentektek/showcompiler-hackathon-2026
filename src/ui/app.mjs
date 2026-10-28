@@ -1164,7 +1164,15 @@ function cuePlaybackEditor(cue) {
   const save = node('button', 'btn primary small', t('audioProps.save'));
   save.type = 'submit';
   form.append(save);
-  form.addEventListener('input', () => { inspectorPendingChanges = true; refreshPreviewStudio(); });
+  form.addEventListener('input', event => {
+    inspectorPendingChanges = true;
+    if(event.target?.name==='gainDb') {
+      const quick=[...document.querySelectorAll('[data-quick-gain-cue]')]
+        .find(item=>item.dataset.quickGainCue===cue.id);
+      if(quick)quick.value=event.target.value;
+    }
+    refreshPreviewStudio();
+  });
   form.addEventListener('change', () => { inspectorPendingChanges = true; refreshPreviewStudio(); });
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -1473,12 +1481,31 @@ function renderCueInspector() {
       feedback('operator.preparedFeedback',{number:cue.number},'success');
     });
     controls.append(listen,stop,prepare);
+    const quickGain=node('label','studio-quick-gain');
+    const gainLabel=node('span','',t('preview.quickGain'));
+    const gainInput=node('input');
+    gainInput.type='number';gainInput.min='-60';gainInput.max='0';
+    gainInput.step='0.5';
+    gainInput.value=String(normalizeCuePlayback(cue.playback).gainDb);
+    gainInput.dataset.quickGainCue=cue.id;
+    gainInput.setAttribute('aria-label',t('preview.quickGainAria'));
+    gainInput.addEventListener('input',()=>{
+      const main=document.querySelector('#cuePlaybackForm [name="gainDb"]');
+      if(main) {
+        main.value=gainInput.value;
+        main.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+      inspectorPendingChanges=true;
+      refreshPreviewStudio();
+    });
+    quickGain.append(gainLabel,gainInput,node('span','', 'dB'));
     const state=node('p','studio-preview-status',t('preview.ready'));
     state.dataset.previewStatus='true';
     state.setAttribute('role','status');
     state.setAttribute('aria-live','off');
-    studio.append(kicker,controls,state,
-      node('p','studio-output-warning',t('preview.outputWarning')));
+    const outputCompact=node('p','studio-output-compact',t('preview.outputCompact'));
+    studio.append(kicker,controls,quickGain,state,
+      node('p','studio-output-warning',t('preview.outputWarning')),outputCompact);
     inspector.append(studio);
   }
 
