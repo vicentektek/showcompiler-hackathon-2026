@@ -16,6 +16,7 @@ let transcriptHistory=[],consumedIds=new Set(),focusLine=1;
 let pcmEncoder=null,queuedFrames=0;
 let scenario=null,showFingerprint='',startedAt=0;
 let suggestedCueId=null,focusManuallySelected=false;
+let missingTurnCounter=0;
 const CHUNK_SAMPLES=2560,MAX_SECONDS=180;
 function report(en,es){$('rqLiveStatus').textContent=local(en,es);}
 function safeResponse(res){return res.json().then(data=>{if(!res.ok)throw Error(data.error||'HTTP '+res.status);return data;});}
@@ -31,7 +32,7 @@ function inspectShow(){
 }
 function refreshShow(){
  const show=inspectShow();
- scenario=makeProjectVoiceScenario(show,{maxCues:50});
+ scenario=makeProjectVoiceScenario(show,{maxCues:200});
  showFingerprint=JSON.stringify({script:show?.scriptText,cues:show?.cues});
  const value=Number($('rqLiveFocus').value);
  focusLine=focusManuallySelected&&Number.isInteger(value)&&value>0?value:(scenario?.initialFocusLine??1);
@@ -59,9 +60,11 @@ function currentMatches(text){
 }
 function presentFinal(text,turnId){
  if(!text?.trim())return;
+ const resolvedTurn=turnId==null?'local-'+(++missingTurnCounter):String(turnId);
  const last=transcriptHistory.at(-1);
- if(last?.turnId===turnId&&last?.text===text)return;
- transcriptHistory.push({text,turnId});
+ if(last?.turnId===resolvedTurn)return;
+ if(turnId==null&&last?.text===text&&Date.now()-(last?.at??0)<1800)return;
+ transcriptHistory.push({text,turnId:resolvedTurn,at:Date.now()});
  transcriptHistory=transcriptHistory.slice(-12);
  $('rqLiveTranscript').replaceChildren();
  for(const value of transcriptHistory.slice(-4)){
@@ -69,6 +72,9 @@ function presentFinal(text,turnId){
   $('rqLiveTranscript').append(line);
  }
  $('rqLivePartial').textContent='';
+ const eventDetail={text,turnId:resolvedTurn,handled:false};
+ document.dispatchEvent(new CustomEvent('runq:voice-live-final',{detail:eventDetail}));
+ if(eventDetail.handled)return; // Explicitly armed autopilot owns this final turn.
  const result=currentMatches(text);
  if(result?.status==='SUGGEST_PREPARE'){
   suggestedCueId=result.cueId;
@@ -200,6 +206,7 @@ async function start(){
   report('Listening with Muse. Stop at any time; maximum 3 minutes.',
     'Escuchando con Muse. Puedes detenerlo en cualquier momento; máximo 3 minutos.');
   controls();
+  document.dispatchEvent(new CustomEvent('runq:voice-live-ready'));
  }catch(error){
   report('Live transcription could not start: '+error.message,
     'No se pudo iniciar la transcripción: '+error.message);
@@ -208,6 +215,7 @@ async function start(){
  }
 }
 async function stop(force=false,reason='manual'){
+ document.dispatchEvent(new CustomEvent('runq:voice-live-stopping',{detail:{reason}}));
  if(stopping)return;
  if(!active&&!starting&&!session){
   if(document.body?.dataset.runqVoiceCapture==='live')delete document.body.dataset.runqVoiceCapture;
