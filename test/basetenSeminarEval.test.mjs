@@ -28,6 +28,9 @@ test('Baseten request uses exact hackathon model, same source window and no unsu
   const r=makeBasetenTheatreRequest(prepared());
   assert.equal(r.model,BASETEN_MODEL);
   assert.equal(r.response_format,undefined);
+  assert.equal(r.max_completion_tokens,undefined);
+  assert.equal(r.max_tokens,8192);
+  assert.deepEqual(Object.keys(r).filter(k=>k==='max_tokens'||k==='max_completion_tokens'),['max_tokens']);
   assert.match(r.messages[0].content,/sourceEvidence/);
   assert.match(r.messages[1].content,/A bell rings/);
 });
