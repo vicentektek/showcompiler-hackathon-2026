@@ -100,6 +100,11 @@ async function arm(){
  $('rqLiveCue').textContent=t('Ready · say a configured cue trigger','Preparado · di un pie configurado');
 }
 function localized(){
+ $('rqvfPrimaryTitle').textContent=t('VOICE FOLLOW · REHEARSAL','SEGUIMIENTO DE VOZ · ENSAYO');
+ $('rqvfPrimarySubtitle').textContent=t('Live speech, cue recognition and optional automatic GO.',
+  'Voz en directo, reconocimiento de pies y GO automático opcional.');
+ $('rqvfAdvancedLabel').textContent=t('Diagnostic tools · microphone test and offline simulation',
+  'Herramientas de diagnóstico · micrófono y simulación');
  $('rqLiveModeLabel').textContent=t('Cue follow mode','Modo de seguimiento de cues');
  $('rqLiveMode').options[0].textContent=t('Assist · suggest NEXT','Asistente · sugerir NEXT');
  $('rqLiveMode').options[1].textContent=t('Rehearsal autopilot · automatic GO','Autopiloto de ensayo · GO automático');
