@@ -50,14 +50,14 @@ try{
   mimeType:'application/zip',buffer:archive});
  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3',null,{timeout:15000});
  await page.locator('[data-workspace-nav="rehearsal"]').click();
- await page.locator('#rqLiveMode').selectOption('auto');
+ await page.locator('#rqRehMode').selectOption('auto');
  // Mock "Muse stream is ready" only. It cannot request external services,
  // bypass arming or synthesize fake sound in the browser engine.
  await page.evaluate(()=>{
   document.body.dataset.runqVoiceCapture='live';
   document.dispatchEvent(new CustomEvent('runq:voice-live-ready'));
  });
- assert.equal(await page.locator('#rqLiveArm').isEnabled(),true);
+ assert.equal(await page.locator('#rqRehArm').isEnabled(),true);
  assert.equal(await page.locator('#rqLiveArm').getAttribute('aria-pressed'),'false');
  const send=async(i,turnId)=>page.evaluate(({trigger,turnId})=>{
   const detail={text:trigger,turnId,handled:false};
@@ -68,7 +68,7 @@ try{
  assert.equal(await send(0,'disarmed'),false);
  await page.waitForTimeout(150);
  assert.equal(/\b1\s*·/.test(await page.locator('#operatorLastGo').textContent()),false);
- await page.locator('#rqLiveArm').click();
+ await page.locator('#rqRehArm').click();
  await page.waitForFunction(()=>document.querySelector('#rqLiveArm')?.getAttribute('aria-pressed')==='true',null,{timeout:5000});
  assert.equal(await send(0,'first'),true);
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('First'),null,{timeout:7000});
