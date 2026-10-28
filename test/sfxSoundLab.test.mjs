@@ -48,7 +48,7 @@ test('invalid selection, bad sample and oversized export fail closed',()=>{
   assert.throws(()=>trimBounds(0,.001,1));
   assert.deepEqual(trimBounds(-1,2,1),{inSeconds:0,outSeconds:1});
 });
-test('Sound Lab is served separately and app/Cue Editor entrypoint remains unchanged',async t=>{
+test('legacy Sound Lab URL redirects to the working AI Studio without exposing secrets',async t=>{
   const server=createAppServer({sfxConfig:()=>({enabled:false})});
   await new Promise((resolve,reject)=>{
     server.once('error',reject);server.listen(0,'127.0.0.1',resolve);
@@ -58,8 +58,10 @@ test('Sound Lab is served separately and app/Cue Editor entrypoint remains uncha
   const page=await fetch(base+'/sound-lab');
   const html=await page.text();
   assert.equal(page.status,200);
-  assert.match(html,/Waveform & audition/);
-  assert.match(html,/explicitly approved preparation/);
+  assert.equal(new URL(page.url).searchParams.get('workspace'),'soundlab');
+  assert.match(html,/id="waveCanvas"/);
+  assert.match(html,/id="generateForm"/);
+  assert.match(html,/id="rqaiOpen"|ai-studio-v3.mjs/);
   assert.match(html,/id="confirmRequest"/);
   assert.match(html,/id="exportBtn"/);
   assert.doesNotMatch(html,/MODEL_API_KEY|MODAL_PROXY_TOKEN_SECRET/);
