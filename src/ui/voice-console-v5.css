@@ -225,3 +225,26 @@
  .rq-rehearsal-toolbar .rq-rehearsal-consent{flex:0 1 205px}
  .rq-rehearsal-toolbar label:not(.rq-rehearsal-consent){flex:0 0 180px}
 }
+
+
+/* Restore normal checkbox geometry and natural label adjacency. Earlier
+   broad prototype form rules stretched these across the entire panel. */
+.rq-voice-pane label.rqmic-consent,
+.rq-rehearsal-toolbar label.rq-rehearsal-consent{
+ display:inline-flex!important;align-items:center!important;
+ justify-content:flex-start!important;gap:8px!important;
+ flex-wrap:nowrap!important;min-width:0!important;
+}
+.rq-voice-pane label.rqmic-consent input[type="checkbox"],
+.rq-rehearsal-toolbar label.rq-rehearsal-consent input[type="checkbox"]{
+ appearance:auto!important;
+ width:16px!important;height:16px!important;
+ min-width:16px!important;max-width:16px!important;
+ flex:0 0 16px!important;margin:0!important;
+ accent-color:#c8e987;
+}
+.rq-voice-pane label.rqmic-consent span,
+.rq-rehearsal-toolbar label.rq-rehearsal-consent span{
+ flex:0 1 auto!important;width:auto!important;
+ min-width:0!important;max-width:none!important;
+}
