@@ -82,7 +82,8 @@ try{
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('Backwards'),null,{timeout:7000});
  assert.equal(/\b2\s*·/.test(await page.locator('#operatorLastGo').textContent()),true);
  // Panic must always disarm; speech after emergency stop cannot fire.
- await page.locator('#stopAllBtn').click();
+ assert.equal(await page.locator('#rqLivePanicBtn').isVisible(),true);
+ await page.locator('#rqLivePanicBtn').click();
  assert.equal(await page.locator('#rqLiveArm').getAttribute('aria-pressed'),'false');
  assert.equal(await send(0,'after-panic'),false);
  await page.waitForTimeout(150);
