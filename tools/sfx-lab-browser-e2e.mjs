@@ -55,7 +55,8 @@ try{
     }
     return route.continue();
   });
-  await page.goto('http://127.0.0.1:'+port+'/sound-lab',{waitUntil:'domcontentloaded'});
+  await page.goto('http://127.0.0.1:'+port+'/',{waitUntil:'domcontentloaded'});
+  await page.locator('[data-workspace-nav="soundlab"]').click();
   await page.waitForTimeout(900);
   console.log('SFX_BROWSER_DIAGNOSTIC',JSON.stringify({
     badge:await page.locator('#engineBadge').textContent(),
