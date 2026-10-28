@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="/src/sfx/lab.css">
   <link rel="stylesheet" href="/src/ui/voice-follow.css">
   <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
+  <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
@@ -97,6 +98,23 @@
             <button type="button" id="rqvfReset">Restart</button>
           </div>
         </div>
+        <section id="rqMicPanel" class="rqmic-panel" aria-labelledby="rqMicTitle">
+          <div class="rqmic-head">
+            <strong id="rqMicTitle">MICROPHONE TEST · LOCAL</strong>
+            <label for="rqMicLang"><span id="rqMicLangLabel">Spoken language</span>
+              <select id="rqMicLang"><option value="es">Español</option><option value="en">English</option></select>
+            </label>
+            <button id="rqMicStart" class="btn accent small" type="button">Record 10s</button>
+            <button id="rqMicStop" class="btn subtle small" type="button" disabled>Stop</button>
+            <meter id="rqMicMeter" min="0" max="100" value="0" aria-label="Microphone input level"></meter>
+          </div>
+          <p id="rqMicStatus" role="status" aria-live="polite"></p>
+          <div class="rqmic-review">
+            <audio id="rqMicListen" controls hidden></audio>
+            <a id="rqMicDownload" hidden download="runq-microphone.wav">Save WAV</a>
+          </div>
+          <small id="rqMicPrivacy">Local recording and playback only. No automatic GO. Nothing sent to Meta.</small>
+        </section>
         <div class="rqvf-grid">
           <div class="rqvf-cell">
             <small id="rqvfInputHeading">TRANSCRIPT</small>
