@@ -389,3 +389,11 @@
 @media(prefers-reduced-motion:reduce){
  .rq7 *{scroll-behavior:auto!important;transition:none!important}
 }
+
+/* V7 mode ribbon supersedes the old duplicated Stagecraft mast. This also
+   restores >=30px of real editor height at 1093x614 for first audio fields. */
+.rq7 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-stage-mast,
+.rq7 .shell[data-active-workspace="operation"] .rq5-show-workspace .rq5-stage-mast,
+.rq7 .shell[data-active-workspace="rehearsal"] .rq5-show-workspace .rq5-stage-mast{
+ display:none!important;
+}
