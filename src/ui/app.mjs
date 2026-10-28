@@ -12,6 +12,7 @@ import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '
 import { planAudioLibraryBatch } from '../core/audioBatchImport.mjs';
 import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
 import { prepareReviewedSfxImport } from '../core/sfxImportCandidate.mjs';
+import { createCueFromReviewedAudio } from '../core/reviewedSfxCue.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -2626,18 +2627,28 @@ $('audioFileInput').addEventListener('change', async event => {
   catch (error) { showError(error); }
 });
 
-async function importReviewedGeneratedSfx({ job, audioBytes, reviewedRegion } = {}) {
-  const candidate = await prepareReviewedSfxImport({ job, audioBytes, reviewedRegion });
-  const result = await importSingleAudioFile(candidate.file, {
-    provenance: candidate.provenance,
-    refuseReplacement: true,
+async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,createCue=false}={}){
+  const candidate=await prepareReviewedSfxImport({job,audioBytes,reviewedRegion});
+  const result=await importSingleAudioFile(candidate.file,{
+    provenance:candidate.provenance,refuseReplacement:true,
   });
-  if (!result) throw new Error('Generated audio was not imported');
+  if(!result)throw new Error('Generated WAV was not imported');
+  if(createCue){
+    // Human confirmed this additional edit; never changes or fires the GO queue.
+    const next=createCueFromReviewedAudio(show,{
+      assetId:result.assetId,job,reviewedRegion,
+    });
+    show=next.project;
+    selectedCueId=next.cueId;
+    dirty=true;
+    render();
+    setWorkspace('cues');
+    return {assetId:result.assetId,cueId:next.cueId,
+      message:'Generated WAV imported and editable audio cue created. GO is still manual.'};
+  }
   setWorkspace('audio');
-  return {
-    assetId: result.assetId,
-    message: `Imported ${candidate.file.name} as ${result.assetId}. Choose a cue explicitly; no cue was changed.`,
-  };
+  return {assetId:result.assetId,
+    message:'Generated WAV imported to library. No cue was changed.'};
 }
 
 function reportSoundLabBootstrapError(error) {
