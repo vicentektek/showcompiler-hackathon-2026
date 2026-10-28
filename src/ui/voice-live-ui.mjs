@@ -13,7 +13,7 @@ const API='/api/voice/live/';
 let session=null,stream=null,context=null,source=null,processor=null,silence=null;
 let polling=null,stopping=false,starting=false,active=false,queue=Promise.resolve();
 let transcriptHistory=[],consumedIds=new Set(),focusLine=1;
-let pcmEncoder=null;
+let pcmEncoder=null,queuedFrames=0;
 let scenario=null,showFingerprint='',startedAt=0;
 let suggestedCueId=null;
 const CHUNK_SAMPLES=2560,MAX_SECONDS=180;
@@ -134,12 +134,14 @@ function capture(event){
  let energy=0;for(let i=0;i<input.length;i++)energy+=input[i]*input[i];
  $('rqLiveMeter').value=Math.min(100,Math.round(Math.sqrt(energy/input.length)*350));
  for(const frame of pcmEncoder.push(input)){
+  if(queuedFrames>=8){void stop(true,'audio_backpressure');break;}
+  queuedFrames++;
   queue=queue.then(()=>active?endpoint('chunk',{
    method:'POST',body:frame,contentType:'application/octet-stream'
   }):null).catch(error=>{
    report('Audio transport stopped: '+error.message,'Transporte de audio detenido: '+error.message);
    void stop(true,'transport_error');
-  });
+  }).finally(()=>{queuedFrames=Math.max(0,queuedFrames-1);});
  }
 }
 async function poll(){
@@ -169,8 +171,10 @@ async function start(){
   },video:false});
   await devices();
   const show=inspectShow();
-  const keywords=(show?.cues||[]).flatMap(c=>String(c.label||'').split(/[^\p{L}\p{N}'-]+/u))
-   .filter(x=>x.length>=3&&x.length<=32).slice(0,12);
+  const keywords=$('rqLiveContextHints').checked
+   ?(show?.cues||[]).flatMap(c=>String(c.label||'').split(/[^\p{L}\p{N}'-]+/u))
+     .filter(x=>x.length>=3&&x.length<=32).slice(0,12)
+   :[];
   const response=await fetch(API+'start',{
    method:'POST',
    headers:{'Content-Type':'application/json','X-RunQ-Voice-Consent':'yes'},
@@ -218,7 +222,7 @@ async function stop(force=false,reason='manual'){
    }else await endpoint('stop',{method:'POST'});
   }catch{}
  }
- session=null;stopping=false;starting=false;queue=Promise.resolve();
+ session=null;stopping=false;starting=false;queue=Promise.resolve();queuedFrames=0;
  $('rqLiveConsent').checked=false;
  report(reason==='manual'?'Session finished. No GO performed.':'Session ended safely: '+reason,
   reason==='manual'?'Sesión finalizada. Sin ejecutar GO.':'Sesión finalizada de forma segura: '+reason);
@@ -233,6 +237,8 @@ function localized(){
  $('rqLiveRefresh').textContent=local('Refresh microphones','Actualizar micrófonos');
  $('rqLiveLangLabel').textContent=local('Spoken language','Idioma hablado');
  $('rqLiveDeviceLabel').textContent=local('Input','Entrada');
+ $('rqLiveContextHintsText').textContent=local('Optional: share up to 12 cue-name words to improve proper-name recognition.',
+  'Opcional: compartir hasta 12 palabras de nombres de cues para mejorar su reconocimiento.');
  $('rqLiveConsentText').textContent=local('I authorize sending my microphone to Meta Muse for this session (max 3 min).',
   'Autorizo enviar mi micrófono a Meta Muse durante esta sesión (máximo 3 min).');
  $('rqLiveFocusLabel').textContent=local('Script focus line','Línea de referencia');
