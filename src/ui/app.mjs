@@ -639,7 +639,7 @@ function renderCueList({ resetScroll = false } = {}) {
       }
       card.append(resolve);
     } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
-      const replaceAudio = node('div', 'item-actions cue-audio-tools');
+      const replaceAudio = node('div', 'item-actions cue-audio-tools cue-row-inline-replace');
       replaceAudio.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
       card.append(replaceAudio);
     }
@@ -2121,6 +2121,19 @@ $('stopAllBtn').addEventListener('click', emergencyStopAllAudio);
 $('operatorPanicBtn').addEventListener('click', emergencyStopAllAudio);
 $('stopAuditionBtn').addEventListener('click', () => {
   if (player.stopAudition()) feedback('audio.auditionStopped', {}, 'success');
+});
+/** Editing shortcuts never impersonate GO and never capture keystrokes in fields. */
+document.addEventListener('keydown', event => {
+  if(event.defaultPrevented || event.repeat || event.isComposing ||
+      event.altKey || event.ctrlKey || event.metaKey) return;
+  const target=event.target;
+  if(target?.matches?.('input,textarea,select,[contenteditable="true"]')) return;
+  if(event.key==='Escape' && player.isAuditioning()) {
+    event.preventDefault();stopCuePreview();
+  } else if(activeWorkspace==='cues' && event.key.toLowerCase()==='v' && selectedCueId) {
+    event.preventDefault();
+    void listenToCue(selectedCueId);
+  }
 });
 $('loadAudioBtn').addEventListener('click', () => pickAudioFile());
 $('audioFileInput').addEventListener('change', async event => {
