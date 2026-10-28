@@ -37,8 +37,9 @@ export function makeTrimmedPcm16Wav(audio, inSeconds = 0, outSeconds = audio?.du
       outSeconds <= inSeconds) {
     throw new TypeError('Invalid WAV trim boundaries');
   }
-  const start = Math.floor(inSeconds * rate);
-  const end = Math.min(audio.length, Math.ceil(outSeconds * rate));
+  // Nearest sample boundary avoids length inflation for fractional sample times.
+  const start = Math.round(inSeconds * rate);
+  const end = Math.min(audio.length, Math.round(outSeconds * rate));
   const frames = end - start, dataBytes = frames * channels * 2;
   if (frames <= 0 || 44 + dataBytes > MAX_EXPORT_BYTES) {
     throw new RangeError('WAV export outside safe size bounds');
