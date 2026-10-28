@@ -123,7 +123,7 @@ export function parseLocalCueChat(text,{lastField=null}={}){
   const m=matcher.exec(t);
   if(!m)continue;
   const after=t.slice(m.index+m[0].length, m.index+m[0].length+65);
-  const time=/(?:de|a|en|of|for)?\s*(\d+(?:[.,]\d+)?|cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|one|two|three|four|five|six|seven|eight|nine|ten)\s*(segundos?|seconds?|s\b|ms\b|milisegundos?)?/i.exec(after);
+  const time=/(?:de|a|en|of|for|to)?\s*(\d+(?:[.,]\d+)?|cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|one|two|three|four|five|six|seven|eight|nine|ten)\s*(segundos?|seconds?|s\b|ms\b|milisegundos?)?/i.exec(after);
   if(!time||!time[2])continue;
   const value=amount(time[1]);if(value!==null)changes[field]=Math.round(value*(/ms|milisegundo/.test(time[2])?1:1000));
  }
