@@ -569,3 +569,37 @@
   .shell[data-active-workspace="cues"] .cue-inspector{padding:9px}
   .cue-waveform-canvas{height:115px}
 }
+
+
+/* Quick gain is intentionally above scrollable detail controls. */
+.studio-quick-gain{
+  display:flex;align-items:center;gap:6px;width:max-content;
+  color:#d7cafa;font:700 10px ui-monospace,Consolas,monospace;
+}
+.studio-quick-gain input{
+  width:68px!important;min-width:55px!important;min-height:28px!important;
+  padding:4px 6px!important;color:#e8e2fb!important;
+  background:#111b30!important;border:1px solid #7166ac!important;
+  text-align:right;font:700 12px ui-monospace,Consolas,monospace;
+}
+.studio-output-compact{display:none}
+@media(max-width:1095px){
+  .cue-audition-studio{
+    gap:3px;margin:4px 0;padding:6px 8px;
+  }
+  .cue-audition-studio .studio-kicker,
+  .cue-audition-studio .studio-output-warning{display:none}
+  .cue-audition-studio .studio-output-compact{
+    display:block;margin:0;color:#aeb9ce;
+    font-size:9px;line-height:1.25;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .cue-audition-studio .cue-preview-controls{flex-wrap:nowrap;gap:4px}
+  .cue-audition-studio .cue-preview-controls .btn{
+    min-height:29px;padding:5px 7px;font-size:10px;
+  }
+  .cue-audition-studio .cue-preview-prepare{display:none}
+  .studio-quick-gain{font-size:9px}
+  .studio-quick-gain input{width:61px!important;min-height:25px!important}
+  .studio-preview-status{font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
