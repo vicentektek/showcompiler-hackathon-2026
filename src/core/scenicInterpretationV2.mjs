@@ -101,7 +101,7 @@ function classify(event) {
     if (event.playbackMode === 'ONE_SHOT' && event.playbackState === 'ENDED') {
       return result(SCENIC_DISPOSITIONS.NOTE, 'One-shot already finished; redundant STOP suppressed');
     }
-    if (!event.sourceCueId || event.playbackState === 'UNKNOWN') {
+    if (!event.sourceCueId || event.playbackState !== 'ACTIVE') {
       return result(SCENIC_DISPOSITIONS.SUGGESTION, 'STOP target or playback state requires confirmation');
     }
     return result(SCENIC_DISPOSITIONS.ACTION, 'Explicit selective STOP requires operator review',
