@@ -257,3 +257,42 @@ test('provider WAV metadata mismatch blocks storage and review',async t=>{
   assert.equal((await store.read(p.requestId)).status,'QUEUED');
   assert.equal((await post(base,'/api/sfx/jobs/'+p.requestId+'/review',{decision:'ACCEPT'})).status,409);
 });
+
+test('disabled SFX status reports safe configuration checks without credentials',async t=>{
+  const {store}=await fixture(t);
+  const base=await server(t,{
+    sfxStore:store,
+    sfxConfig:()=>({
+      enabled:true, endpointUrl:'https://provider.invalid',
+      proxyTokenId:'', proxyTokenSecret:'PRIVATE_DO_NOT_LEAK',
+      ...costPolicy,modelRevision,
+    }),
+  });
+  const response=await fetch(base+'/api/sfx/status');
+  assert.equal(response.status,200);
+  const status=await response.json();
+  assert.equal(status.enabled,false);
+  assert.equal(status.configurationChecks.pilotEnabled,true);
+  assert.equal(status.configurationChecks.proxyTokenIdConfigured,false);
+  assert.equal(status.configurationChecks.proxyTokenSecretConfigured,true);
+  assert.equal(status.configurationChecks.costPolicyValid,true);
+  assert.equal(status.configurationChecks.modelRevisionValid,true);
+  assert.doesNotMatch(JSON.stringify(status),/PRIVATE_DO_NOT_LEAK/);
+});
+
+test('manual free-text sound generation needs no script reference and never assigns a cue',async t=>{
+  const {store}=await fixture(t);
+  const {pilot,calls}=fakePilot();
+  const base=await server(t,{
+    sfxStore:store,sfxPilotClient:pilot,sfxConfig:enabled,
+  });
+  const draft={...payload(),sourceLineId:null,prompt:'A woman shouts once in a distant room, no music.'};
+  const result=await post(base,'/api/sfx/jobs',draft);
+  assert.equal(result.status,202);
+  const queued=await result.json();
+  assert.equal(queued.sourceLineId,null);
+  assert.equal(queued.prompt,draft.prompt);
+  assert.equal(calls.start,1);
+  assert.equal(Object.hasOwn(queued,'cueId'),false);
+  assert.equal(Object.hasOwn(queued,'assetId'),false);
+});
