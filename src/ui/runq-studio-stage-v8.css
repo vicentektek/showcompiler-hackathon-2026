@@ -914,3 +914,57 @@
 @media(prefers-reduced-motion:reduce){
  .rq8 *{transition:none!important;animation:none!important}
 }
+
+/* Real Chrome regression: at 1093x614 the Studio editor must still show
+   its gain field, cue list, and actual GO/STOP without scrolling the page.
+   Compactness is a functional requirement, not merely a screenshot target. */
+@media(max-height:690px) and (min-width:901px){
+ .rq8 .topbar{
+  min-height:37px!important;padding:2px 10px!important;
+ }
+ .rq8 .brand-icon{width:27px!important;height:27px!important;font-size:18px!important;line-height:27px!important}
+ .rq8 .top-actions .btn,.rq8 .top-actions .locale-select{
+  min-height:26px!important;padding:3px 6px!important;
+ }
+ .rq8 .runq-menubar{min-height:20px!important}
+ .rq8 .shell[data-active-workspace="cues"] .rq7-workbench{
+  min-height:32px!important;padding:2px 7px!important;
+  margin-bottom:2px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq7-mode-button{
+  min-height:26px!important;padding:4px 7px!important;font-size:10px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq8-ribbon-heading strong{font-size:12px!important}
+ .rq8 .shell[data-active-workspace="cues"] .rq8-ribbon-heading span{display:none!important}
+ .rq8 .shell[data-active-workspace="cues"] .rq5-stage-actions{
+  min-height:28px!important;padding:2px 8px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq5-stage-actions .cue-create-actions .btn{
+  min-height:25px!important;padding:3px 6px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-sequence{
+  padding:2px 7px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-inspector{
+  padding:6px 10px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .inspector-title{
+  padding-bottom:4px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-tabs{
+  margin-bottom:4px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-tab{
+  min-height:27px!important;padding:4px 6px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-origin{
+  margin:4px 0 5px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel input,
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel select{
+  min-height:29px!important;
+ }
+ .rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel .field{
+  margin-top:5px!important;
+ }
+}
