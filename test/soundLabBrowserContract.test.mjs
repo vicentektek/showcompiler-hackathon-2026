@@ -84,3 +84,14 @@ test('local SFX settings repair empty process values without leaking or overwrit
   assert.equal(env.RUNQ_SFX_PILOT_ENABLED,'1');
   assert.equal(env.MODEL_API_KEY,undefined);
 });
+
+test('Sound Lab initializes once at application startup independently of route selection',async()=>{
+  const app=await load('src/ui/app.mjs');
+  const anchor='render();\n// The SFX status check is read-only.';
+  assert.ok(app.includes(anchor),'Safe SFX initialization must not depend on navigation');
+  assert.match(app,/void ensureSoundLabInitialized\(\)\.catch\(reportSoundLabBootstrapError\);/);
+  const lab=await load('src/sfx/lab.mjs');
+  assert.match(lab,/if\(!state\.initialized\)/);
+  assert.match(lab,/await checkConnection\(\);/);
+  assert.match(lab,/No se pudo consultar el generador local/);
+});
