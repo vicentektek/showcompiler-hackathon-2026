@@ -1770,7 +1770,7 @@ $('operatorGoBtn').addEventListener('click', async () => {
     // Per-cue overlap policy is operator-authored and applies only on actual GO.
     // "STOP PREVIOUS" fades/stops all earlier cue runs but does not cancel
     // the incoming cue or mutate any source media.
-    for (const stop of planEntryStops(show.cues,id,cue.entryPolicy)) {
+    for (const stop of planEntryStops(show.cues,id,cue.entryPolicy,cue.automation?.stopCueIds ?? [])) {
       player.stopCue(stop.cueId,stop.fadeMs);
     }
     // Operator-authored stop targets execute before this cue's PLAY; an AI
