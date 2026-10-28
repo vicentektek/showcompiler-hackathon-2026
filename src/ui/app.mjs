@@ -1157,7 +1157,8 @@ function cuePlaybackEditor(cue) {
   loop.addEventListener('change', syncLoop);
   syncLoop();
   if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
-    form.insertBefore(cueWaveformTrim(cue.actions[0].assetId, inputs, {cueId:cue.id,trackId:'primary'}), form.children[1]);
+    const gainField=inputs.get('gainDb').closest('label');
+    form.insertBefore(cueWaveformTrim(cue.actions[0].assetId, inputs, {cueId:cue.id,trackId:'primary'}), gainField.nextSibling);
   }
   form.append(node('p', 'caption', t('audioProps.noAuto')));
   const save = node('button', 'btn primary small', t('audioProps.save'));
