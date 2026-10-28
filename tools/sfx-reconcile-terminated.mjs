@@ -19,7 +19,11 @@ if(!requestId||!evidenceFile||args.some((v,i)=>v.startsWith('--')&&
 }
 try {
   const evidenceBytes=await readFile(resolve(evidenceFile));
-  const calls=JSON.parse(evidenceBytes.toString('utf8'));
+  // Windows PowerShell may write a UTF-8 BOM or UTF-16 LE text file.
+  // Decode safely without modifying the raw evidence bytes used for hashing.
+  const utf16le=evidenceBytes.length>=2&&evidenceBytes[0]===0xff&&evidenceBytes[1]===0xfe;
+  const decoded=utf16le?evidenceBytes.subarray(2).toString('utf16le'):evidenceBytes.toString('utf8');
+  const calls=JSON.parse(decoded.replace(/^\\uFEFF/,''));
   if(!Array.isArray(calls))throw new Error('Modal calls evidence must be a JSON array');
   const directory=resolve('.runq-local/sfx-generation');
   const store=createSfxJobStore({directory,maxDailyStarts:6});
