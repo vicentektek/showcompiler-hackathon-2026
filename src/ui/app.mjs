@@ -2030,35 +2030,84 @@ document.addEventListener('runq:operator-quick-go',event=>{
   }
 });
 
-$('operatorGoBtn').addEventListener('click', async () => {
-  const id = operatorQueue.preparedCueId;
-  if (!id || audioInFlight) return;
-  const generation = projectGeneration;
-  const cue = normalizeShowProject(show).cues.find(item => item.id === id);
-  if (!cue) return;
-  try {
-    // Per-cue overlap policy is operator-authored and applies only on actual GO.
-    // "STOP PREVIOUS" fades/stops all earlier cue runs but does not cancel
-    // the incoming cue or mutate any source media.
-    for (const stop of planEntryStops(show.cues,id,cue.entryPolicy,cue.automation?.stopCueIds ?? [])) {
-      player.stopCue(stop.cueId,stop.fadeMs);
-    }
-    // Operator-authored stop targets execute before this cue's PLAY; an AI
-    // proposal cannot insert stop targets or start automatic following.
-    for (const targetId of cue.automation?.stopCueIds ?? []) {
-      const target = show.cues.find(item => item.id === targetId);
-      player.stopCue(targetId, cue.stopFadeOverrides?.[targetId] ?? target?.playback?.fadeOutMs ?? 0);
-    }
-    await player.go(cue);
-    if (generation !== projectGeneration) return; // The previous show must not move the new playhead.
-    lastGoCueId = id;
-    if (operatorQueue.preparedCueId === id) {
-      operatorQueue = completePreparedCue(operatorQueue, show.cues, id);
-    }
-    render();
-    feedback('operator.goFeedback', { number: cue.number }, 'success');
-  } catch (error) { showError(error); }
+// Shared guarded path for manual GO and explicitly ARMED rehearsal auto-GO.
+// Both use the same audio engine, cue entry policies and completion logic.
+let goTransportPending=false;
+async function executePreparedGo(){
+ const id=operatorQueue.preparedCueId;
+ if(!id||goTransportPending||audioInFlight||bundleInFlight)return false;
+ const generation=projectGeneration;
+ const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
+ if(!cue||cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+   (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)))return false;
+ const status=player.getStatus();
+ if(status.pendingGoCount||status.auditionActive||status.auditionPending||
+    player.isPlaying(id))return false;
+ goTransportPending=true;
+ try{
+   for(const stop of planEntryStops(show.cues,id,cue.entryPolicy,cue.automation?.stopCueIds??[])){
+     player.stopCue(stop.cueId,stop.fadeMs);
+   }
+   for(const targetId of cue.automation?.stopCueIds??[]){
+     const target=show.cues.find(item=>item.id===targetId);
+     player.stopCue(targetId,cue.stopFadeOverrides?.[targetId]??target?.playback?.fadeOutMs??0);
+   }
+   await player.go(cue);
+   if(generation!==projectGeneration)return false;
+   lastGoCueId=id;
+   if(operatorQueue.preparedCueId===id)operatorQueue=completePreparedCue(operatorQueue,show.cues,id);
+   render();
+   feedback('operator.goFeedback',{number:cue.number},'success');
+   return true;
+ }catch(error){showError(error);return false;}
+ finally{goTransportPending=false;refreshAudioControls();}
+}
+$('operatorGoBtn').addEventListener('click',()=>{ 
+ document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'manual_go'}}));
+ void executePreparedGo();
 });
+/**
+ * Deliberately scoped machine GO: only an actively streaming, manually ARMED
+ * Rehearsal session may send an explicit cue ID. Never allowed in Operation.
+ * This event does not bypass the real engine's guards and does not fire skipped cues.
+ */
+document.addEventListener('runq:rehearsal-auto-go',event=>{
+ const cueId=event.detail?.cueId,respond=event.detail?.respond;
+ const report=payload=>{if(typeof respond==='function')respond(payload);};
+ if(activeWorkspace!=='rehearsal'||document.hidden||
+   document.body?.dataset.runqVoiceCapture!=='live'||
+   $('rqLiveArm')?.getAttribute('aria-pressed')!=='true'||
+   typeof cueId!=='string'||goTransportPending||audioInFlight||bundleInFlight){
+   report({ok:false,reason:'NOT_ARMED_OR_BUSY'});return;
+ }
+ const cue=show.cues.find(c=>c.id===cueId);
+ if(!cue){report({ok:false,reason:'UNKNOWN_CUE'});return;}
+ if(cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+    (cue.audioTracks??[]).some(t=>!player.hasAsset(t.assetId))){
+   report({ok:false,reason:'AUDIO_NOT_READY'});return;
+ }
+ const state=player.getStatus();
+ if(state.pendingGoCount||state.auditionActive||state.auditionPending){
+   report({ok:false,reason:'TRANSPORT_BUSY'});return;
+ }
+ const prior=operatorQueue,projectAtStart=projectGeneration;
+ // Rehearsal REPEAT explicitly restarts the previous cue.
+ // All other overlap/stop policies remain whatever the operator authored.
+ if(player.isPlaying(cueId)){
+   try{player.stopCue(cueId,0);}catch{report({ok:false,reason:'REPEAT_STOP_FAILED'});return;}
+ }
+ try{
+   operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cueId);
+   refreshAudioControls();
+   void executePreparedGo().then(ok=>{
+     if(!ok&&projectAtStart===projectGeneration&&operatorQueue.preparedCueId===cueId){
+       operatorQueue=prior;render();
+     }
+     report({ok,reason:ok?'FIRED':'GO_FAILED'});
+   }).catch(()=>report({ok:false,reason:'GO_FAILED'}));
+ }catch(error){operatorQueue=prior;report({ok:false,reason:'PREPARE_FAILED'});}
+});
+
 $('operatorSkipBtn').addEventListener('click', () => {
   if (!operatorQueue.preparedCueId || audioInFlight) return;
   const cue = show.cues.find(item => item.id === operatorQueue.preparedCueId);
@@ -2456,6 +2505,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
 });
 
 function emergencyStopAllAudio() {
+  document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'stop_all'}}));
   player.stopAll();
   feedback('status.panic', {}, 'success');
 }
