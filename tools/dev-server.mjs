@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { makeMetaRoute } from './metaRoutes.mjs';
 import { makeBasetenRoute } from './basetenRoutes.mjs';
 import { makeSfxRoute } from './sfxRoutes.mjs';
+import { makeVoiceTranscribeRoute } from './voiceTranscribeRoutes.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 /**
@@ -111,6 +112,7 @@ export function createAppServer(options = {}) {
     getKey: options.getBasetenKey,
   });
   const sfxRoute = makeSfxRoute(options);
+  const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',
@@ -124,6 +126,7 @@ export function createAppServer(options = {}) {
     if (await metaRoute(request, response, pathname, headers)) return;
     if (await basetenRoute(request, response, pathname, headers)) return;
     if (await sfxRoute(request, response, pathname, headers)) return;
+    if (await voiceRoute(request, response, pathname, headers)) return;
     if (!['GET', 'HEAD'].includes(request.method)) {
       response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
       response.end();
