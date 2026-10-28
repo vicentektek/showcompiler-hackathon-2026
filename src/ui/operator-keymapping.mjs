@@ -13,7 +13,7 @@ const get=id=>document.getElementById(id);
 const labels={
   en:{
     title:'Keyboard mapping',scope:'Local device preference · not saved in show files',
-    help:'GO triggers the prepared NEXT cue, never the selected cue. Typing, editing, focused buttons, modifiers and held keys cannot trigger GO.',
+    help:'GO triggers prepared NEXT, not the inspected cue. Space also works on a focused cue row; Enter selects the row. Typing, editor buttons, modifiers and held keys cannot trigger GO.',
     enabled:'Enable keyboard shortcuts',editor:'Active in Cue Editor',
     operation:'Active in Operation',go:'GO / Next cue',stop:'STOP ALL (emergency)',
     reset:'Restore defaults',saved:'Keyboard controls saved locally.',
@@ -23,7 +23,7 @@ const labels={
   },
   es:{
     title:'Asignación de teclas',scope:'Preferencia de este equipo · no se guarda en el show',
-    help:'GO dispara el cue preparado como NEXT, nunca el cue seleccionado. Escribir, editar, usar botones, modificadores o mantener una tecla no puede disparar GO.',
+    help:'GO dispara el cue preparado como NEXT, no necesariamente el seleccionado. Espacio también funciona con una fila enfocada; Intro selecciona la fila. Escribir, editar, usar botones o mantener teclas no dispara GO.',
     enabled:'Activar atajos de teclado',editor:'Activos en el editor de cues',
     operation:'Activos en directo',go:'GO / Siguiente cue',
     stop:'STOP ALL (emergencia)',reset:'Restablecer valores',
