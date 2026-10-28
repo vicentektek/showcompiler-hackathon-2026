@@ -42,3 +42,17 @@
 ## Integration notes
 Existing UI is vanilla JS in `src/ui/app.mjs` with `availableWorkspaces` containing `rehearsal`, `script`, `cues`, `operation`. Existing `src/core/script.mjs` supplies stable L#.
 Do not edit the audio generation flow, the player, or project schema until separately reviewed.
+
+## Implemented UI slice (2026-10-28, draft PR #84)
+
+- Rehearsal renders a compact bilingual panel above the existing two-column script/cue workspace. The current transport remains unchanged.
+- **Example scene** loads the checked-in JSON fixture through the local HTTP allowlist and replays final/duplicate/incomplete transcripts.
+- **Current show** creates an explicitly synthetic event trace from saved operator `trigger` text and valid source `L#` references. A manual focus transition is simulated when two cues are too far apart.
+- Buttons: Play, Pause, Next Event, Restart. Switching workspaces or hiding the tab pauses the simulation; project changes require Restart.
+- The panel displays a local script excerpt, transcript, source line, text similarity and a read-only cue suggestion plus recent event log.
+- For current-show scenarios only, a read-only DOM bridge highlights the corresponding original line. It never invokes the GO queue or playback.
+- A new offline test checks route wiring, safety constraints, scenario building and a fixture replay. Re-run the complete suite on the PR branch.
+
+**Accuracy disclaimer:** Current-show replay is generated from configured trigger text, so its textual match results cannot measure real ASR quality. The UI must not display them as microphone confidence. The simulated operator focus change is also not an automatic model inference.
+
+**Remaining:** Actual microphone provider, ASR partial/final timing, explicit Prepare action, persistent voice trigger schema review, browser acceptance testing and live security/latency measurement.
