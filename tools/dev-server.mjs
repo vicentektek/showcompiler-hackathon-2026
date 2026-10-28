@@ -14,6 +14,7 @@ const allowed = new Map([
   ['/sound-lab', ['sound-lab.html', 'text/html; charset=utf-8']],
   ['/sound-lab.html', ['sound-lab.html', 'text/html; charset=utf-8']],
   ['/src/sfx/lab.mjs', ['src/sfx/lab.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/soundPromptCompiler.mjs', ['src/core/soundPromptCompiler.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/waveform.mjs', ['src/sfx/waveform.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/lab.css', ['src/sfx/lab.css', 'text/css; charset=utf-8']],
   ['/src/ui/app.mjs', ['src/ui/app.mjs', 'text/javascript; charset=utf-8']],
