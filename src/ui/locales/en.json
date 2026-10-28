@@ -488,5 +488,7 @@
   "audioBatch.existing": "Already loaded in the library",
   "audioBatch.fileLimit": "Up to 100 files per batch; each up to 20 MB and 10 minutes.",
   "audioBatch.missing": "Invalid files are not added to the library. Other files still import.",
-  "workspace.description.soundlab": "Prepare and review sound effects before manual import. No generation or cue playback starts automatically."
+  "workspace.description.soundlab": "Prepare and review sound effects before manual import. No generation or cue playback starts automatically.",
+  "workspace.voice": "Voice & Follow",
+  "workspace.description.voice": "Set up microphones, spoken cue triggers, offline replay and voice diagnostics. Automatic GO is only armed in Rehearsal."
 }
