@@ -36,8 +36,8 @@ test('PCM16 WAV trim produces proper sample frames, stereo interleaving and RIFF
   assert.equal(view.getUint32(24,true),16000);
   assert.equal(view.getUint32(40,true),16000*4);
   const transientIndex=44+(.5*16000)*4;
-  assert.equal(view.getInt16(transientIndex+(.5*16000)*4,true),-32768);
-  assert.equal(view.getInt16(transientIndex+(.5*16000)*4+2,true),16384);
+  assert.equal(view.getInt16(transientIndex,true),-32768);
+  assert.equal(view.getInt16(transientIndex+2,true),16384);
 });
 test('invalid selection, bad sample and oversized export fail closed',()=>{
   const audio=mockBuffer({channels:1,frames:16000});
