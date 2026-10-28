@@ -25,9 +25,10 @@ export function setCueEntryPolicy(project,cueId,value){
     c.id===cueId?{...c,entryPolicy:entry}:c)});
 }
 /** Stop list excludes the incoming cue; targeted stop IDs remain independent. */
-export function planEntryStops(cues,incomingCueId,policy){
+export function planEntryStops(cues,incomingCueId,policy,explicitStopCueIds=[]){
   const mode=normalizeCueEntryPolicy(policy);
+  const explicit=new Set(explicitStopCueIds);
   return mode.mode==='STOP_PREVIOUS'
-    ? Object.freeze(cues.filter(c=>c.id!==incomingCueId).map(c=>({cueId:c.id,fadeMs:mode.fadeOutMs})))
+    ? Object.freeze(cues.filter(c=>c.id!==incomingCueId && !explicit.has(c.id)).map(c=>({cueId:c.id,fadeMs:mode.fadeOutMs})))
     : Object.freeze([]);
 }
