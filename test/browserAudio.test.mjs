@@ -275,3 +275,19 @@ test('invalid fade duration never silently cancels pending GO', async () => {
   x.resumeNow();
   await assert.rejects(pending,/cancelado/);
 });
+
+
+test('waveform preview is derived from local decoded samples, cached and cleared on reset',async()=>{
+  const decoded={
+    duration:1,numberOfChannels:1,
+    getChannelData:()=>new Float32Array([0,.4,-.7,0]),
+  };
+  const x=fixture({buffer:decoded});
+  await x.engine.loadFile(x.file,'audio-1');
+  const first=x.engine.getWaveform('audio-1');
+  assert.ok(first.peaks.some(value=>Math.abs(value-.7)<.0001));
+  assert.strictEqual(x.engine.getWaveform('audio-1'),first);
+  assert.equal(first.peaks.length,512);
+  x.engine.reset();
+  assert.equal(x.engine.getWaveform('audio-1'),null);
+});
