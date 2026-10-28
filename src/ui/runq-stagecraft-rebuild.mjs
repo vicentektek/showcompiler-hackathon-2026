@@ -19,7 +19,7 @@ const lang=()=>get('uiLocaleSelect')?.value==='es'?'es':'en';
 const dictionary={
   en:{
     sequence:'SHOW SEQUENCE',controls:'CUE COMMANDS',properties:'PROPERTY INSPECTOR',
-    editor:'Cue Editor',audio:'Audio',script:'Script',operation:'Operation',
+    editor:'Cue Editor',audio:'Audio',script:'Script',operation:'Operation',rehearsal:'Rehearsal',
     selected:'SELECTION / PROPERTIES',workspace:'DESIGN / SEQUENCE',
     working:'OPERATOR / MANUAL SHOW CONTROL',workHint:'Choose NEXT explicitly. Selecting a row cannot fire audio.',
     source:'SOURCE',signals:'LOCAL MEDIA',choose:'Choose a loaded asset',
@@ -35,7 +35,7 @@ const dictionary={
   },
   es:{
     sequence:'SECUENCIA DEL SHOW',controls:'ACCIONES DEL CUE',properties:'INSPECTOR DE PROPIEDADES',
-    editor:'Editor de cues',audio:'Audio',script:'Guion',operation:'Operación',
+    editor:'Editor de cues',audio:'Audio',script:'Guion',operation:'Operación',rehearsal:'Ensayo',
     selected:'SELECCIÓN / PROPIEDADES',workspace:'DISEÑO / SECUENCIA',
     working:'OPERADOR / CONTROL MANUAL',workHint:'Prepara NEXT expresamente. Seleccionar una fila no reproduce sonido.',
     source:'FUENTE',signals:'ARCHIVOS LOCALES',choose:'Elige un recurso cargado',
@@ -69,7 +69,7 @@ function label(key,className='rq5-eyebrow'){
   const node=el('span',className,tr(key));node.dataset.rq5Label=key;return node;
 }
 function createStage(){
-  const panel=document.querySelector('[data-workspaces="cues operation"]');
+  const panel=document.querySelector('[data-workspaces~="cues"]');
   if(!panel||panel.dataset.rq5Built)return;
   panel.dataset.rq5Built='true';
   panel.classList.add('rq5-show-workspace');
@@ -89,7 +89,7 @@ function createStage(){
   identity.append(label('workspace'),el('h2','rq5-stage-name',tr('editor')));
   identity.querySelector('h2').dataset.rq5Label='editor';
   const tabs=el('div','rq5-stage-tabs');
-  tabs.append(linkButton('editor','cues'),linkButton('script','script'),linkButton('audio','audio'),linkButton('operation','operation'));
+  tabs.append(linkButton('editor','cues'),linkButton('script','script'),linkButton('audio','audio'),linkButton('rehearsal','rehearsal'),linkButton('operation','operation'));
   mast.append(identity,tabs);
 
   const actions=el('div','rq5-stage-actions');
