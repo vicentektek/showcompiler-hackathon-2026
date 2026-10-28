@@ -81,3 +81,17 @@
 
 .rqlive-cue-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
 .rqlive-cue-actions button:disabled{opacity:.4;cursor:not-allowed}
+
+/* Armed rehearsal is an intentional, conspicuous mode; never reused by Operation. */
+.rqlive-auto-mode{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 10px;background:#182a31;border:1px solid #47616f;border-radius:6px;margin:9px 0}
+.rqlive-auto-mode label{display:flex;flex-direction:column;gap:4px;font-size:11px;flex:1 1 180px}
+.rqlive-auto-mode select{max-width:300px;background:#11212b;color:#fff;border:1px solid #496775;border-radius:5px;padding:7px}
+.rqlive-auto-mode button{min-width:155px;font-weight:800;letter-spacing:.025em}
+.rqlive-auto-mode output{font-size:11px;font-weight:700;max-width:310px}
+.rqlive-auto-help{font-size:11px;margin:4px 0}
+.rqlive-auto-history{display:flex;gap:8px;margin:3px 0 9px;padding-left:20px;list-style:none;flex-wrap:wrap;max-height:64px;overflow:auto;font-size:10px}
+.rqlive-auto-history li{background:#1b3442;border-radius:4px;padding:4px 7px}
+.rqlive-panel.rqlive-armed{outline:2px solid #e28b49;border-color:#e28b49;box-shadow:inset 0 0 0 1px #a56026}
+.rqlive-armed .rqlive-auto-mode{background:#42251b;border-color:#db8e4d}
+.rqlive-armed #rqLiveArm{background:#a73829;color:#fff}
+.rqlive-armed #rqLiveArmStatus{color:#ffbd91}
