@@ -71,10 +71,12 @@ try{
   assert.equal(await page.locator('.rq5-selected-tools button').count(),firstTools);
   assert.equal(await selected.locator('.cue-operation-actions').isVisible(),true);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
-  // Space is enabled by default in editor; it triggers prepared NEXT once.
-  await page.evaluate(()=>document.activeElement?.blur());
+  // Space while a cue row has focus must trigger prepared NEXT, NOT select+GO.
+  // Enter still handles keyboard selection in the native row button.
+  await rows.first().focus();
   await page.keyboard.press('Space');
   await page.waitForFunction(()=>window.__testAudioStarts===1);
+  await page.evaluate(()=>document.activeElement?.blur());
   // Held-key repeats cannot fire the next prepared cue.
   await page.keyboard.down('Space');
   await page.waitForFunction(()=>window.__testAudioStarts===2);
@@ -85,8 +87,8 @@ try{
   await page.locator('#cuePlaybackForm [name="gainDb"]').focus();
   await page.keyboard.press('Space');
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),2);
-  // Selection focus is also safe: native button Space selects, not GO.
-  await rows.nth(2).focus();
+  // Focusing an EDITOR ACTION button never converts Space into another GO.
+  await page.locator('#cueAddBtn').focus();
   await page.keyboard.press('Space');
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),2);
   // Setup shows local persistent remapping, not show/cue fields.
