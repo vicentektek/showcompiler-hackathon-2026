@@ -796,6 +796,109 @@ function render() {
   renderPreflight();
 }
 
+
+/**
+ * PCM waveform is a read-only display of decoded local audio.
+ * Pointer edits change staged numeric fields; only Save persists them.
+ * Canvas is never a transport or GO control.
+ */
+function cueWaveformTrim(assetId, inputs) {
+  const summary = assetId ? player.getWaveform(assetId) : null;
+  const block = node('section', 'cue-waveform-editor');
+  block.append(node('strong', 'cue-waveform-title', t('waveform.heading')));
+  if (!summary) {
+    block.append(node('p', 'caption', t('waveform.unavailable')));
+    return block;
+  }
+  const canvas = node('canvas', 'cue-waveform-canvas');
+  canvas.width = 640;
+  canvas.height = 118;
+  canvas.tabIndex = 0;
+  canvas.setAttribute('role', 'slider');
+  canvas.setAttribute('aria-label', t('waveform.dragHelp'));
+  canvas.setAttribute('aria-valuemin', '0');
+  canvas.setAttribute('aria-valuemax', String(summary.durationMs));
+  const current = node('div', 'cue-waveform-times');
+  const duration = summary.durationMs;
+  const startField = inputs.get('startAtMs');
+  const endField = inputs.get('endAtMs');
+  const inputRange = () => {
+    const start = Math.max(0, Math.min(duration, Number(startField.value) || 0));
+    const end = endField.value.trim() === ''
+      ? duration : Math.max(0, Math.min(duration, Number(endField.value) || 0));
+    return {start, end};
+  };
+  function redraw() {
+    const {start,end} = inputRange();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height, middle = h / 2;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = '#0b1821';
+    ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle = '#33505b';
+    ctx.beginPath(); ctx.moveTo(0,middle); ctx.lineTo(w,middle); ctx.stroke();
+    const inX = start / duration * w, outX = end / duration * w;
+    const spacing = w / summary.peaks.length;
+    for (let i=0; i<summary.peaks.length; i++) {
+      const x = i * spacing;
+      const magnitude = Math.max(1,summary.peaks[i]*(middle-12));
+      ctx.fillStyle = x >= inX && x <= outX ? '#49d4be' : '#45606b';
+      ctx.fillRect(x,middle-magnitude,Math.max(1,spacing*.8),magnitude*2);
+    }
+    for (const [x,color] of [[inX,'#f4c36a'],[outX,'#f08d91']]) {
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.max(0,Math.min(w-2,x-1)),0,2,h);
+    }
+    current.textContent = t('waveform.selection', {
+      start:(start/1000).toFixed(2), end:(end/1000).toFixed(2),
+      duration:((Math.max(0,end-start))/1000).toFixed(2),
+    });
+    canvas.setAttribute('aria-valuenow',String(start));
+    canvas.setAttribute('aria-valuetext',current.textContent);
+  }
+  function place(handle, millis) {
+    const {start,end} = inputRange();
+    const value = Math.round(Math.max(0,Math.min(duration,millis))/10)*10;
+    if(handle==='in') {
+      startField.value=String(Math.max(0,Math.min(value,end-10)));
+    } else {
+      const out=Math.max(start+10,Math.min(duration,value));
+      endField.value=out>=duration ? '' : String(out);
+    }
+    inspectorPendingChanges=true;
+    redraw();
+  }
+  let dragging=null;
+  const point=e=>{
+    const rect=canvas.getBoundingClientRect();
+    return Math.max(0,Math.min(duration,((e.clientX-rect.left)/Math.max(1,rect.width))*duration));
+  };
+  canvas.addEventListener('pointerdown',e=>{
+    if(e.button!==0) return;
+    const {start,end}=inputRange();
+    const ms=point(e);
+    dragging=Math.abs(ms-start)<=Math.abs(ms-end) ? 'in':'out';
+    canvas.setPointerCapture?.(e.pointerId);
+    place(dragging,ms);
+  });
+  canvas.addEventListener('pointermove',e=>{if(dragging)place(dragging,point(e));});
+  canvas.addEventListener('pointerup',()=>{dragging=null;});
+  canvas.addEventListener('pointercancel',()=>{dragging=null;});
+  canvas.addEventListener('keydown',e=>{
+    if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
+    e.preventDefault();
+    const {start,end}=inputRange();
+    const handle=e.shiftKey?'out':'in';
+    place(handle,(handle==='in'?start:end)+(e.key==='ArrowLeft'?-10:10));
+  });
+  startField.addEventListener('input',redraw);
+  endField.addEventListener('input',redraw);
+  block.append(canvas,current,node('p','caption',t('waveform.dragHelp')));
+  redraw();
+  return block;
+}
+
 /**
  * Operator audio settings are persisted and actually executed by Web Audio.
  * This form is only mounted in the Cue Editor inspector; operation has one GO.
@@ -828,6 +931,9 @@ function cuePlaybackEditor(cue) {
   const fadeOut = numericField('fadeOutMs', 0, 10000, 1);
   numericField('startDelayMs', 0, 10000, 1);
   numericField('startAtMs', 0, 600000, 1, 'audioProps.startAtHelp');
+  const endAt = numericField('endAtMs', 1, 600000, 1, 'audioProps.endAtHelp');
+  endAt.required = false;
+  endAt.value = settings.endAtMs === null ? '' : String(settings.endAtMs);
   numericField('playbackRate', 0.5, 2, 0.05, 'audioProps.rateHelp');
   numericField('pan', -1, 1, 0.05, 'audioProps.panHelp');
   const repeats = numericField('repeatCount', 1, 20, 1, 'audioProps.repeatHelp');
@@ -848,6 +954,9 @@ function cuePlaybackEditor(cue) {
   }
   loop.addEventListener('change', syncLoop);
   syncLoop();
+  if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
+    form.insertBefore(cueWaveformTrim(cue.actions[0].assetId, inputs), form.children[1]);
+  }
   form.append(node('p', 'caption', t('audioProps.noAuto')));
   const save = node('button', 'btn primary small', t('audioProps.save'));
   save.type = 'submit';
@@ -858,7 +967,7 @@ function cuePlaybackEditor(cue) {
     event.preventDefault();
     const next = { loop: loop.checked };
     for (const [key, input] of inputs) {
-      next[key] = Number(input.value);
+      next[key] = key === 'endAtMs' && input.value.trim() === '' ? null : Number(input.value);
     }
     if (loop.checked) { next.repeatCount = 1; next.fadeOutMs = 0; }
     try {
@@ -1055,7 +1164,7 @@ function cueAdditionalTracksEditor(cue) {
     const fields = new Map();
     for (const [key,min,max,step] of [
       ['gainDb',-60,0,.5],['fadeInMs',0,10000,1],['fadeOutMs',0,10000,1],
-      ['startDelayMs',0,10000,1],['startAtMs',0,600000,1],
+      ['startDelayMs',0,10000,1],['startAtMs',0,600000,1],['endAtMs',1,600000,1],
       ['playbackRate',.5,2,.05],['pan',-1,1,.05],['repeatCount',1,20,1],
     ]) {
       const label = node('label', 'field', t('audioProps.'+key));
@@ -1066,6 +1175,10 @@ function cueAdditionalTracksEditor(cue) {
       input.value=String(settings[key]); input.required=true;
       fields.set(key,input); label.append(input); form.append(label);
     }
+    const endAt = fields.get('endAtMs');
+    endAt.required = false;
+    endAt.value = settings.endAtMs === null ? '' : String(settings.endAtMs);
+    form.insertBefore(cueWaveformTrim(track.assetId, fields),form.firstChild);
     const loopLabel = node('label','cue-loop-field');
     const loop = node('input');
     loop.type='checkbox'; loop.name='loop'; loop.checked=settings.loop;
@@ -1089,7 +1202,7 @@ function cueAdditionalTracksEditor(cue) {
     form.addEventListener('submit',event=>{
       event.preventDefault();
       const settingsNext={loop:loop.checked};
-      for(const [key,input] of fields) settingsNext[key]=Number(input.value);
+      for(const [key,input] of fields) settingsNext[key]=key==='endAtMs' && input.value.trim()===''?null:Number(input.value);
       if(loop.checked){settingsNext.repeatCount=1;settingsNext.fadeOutMs=0;}
       try {
         commit(()=>stageChangeCueTrack(show,cue.id,track.id,{playback:settingsNext}),'cueTracks.savedProperties');
