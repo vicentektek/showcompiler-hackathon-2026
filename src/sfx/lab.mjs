@@ -6,7 +6,7 @@ const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPOR
 const ACTIVE_STATUS = new Set(['QUEUED','RUNNING','CANCEL_REQUESTED']);
 const STATUS_LABEL = Object.freeze({
   SUBMISSION_UNKNOWN:'Envío incierto — no reintentar automáticamente',
-  QUEUED:'En cola', RUNNING:'Generando', READY_FOR_REVIEW:'Lista para escuchar',
+  QUEUED:'En cola', RUNNING:'Esperando GPU o generando', READY_FOR_REVIEW:'Lista para escuchar',
   ACCEPTED_FOR_MANUAL_IMPORT:'Aceptada para guardar', REJECTED:'Descartada',
   CANCEL_REQUESTED:'Cancelación solicitada', CANCELLED:'Cancelada', FAILED:'Error',
 });
