@@ -1,4 +1,4 @@
-import { waveformPeaks, makeTrimmedPcm16Wav, trimBounds } from './waveform.mjs';
+import { waveformPeaks, makeTrimmedPcm16Wav, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
 
 const $ = id => document.getElementById(id);
 const api = '/api/sfx';
@@ -209,6 +209,11 @@ for(const [id,decision] of [['acceptBtn','ACCEPT'],['rejectBtn','REJECT']]){
     inform(decision==='ACCEPT'?'Accepted. Trim and export the WAV, then import into RunQ manually.':'Take rejected. No cue created.');
   }));
 }
+$('demoAudioBtn').addEventListener('click',()=>action(async()=>{
+  const bytes=makeOfflineImpactDemoWav();
+  await loadAudio(bytes.buffer,'Offline synthesized impact · NOT AI','local');
+  inform('Synthetic demo loaded (no AI request). Try selection, preview, and export.');
+}));
 $('localWav').addEventListener('change',()=>action(async()=>{
   const file=$('localWav').files?.[0];
   if(!file)return;
