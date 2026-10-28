@@ -16,7 +16,7 @@ const validEvent=e=>e&&typeof e==='object'&&/^L[1-9]\d*$/.test(e.sourceLineId)&&
   ['FX','AMBIENCE','MUSIC','VOICE','TRANSITION','SILENCE'].includes(e.cueKind)&&
   ['EXPLICIT','SUGGESTED'].includes(e.basis);
 function assertCaseReport(report,id,provider){
-  const model=provider==='META'?'muse-spark-1.3':'meta-models/muse-spark-open-1026';
+  const model=provider==='META'?'muse-spark-1.3':'meta-models/muse-spark-open';
   if(report?.model!==model||report.realInferenceExecuted!==true||
     !Array.isArray(report.cases)||report.cases.length!==1||
     report.cases[0].id!==id||report.cases[0].status!=='COMPLETE'||
@@ -40,7 +40,7 @@ export function buildQualityEvidence(corpus,metaReports,basetenReports){
   const metaCases=selected.map((c,i)=>assertCaseReport(metaReports[i],c.id,'META'));
   const basetenCases=selected.map((c,i)=>assertCaseReport(basetenReports[i],c.id,'BASETEN'));
   const combinedMeta={model:'muse-spark-1.3',realInferenceExecuted:true,cases:metaCases};
-  const combinedBaseten={model:'meta-models/muse-spark-open-1026',realInferenceExecuted:true,cases:basetenCases};
+  const combinedBaseten={model:'meta-models/muse-spark-open',realInferenceExecuted:true,cases:basetenCases};
   const paired=compareProviderReports(combinedMeta,combinedBaseten,{
     version:1,provenance:corpus.provenance,cases:selected,
   });
