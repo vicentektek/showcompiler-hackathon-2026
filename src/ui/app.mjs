@@ -85,6 +85,26 @@ document.addEventListener('runq:voice-follow-highlight-line', event => {
   target?.scrollIntoView({block:'nearest'});
 });
 
+/**
+ * Voice Follow never prepares or fires anything on ASR events. Only the explicit
+ * operator click on Set as NEXT may modify the prepared cue. GO remains manual.
+ */
+document.addEventListener('runq:voice-follow-prepare-cue',event=>{
+  const cueId=event.detail?.cueId,respond=event.detail?.respond;
+  const done=ok=>{if(typeof respond==='function')respond(ok);};
+  if(activeWorkspace!=='rehearsal'||typeof cueId!=='string'){done(false);return;}
+  const cue=show.cues.find(c=>c.id===cueId);
+  if(!cue||audioInFlight||bundleInFlight){done(false);return;}
+  const status=player.getStatus();
+  if(status.pendingGoCount||status.auditionPending){done(false);return;}
+  try{
+    operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cueId);
+    render();
+    feedback('operator.preparedFeedback',{number:cue.number},'success');
+    done(true);
+  }catch(error){showError(error);done(false);}
+});
+
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
 let preflightVisible = false;
