@@ -41,6 +41,7 @@ try{
     await page.setViewportSize(viewport);
     await tryClick('[data-workspace-nav="rehearsal"]');
     assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'rehearsal');
+    await page.locator('#rqvfAdvanced').evaluate(details=>{details.open=true;});
     await tryClick('#rqvfStep');
     await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4',null,{timeout:4000});
     await tryClick('#rqvfReset');
@@ -53,6 +54,14 @@ try{
   await tryClick('[data-workspace-nav="rehearsal"]');
   assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'rehearsal');
   assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
+  assert.equal(await page.locator('#rqvfAdvanced').evaluate(el=>el.open),true,
+    'Diagnostic panel remains operator-controlled after earlier opening');
+  const checkbox=await page.locator('#rqLiveConsent').evaluate(el=>{
+    const style=getComputedStyle(el);
+    return {width:parseFloat(style.width),height:parseFloat(style.height)};
+  });
+  assert.ok(checkbox.width<=20&&checkbox.height<=20,'Voice consent checkbox must not occupy the entire row');
+  assert.ok(await page.locator('#rqvfPrimaryState').isVisible());
   // Voice Live remains strictly opt-in even when the microphone is available.
   assert.equal(await page.locator('#rqLivePanel').isVisible(),true);
   assert.equal(await page.locator('#rqLiveStop').isDisabled(),true);
