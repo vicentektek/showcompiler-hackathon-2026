@@ -285,6 +285,13 @@
             <p id="operatorLastGo" class="caption" role="status" aria-live="polite"></p>
             <p class="caption" data-i18n="operator.explanation">The first cue is ready automatically. GO runs it once and positions the next cue. Previous, Skip and Set next only change position; they never start sound.</p>
           </div>
+          <section id="runqActiveCues" class="rq5-active-cues" aria-label="Currently running cues" hidden>
+            <header class="rq5-active-heading">
+              <span class="rq5-active-title" id="runqActiveCuesTitle">ON AIR · RUNNING CUES</span>
+              <span class="rq5-active-count" id="runqActiveCuesCount" aria-live="polite">0</span>
+            </header>
+            <div id="runqActiveCuesList" class="rq5-active-list"></div>
+          </section>
           <p class="cue-editor-hint" data-i18n="cueEditor.listHelp">Click a cue row to edit it. Arrow keys move selection without preparing GO.</p>
           <div class="cue-filter-bar">
             <label class="sr-only" for="cueSearchInput" data-i18n="workspace.searchCue">Search cues</label>
