@@ -344,6 +344,17 @@ function setWorkspace(workspace) {
   return true;
 }
 
+// Cue trigger editing remains in the single real Cue Inspector. Voice tools
+// provide navigation only, never a second inconsistent cue editor.
+document.addEventListener('runq:voice-open-cue',event=>{
+ const cueId=event.detail?.cueId;
+ if(typeof cueId!=='string'||!show.cues.some(c=>c.id===cueId))return;
+ if(!setWorkspace('cues'))return;
+ selectedCueId=cueId;
+ inspectorTab='basics';
+ renderCueList();
+ renderCueInspector();
+});
 function renderSetupReadiness() {
   const report = inspectShowReadiness(show, assetId => player.hasAsset(assetId), { audioLoading: audioInFlight });
   $('setupReadinessSummary').textContent = t(report.ready ? 'preflight.ready' : 'preflight.blocked', {
