@@ -29,6 +29,8 @@ External reference: QLab 5 documents **Preview** as playing one selected cue in 
 
 - **Cue list**: selection and quick Listen are separate controls. List selection never triggers sound; row Listen has its own focusable button and accessible label.
 - **Inspector header**: selected cue number, name, source reference, preview status and three explicit controls: **Listen cue**, **Stop preview**, **Prepare NEXT GO**.
+- **Compact inspector**: a quick gain control is visible beside the preview transport, synchronized with the detailed playback form. Mutations are staged until explicit Save; navigating away with edits requires discard confirmation.
+- **Keyboard**: V auditions the inspected cue only in Cue Editor when focus is not in a text/number/select field. Escape stops audition. Neither key alters NEXT GO or invokes the show GO.
 - **Waveform panel**: actual decoded local PCM amplitude envelope, IN (amber), OUT (rose), fade overlays (violet), audio progress playhead, zoom, pan, and Alt-click audition cursor. Buttons: Solo track, From cursor, Stop.
 - **Property grid**: gain is above the waveform so it remains reachable on 1093×614 laptop view; waveform and numeric controls remain synchronized.
 - **Extra audio tracks**: each track has its own waveform and audition controls; solo selection is not a mixer's persistent solo state.
