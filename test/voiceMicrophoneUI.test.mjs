@@ -12,6 +12,8 @@ test('microphone control is integrated and bilingual with explicit opt-in',()=>{
  assert.ok(js.includes("window.AudioContext"));
  assert.ok(js.includes('MAX_MS=10000'));
  assert.ok(js.includes("t('MICROPHONE TEST · LOCAL','PRUEBA DE MICRÓFONO · LOCAL')"));
- for(const bad of ['/api/','api.meta.ai','MODEL_API_KEY','operatorGoBtn','operatorQueue','fetch(','XMLHttpRequest','WebSocket('])
+ for(const bad of ['api.meta.ai','MODEL_API_KEY','operatorGoBtn','operatorQueue','XMLHttpRequest','WebSocket('])
   assert.equal(js.includes(bad),false,'Mic preflight cannot call '+bad);
+ assert.ok(js.includes("fetch('/api/voice/transcribe'"));
+ assert.ok(js.includes("$('rqMicConsent').checked"));
 });
