@@ -72,6 +72,95 @@ let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 let player = createBrowserAudioBackend({ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); } });
+// ON AIR is a transport *snapshot*, not a new independent cue player.
+// Reuse existing stopCue and Web Audio clock; rows survive 250ms clock refreshes.
+let runningCuesTicker=null;
+function refreshRunningCues(){
+  const panel=$('runqActiveCues'),list=$('runqActiveCuesList');
+  if(!panel||!list||!player)return;
+  const visible=activeWorkspace==='operation';
+  panel.hidden=!visible;
+  if(!visible){
+    if(runningCuesTicker!==null)window.clearInterval(runningCuesTicker);
+    runningCuesTicker=null;
+    return;
+  }
+  const active=player.getActiveCues();
+  $('runqActiveCuesCount').textContent=String(active.length);
+  $('runqActiveCuesTitle').textContent=uiLocale==='es'?'EN DIRECTO · CUES SONANDO':'ON AIR · RUNNING CUES';
+  const wanted=new Set(active.map(item=>item.cueId));
+  for(const child of [...list.children]){
+    if(child.dataset.runningCue && !wanted.has(child.dataset.runningCue))child.remove();
+  }
+  const empty=list.querySelector('.rq5-active-empty');
+  if(active.length===0){
+    if(!empty)list.append(node('p','rq5-active-empty',
+      uiLocale==='es'?'No hay cues sonando. El próximo GO está preparado arriba.':
+        'Nothing playing. The next GO is prepared above.'));
+  } else empty?.remove();
+  for(const state of active){
+    const cue=show.cues.find(c=>c.id===state.cueId);
+    let card=[...list.children].find(el=>el.dataset.runningCue===state.cueId);
+    if(!card){
+      card=node('div','rq5-active-row');
+      card.dataset.runningCue=state.cueId;
+      const left=node('div','rq5-active-ident');
+      left.append(node('strong','rq5-active-label'),node('span','rq5-active-time'));
+      const meter=node('div','rq5-active-progress');
+      meter.setAttribute('role','progressbar');meter.setAttribute('aria-valuemin','0');
+      meter.setAttribute('aria-valuemax','100');
+      meter.append(node('span','rq5-active-progress-fill'));
+      const actions=node('div','rq5-active-actions');
+      for(const [action,english,spanish] of [
+        ['stop','STOP','PARAR'],['fade','FADE','FUNDIR']
+      ]){
+        const btn=node('button','rq5-active-action '+action,uiLocale==='es'?spanish:english);
+        btn.type='button';btn.dataset.activeAction=action;
+        btn.addEventListener('click',()=>{
+          const current=show.cues.find(c=>c.id===state.cueId);
+          if(!current || !player.isPlaying(state.cueId) || player.isStopping(state.cueId))return;
+          try{
+            player.stopCue(state.cueId,action==='stop'?0:(current.playback?.fadeOutMs||1500));
+            refreshRunningCues();
+          }catch(error){showError(error);}
+        });
+        actions.append(btn);
+      }
+      card.append(left,meter,actions);
+      list.append(card);
+    }
+    const stateText=state.stopping?'FADING':state.durationSeconds===null?'LOOP':'PLAYING';
+    card.classList.toggle('is-fading',state.stopping);
+    card.classList.toggle('is-looping',state.durationSeconds===null);
+    card.querySelector('.rq5-active-label').textContent=
+      (cue?String(cue.number).padStart(2,'0')+' · '+cue.label:state.cueId);
+    const elapsed=Number.isFinite(state.elapsedSeconds)?Math.floor(state.elapsedSeconds):0;
+    const remaining=state.remainingSeconds===null?'∞':
+      Math.ceil(state.remainingSeconds)+'s';
+    card.querySelector('.rq5-active-time').textContent=
+      stateText+'  ·  '+String(Math.floor(elapsed/60)).padStart(2,'0')+':'+
+      String(elapsed%60).padStart(2,'0')+'  ·  '+remaining;
+    const meter=card.querySelector('.rq5-active-progress');
+    const progress=state.progress;
+    meter.setAttribute('aria-label','Playback timeline: '+(cue?.label??state.cueId));
+    if(progress===null)meter.removeAttribute('aria-valuenow');
+    else meter.setAttribute('aria-valuenow',String(Math.round(progress*100)));
+    meter.querySelector('.rq5-active-progress-fill').style.width=
+      (progress===null?100:Math.round(progress*100))+'%';
+    for(const button of card.querySelectorAll('[data-active-action]')){
+      button.disabled=state.stopping;
+      button.textContent=uiLocale==='es'
+        ?button.dataset.activeAction==='stop'?'PARAR':'FUNDIR'
+        :button.dataset.activeAction==='stop'?'STOP':'FADE';
+    }
+  }
+  if(active.length && runningCuesTicker===null){
+    runningCuesTicker=window.setInterval(refreshRunningCues,250);
+  }else if(!active.length && runningCuesTicker!==null){
+    window.clearInterval(runningCuesTicker);runningCuesTicker=null;
+  }
+}
+
 function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
@@ -159,6 +248,7 @@ function refreshAudioControls() {
     const stopping = player.isStopping(cue.id);
     button.disabled = !playing || stopping;
   }
+  refreshRunningCues();
 }
 
 function renderWorkspaceShell() {
@@ -175,6 +265,7 @@ function renderWorkspaceShell() {
   $('workspaceDescription').textContent = t('workspace.description.' + activeWorkspace);
   $('activeShowTitle').textContent = show.name;
   $('saveState').textContent = t(dirty ? 'workspace.unsaved' : 'workspace.saved');
+  refreshRunningCues();
 }
 
 function setWorkspace(workspace) {
