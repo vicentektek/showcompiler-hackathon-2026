@@ -1,5 +1,5 @@
 /** Offline Chrome acceptance for Stagecraft per-cue waveform, fades,
- * target/overlap policy, opt-in operation quick GO. No physical sound.
+ * target/overlap policy, explicit operation GO; no double-click quick GO. No physical sound.
  */
 import assert from 'node:assert/strict';
 import { createAppServer } from './dev-server.mjs';
@@ -120,7 +120,8 @@ try {
   assert.equal(await page.locator('#preparedCueStatus').innerText(),originalPrepared);
   await page.locator('[data-workspace-nav="setup"]').click();
   assert.equal(await page.locator('#runqDoubleClickGo').isChecked(),false);
-  await page.locator('#runqDoubleClickGo').check();
+  assert.equal(await page.locator('#runqDoubleClickGo').isDisabled(),true,
+    'V7 locks the unsafe double-click Prepare+GO shortcut');
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.locator('#operatorGoBtn').click(); // GO #1 (trimmed)
   await page.waitForFunction(()=>document.querySelectorAll('#runqActiveCuesList [data-running-cue]').length===1);
@@ -130,7 +131,10 @@ try {
   await page.waitForFunction(n=>window.__started.length===n+1,beforeOperation);
   assert.ok((await page.locator('#preparedCueStatus').innerText()).includes('2'));
   const stopCount=await page.evaluate(()=>window.__stopped.length);
-  await rows.nth(1).dblclick(); // SET NEXT + GO #2; stop #1 with 500ms fade
+  await rows.nth(1).dblclick(); // Browse cue 2; may not execute it.
+  assert.equal(await page.evaluate(()=>window.__started.length),beforeOperation+1);
+  assert.ok((await page.locator('#preparedCueStatus').innerText()).includes('2'));
+  await page.locator('#operatorGoBtn').click(); // Explicit GO #2; stop #1 with 500ms fade.
   await page.waitForFunction(n=>window.__started.length===n+2,beforeOperation);
   assert.equal(await page.locator('#runqActiveCuesList [data-running-cue]').count(),2);
   assert.equal(await page.locator('#runqActiveCuesList [data-running-cue="cue-1"].is-fading').count(),1);
@@ -139,14 +143,14 @@ try {
   assert.ok((await page.evaluate(n=>window.__stopped.length>n,stopCount)));
   assert.ok((await page.locator('#preparedCueStatus').innerText()).includes('3'));
   const afterQuick=await page.evaluate(()=>window.__started.length);
-  await rows.nth(1).dblclick(); // Already running: must be ignored.
+  await rows.nth(1).dblclick(); // No double-click GO, even when cue is running.
   assert.equal(await page.evaluate(()=>window.__started.length),afterQuick);
   await page.locator('[data-workspace-nav="cues"]').click();
   await rows.nth(2).dblclick(); // Never GO from Cue Editor.
   assert.equal(await page.evaluate(()=>window.__started.length),afterQuick);
   await page.locator('#stopAllBtn').click();
   assert.deepEqual(errors,[]);
-  console.log('CUE SAFETY CHROME PASS: waveform, staged trim, preview, STOP_PREVIOUS fade, opt-in quick GO, no editor double-click GO.');
+  console.log('CUE SAFETY CHROME PASS: waveform, staged trim, preview, STOP_PREVIOUS fade, explicit GO, zero double-click GO.');
 } finally {
   if(browser)await browser.close();
   await new Promise(resolve=>server.close(resolve));
