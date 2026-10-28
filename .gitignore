@@ -173,3 +173,6 @@ artifacts/three-case-quality/
 
 # Progressive curriculum offline readiness plans
 artifacts/curriculum-qa/
+
+# Level 1 provisional-corpus human review drafts (local, never commit)
+artifacts/level1-qa/

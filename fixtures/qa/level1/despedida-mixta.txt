@@ -1,0 +1,11 @@
+ESCENA 1 — Despedida del barco
+(SONIDO 10: reproducir la fanfarria grabada de llegada, fundido suave desde el archivo.)
+ORTEGA: Cada copla suena cuando la luna llegue sobre la lancha.
+(SONIDO 10: apagar la fanfarria grabada justo antes del chiste de la corneta.)
+(ORTEGA toca la corneta real de atrezo; el cuerno suena porque él sopla, no porque la mesa reproduzca.)
+ESCENA 2 — Brindis en la cubierta
+(SONIDO 2: reproducir la locución grabada del guía con la voz del archivo: «Estamos llegando».)
+LOA: El vals del agua sonó en el ensayo y esta noche calla.
+(Los pasajeros físicos suben a la lancha con sus maletas reales.)
+(SONIDO 2: detener la locución grabada al llegar el público a la cubierta alta.)
+(No se piden más pistas esta noche: se acabó el archivo.)
