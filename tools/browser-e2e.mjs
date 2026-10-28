@@ -134,6 +134,29 @@ try {
     'Exactly one workspace should be pressed when Cue Editor is active');
   assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
     'Exactly one workspace should carry the current class');
+  // Conversational cue editor: offline text -> draft -> correction -> apply -> undo.
+  assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
+  const originalFade=await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue();
+  const originalGain=await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue();
+  await page.locator('.rq-chat-open').click();
+  assert.equal(await page.locator('#rqCueChatPanel').isVisible(),true);
+  await page.locator('#rqChatPrompt').fill('Pon un fade in de 3 segundos y volumen a -9 dB');
+  await page.locator('#rqChatSubmit').click();
+  await page.waitForFunction(()=>document.querySelectorAll('.rq-chat-change').length===2);
+  assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),originalFade,
+    'Draft must not mutate cue');
+  await page.locator('#rqChatPrompt').fill('Mejor que sean cuatro segundos');
+  await page.locator('#rqChatSubmit').click();
+  await page.waitForFunction(()=>document.querySelector('#rqChatDiff')?.textContent?.includes('4 s'));
+  await page.locator('#rqChatApply').click();
+  await page.waitForFunction(()=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value==='4000');
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),'-9');
+  await page.locator('#rqChatUndo').click();
+  await page.waitForFunction(()=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value===String(originalFade));
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),originalGain);
+  await page.locator('#rqChatClose').click();
+  assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,'Cue chat must never GO');
   assert.equal(await page.locator('.rq5-stage-body .rq5-sequence-frame #cueList').count(),1,
     'Actual cue list must be mounted inside new Stagecraft sequence');
   assert.equal(await page.locator('.rq5-inspector-frame #cueInspector').count(),1,
