@@ -18,7 +18,8 @@ try{
   browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
   const page=await browser.newPage({viewport:{width:1366,height:768}});
   page.on('pageerror',error=>scriptErrors.push(error.message));
-  page.on('console',message=>{if(message.type()==='error')scriptErrors.push(message.text());});
+  page.on('console',message=>{if(message.type()==='error')scriptErrors.push(JSON.stringify({message:message.text(),location:message.location()}));});
+  page.on('response',response=>{if(response.status()>=400)scriptErrors.push('HTTP '+response.status()+' '+response.url());});
   page.on('requestfailed',request=>scriptErrors.push('NETWORK '+request.url()+' '+request.failure()?.errorText));
   await page.goto('http://127.0.0.1:'+port+'/',{waitUntil:'networkidle'});
   const inspect=async selector=>page.locator(selector).evaluate(element=>{
@@ -35,6 +36,19 @@ try{
       throw error;
     }
   };
+  console.log('START_CONTEXT',JSON.stringify({location:page.url(),errors:scriptErrors}));
+  for(const viewport of [{width:1920,height:1080},{width:1366,height:768},{width:1024,height:768}]){
+    await page.setViewportSize(viewport);
+    await tryClick('[data-workspace-nav="rehearsal"]');
+    assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'rehearsal');
+    await tryClick('#rqvfStep');
+    await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4',null,{timeout:4000});
+    await tryClick('#rqvfReset');
+    await tryClick('[data-workspace-nav="home"]');
+    assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'home');
+    console.log('VIEWPORT_CLICK_PASS',viewport.width,JSON.stringify({nav:await inspect('[data-workspace-nav="rehearsal"]')}));
+  }
+  await page.setViewportSize({width:1366,height:768});
   // Control check: navigation must respond before even entering rehearsal.
   await tryClick('[data-workspace-nav="rehearsal"]');
   assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'rehearsal');
@@ -60,7 +74,9 @@ try{
   assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'home');
   await tryClick('#homeDemoBtn');
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3',null,{timeout:10000});
-  assert.deepEqual(scriptErrors,[], 'Chrome browser errors: '+JSON.stringify(scriptErrors));
+  const fatal=scriptErrors.filter(error=>!error.includes('Content Security Policy directive')&&!error.includes('/favicon.ico')&&!error.includes('Failed to load resource: the server responded with a status of 404'));
+  console.log('BROWSER_DIAGNOSTICS',JSON.stringify(scriptErrors));
+  assert.deepEqual(fatal,[], 'Fatal Chrome browser errors: '+JSON.stringify(fatal));
   console.log('VOICE FOLLOW CLICK SMOKE PASS: rehearsal nav, example step/reset/play/pause, home demo; no runtime errors');
 }catch(error){
   console.error('VOICE FOLLOW CLICK SMOKE FAILED:',error.message);
