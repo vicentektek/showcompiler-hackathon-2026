@@ -96,10 +96,17 @@ function updateControls(){
   const job=state.job;
   const policy=costPolicy();
   const costReady=policy.perRequest!==null&&policy.daily!==null;
-  $('generateBtn').disabled=!state.enabled||state.working||!costReady||!$('confirmRequest').checked;
-  $('generationHint').textContent=state.enabled
-    ? (costReady?'Requires the checkbox and final confirmation':'Cost policy is incomplete — generation blocked')
-    : 'Remote generator disabled — offline review tools remain available';
+  const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity();
+  const allowed=state.enabled&&!state.working&&costReady&&promptReady&&$('confirmRequest').checked;
+  $('generateBtn').disabled=!allowed;
+  $('generationHint').textContent=state.working?'Procesando la solicitud…':
+    !state.enabled?'Generador desconectado. Comprueba el estado arriba.':
+    !costReady?'Falta la política de coste del servidor.':
+    !promptReady?'Escribe un prompt y comprueba la duración.':
+    !$('confirmRequest').checked?'Marca la autorización de una única generación.':
+    'Listo: puedes generar una toma.';
+  const reconnect=$('sfxReconnectBtn');
+  if(reconnect) reconnect.disabled=state.working;
   $('openJobBtn').disabled=state.working;
   $('refreshBtn').disabled=state.working||!state.enabled||!job||!ACTIVE_STATUS.has(job.status);
   $('cancelBtn').disabled=state.working||!state.enabled||!job||!['QUEUED','RUNNING'].includes(job.status);
@@ -208,6 +215,8 @@ async function loadAudio(bytes,name,origin='local'){
   const decoded=await context.decodeAudioData(bytes.slice(0));
   if(![1,2].includes(decoded.numberOfChannels)||decoded.duration<=0||decoded.duration>600)throw new Error('Unsupported audio layout or duration');
   state.audio=decoded;state.sourceBytes=bytes.slice(0);state.fileOrigin=origin;
+  $('sfxWaveEmpty')?.setAttribute('hidden','');
+  $('waveCanvas')?.classList.add('sfx-has-audio');
   state.loadedRemoteRequestId=origin==='remote'?state.job?.requestId:null;
   state.auditionedRemoteRequestId=null;
   state.inSeconds=0;state.outSeconds=decoded.duration;
@@ -304,6 +313,7 @@ function bindScriptCompiler(){
     $('duration').value=String(p.suggestedDurationSeconds??8);
     $('confirmRequest').checked=false;updateControls();
     $('scriptSfxStatus').textContent='Transferido al formulario. No se ha enviado ninguna solicitud.';
+    $('sfxScriptDetails').open=false;
     $('soundPrompt').focus();
   });
 }
@@ -327,6 +337,11 @@ function bindEvents(){
     });
   });
   $('confirmRequest').addEventListener('change',updateControls);
+  $('sfxReconnectBtn')?.addEventListener('click',()=>void checkConnection());
+  for(const id of ['soundPrompt','duration','seed','soundKind','sourceLine']){
+    $(id).addEventListener('input',()=>{$('confirmRequest').checked=false;updateControls();});
+    $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
+  }
   $('loadPresetBtn').addEventListener('click',applyPreset);
   $('openJobBtn').addEventListener('click',()=>void action(async()=>{
     viewJob(await(await request('/jobs/'+encodeURIComponent(currentJobId()))).json());
@@ -416,23 +431,53 @@ function bindEvents(){
   window.addEventListener('pagehide',()=>{stopSoundLabAudition();if(state.context)void state.context.close();});
 }
 
+let connectionCheck=null;
+function connectionProblem(settings){
+  const checks=settings?.configurationChecks;
+  if(!checks)return 'El proveedor no está listo. Comprueba la configuración del servidor.';
+  const messages={
+    pilotEnabled:'El piloto está desactivado',
+    endpointConfigured:'Falta la dirección del proveedor',
+    proxyTokenIdConfigured:'Falta el identificador del proxy',
+    proxyTokenSecretConfigured:'Falta el secreto del proxy',
+    costPolicyValid:'Falta una política de coste válida',
+    modelRevisionValid:'Falta una revisión válida del modelo',
+  };
+  const missing=Object.entries(messages).filter(([key])=>checks[key]===false).map(([,label])=>label);
+  return missing.length?missing.join(' · '):'El proveedor no está listo. Comprueba su configuración.';
+}
+async function checkConnection(){
+  if(connectionCheck)return connectionCheck;
+  text('engineBadge','Comprobando…');
+  connectionCheck=(async()=>{
+    try{
+      const settings=await(await request('/status')).json();
+      state.settings=settings;
+      state.enabled=settings.enabled===true;
+      showCost(settings);
+      text('engineBadge',state.enabled?'Generador conectado':'Generador no disponible');
+      $('engineBadge')?.classList.toggle('active',state.enabled);
+      inform(state.enabled
+        ? 'Modal conectado. Puedes escribir cualquier prompt y autorizar una generación.'
+        : connectionProblem(settings),!state.enabled);
+    }catch(error){
+      state.enabled=false;state.settings=null;showCost(null);
+      text('engineBadge','Sin conexión al servidor');
+      $('engineBadge')?.classList.remove('active');
+      inform('No se pudo consultar el generador local: '+(error?.message??'error de red'),true);
+    }finally{updateControls();}
+  })();
+  try{await connectionCheck;}finally{connectionCheck=null;}
+}
 export async function initializeSoundLab({onImportReviewed}={}){
   if(!requiredDom())throw new Error('Sound Lab workspace is unavailable');
   if(typeof onImportReviewed==='function')state.onImportReviewed=onImportReviewed;
-  if(state.initialized){updateControls();drawWave();return;}
-  state.initialized=true;bindEvents();bindScriptCompiler();
-  try{
-    const settings=await(await request('/status')).json();
-    state.settings=settings;state.enabled=settings.enabled===true;showCost(settings);
-    text('engineBadge',state.enabled?'SFX provider configured':'Offline editing');
-    $('engineBadge').classList.toggle('active',state.enabled);
+  if(!state.initialized){
+    state.initialized=true;bindEvents();bindScriptCompiler();
     try{$('requestId').value=localStorage.getItem('runq-sfx-last-id-v1')??'';}catch{}
-    inform(state.enabled
-      ? 'Local service is ready. Every paid request still requires its own cost acknowledgement.'
-      : 'Offline waveform review is ready. No provider is configured.');
-  }catch{
-    state.enabled=false;state.settings=null;showCost(null);text('engineBadge','Offline / no service');
-    inform('The local SFX API is unavailable. No remote request was attempted.',true);
   }
+  // Recheck on every workspace entry. A previous offline check must not
+  // permanently disable generation after the user fixes local configuration.
+  await checkConnection();
   updateControls();drawWave();
 }
