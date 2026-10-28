@@ -74,6 +74,7 @@ document.addEventListener('runq:ai-studio:snapshot',event=>{
     cues:show.cues.map(c=>({id:c.id,label:c.label,number:c.number,status:c.status,
       sourceProposalId:c.sourceProposalId??null,
       mainType:c.actions[0]?.type??null,
+      mainAssetId:c.actions[0]?.type==='PLAY'?c.actions[0].assetId:null,
       audioTracks:(c.audioTracks??[]).map(t=>({id:t.id,assetId:t.assetId}))})),
     proposals:show.proposals.map(p=>({id:p.id,label:p.label,status:p.status,
       lineId:p.sourceLineIds[0]??null,sourceLineIds:[...p.sourceLineIds],
