@@ -33,12 +33,16 @@ try {
   await page.addInitScript(() => {
     window.__testAudioStarts = 0;
     window.__testAudioStops = 0;
+    window.__testAudioStartsWithTrim = [];
     window.__testStopTimes = [];
     class FakeAudioContext {
       constructor() { this.state = 'running'; this.currentTime = 1; this.destination = {}; }
       async resume() {}
       async close() { this.state = 'closed'; }
-      async decodeAudioData() { return { duration: 3, numberOfChannels: 1 }; }
+      async decodeAudioData() {
+        const samples=Float32Array.from({length:480},(_,i)=>Math.sin(i*.3)*.7);
+        return {duration:3,numberOfChannels:1,getChannelData:()=>samples};
+      }
       createGain() {
         const gain = { value: 1, cancelScheduledValues() {},
           setValueAtTime(v) { this.value = v; },
@@ -50,7 +54,10 @@ try {
       }
       createBufferSource() {
         return { buffer: null, onended: null, playbackRate:{value:1}, connect() {}, disconnect() {},
-          start() { window.__testAudioStarts += 1; },
+          start(when,offset=0,duration) {
+            window.__testAudioStarts += 1;
+            window.__testAudioStartsWithTrim.push({when,offset,duration:duration??null});
+          },
           stop(time) { window.__testAudioStops += 1; window.__testStopTimes.push(time); } };
       }
     }
@@ -147,6 +154,17 @@ try {
   // Real cue-editor settings never execute audio merely by being saved.
   const inspector = page.locator('#cuePlaybackForm');
   assert.equal(await inspector.count(), 1);
+  const waveform = inspector.locator('.cue-waveform-canvas');
+  assert.equal(await waveform.count(),1,'Real PCM preview is visible when a decoded file exists');
+  await waveform.scrollIntoViewIfNeeded();
+  const rect = await waveform.boundingBox();
+  assert.ok(rect && rect.width > 80,
+    'Waveform must be visible and interactive in the cue inspector: ' + JSON.stringify(rect));
+  // Initial IN is zero and OUT is the full 3-second file. Clicking at 60%
+  // chooses OUT, and the same numerical field is then persisted by Save.
+  await page.mouse.click(rect.x+rect.width*.6,rect.y+rect.height/2);
+  assert.ok(Math.abs(Number(await inspector.locator('[name="endAtMs"]').inputValue())-1800)<50);
+
   await inspector.locator('[name="gainDb"]').fill('-9');
   await inspector.locator('[name="fadeInMs"]').fill('250');
   await inspector.locator('[name="fadeOutMs"]').fill('500');
@@ -233,6 +251,8 @@ try {
   assert.equal(exportedProject.cues[editedCueIndex].playback.pan,-0.5);
   assert.equal(exportedProject.cues[editedCueIndex].playback.playbackRate,1.25);
   assert.equal(exportedProject.cues[editedCueIndex].playback.startAtMs,125);
+  assert.ok(Math.abs(exportedProject.cues[editedCueIndex].playback.endAtMs-1800)<50,
+    'Graphical OUT must persist into exported show');
   assert.deepEqual(exportedProject.cues[1].automation.stopCueIds,['cue-1']);
   assert.equal(exportedProject.cues[1].stopFadeOverrides['cue-1'],4000);
   assert.equal(exportedProject.cues[0].actions[0].assetId,'asset-3');

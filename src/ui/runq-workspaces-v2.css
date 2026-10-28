@@ -405,3 +405,22 @@
  .shell[data-active-workspace="cues"] .cue-create-actions{overflow-x:auto;flex-wrap:nowrap;width:100%}
  .shell[data-active-workspace="cues"] .cue-create-actions .btn{white-space:nowrap;flex:0 0 auto}
 }
+
+
+/* Decoded PCM waveform editor. Purely graphical; GO and STOP stay separate. */
+.cue-waveform-editor{
+  min-width:0;display:grid;gap:8px;margin:0 0 12px;padding:13px;
+  border:1px solid #36535d;border-radius:9px;background:#0d2028;
+}
+.cue-waveform-title{font-size:12px;font-weight:750;color:#c7e4e2;letter-spacing:.01em}
+.cue-waveform-canvas{
+  display:block;width:100%;height:118px;max-width:100%;touch-action:none;
+  background:#0b1821;border:1px solid #36535d;border-radius:6px;
+  cursor:ew-resize;
+}
+.cue-waveform-canvas:focus-visible{outline:2px solid #73e3c8;outline-offset:3px}
+.cue-waveform-times{
+  font:600 11px/1.5 ui-monospace,Consolas,monospace;color:#bbd7d7;
+  overflow-wrap:anywhere;
+}
+.cue-waveform-editor .caption{margin:0;font-size:11px;line-height:1.45;color:#8eaeb5}

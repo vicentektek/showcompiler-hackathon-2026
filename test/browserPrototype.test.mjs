@@ -238,3 +238,21 @@ test('Meta independent verifier is a transient, review-only UI with source links
   assert.match(client, /sourceButton\(lineId\)/);
   assert.doesNotMatch(client, /metaIndependentReview\s*=\s*show/);
 });
+
+
+test('graphical audio trim uses actual decoded waveform and explicit Save, never implicit GO',async()=>{
+  assert.match(client,/function cueWaveformTrim\(/);
+  assert.match(client,/player\.getWaveform\(assetId\)/);
+  assert.match(client,/inspectorPendingChanges=true/);
+  assert.match(client,/endAtMs/);
+  const server=createAppServer();
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  try {
+    const url='http://127.0.0.1:'+server.address().port+'/src/core/audioWaveform.mjs';
+    const response=await fetch(url);
+    assert.equal(response.status,200);
+    assert.match(await response.text(),/summarizeWaveform/);
+  } finally {
+    await new Promise(resolve=>server.close(resolve));
+  }
+});

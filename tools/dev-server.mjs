@@ -35,6 +35,7 @@ const allowed = new Map([
   ['/src/core/manualCues.mjs', ['src/core/manualCues.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/cueTracks.mjs', ['src/core/cueTracks.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/browserAudio.mjs', ['src/core/browserAudio.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/audioWaveform.mjs', ['src/core/audioWaveform.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/audioBackend.mjs', ['src/core/audioBackend.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/zipStore.mjs', ['src/core/zipStore.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/showArchive.mjs', ['src/core/showArchive.mjs', 'text/javascript; charset=utf-8']],
