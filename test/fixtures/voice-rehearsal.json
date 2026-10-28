@@ -1,0 +1,14 @@
+{
+  "description": "Fictional Spanish theatre rehearsal; no audio, API or automatic GO.",
+  "initialFocusLine": 140,
+  "cues": [
+    {"id":"C14","lineId":"L144","trigger":"Pero alguien ha abierto esa puerta"},
+    {"id":"C15","lineId":"L149","trigger":"Escuchad el ruido de la tormenta"}
+  ],
+  "events": [
+    {"type":"TRANSCRIPT","atMs":1000,"endMs":960,"final":true,"text":"Pero alguien ha abierto esa puerta"},
+    {"type":"TRANSCRIPT","atMs":1300,"endMs":960,"final":true,"text":"Pero alguien ha abierto esa puerta"},
+    {"type":"TRANSCRIPT","atMs":4000,"endMs":3950,"final":true,"text":"Escuchad el ruido de la tormenta"},
+    {"type":"TRANSCRIPT","atMs":7000,"endMs":6900,"final":false,"text":"Escuchad el ruido"}
+  ]
+}
