@@ -115,6 +115,18 @@
               <input id="rqLiveFocus" type="number" min="1" max="100000" step="1" value="1">
             </label>
           </div>
+          <div class="rqlive-auto-mode">
+            <label for="rqLiveMode"><span id="rqLiveModeLabel">Cue follow mode</span>
+              <select id="rqLiveMode">
+                <option value="assist">Assist · suggest NEXT</option>
+                <option value="auto">Rehearsal autopilot · automatic GO</option>
+              </select>
+            </label>
+            <button type="button" id="rqLiveArm" class="btn danger-outline small" aria-pressed="false" disabled>ARM AUTO GO</button>
+            <output id="rqLiveArmStatus" role="status" aria-live="polite">DISARMED · voice cannot play cues</output>
+          </div>
+          <p id="rqLiveAutoHelp" class="rqlive-auto-help">Autopilot must be armed while listening. Repeats, rewinds and cue skips require an unambiguous completed phrase. STOP ALL disarms.</p>
+          <ol id="rqLiveAutoHistory" class="rqlive-auto-history" aria-label="Automatic rehearsal cue events"></ol>
           <label class="rqmic-consent"><input type="checkbox" id="rqLiveConsent">
             <span id="rqLiveConsentText">I authorize sending my microphone to Meta Muse for this session (max 3 min).</span>
           </label>
