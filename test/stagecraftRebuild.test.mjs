@@ -20,7 +20,9 @@ test('Stagecraft structural rebuild keeps all actual transport, project and edit
    if(id!=='runqCueDensity')assert.match(html,new RegExp('id="'+id+'"'));
  }
  assert.match(ui,/cueBody\.replaceChildren\(sequenceFrame,inspectorFrame\)/);
- assert.match(ui,/dock\.append\(queue,footer\)/);
+ assert.match(ui,/dock\.append\(queue\)/);
+ assert.match(ui,/dock\.append\(activeCues\)/);
+ assert.match(ui,/dock\.append\(footer\)/);
  assert.match(ui,/library\.append\(node\)/);
  assert.doesNotMatch(ui,/get\('operatorGoBtn'\)\?\.click\(/);
  assert.doesNotMatch(ui,/get\('operatorPanicBtn'\)\?\.click\(/);
@@ -41,6 +43,8 @@ test('Stagecraft assets are served locally, no remote files or hidden fallback s
   ['/src/ui/runq-stagecraft-rebuild.css','text/css'],
   ['/src/ui/runq-stagecraft-rebuild.mjs','javascript'],
   ['/src/core/waveformPeaks.mjs','javascript'],
+  ['/src/ui/operator-workbench.css','text/css'],
+  ['/src/core/cueTimeEditing.mjs','javascript'],
  ]){
   const result=await fetch(root+file);
   assert.equal(result.status,200,file+' must be explicitly allowlisted');
