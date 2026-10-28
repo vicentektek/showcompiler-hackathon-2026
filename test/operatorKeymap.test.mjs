@@ -34,6 +34,14 @@ test('keyboard input/editor/menu, modifiers, repeat, IME, modal and handled even
     assert.equal(decideOperatorShortcut(mock('Space',override),p,'cues'),null);
   }
 });
+test('focused cue row is an intentional Space GO surface; ordinary focused buttons are not',()=>{
+  const row={closest:selector=>selector==='[data-cue-select]'?{}:selector.startsWith('input')?{}:null};
+  assert.equal(decideOperatorShortcut(mock('Space',{target:row}),
+    DEFAULT_OPERATOR_KEYMAP,'cues'),'GO');
+  const input={closest:selector=>selector.startsWith('input')?{}:null};
+  assert.equal(decideOperatorShortcut(mock('Space',{target:input}),
+    DEFAULT_OPERATOR_KEYMAP,'cues'),null);
+});
 test('settings can disable one/both contexts and GO mapping without changing show',()=>{
   const p={...DEFAULT_OPERATOR_KEYMAP,inEditor:false};
   assert.equal(decideOperatorShortcut(mock('Space'),p,'cues'),null);
