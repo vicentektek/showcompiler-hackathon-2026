@@ -22,9 +22,12 @@ test('speech can request GO only through the existing guarded operator playback 
  for(const forbidden of ['player.go(','player.stopAll(','operatorGoBtn','MODEL_API_KEY','api.meta.ai'])
   assert.ok(!ui.includes(forbidden),'Autopilot must not own direct transport: '+forbidden);
  assert.ok(ui.includes("new CustomEvent('runq:rehearsal-auto-go'"));
- assert.ok(app.includes("activeWorkspace!=='rehearsal'"));
- assert.ok(app.includes("document.body?.dataset.runqVoiceCapture!=='live'"));
- assert.ok(app.includes("getAttribute('aria-pressed')!=='true'"));
+ assert.ok(app.includes("activeWorkspace!=='rehearsal'"),'audio unlock is scoped to Rehearsal');
+ assert.ok(app.includes("authorizeRehearsalVoice("),'GO uses shared session authorization');
+ assert.ok(app.includes("fingerprint:voiceShowFingerprint()"),'GO is bound to the current show');
+ assert.ok(app.includes("epoch:grantEpoch"),'GO rejects delayed stale authorization');
+ assert.ok(!app.includes("getAttribute('aria-pressed')!=='true'"),
+   'a UI button attribute must not grant automatic GO');
  assert.ok(app.includes("player.isPlaying(cueId)"));
  assert.ok(app.includes('executePreparedGo()'));
  assert.ok(app.includes('await player.go(cue)'));
