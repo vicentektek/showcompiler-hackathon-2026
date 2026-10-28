@@ -9,6 +9,7 @@ import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
 import { formatCueTime,parseCueTime,clampCueFade } from '../core/cueTimeEditing.mjs';
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
+import { extractAudioZip,planAudioLibraryBatch,MAX_AUDIO_ZIP_BYTES,MAX_AUDIO_BATCH_FILES } from '../core/audioBatchImport.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -177,6 +178,8 @@ function refreshAudioControls() {
   $('operatorPanicBtn').disabled = false;
   $('stopAuditionBtn').disabled = !auditioning;
   $('loadAudioBtn').disabled = audioInFlight || auditioning || bundleInFlight;
+  $('importAudioBatchBtn').disabled = audioInFlight || bundleInFlight || auditioning || active>0 || pending>0;
+  $('importAudioZipBtn').disabled = $('importAudioBatchBtn').disabled;
   $('openBundleBtn').disabled = bundleInFlight || audioInFlight;
   $('saveBundleBtn').disabled = bundleInFlight || audioInFlight;
   for (const button of document.querySelectorAll('[data-asset-audition]')) {
@@ -2410,6 +2413,113 @@ $('operatorPanicBtn').addEventListener('click', emergencyStopAllAudio);
 $('stopAuditionBtn').addEventListener('click', () => {
   if (player.stopAudition()) feedback('audio.auditionStopped', {}, 'success');
 });
+
+/** Batch intake only modifies the library. No cues are linked or executed. */
+function reportAudioImport(headline,items=[]){
+  const panel=$('audioBatchReport');
+  panel.hidden=false;
+  $('audioBatchStatus').textContent=headline;
+  const details=$('audioBatchDetails');
+  details.replaceChildren();
+  for(const item of items.slice(0,12)){
+    const li=node('li','audio-batch-detail');
+    li.textContent=item.name+' · '+item.reason;
+    details.append(li);
+  }
+  if(items.length>12)details.append(node('li','audio-batch-more',
+    '+ '+(items.length-12)+(uiLocale==='es'?' incidencias adicionales':' more issues')));
+}
+/** Show ZIP import is deliberately not here. This accepts ordinary archives
+ * of audio files, without ever replacing an existing loaded shared asset.
+ */
+async function importAudioLibraryBatch(selected,{zip=false}={}){
+  if(audioInFlight||bundleInFlight)return;
+  const busy=player.getStatus();
+  if(busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending){
+    reportAudioImport(t('audioBatch.busy'));return;
+  }
+  if(!selected.length)return;
+  audioInFlight=true;refreshAudioControls();
+  const generation=projectGeneration;
+  let added=0,restored=0,issues=[];
+  try{
+    let files=selected;
+    if(zip){
+      const archive=selected[0];
+      if(!archive || archive.size<22 || archive.size>MAX_AUDIO_ZIP_BYTES ||
+         !/\.zip$/i.test(archive.name))throw uiError('audioBatch.zipInvalid');
+      reportAudioImport(uiLocale==='es'?'Leyendo ZIP de audio…':'Reading audio ZIP…');
+      const extracted=await extractAudioZip(new Uint8Array(await archive.arrayBuffer()));
+      files=extracted.files;issues=[...extracted.skipped];
+    }
+    if(generation!==projectGeneration)throw uiError('errors.projectChanged');
+    const assignment=planAudioLibraryBatch(files,show.assets,id=>player.hasAsset(id));
+    issues.push(...assignment.skipped);
+    const tasks=assignment.accepted;
+    if(!tasks.length){
+      reportAudioImport(t('audioBatch.complete',{added:0,restored:0,skipped:issues.length}),issues);
+      return;
+    }
+    for(let index=0;index<tasks.length;index++){
+      const entry=tasks[index];
+      reportAudioImport(t('audioBatch.progress',{
+        current:index+1,total:tasks.length,name:entry.file.name,
+      }),issues);
+      try{
+        if(generation!==projectGeneration)throw uiError('errors.projectChanged');
+        const current=show;
+        if(!entry.assetId && current.assets.length>=500)
+          throw new RangeError('Library limit: 500 audio references');
+        const expectedId=entry.assetId??nextAvailableId('asset',current.assets.map(a=>a.id));
+        // The decoder validates extension, ≤20 MB, channels and ≤10 min.
+        await player.loadFile(entry.file,expectedId);
+        if(generation!==projectGeneration)throw uiError('errors.projectChanged');
+        if(!entry.assetId){
+          const updated=addAudioReference(show,entry.file.name);
+          if(updated.assets.at(-1)?.id!==expectedId)
+            throw uiError('errors.staleAudioList');
+          show=updated;added++;
+        }else restored++;
+        originalAudioFiles.set(expectedId,entry.file);
+        dirty=true;
+      }catch(error){
+        if(generation!==projectGeneration)throw error;
+        issues.push({name:entry.file.name,reason:error?.message??'Unable to decode audio'});
+      }
+    }
+    render(); // Reuse the ordinary Stagecraft library list and asset picker.
+    reportAudioImport(t('audioBatch.complete',{
+      added,restored,skipped:issues.length,
+    }),issues);
+  }catch(error){
+    reportAudioImport(t('audioBatch.errorTitle')+': '+
+      (error?.uiKey?t(error.uiKey):error?.message??String(error)),issues);
+  }finally{
+    audioInFlight=false;
+    refreshAudioControls();
+  }
+}
+$('importAudioBatchBtn').addEventListener('click',()=>{
+  if(audioInFlight||bundleInFlight)return;
+  $('audioBatchFilesInput').value='';
+  $('audioBatchFilesInput').click();
+});
+$('importAudioZipBtn').addEventListener('click',()=>{
+  if(audioInFlight||bundleInFlight)return;
+  $('audioBatchZipInput').value='';
+  $('audioBatchZipInput').click();
+});
+$('audioBatchFilesInput').addEventListener('change',event=>{
+  const files=[...(event.target.files??[])];
+  event.target.value='';
+  void importAudioLibraryBatch(files);
+});
+$('audioBatchZipInput').addEventListener('change',event=>{
+  const files=[...(event.target.files??[])];
+  event.target.value='';
+  void importAudioLibraryBatch(files,{zip:true});
+});
+
 $('loadAudioBtn').addEventListener('click', () => pickAudioFile());
 $('audioFileInput').addEventListener('change', async event => {
   const file = event.target.files?.[0];
