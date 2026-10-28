@@ -432,6 +432,8 @@ try {
   await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent?.includes('stage-door.wav'));
   assert.equal(await page.locator('#rqaiOpen').isEnabled(),true);
   await page.locator('#rqaiOpen').click();
+  assert.equal(await page.locator('#rqaiUse > .rqai-kicker').innerText(),
+    '¿Dónde quieres utilizarlo?', 'Spanish AI Studio labels must follow the UI locale');
   await page.locator('#rqaiDestination').selectOption('NEW_CUE');
   await page.locator('#rqaiNewCueName').fill('Stage door impact');
   await page.setViewportSize({width:1440,height:900});
