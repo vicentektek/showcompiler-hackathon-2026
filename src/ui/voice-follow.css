@@ -37,3 +37,17 @@
 @media(max-width:1150px){.rqvf-grid{grid-template-columns:1fr 1fr}.rqvf-grid>.rqvf-cell:last-child{grid-column:1/-1}}
 @media(max-width:700px){.rqvf-grid{grid-template-columns:1fr}.rqvf-grid>.rqvf-cell:last-child{grid-column:auto}
  .rqvf-panel{max-height:45vh;overflow-y:auto}}
+
+/* Rehearsal microphone preflight, all controls separate from live transport. */
+.rqmic-panel{background:#132833;border:1px solid #35515e;border-radius:6px;padding:9px 11px;margin-bottom:9px}
+.rqmic-head{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.rqmic-head strong{font-size:11px;letter-spacing:.07em;margin-right:auto}
+.rqmic-head label{display:flex;align-items:center;gap:7px;font-size:11px}
+.rqmic-head select{background:#172935;color:#e4edf2;border:1px solid #49616a;border-radius:4px;padding:5px}
+.rqmic-head meter{width:90px;height:14px}
+.rqmic-panel p{font-size:11px;margin:5px 0;color:#c3dae2}
+.rqmic-panel small{font-size:10px;color:#94b1b9}
+.rqmic-review{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rqmic-review audio{height:32px;max-width:260px}
+.rqmic-review a{color:#a5f0ca;font-size:11px}
+.rqmic-review [hidden]{display:none!important}
