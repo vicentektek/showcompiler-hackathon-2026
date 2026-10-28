@@ -6,7 +6,7 @@ const read=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
 test('rehearsal-only auto GO has conspicuous manual arming, safe default and bilingual labels',()=>{
  const html=read('index.html'),ui=read('src/ui/rehearsal-auto-ui.mjs');
  for(const token of ['id="rqLiveMode"','value="assist"','value="auto"','id="rqLiveArm"',
-  'aria-pressed="false" disabled','id="rqLiveArmStatus"','id="rqLiveAutoHistory"',
+  'aria-pressed="false" disabled','id="rqLiveArmStatus"','id="rqLiveAutoHistory"','id="rqLivePanicBtn"',
   '/src/ui/rehearsal-auto-ui.mjs'])assert.ok(html.includes(token),token);
  assert.ok(ui.includes("runq:voice-live-ready"));
  assert.ok(ui.includes("runq:voice-live-final"));
