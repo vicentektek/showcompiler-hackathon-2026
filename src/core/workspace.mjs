@@ -20,11 +20,22 @@ export function replaceShowScript(project, scriptText) {
   return normalizeShowProject({ ...current, scriptText });
 }
 
-export function addAudioReference(project, name) {
+export function addAudioReference(project, name, options = {}) {
   const current = normalizeShowProject(project);
   if (typeof name !== 'string' || !name.trim()) throw new TypeError('Provide an audio reference name');
+  if (!options || typeof options !== 'object' || Array.isArray(options) ||
+      Object.keys(options).some(key => key !== 'provenance')) {
+    const error = new TypeError('Invalid show project: unsupported audio reference options');
+    error.code = 'INVALID_SHOW_PROJECT';
+    throw error;
+  }
   const id = nextAvailableId('asset', current.assets.map(a => a.id));
-  return normalizeShowProject({ ...current, assets: [...current.assets, { id, name: name.trim() }] });
+  const asset = {
+    id,
+    name: name.trim(),
+    ...(options.provenance === undefined ? {} : { provenance: options.provenance }),
+  };
+  return normalizeShowProject({ ...current, assets: [...current.assets, asset] });
 }
 
 export function nextAvailableId(prefix, usedIds) {

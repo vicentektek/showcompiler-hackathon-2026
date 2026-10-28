@@ -24,7 +24,7 @@ export function buildSfxPilotRequest(plan, { requestId, seed = 42 } = {}) {
     throw new TypeError('Pilot requires an explicitly authorized SFX or environment plan');
   }
   validId(plan.authorization.id, 'authorization ID');
-  validId(plan.sourceLineId, 'source line');
+  if (plan.sourceLineId !== null) validId(plan.sourceLineId, 'source line');
   validId(requestId, 'request ID');
   if (typeof plan.prompt !== 'string' || !plan.prompt.trim() ||
       plan.prompt.length > 1000 || /(?:https?|data|file):/i.test(plan.prompt)) {
@@ -39,7 +39,9 @@ export function buildSfxPilotRequest(plan, { requestId, seed = 42 } = {}) {
   }
   return Object.freeze({
     requestId, authorizationId: plan.authorization.id,
-    sourceLineId: plan.sourceLineId, kind: plan.kind,
+    // The current Modal pilot contract requires an identifier. UNBOUND is a
+    // transport-only sentinel; the durable local provenance remains null.
+    sourceLineId: plan.sourceLineId ?? 'UNBOUND', kind: plan.kind,
     modelCandidate: MODEL, prompt: plan.prompt.trim(),
     durationSeconds: plan.durationSeconds, seed,
   });

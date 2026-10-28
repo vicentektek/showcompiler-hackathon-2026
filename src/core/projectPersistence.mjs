@@ -19,6 +19,18 @@ const MAX_PROPOSALS = 100;
 const MAX_CUES = 2_000;
 const MAX_CUE_NUMBER = 10_000;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/;
+const SFX_REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
+const SFX_MODEL_REVISION = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const SHA256 = /^[a-f0-9]{64}$/;
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const MAX_SFX_WAV_BYTES = 4 * 1024 * 1024;
+const SFX_PROVENANCE_FIELDS = [
+  'origin', 'provider', 'model', 'modelRevision', 'requestId', 'sourceLineId',
+  'prompt', 'seed', 'requestedDurationSeconds', 'sha256',
+  'generatedDurationSeconds', 'sampleRateHz', 'channels', 'byteLength',
+  'reviewedRegion', 'estimatedMaxCostUsd', 'actualCostUsd', 'createdAt',
+  'acceptedAt',
+];
 const STATES = new Set(['PENDING', 'APPROVED', 'REJECTED']);
 const encoder = new TextEncoder();
 
@@ -48,6 +60,118 @@ function optionalText(value, max, where) {
 function identifier(value, where) {
   if (typeof value !== 'string' || !ID.test(value)) invalid(where + " must be a valid identifier");
   return value;
+}
+function integerInRange(value, min, max, where) {
+  if (!Number.isSafeInteger(value) || value < min || value > max) {
+    invalid(where + ' must be an integer from ' + min + ' to ' + max);
+  }
+  return value;
+}
+function finiteInRange(value, min, max, where) {
+  if (!Number.isFinite(value) || value < min || value > max) {
+    invalid(where + ' must be a finite number from ' + min + ' to ' + max);
+  }
+  return value === 0 ? 0 : value;
+}
+function utcTimestamp(value, where) {
+  if (typeof value !== 'string' || !ISO_UTC.test(value)) {
+    invalid(where + ' must be a canonical UTC ISO timestamp');
+  }
+  const timestamp = new Date(value);
+  if (!Number.isFinite(timestamp.getTime()) || timestamp.toISOString() !== value) {
+    invalid(where + ' must be a valid UTC ISO timestamp');
+  }
+  return value;
+}
+function audioAssetProvenance(value, sourceLines, where) {
+  fields(value, SFX_PROVENANCE_FIELDS, where);
+  if (value.origin !== 'AI_GENERATED_SFX') invalid(where + '.origin is unsupported');
+  if (value.provider !== 'MODAL') invalid(where + '.provider is unsupported');
+  if (value.model !== 'stabilityai/stable-audio-3-small-sfx') {
+    invalid(where + '.model is unsupported');
+  }
+  if (typeof value.modelRevision !== 'string' ||
+      !SFX_MODEL_REVISION.test(value.modelRevision)) {
+    invalid(where + '.modelRevision must be a pinned lowercase commit SHA');
+  }
+  if (typeof value.requestId !== 'string' || !SFX_REQUEST_ID.test(value.requestId)) {
+    invalid(where + '.requestId is invalid');
+  }
+  const sourceLineId = value.sourceLineId;
+  if (sourceLineId !== null &&
+      (typeof sourceLineId !== 'string' ||
+       !/^L[1-9]\d*$/.test(sourceLineId) ||
+       !sourceLines.has(sourceLineId))) {
+    invalid(where + '.sourceLineId must be null or reference the current script');
+  }
+  const prompt = requiredString(value.prompt, 1000, where + '.prompt');
+  const seed = integerInRange(value.seed, 0, 2147483647, where + '.seed');
+  const requestedDurationSeconds = integerInRange(
+    value.requestedDurationSeconds, 1, 12, where + '.requestedDurationSeconds',
+  );
+  if (typeof value.sha256 !== 'string' || !SHA256.test(value.sha256)) {
+    invalid(where + '.sha256 must be a lowercase SHA-256 digest');
+  }
+  const generatedDurationSeconds = finiteInRange(
+    value.generatedDurationSeconds, Number.MIN_VALUE, 13,
+    where + '.generatedDurationSeconds',
+  );
+  const sampleRateHz = integerInRange(
+    value.sampleRateHz, 16000, 96000, where + '.sampleRateHz',
+  );
+  if (value.channels !== 1 && value.channels !== 2) {
+    invalid(where + '.channels must be mono or stereo');
+  }
+  const byteLength = integerInRange(
+    value.byteLength, 1, MAX_SFX_WAV_BYTES, where + '.byteLength',
+  );
+  fields(value.reviewedRegion, ['inMs', 'outMs'], where + '.reviewedRegion');
+  const inMs = integerInRange(
+    value.reviewedRegion.inMs, 0, Number.MAX_SAFE_INTEGER,
+    where + '.reviewedRegion.inMs',
+  );
+  const outMs = integerInRange(
+    value.reviewedRegion.outMs, 1, Number.MAX_SAFE_INTEGER,
+    where + '.reviewedRegion.outMs',
+  );
+  // Review bounds are persisted at millisecond precision while WAV duration is
+  // frame-derived, so compare with the duration rounded to the same precision.
+  if (outMs <= inMs || outMs > Math.round(generatedDurationSeconds * 1000)) {
+    invalid(where + '.reviewedRegion must be nonempty and inside generated audio');
+  }
+  const estimatedMaxCostUsd = finiteInRange(
+    value.estimatedMaxCostUsd, 0, Number.MAX_VALUE,
+    where + '.estimatedMaxCostUsd',
+  );
+  const actualCostUsd = value.actualCostUsd === null ? null : finiteInRange(
+    value.actualCostUsd, 0, Number.MAX_VALUE, where + '.actualCostUsd',
+  );
+  const createdAt = utcTimestamp(value.createdAt, where + '.createdAt');
+  const acceptedAt = utcTimestamp(value.acceptedAt, where + '.acceptedAt');
+  if (Date.parse(acceptedAt) < Date.parse(createdAt)) {
+    invalid(where + '.acceptedAt cannot precede createdAt');
+  }
+  return {
+    origin: 'AI_GENERATED_SFX',
+    provider: 'MODAL',
+    model: 'stabilityai/stable-audio-3-small-sfx',
+    modelRevision: value.modelRevision,
+    requestId: value.requestId,
+    sourceLineId,
+    prompt,
+    seed,
+    requestedDurationSeconds,
+    sha256: value.sha256,
+    generatedDurationSeconds,
+    sampleRateHz,
+    channels: value.channels,
+    byteLength,
+    reviewedRegion: { inMs, outMs },
+    estimatedMaxCostUsd,
+    actualCostUsd,
+    createdAt,
+    acceptedAt,
+  };
 }
 function limitedArray(value, max, where) {
   if (!Array.isArray(value) || value.length > max) invalid(where + " must be an array (max " + max + ")");
@@ -96,8 +220,15 @@ export function normalizeShowProject(input) {
   const sourceLines = new Set(parseScript(scriptText).map(line => line.id));
 
   const assets = limitedArray(input.assets, MAX_ASSETS, 'assets').map((asset, index) => {
-    fields(asset, ['id', 'name'], "assets[" + index + "]");
-    return { id: identifier(asset.id, "assets[" + index + "].id"), name: requiredString(asset.name, 200, "assets[" + index + "].name") };
+    const at = "assets[" + index + "]";
+    fields(asset, ['id', 'name', 'provenance'], at);
+    return {
+      id: identifier(asset.id, at + ".id"),
+      name: requiredString(asset.name, 200, at + ".name"),
+      ...(asset.provenance === undefined ? {} : {
+        provenance: audioAssetProvenance(asset.provenance, sourceLines, at + '.provenance'),
+      }),
+    };
   });
   uniqueId(assets, 'assets');
   const knownAssets = new Set(assets.map(asset => asset.id));

@@ -1,9 +1,11 @@
 /**
- * SFX preparation API; kept separate from the Cue Editor and deterministic
- * operator transport. Loopback only, explicit operator POST, no startup jobs.
+ * SFX preparation API; kept separate from deterministic operator transport.
+ * Loopback only, explicit operator POST, no startup jobs or automatic retries.
  */
 import { resolve } from 'node:path';
-import { createSfxJobStore } from '../src/core/sfxJobStore.mjs';
+import {
+  createSfxJobStore, normalizeSfxCostPolicy, normalizeSfxModelRevision,
+} from '../src/core/sfxJobStore.mjs';
 import {
   prepareAudioGenerationPlan, authorizeAudioGenerationPlan,
 } from '../src/core/audioGenerationPlan.mjs';
@@ -20,6 +22,7 @@ function json(response, status, value, headers) {
   });
   response.end(JSON.stringify(value));
 }
+
 async function bodyJson(request) {
   let length = 0;
   const chunks = [];
@@ -36,22 +39,57 @@ async function bodyJson(request) {
   }
   return input;
 }
+
 function exactly(value, allowed) {
-  return Object.keys(value).every(k => allowed.includes(k));
+  return Object.keys(value).every(key => allowed.includes(key));
 }
+
 function configuration() {
   return {
     enabled: process.env.RUNQ_SFX_PILOT_ENABLED === '1',
     endpointUrl: process.env.MODAL_SFX_ENDPOINT,
     proxyTokenId: process.env.MODAL_PROXY_TOKEN_ID,
     proxyTokenSecret: process.env.MODAL_PROXY_TOKEN_SECRET,
+    estimatedMaxCostUsdPerRequest:
+      Number(process.env.RUNQ_SFX_ESTIMATED_MAX_COST_USD),
+    dailyBudgetUsd: Number(process.env.RUNQ_SFX_DAILY_BUDGET_USD),
+    modelRevision: process.env.RUNQ_SFX_MODEL_REVISION || null,
   };
 }
+
 function makeDefaultClient(config) {
   return createModalSfxPilotClient(config);
 }
 
-/** Dependency injection makes all endpoint tests entirely free and offline. */
+function safePolicy(config) {
+  try { return normalizeSfxCostPolicy(config); }
+  catch { return null; }
+}
+
+function safeRevision(config) {
+  try { return normalizeSfxModelRevision(config.modelRevision); }
+  catch { return undefined; }
+}
+
+function sendFailure(response, error, headers) {
+  const status = error?.status === 413 ? 413 :
+    ['SFX_DUPLICATE','SFX_TRANSITION','SFX_BUDGET_UNKNOWN'].includes(error?.code) ? 409 :
+    ['SFX_DAILY_LIMIT','SFX_ACTIVE_LIMIT','SFX_DAILY_BUDGET'].includes(error?.code) ? 429 :
+    error?.code === 'SFX_NOT_FOUND' ? 404 :
+    error instanceof TypeError || error instanceof RangeError || error instanceof SyntaxError ? 400 : 503;
+  const code = error?.code === 'SFX_DUPLICATE' ? 'SFX_DUPLICATE' :
+    error?.code === 'SFX_DAILY_LIMIT' ? 'SFX_DAILY_LIMIT' :
+    error?.code === 'SFX_DAILY_BUDGET' ? 'SFX_DAILY_BUDGET' :
+    error?.code === 'SFX_BUDGET_UNKNOWN' ? 'SFX_BUDGET_UNKNOWN' :
+    error?.code === 'SFX_ACTIVE_LIMIT' ? 'SFX_ACTIVE_LIMIT' :
+    error?.code === 'SFX_TRANSITION' ? 'SFX_INVALID_STATE' :
+    status === 413 ? 'SFX_TOO_LARGE' :
+    status === 400 ? 'SFX_INVALID_REQUEST' :
+    status === 404 ? 'SFX_NOT_FOUND' : 'SFX_SERVICE';
+  json(response, status, { code }, headers);
+}
+
+/** Dependency injection keeps every endpoint test free, local and deterministic. */
 export function makeSfxRoute({
   sfxStore = createSfxJobStore({
     directory: resolve(process.cwd(), '.runq-local', 'sfx-generation'),
@@ -59,7 +97,7 @@ export function makeSfxRoute({
   sfxConfig = configuration,
   sfxPilotClient = null,
 } = {}) {
-  let busy = false; // One in-flight pilot action per local server.
+  let busy = false; // One in-flight pilot or journal mutation per local server.
   return async function handle(request, response, pathname, headers) {
     if (!pathname.startsWith('/api/sfx/')) return false;
     const origin = 'http://127.0.0.1:' + request.socket.localPort;
@@ -67,25 +105,48 @@ export function makeSfxRoute({
       json(response, 403, { code: 'SFX_ORIGIN' }, headers);
       return true;
     }
-    const config = sfxConfig();
-    const enabled = config.enabled === true && Boolean(sfxPilotClient ||
+
+    let config = {};
+    try { config = sfxConfig() ?? {}; } catch {}
+    const policy = safePolicy(config);
+    const revision = safeRevision(config);
+    const transportConfigured = Boolean(sfxPilotClient ||
       (config.endpointUrl && config.proxyTokenId && config.proxyTokenSecret));
-    const configSafe = { enabled, kinds: ['SFX','ENVIRONMENT'],
+    const enabled = config.enabled === true && transportConfigured &&
+      policy !== null && revision !== undefined;
+    const configSafe = {
+      enabled,
+      kinds: ['SFX','ENVIRONMENT'],
       model: 'stabilityai/stable-audio-3-small-sfx',
-      minDurationSeconds: 1, maxDurationSeconds: 12,
+      modelRevision: revision ?? null,
+      minDurationSeconds: 1,
+      maxDurationSeconds: 12,
       maxSimultaneousJobs: 1,
       requiresExplicitConfirmation: true,
+      requiresExactCostAcknowledgement: true,
+      estimatedMaxCostUsdPerRequest:
+        policy?.estimatedMaxCostUsdPerRequest ?? null,
+      dailyBudgetUsd: policy?.dailyBudgetUsd ?? null,
+      actualBillingStatus: 'UNKNOWN',
       manualImportOnly: true,
     };
+
     if (pathname === '/api/sfx/status') {
       if (request.method !== 'GET') json(response, 405, { code: 'SFX_METHOD' }, headers);
       else json(response, 200, configSafe, headers);
+      return true;
+    }
+
+    if (pathname === '/api/sfx/jobs' && request.method === 'GET') {
+      try { json(response, 200, await sfxStore.list({ limit: 50 }), headers); }
+      catch (error) { sendFailure(response, error, headers); }
       return true;
     }
     if (pathname === '/api/sfx/jobs' && request.method !== 'POST') {
       json(response, 405, { code: 'SFX_METHOD' }, headers);
       return true;
     }
+
     const match = routes.exec(pathname);
     const isStart = pathname === '/api/sfx/jobs' && request.method === 'POST';
     if (!isStart && !match) {
@@ -106,6 +167,7 @@ export function makeSfxRoute({
       return true;
     }
 
+    // These reads are always local and remain available with the provider off.
     if (!isStart && operation === undefined) {
       try {
         const job = await sfxStore.read(id);
@@ -130,7 +192,33 @@ export function makeSfxRoute({
       } catch { json(response, 503, { code: 'SFX_WAV_INTEGRITY' }, headers); }
       return true;
     }
-    // All writes require explicit feature flag and same-origin operator intent.
+
+    // Review is a local human decision. It must not depend on provider state.
+    if (!isStart && operation === 'review') {
+      if (busy) {
+        json(response, 429, { code: 'SFX_BUSY' }, headers);
+        return true;
+      }
+      busy = true;
+      try {
+        const input = await bodyJson(request);
+        if (!exactly(input, ['decision']) || !['ACCEPT','REJECT'].includes(input.decision)) {
+          throw new TypeError('Invalid SFX review');
+        }
+        const job = await sfxStore.read(id);
+        if (!job) {
+          const error = new Error('SFX job not found'); error.code = 'SFX_NOT_FOUND'; throw error;
+        }
+        const next = input.decision === 'ACCEPT'
+          ? 'ACCEPTED_FOR_MANUAL_IMPORT' : 'REJECTED';
+        json(response, 200, await sfxStore.update(id, next), headers);
+      } catch (error) {
+        sendFailure(response, error, headers);
+      } finally { busy = false; }
+      return true;
+    }
+
+    // Start, refresh and cancellation can touch Modal and therefore fail closed.
     if (!enabled) {
       json(response, 503, { code: 'SFX_NOT_CONFIGURED' }, headers);
       return true;
@@ -145,11 +233,15 @@ export function makeSfxRoute({
       if (isStart) {
         if (!exactly(input, [
           'requestId','authorizationId','sourceLineId','kind','prompt',
-          'durationSeconds','seed','confirmed',
+          'durationSeconds','seed','confirmed','acknowledgedMaxCostUsd',
         ]) || input.confirmed !== true || !ID.test(input.requestId ?? '') ||
             !ID.test(input.authorizationId ?? '')) {
           throw new TypeError('Explicitly authorized request required');
         }
+        const acknowledgedPolicy = normalizeSfxCostPolicy({
+          ...policy,
+          acknowledgedMaxCostUsd: input.acknowledgedMaxCostUsd,
+        }, { requireAcknowledgement: true });
         const plan = authorizeAudioGenerationPlan(prepareAudioGenerationPlan({
           sourceLineId: input.sourceLineId, kind: input.kind, prompt: input.prompt,
           modelCandidate: 'stabilityai/stable-audio-3-small-sfx',
@@ -157,21 +249,43 @@ export function makeSfxRoute({
         }), { confirmed: true, authorizationId: input.authorizationId });
         const client = sfxPilotClient || makeDefaultClient(config);
         const requestData = {
-          requestId: input.requestId, authorizationId: input.authorizationId,
-          sourceLineId: plan.sourceLineId, kind: plan.kind, prompt: plan.prompt,
-          durationSeconds: plan.durationSeconds, modelCandidate: plan.modelCandidate,
+          requestId: input.requestId,
+          authorizationId: input.authorizationId,
+          sourceLineId: plan.sourceLineId,
+          kind: plan.kind,
+          prompt: plan.prompt,
+          durationSeconds: plan.durationSeconds,
+          modelCandidate: plan.modelCandidate,
+          modelRevision: revision,
           seed: input.seed ?? 42,
+          estimatedMaxCostUsdPerRequest:
+            acknowledgedPolicy.estimatedMaxCostUsdPerRequest,
+          dailyBudgetUsd: acknowledgedPolicy.dailyBudgetUsd,
+          acknowledgedMaxCostUsd: acknowledgedPolicy.acknowledgedMaxCostUsd,
         };
-        // Reserve BEFORE paid provider submission; duplicates and daily cap fail closed.
+        // Reserve BEFORE any paid submission; duplicates and budget fail closed.
         const job = await sfxStore.reserve(requestData, { confirm: true });
+        const submittedAt = performance.now();
         try {
-          const result = await client.start(plan, { requestId: job.requestId, seed: requestData.seed });
-          const queued = await sfxStore.update(job.requestId, 'QUEUED',
-            { remoteJobId: result.jobId });
+          const result = await client.start(plan, {
+            requestId: job.requestId, seed: requestData.seed,
+          });
+          const queued = await sfxStore.update(job.requestId, 'QUEUED', {
+            remoteJobId: result.jobId,
+            latencies: { submissionMs: performance.now() - submittedAt },
+          });
           json(response, 202, queued, headers);
         } catch {
-          // A timeout MAY have created a charged job. Never retry automatically.
-          json(response, 502, { code: 'SFX_SUBMISSION_UNKNOWN', requestId: job.requestId }, headers);
+          // A timeout MAY have created a charged job. Record the wait, preserve
+          // SUBMISSION_UNKNOWN and never retry automatically.
+          try {
+            await sfxStore.update(job.requestId, 'SUBMISSION_UNKNOWN', {
+              latencies: { submissionMs: performance.now() - submittedAt },
+            });
+          } catch {}
+          json(response, 502, {
+            code: 'SFX_SUBMISSION_UNKNOWN', requestId: job.requestId,
+          }, headers);
         }
         return true;
       }
@@ -179,17 +293,6 @@ export function makeSfxRoute({
       const job = await sfxStore.read(id);
       if (!job) {
         json(response, 404, { code: 'SFX_NOT_FOUND' }, headers); return true;
-      }
-      if (operation === 'review') {
-        if (!exactly(input, ['decision']) ||
-            !['ACCEPT','REJECT'].includes(input.decision)) {
-          throw new TypeError('Invalid SFX review');
-        }
-        const next = input.decision === 'ACCEPT' ?
-          'ACCEPTED_FOR_MANUAL_IMPORT' : 'REJECTED';
-        const reviewed = await sfxStore.update(id, next);
-        json(response, 200, reviewed, headers);
-        return true;
       }
       if (!exactly(input, [])) throw new TypeError('Unexpected SFX request body');
       const internal = job;
@@ -200,22 +303,21 @@ export function makeSfxRoute({
         if (!internal.remoteJobId) throw new TypeError('Unresolved remote job');
         const client = sfxPilotClient || makeDefaultClient(config);
         const remote = await client.status(internal.remoteJobId);
+        const latencies = remote.latencies;
         let updated;
         if (remote.status === 'COMPLETED') {
           const audio = await client.download(internal.remoteJobId);
-          // Server-side persistence verifies hash and formats a second time.
-          // A provider may return inconsistent status and output: fail closed.
           if (remote.wav?.sha256 !== audio.metadata.sha256) {
             throw new TypeError('SFX audio does not match job metadata');
           }
-          updated = await sfxStore.storeWav(id, audio.bytes, audio.metadata);
+          updated = await sfxStore.storeWav(id, audio.bytes, audio.metadata, { latencies });
         } else if (remote.status === 'CANCELLED') {
-          updated = await sfxStore.update(id, 'CANCELLED');
+          updated = await sfxStore.update(id, 'CANCELLED', { latencies });
         } else if (remote.status === 'FAILED') {
-          updated = await sfxStore.update(id, 'FAILED');
+          updated = await sfxStore.update(id, 'FAILED', { latencies });
         } else if (job.status !== 'CANCEL_REQUESTED' &&
                    ['QUEUED','RUNNING'].includes(remote.status)) {
-          updated = await sfxStore.update(id, 'RUNNING');
+          updated = await sfxStore.update(id, 'RUNNING', { latencies });
         } else {
           updated = sfxStore.publicView(job);
         }
@@ -228,24 +330,12 @@ export function makeSfxRoute({
         }
         const client = sfxPilotClient || makeDefaultClient(config);
         await client.cancel(internal.remoteJobId);
-        const updated = await sfxStore.update(id, 'CANCEL_REQUESTED');
-        json(response, 202, updated, headers);
+        json(response, 202, await sfxStore.update(id, 'CANCEL_REQUESTED'), headers);
         return true;
       }
+      throw new TypeError('Unsupported SFX operation');
     } catch (error) {
-      const status = error?.status === 413 ? 413 :
-        ['SFX_DUPLICATE','SFX_TRANSITION'].includes(error?.code) ? 409 :
-        ['SFX_DAILY_LIMIT','SFX_ACTIVE_LIMIT'].includes(error?.code) ? 429 :
-        error?.code === 'SFX_NOT_FOUND' ? 404 :
-        error instanceof TypeError || error instanceof RangeError ? 400 : 503;
-      const code = error?.code === 'SFX_DUPLICATE' ? 'SFX_DUPLICATE' :
-        error?.code === 'SFX_DAILY_LIMIT' ? 'SFX_DAILY_LIMIT' :
-        error?.code === 'SFX_ACTIVE_LIMIT' ? 'SFX_ACTIVE_LIMIT' :
-        error?.code === 'SFX_TRANSITION' ? 'SFX_INVALID_STATE' :
-        status === 413 ? 'SFX_TOO_LARGE' :
-        status === 400 ? 'SFX_INVALID_REQUEST' :
-        status === 404 ? 'SFX_NOT_FOUND' : 'SFX_SERVICE';
-      json(response, status, { code }, headers);
+      sendFailure(response, error, headers);
     } finally { busy = false; }
     return true;
   };

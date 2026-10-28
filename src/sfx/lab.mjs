@@ -1,292 +1,366 @@
-import { waveformPeaks, makeTrimmedPcm16Wav, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
+import { waveformPeaks, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
 
-const $ = id => document.getElementById(id);
 const api = '/api/sfx';
-const state = {
-  enabled: false, working: false, job: null, audio: null, context: null,
-  source: null, gain: null, peaks: null, fileOrigin: null, loadedRemoteRequestId: null,
-  inSeconds: 0, outSeconds: 0, dragStart: null,
-};
 const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT']);
-const text = (id, value) => { $(id).textContent = value; };
-function inform(message, error=false) {
-  const el = $('feedback'); el.textContent=message; el.classList.toggle('error', error);
+const ACTIVE_STATUS = new Set(['QUEUED','RUNNING','CANCEL_REQUESTED']);
+const STATUS_LABEL = Object.freeze({
+  SUBMISSION_UNKNOWN:'Submission uncertain — investigate before retrying',
+  QUEUED:'Pending', RUNNING:'Generating', READY_FOR_REVIEW:'Completed — review required',
+  ACCEPTED_FOR_MANUAL_IMPORT:'Accepted for local import', REJECTED:'Rejected',
+  CANCEL_REQUESTED:'Cancellation requested', CANCELLED:'Cancelled', FAILED:'Error',
+});
+
+export const SFX_ACCEPTANCE_CASES = Object.freeze({
+  door:Object.freeze({
+    kind:'SFX', durationSeconds:8, seed:104729,
+    prompt:'A single heavy antique wooden door slowly creaks open on rusty iron hinges, pauses briefly, then swings shut with one solid wooden slam, dry theatrical sound effect, no music, no voices, no background ambience.',
+  }),
+  storm:Object.freeze({
+    kind:'ENVIRONMENT', durationSeconds:12, seed:209759,
+    prompt:'Steady rain and gusting wind outdoors during a storm, with one powerful thunderclap at medium distance around the middle of the sound, realistic theatrical ambience, no music, no voices.',
+  }),
+  audience:Object.freeze({
+    kind:'ENVIRONMENT', durationSeconds:12, seed:314159,
+    prompt:'A small seated theatre audience murmurs quietly before a performance, then the conversations gradually fade until the room becomes attentive and nearly silent, realistic indoor acoustics, no applause, no music.',
+  }),
+});
+
+const state = {
+  initialized:false, enabled:false, working:false, job:null, audio:null,
+  sourceBytes:null, context:null, source:null, gain:null, peaks:null,
+  fileOrigin:null, loadedRemoteRequestId:null, auditionedRemoteRequestId:null,
+  inSeconds:0, outSeconds:0, dragStart:null, settings:null,
+  onImportReviewed:null,
+};
+const $ = id => document.getElementById(id);
+const text = (id,value) => { const element=$(id); if(element)element.textContent=value; };
+
+function requiredDom() {
+  return Boolean($('generateForm') && $('waveCanvas') && $('importLibraryBtn'));
 }
-async function request(path, {method='GET', data}={}) {
-  const opts={method,cache:'no-store'};
-  if (method==='POST') {
-    opts.headers={'Content-Type':'application/json'};
-    opts.body=JSON.stringify(data??{});
+function inform(message,error=false) {
+  const element=$('feedback');
+  if(!element)return;
+  element.textContent=message;
+  element.classList.toggle('error',error);
+}
+function money(value) {
+  return Number.isFinite(value) ? '$'+value.toFixed(4)+' USD' : 'unknown';
+}
+function costPolicy(settings=state.settings) {
+  const policy=settings?.costPolicy??settings??{};
+  const perRequest=Number(policy.estimatedMaxCostUsdPerRequest ?? policy.estimatedMaxUsdPerGeneration);
+  const daily=Number(policy.dailyBudgetUsd ?? policy.maxDailyEstimatedCostUsd);
+  return {
+    perRequest:Number.isFinite(perRequest)&&perRequest>0?perRequest:null,
+    daily:Number.isFinite(daily)&&daily>0?daily:null,
+  };
+}
+function showCost(settings) {
+  const element=$('costEstimate');
+  const policy=costPolicy(settings);
+  if(!element)return;
+  const ready=policy.perRequest!==null&&policy.daily!==null;
+  element.classList.toggle('ready',ready);
+  element.textContent=ready
+    ? `Conservative configured maximum: ${money(policy.perRequest)} for this request; daily reservation cap ${money(policy.daily)}. This is an estimate, not an invoice.`
+    : 'Cost estimate unavailable. Generation is blocked until the local service exposes a configured maximum.';
+  text('confirmRequestLabel',ready
+    ? `I authorize exactly one request up to ${money(policy.perRequest)}.`
+    : 'I authorize exactly one request up to the maximum shown above.');
+}
+async function request(path,{method='GET',data}={}) {
+  const options={method,cache:'no-store'};
+  if(method==='POST'){
+    options.headers={'Content-Type':'application/json'};
+    options.body=JSON.stringify(data??{});
   }
-  const response=await fetch(api+path,opts);
-  if (!response.ok) {
+  const response=await fetch(api+path,options);
+  if(!response.ok){
     let code='HTTP '+response.status;
-    try { code=(await response.json()).code??code; } catch {}
+    try{code=(await response.json()).code??code;}catch{}
     throw new Error(code);
   }
   return response;
 }
-function busy(value) { state.working=value; updateControls(); }
-function updateControls() {
-  const job=state.job;
-  $('generateBtn').disabled = !state.enabled || state.working || !$('confirmRequest').checked;
-  $('generationHint').textContent = state.enabled ?
-    'Requires operator confirmation' : 'Remote generator not configured — offline WAV editing available';
-  $('openJobBtn').disabled = state.working;
-  const active=job && ['QUEUED','RUNNING','CANCEL_REQUESTED'].includes(job.status);
-  $('refreshBtn').disabled = state.working || !state.enabled || !active;
-  $('cancelBtn').disabled = state.working || !state.enabled ||
-    !job || !['QUEUED','RUNNING'].includes(job.status);
-  $('loadGeneratedBtn').disabled = state.working || !job || !STATUS_WITH_AUDIO.has(job.status);
-  $('acceptBtn').disabled = state.working || !state.enabled || job?.status !== 'READY_FOR_REVIEW';
-  $('rejectBtn').disabled = state.working || !state.enabled || job?.status !== 'READY_FOR_REVIEW';
-  $('playBtn').disabled = !state.audio || state.working;
-  $('stopBtn').disabled = !state.source;
-  $('inPoint').disabled = !state.audio;
-  $('outPoint').disabled = !state.audio;
-  $('exportBtn').disabled = !state.audio || state.working ||
-    (state.fileOrigin === 'remote' &&
-      (state.job?.status !== 'ACCEPTED_FOR_MANUAL_IMPORT' ||
-       state.job?.requestId !== state.loadedRemoteRequestId));
+function busy(value){state.working=value;updateControls();}
+function canUseAcceptedSource(){
+  return state.fileOrigin==='remote' &&
+    state.job?.status==='ACCEPTED_FOR_MANUAL_IMPORT' &&
+    state.job.requestId===state.loadedRemoteRequestId &&
+    state.sourceBytes instanceof ArrayBuffer;
 }
-function viewJob(job) {
+function updateControls(){
+  if(!requiredDom())return;
+  const job=state.job;
+  const policy=costPolicy();
+  const costReady=policy.perRequest!==null&&policy.daily!==null;
+  $('generateBtn').disabled=!state.enabled||state.working||!costReady||!$('confirmRequest').checked;
+  $('generationHint').textContent=state.enabled
+    ? (costReady?'Requires the checkbox and final confirmation':'Cost policy is incomplete — generation blocked')
+    : 'Remote generator disabled — offline review tools remain available';
+  $('openJobBtn').disabled=state.working;
+  $('refreshBtn').disabled=state.working||!state.enabled||!job||!ACTIVE_STATUS.has(job.status);
+  $('cancelBtn').disabled=state.working||!state.enabled||!job||!['QUEUED','RUNNING'].includes(job.status);
+  $('loadGeneratedBtn').disabled=state.working||!job||!STATUS_WITH_AUDIO.has(job.status);
+  const listened=job?.requestId===state.auditionedRemoteRequestId;
+  $('acceptBtn').disabled=state.working||job?.status!=='READY_FOR_REVIEW'||
+    state.loadedRemoteRequestId!==job?.requestId||!listened;
+  $('rejectBtn').disabled=state.working||job?.status!=='READY_FOR_REVIEW';
+  $('playBtn').disabled=!state.audio||state.working;
+  $('stopBtn').disabled=!state.source;
+  $('inPoint').disabled=!state.audio;
+  $('outPoint').disabled=!state.audio;
+  $('exportBtn').disabled=state.working||!canUseAcceptedSource();
+  $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
+}
+function viewJob(job){
+  const changed=state.job?.requestId!==job?.requestId;
   state.job=job;
-  $('jobState').textContent=job?.status?.replaceAll('_',' ') ?? 'No job loaded';
-  $('jobDetails').textContent=job ?
-    job.requestId+' · '+job.kind+' · '+job.sourceLineId+' · '+job.durationSeconds+'s\n'+job.prompt :
-    'Previously submitted requests can be reopened by ID.';
-  if (job) {
+  if(changed){
+    state.loadedRemoteRequestId=null;
+    state.auditionedRemoteRequestId=null;
+  }
+  text('jobState',job ? (STATUS_LABEL[job.status]??job.status?.replaceAll('_',' ')) : 'No job loaded');
+  const cost=job?.cost??{};
+  const timing=job?.latencies??job?.timing??job?.timings??{};
+  const detail=job ? [
+    `${job.requestId} · ${job.kind} · ${job.sourceLineId??'no script reference'} · requested ${job.durationSeconds}s`,
+    `model ${job.modelCandidate??job.model??'unknown'}${job.modelRevision?' @ '+job.modelRevision.slice(0,12):''} · seed ${job.seed}`,
+    `reserved maximum ${money(Number(cost.estimatedMaxCostUsd??cost.estimatedMaxUsd??job.estimatedMaxCostUsd))} · actual billing ${cost.actualBilledUsd==null?'unknown':money(Number(cost.actualBilledUsd))}`,
+    timing.generationMs?`generation ${timing.generationMs} ms · cold start ${timing.coldStartMs??'unknown'} ms`:null,
+    job.prompt,
+  ].filter(Boolean).join('\n') : 'No remote call is made when a saved record is opened.';
+  text('jobDetails',detail);
+  if(job){
     $('requestId').value=job.requestId;
-    try { localStorage.setItem('runq-sfx-last-id-v1',job.requestId); } catch {}
+    try{localStorage.setItem('runq-sfx-last-id-v1',job.requestId);}catch{}
   }
   updateControls();
 }
-function formatTime(seconds) {
-  if (!Number.isFinite(seconds)) return '--:--.---';
+function formatTime(seconds){
+  if(!Number.isFinite(seconds))return '--:--.---';
   const whole=Math.floor(seconds);
-  return String(Math.floor(whole/60)).padStart(2,'0')+':'+
-    String(whole%60).padStart(2,'0')+'.'+
-    String(Math.floor((seconds-whole)*1000)).padStart(3,'0');
+  return String(Math.floor(whole/60)).padStart(2,'0')+':'+String(whole%60).padStart(2,'0')+'.'+String(Math.floor((seconds-whole)*1000)).padStart(3,'0');
 }
-function stop() {
+export function stopSoundLabAudition(){
   const source=state.source;
   state.source=null;
-  if (source) { source.onended=null; try { source.stop(); } catch {} try { source.disconnect(); } catch {} }
-  if (state.gain) { try {state.gain.disconnect();} catch {} state.gain=null; }
+  if(source){source.onended=null;try{source.stop();}catch{}try{source.disconnect();}catch{}}
+  if(state.gain){try{state.gain.disconnect();}catch{}state.gain=null;}
   updateControls();
 }
-function drawWave() {
+function drawWave(){
   const canvas=$('waveCanvas');
+  if(!canvas)return;
   const width=Math.max(1,canvas.getBoundingClientRect().width||900);
   const height=Math.max(1,canvas.getBoundingClientRect().height||245);
   const ratio=Math.min(window.devicePixelRatio||1,2);
-  canvas.width=Math.round(width*ratio);
-  canvas.height=Math.round(height*ratio);
-  const ctx=canvas.getContext('2d');if(!ctx)return;
-  ctx.scale(ratio,ratio);
-  ctx.clearRect(0,0,width,height);
+  canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
+  const context=canvas.getContext('2d');if(!context)return;
+  context.scale(ratio,ratio);context.clearRect(0,0,width,height);
   const middle=height/2;
-  ctx.strokeStyle='#36414e';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(0,middle);ctx.lineTo(width,middle);ctx.stroke();
-  for(let p=1;p<5;p++){
-    const x=Math.round(width*p/5)+.5;
-    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke();
+  context.strokeStyle='#36414e';context.lineWidth=1;
+  context.beginPath();context.moveTo(0,middle);context.lineTo(width,middle);context.stroke();
+  for(let part=1;part<5;part++){
+    const x=Math.round(width*part/5)+.5;
+    context.beginPath();context.moveTo(x,0);context.lineTo(x,height);context.stroke();
   }
-  if(!state.peaks || !state.audio)return;
+  if(!state.peaks||!state.audio)return;
   const duration=state.audio.duration;
   const x1=width*state.inSeconds/duration,x2=width*state.outSeconds/duration;
-  ctx.fillStyle='rgba(199,227,124,.095)';
-  ctx.fillRect(x1,0,x2-x1,height);
-  for(let i=0;i<state.peaks.length;i++){
-    const x=i*width/state.peaks.length;
-    const amp=Math.max(.5,state.peaks[i]*middle*.91);
-    ctx.fillStyle=x>=x1&&x<=x2?'#c7e37c':'#658497';
-    ctx.fillRect(x,middle-amp,Math.max(1,width/state.peaks.length),amp*2);
+  context.fillStyle='rgba(217,248,119,.09)';context.fillRect(x1,0,x2-x1,height);
+  for(let index=0;index<state.peaks.length;index++){
+    const x=index*width/state.peaks.length;
+    const amplitude=Math.max(.5,state.peaks[index]*middle*.91);
+    context.fillStyle=x>=x1&&x<=x2?'#d9f877':'#658497';
+    context.fillRect(x,middle-amplitude,Math.max(1,width/state.peaks.length),amplitude*2);
   }
   for(const x of [x1,x2]){
-    ctx.strokeStyle='#e3f1b1';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke();
+    context.strokeStyle='#efffba';context.lineWidth=2;
+    context.beginPath();context.moveTo(x,0);context.lineTo(x,height);context.stroke();
   }
-  ctx.fillStyle='#d5e2bb';ctx.font='12px ui-monospace,monospace';
-  ctx.fillText(formatTime(state.inSeconds),Math.min(width-85,x1+5),16);
-  ctx.fillText(formatTime(state.outSeconds),Math.max(5,Math.min(width-85,x2-85)),height-10);
+  context.fillStyle='#d5e2bb';context.font='12px ui-monospace,monospace';
+  context.fillText(formatTime(state.inSeconds),Math.min(width-85,x1+5),16);
+  context.fillText(formatTime(state.outSeconds),Math.max(5,Math.min(width-85,x2-85)),height-10);
 }
-function updateTrim(inSeconds,outSeconds) {
+function updateTrim(inSeconds,outSeconds){
   if(!state.audio)return;
-  try {
+  try{
     const bounds=trimBounds(inSeconds,outSeconds,state.audio.duration);
     state.inSeconds=bounds.inSeconds;state.outSeconds=bounds.outSeconds;
     $('inPoint').value=String(Number(bounds.inSeconds.toFixed(3)));
     $('outPoint').value=String(Number(bounds.outSeconds.toFixed(3)));
     drawWave();
-    inform('Selection '+formatTime(state.inSeconds)+' → '+formatTime(state.outSeconds));
+    inform(`Reviewed region ${formatTime(state.inSeconds)} → ${formatTime(state.outSeconds)}. The source WAV is unchanged.`);
   }catch{inform('Select at least 10 ms of sound.',true);}
 }
-async function ensureContext() {
-  if(!state.context) state.context=new (window.AudioContext||window.webkitAudioContext)();
-  if(state.context.state==='suspended') await state.context.resume();
+async function ensureContext(){
+  if(!state.context)state.context=new (window.AudioContext||window.webkitAudioContext)();
+  if(state.context.state==='suspended')await state.context.resume();
   return state.context;
 }
-async function loadAudio(bytes, name, origin='local') {
-  if(!(bytes instanceof ArrayBuffer)||bytes.byteLength<44||bytes.byteLength>8_000_000)
-    throw new Error('WAV file exceeds the 8 MB offline audition limit');
-  stop();
+async function loadAudio(bytes,name,origin='local'){
+  if(!(bytes instanceof ArrayBuffer)||bytes.byteLength<44||bytes.byteLength>8_000_000)throw new Error('WAV file exceeds the 8 MB offline audition limit');
+  stopSoundLabAudition();
   const context=await ensureContext();
   const decoded=await context.decodeAudioData(bytes.slice(0));
-  if(![1,2].includes(decoded.numberOfChannels)||decoded.duration<=0||decoded.duration>600)
-    throw new Error('Unsupported audio layout or duration');
-  state.audio=decoded;
-  state.fileOrigin=origin;
-  state.loadedRemoteRequestId=origin==='remote' ? state.job?.requestId : null;
+  if(![1,2].includes(decoded.numberOfChannels)||decoded.duration<=0||decoded.duration>600)throw new Error('Unsupported audio layout or duration');
+  state.audio=decoded;state.sourceBytes=bytes.slice(0);state.fileOrigin=origin;
+  state.loadedRemoteRequestId=origin==='remote'?state.job?.requestId:null;
+  state.auditionedRemoteRequestId=null;
   state.inSeconds=0;state.outSeconds=decoded.duration;
-  state.peaks=waveformPeaks(Array.from({length:decoded.numberOfChannels},(_,c)=>decoded.getChannelData(c)),600);
-  text('audioName',name+' · '+decoded.numberOfChannels+' ch · '+decoded.sampleRate+' Hz');
+  state.peaks=waveformPeaks(Array.from({length:decoded.numberOfChannels},(_,channel)=>decoded.getChannelData(channel)),600);
+  text('audioName',`${name} · ${decoded.numberOfChannels} ch · ${decoded.sampleRate} Hz`);
   text('waveDuration',formatTime(decoded.duration));
-  $('inPoint').max=String(decoded.duration);
-  $('outPoint').max=String(decoded.duration);
-  updateTrim(0,decoded.duration);
-  updateControls();
+  $('inPoint').max=String(decoded.duration);$('outPoint').max=String(decoded.duration);
+  updateTrim(0,decoded.duration);updateControls();
 }
-function currentJobId() {
+function currentJobId(){
   const id=$('requestId').value.trim();
   if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(id))throw new Error('Enter a valid request ID');
   return id;
 }
-async function action(fn) {
+async function action(operation){
   if(state.working)return;
   busy(true);
-  try {await fn();}catch(error){inform('Action failed: '+(error?.message||'unknown error'),true);}
-  finally {busy(false);}
+  try{await operation();}catch(error){inform('Action failed: '+(error?.message||'unknown error'),true);}
+  finally{busy(false);}
 }
-$('generateForm').addEventListener('submit',event=>{
-  event.preventDefault();
-  action(async()=>{
-    if(!state.enabled||!$('confirmRequest').checked)throw new Error('Generator is not enabled or confirmed');
-    const requestData={
-      requestId:'req-'+crypto.randomUUID(),
-      authorizationId:'auth-'+crypto.randomUUID(),
-      confirmed:true,sourceLineId:$('sourceLine').value.trim(),
-      kind:$('soundKind').value,prompt:$('soundPrompt').value.trim(),
-      durationSeconds:Number($('duration').value),seed:Number($('seed').value),
-    };
-    if(!confirm('Submit ONE external sound-generation request? It may consume credits. No automatic retries.'))return;
-    const response=await request('/jobs',{method:'POST',data:requestData});
-    viewJob(await response.json());
-    $('confirmRequest').checked=false;
-    inform('Submitted. Use “Check remote status” to poll manually; no automatic retries.');
+function applyPreset(){
+  const preset=SFX_ACCEPTANCE_CASES[$('acceptancePreset').value];
+  if(!preset){inform('Choose one of the three prepared acceptance cases.',true);return;}
+  $('soundKind').value=preset.kind;$('soundPrompt').value=preset.prompt;
+  $('duration').value=String(preset.durationSeconds);$('seed').value=String(preset.seed);
+  $('confirmRequest').checked=false;updateControls();
+  inform('Acceptance case loaded locally. No request has been sent.');
+}
+function bindEvents(){
+  $('generateForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    void action(async()=>{
+      const policy=costPolicy();
+      if(!state.enabled||!$('confirmRequest').checked||policy.perRequest===null)throw new Error('Generator is disabled, unpriced or not confirmed');
+      const source=$('sourceLine').value.trim();
+      const requestData={
+        requestId:'req-'+crypto.randomUUID(),authorizationId:'auth-'+crypto.randomUUID(),confirmed:true,
+        sourceLineId:source||null,kind:$('soundKind').value,prompt:$('soundPrompt').value.trim(),
+        durationSeconds:Number($('duration').value),seed:Number($('seed').value),
+        acknowledgedMaxCostUsd:policy.perRequest,
+      };
+      if(!confirm(`Submit ONE external generation request with a configured maximum estimate of ${money(policy.perRequest)}? No automatic retries.`))return;
+      const response=await request('/jobs',{method:'POST',data:requestData});
+      viewJob(await response.json());$('confirmRequest').checked=false;
+      inform('Submitted once. Refresh is manual; RunQ will not retry an uncertain request.');
+    });
   });
-});
-$('confirmRequest').addEventListener('change',updateControls);
-$('openJobBtn').addEventListener('click',()=>action(async()=>{
-  const id=currentJobId();
-  viewJob(await(await request('/jobs/'+encodeURIComponent(id))).json());
-  inform('Loaded saved local job record; no remote call made.');
-}));
-$('refreshBtn').addEventListener('click',()=>action(async()=>{
-  const id=currentJobId();
-  const response=await request('/jobs/'+encodeURIComponent(id)+'/refresh',{method:'POST',data:{}});
-  viewJob(await response.json());
-  inform('Refreshed remote status. No sound was played.');
-}));
-$('cancelBtn').addEventListener('click',()=>action(async()=>{
-  if(!confirm('Request cancellation? GPU charges may already have occurred.'))return;
-  const response=await request('/jobs/'+encodeURIComponent(currentJobId())+'/cancel',{method:'POST',data:{}});
-  viewJob(await response.json());
-  inform('Cancellation requested; completion is not guaranteed.');
-}));
-$('loadGeneratedBtn').addEventListener('click',()=>action(async()=>{
-  if(!state.job||!STATUS_WITH_AUDIO.has(state.job.status))throw new Error('Generated WAV not ready');
-  const result=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/audio');
-  await loadAudio(await result.arrayBuffer(),'Generated · '+state.job.requestId+'.wav','remote');
-  inform('Loaded generated WAV locally. Listen before approving.');
-}));
-for(const [id,decision] of [['acceptBtn','ACCEPT'],['rejectBtn','REJECT']]){
-  $(id).addEventListener('click',()=>action(async()=>{
-    if(!state.job || state.job.status!=='READY_FOR_REVIEW')throw new Error('Take not available for review');
-    if(!confirm(decision==='ACCEPT'?'Mark this take accepted for manual export?':'Reject this generated take?'))return;
-    const response=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{method:'POST',data:{decision}});
-    viewJob(await response.json());
-    inform(decision==='ACCEPT'?'Accepted. Trim and export the WAV, then import into RunQ manually.':'Take rejected. No cue created.');
+  $('confirmRequest').addEventListener('change',updateControls);
+  $('loadPresetBtn').addEventListener('click',applyPreset);
+  $('openJobBtn').addEventListener('click',()=>void action(async()=>{
+    viewJob(await(await request('/jobs/'+encodeURIComponent(currentJobId()))).json());
+    inform('Loaded the persistent local record. No provider call was made.');
   }));
-}
-$('demoAudioBtn').addEventListener('click',()=>action(async()=>{
-  const bytes=makeOfflineImpactDemoWav();
-  await loadAudio(bytes.buffer,'Offline synthesized impact · NOT AI','local');
-  inform('Synthetic demo loaded (no AI request). Try selection, preview, and export.');
-}));
-$('localWav').addEventListener('change',()=>action(async()=>{
-  const file=$('localWav').files?.[0];
-  if(!file)return;
-  if(file.size>8_000_000)throw new Error('File is larger than 8 MB');
-  await loadAudio(await file.arrayBuffer(),file.name,'local');
-  inform('Local file loaded. This sound was never uploaded to a provider.');
-}));
-$('playBtn').addEventListener('click',()=>action(async()=>{
-  if(!state.audio)return;
-  stop();
-  const context=await ensureContext();
-  const source=context.createBufferSource();
-  const gain=context.createGain();
-  source.buffer=state.audio;
-  gain.gain.value=Number($('monitorLevel').value)/100;
-  source.connect(gain);
-  gain.connect(context.destination);
-  state.source=source;state.gain=gain;
-  source.onended=()=>{if(state.source===source){state.source=null;gain.disconnect();state.gain=null;updateControls();}};
-  source.start(0,state.inSeconds,state.outSeconds-state.inSeconds);
-  updateControls();
-  inform('Auditioning selected region through the default audio output.');
-}));
-$('stopBtn').addEventListener('click',()=>{stop();inform('Audition stopped.');});
-for(const id of ['inPoint','outPoint']){
-  $(id).addEventListener('change',()=>{
+  $('refreshBtn').addEventListener('click',()=>void action(async()=>{
+    const response=await request('/jobs/'+encodeURIComponent(currentJobId())+'/refresh',{method:'POST',data:{}});
+    viewJob(await response.json());inform('Remote status checked once. No sound was played.');
+  }));
+  $('cancelBtn').addEventListener('click',()=>void action(async()=>{
+    if(!confirm('Request cancellation? Charges may already have occurred and cancellation is not guaranteed.'))return;
+    const response=await request('/jobs/'+encodeURIComponent(currentJobId())+'/cancel',{method:'POST',data:{}});
+    viewJob(await response.json());inform('Cancellation requested; verify the final state manually.');
+  }));
+  $('loadGeneratedBtn').addEventListener('click',()=>void action(async()=>{
+    if(!state.job||!STATUS_WITH_AUDIO.has(state.job.status))throw new Error('Generated WAV is not ready');
+    const result=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/audio');
+    await loadAudio(await result.arrayBuffer(),'Generated · '+state.job.requestId+'.wav','remote');
+    inform('Verified generated WAV loaded. Listen before accepting.');
+  }));
+  $('acceptBtn').addEventListener('click',()=>void action(async()=>{
+    if(!state.job||state.job.status!=='READY_FOR_REVIEW'||state.auditionedRemoteRequestId!==state.job.requestId)throw new Error('Listen to this generated take before accepting it');
+    if(!confirm('Accept this listened take for local download and library import?'))return;
+    const response=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{method:'POST',data:{decision:'ACCEPT'}});
+    viewJob(await response.json());inform('Take accepted. The verified original can now be imported; no cue was changed.');
+  }));
+  $('rejectBtn').addEventListener('click',()=>void action(async()=>{
+    if(!state.job||state.job.status!=='READY_FOR_REVIEW')throw new Error('Take is not available for review');
+    if(!confirm('Reject this generated take? It will not be importable.'))return;
+    const response=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{method:'POST',data:{decision:'REJECT'}});
+    viewJob(await response.json());inform('Take rejected. No asset or cue was created.');
+  }));
+  $('demoAudioBtn').addEventListener('click',()=>void action(async()=>{
+    const bytes=makeOfflineImpactDemoWav();await loadAudio(bytes.buffer,'Offline synthesized impact · NOT AI','local');
+    inform('Synthetic test sound loaded locally. It cannot be imported as an AI result.');
+  }));
+  $('localWav').addEventListener('change',()=>void action(async()=>{
+    const file=$('localWav').files?.[0];if(!file)return;
+    if(file.size>8_000_000)throw new Error('File is larger than 8 MB');
+    await loadAudio(await file.arrayBuffer(),file.name,'local');
+    inform('Local WAV loaded. It was not uploaded and cannot masquerade as a generated result.');
+  }));
+  $('playBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.audio)return;
-    updateTrim(Number($('inPoint').value),Number($('outPoint').value));
+    stopSoundLabAudition();
+    const context=await ensureContext();const source=context.createBufferSource();const gain=context.createGain();
+    source.buffer=state.audio;gain.gain.value=Number($('monitorLevel').value)/100;
+    source.connect(gain);gain.connect(context.destination);state.source=source;state.gain=gain;
+    source.onended=()=>{if(state.source===source){state.source=null;gain.disconnect();state.gain=null;updateControls();}};
+    source.start(0,state.inSeconds,state.outSeconds-state.inSeconds);
+    if(state.fileOrigin==='remote')state.auditionedRemoteRequestId=state.loadedRemoteRequestId;
+    updateControls();inform('Previewing the reviewed region through the default audio output.');
+  }));
+  $('stopBtn').addEventListener('click',()=>{stopSoundLabAudition();inform('Preview stopped.');});
+  for(const id of ['inPoint','outPoint'])$(id).addEventListener('change',()=>{
+    if(state.audio)updateTrim(Number($('inPoint').value),Number($('outPoint').value));
   });
+  const canvas=$('waveCanvas');
+  canvas.addEventListener('pointerdown',event=>{
+    if(!state.audio)return;const rectangle=canvas.getBoundingClientRect();
+    state.dragStart=Math.max(0,Math.min(1,(event.clientX-rectangle.left)/rectangle.width));
+    try{canvas.setPointerCapture(event.pointerId);}catch{}
+  });
+  canvas.addEventListener('pointerup',event=>{
+    if(!state.audio||state.dragStart===null)return;const rectangle=canvas.getBoundingClientRect();
+    const end=Math.max(0,Math.min(1,(event.clientX-rectangle.left)/rectangle.width));
+    const start=state.dragStart;state.dragStart=null;
+    updateTrim(Math.min(start,end)*state.audio.duration,Math.max(start,end)*state.audio.duration);
+  });
+  $('exportBtn').addEventListener('click',()=>void action(async()=>{
+    if(!canUseAcceptedSource())throw new Error('Only an accepted verified generated source can be downloaded');
+    const url=URL.createObjectURL(new Blob([state.sourceBytes],{type:'audio/wav'}));
+    try{const anchor=document.createElement('a');anchor.href=url;anchor.download='runq-sfx-'+state.job.requestId+'.wav';anchor.click();}
+    finally{setTimeout(()=>URL.revokeObjectURL(url),1500);}
+    inform('Original verified PCM16 WAV downloaded. The reviewed IN/OUT did not alter it.');
+  }));
+  $('importLibraryBtn').addEventListener('click',()=>void action(async()=>{
+    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accepted generated source is not available for integrated import');
+    if(!confirm('Import the verified original WAV into this show library? It will not be assigned to a cue automatically.'))return;
+    const result=await state.onImportReviewed({
+      job:structuredClone(state.job),audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
+      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds}),
+    });
+    inform(result?.message??'Accepted source imported to the local library. Assign it to a cue manually.');
+  }));
+  window.addEventListener('resize',drawWave);
+  window.addEventListener('pagehide',()=>{stopSoundLabAudition();if(state.context)void state.context.close();});
 }
-const canvas=$('waveCanvas');
-canvas.addEventListener('pointerdown',event=>{
-  if(!state.audio)return;
-  const rect=canvas.getBoundingClientRect();
-  state.dragStart=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
-  try {canvas.setPointerCapture(event.pointerId);}catch{}
-});
-canvas.addEventListener('pointerup',event=>{
-  if(!state.audio||state.dragStart===null)return;
-  const rect=canvas.getBoundingClientRect();
-  const end=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
-  const start=state.dragStart;state.dragStart=null;
-  updateTrim(Math.min(start,end)*state.audio.duration,Math.max(start,end)*state.audio.duration);
-});
-$('exportBtn').addEventListener('click',()=>action(async()=>{
-  if(!state.audio)throw new Error('No WAV loaded');
-  if(state.fileOrigin==='remote' &&
-     (state.job?.status!=='ACCEPTED_FOR_MANUAL_IMPORT' ||
-      state.job?.requestId!==state.loadedRemoteRequestId))
-    throw new Error('Operator acceptance required before exporting remote generation');
-  const audio=makeTrimmedPcm16Wav(state.audio,state.inSeconds,state.outSeconds);
-  const filename=state.fileOrigin==='remote'?'runq-'+state.job.requestId+'-trim.wav':'runq-local-trim.wav';
-  const url=URL.createObjectURL(new Blob([audio],{type:'audio/wav'}));
-  try {
-    const anchor=document.createElement('a');anchor.href=url;anchor.download=filename;
-    anchor.click();
-  }finally {setTimeout(()=>URL.revokeObjectURL(url),1500);}
-  inform('PCM16 WAV exported. Import it into your show explicitly from the Cue Editor.');
-}));
-window.addEventListener('resize',drawWave);
-window.addEventListener('pagehide',()=>{stop();if(state.context)void state.context.close();});
-(async()=>{
+
+export async function initializeSoundLab({onImportReviewed}={}){
+  if(!requiredDom())throw new Error('Sound Lab workspace is unavailable');
+  if(typeof onImportReviewed==='function')state.onImportReviewed=onImportReviewed;
+  if(state.initialized){updateControls();drawWave();return;}
+  state.initialized=true;bindEvents();
   try{
     const settings=await(await request('/status')).json();
-    state.enabled=settings.enabled===true;
+    state.settings=settings;state.enabled=settings.enabled===true;showCost(settings);
     text('engineBadge',state.enabled?'SFX provider configured':'Offline editing');
     $('engineBadge').classList.toggle('active',state.enabled);
     try{$('requestId').value=localStorage.getItem('runq-sfx-last-id-v1')??'';}catch{}
-    inform(state.enabled?'Generator available. Confirm each paid request individually.':'Offline waveform editing is ready. No provider configured.');
+    inform(state.enabled
+      ? 'Local service is ready. Every paid request still requires its own cost acknowledgement.'
+      : 'Offline waveform review is ready. No provider is configured.');
   }catch{
-    state.enabled=false;
-    text('engineBadge','Offline / no service');
-    inform('Unable to reach local SFX API. Local file editing remains available.',true);
+    state.enabled=false;state.settings=null;showCost(null);text('engineBadge','Offline / no service');
+    inform('The local SFX API is unavailable. No remote request was attempted.',true);
   }
-  updateControls();
-})();
+  updateControls();drawWave();
+}

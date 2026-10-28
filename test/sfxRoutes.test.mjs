@@ -9,15 +9,27 @@ import { inspectPcm16Wav } from '../src/core/modalSfxPilotClient.mjs';
 
 const TEST_DATE = '2026-10-28T12:00:00.000Z';
 const model = 'stabilityai/stable-audio-3-small-sfx';
+const modelRevision = '77e0398c26f7d22d801ec1bb036307e8b231f741';
+const costPolicy = Object.freeze({
+  estimatedMaxCostUsdPerRequest: 0.04,
+  dailyBudgetUsd: 0.2,
+});
 let seq = 0;
 const payload = (n=++seq) => ({
   requestId: 'req-' + n, authorizationId: 'auth-' + n,
   sourceLineId: 'L12', kind: 'SFX',
   prompt: 'Distant bell, single strike, short decay',
   durationSeconds: 2, seed: 42, confirmed: true,
+  acknowledgedMaxCostUsd: costPolicy.estimatedMaxCostUsdPerRequest,
 });
-function wav() {
-  const rate = 16000, channels = 1, count = 16000 * channels;
+const storeRequest = input => ({
+  ...input,
+  ...costPolicy,
+  acknowledgedMaxCostUsd: costPolicy.estimatedMaxCostUsdPerRequest,
+  modelRevision,
+});
+function wav({seconds=2}={}) {
+  const rate = 16000, channels = 1, count = rate * channels * seconds;
   const b = Buffer.alloc(44 + count * 2);
   b.write('RIFF', 0, 'ascii'); b.writeUInt32LE(b.length - 8, 4);
   b.write('WAVE', 8, 'ascii'); b.write('fmt ', 12, 'ascii');
@@ -28,12 +40,13 @@ function wav() {
   return b;
 }
 async function fixture(t, overrides={}) {
+  const {storeOptions={},...rest}=overrides;
   const directory = await mkdtemp(join(tmpdir(), 'runq-sfx-'));
   t.after(()=>rm(directory,{recursive:true,force:true}));
   const store=createSfxJobStore({
-    directory, clock:()=>new Date(TEST_DATE), maxDailyStarts:3,
+    directory, clock:()=>new Date(TEST_DATE), maxDailyStarts:3, ...storeOptions,
   });
-  return {store,directory,...overrides};
+  return {store,directory,...rest};
 }
 function fakePilot({ output = wav() }={}) {
   const calls = { start:0, status:0, download:0, cancel:0 };
@@ -78,7 +91,7 @@ function post(base, path, body, options={}) {
     body:JSON.stringify(body),
   });
 }
-const enabled = () => ({ enabled:true });
+const enabled = () => ({ enabled:true, ...costPolicy, modelRevision });
 
 test('feature disabled: read-only capabilities and no external jobs',async t=>{
   const {store} = await fixture(t);
@@ -140,35 +153,35 @@ test('reservation survives restart; same request or authorization never gets a s
     sourceLineId:'L12', kind:'SFX', prompt:'Bell',durationSeconds:1,seed:0,
     modelCandidate:model,
   };
-  const saved=await store.reserve(request,{confirm:true});
+  const saved=await store.reserve(storeRequest(request),{confirm:true});
   assert.equal(saved.status,'SUBMISSION_UNKNOWN');
   const reopened=createSfxJobStore({
     directory,clock:()=>new Date(TEST_DATE),maxDailyStarts:3,
   });
-  await assert.rejects(reopened.reserve(request,{confirm:true}),error=>error.code==='SFX_DUPLICATE');
-  await assert.rejects(reopened.reserve({
+  await assert.rejects(reopened.reserve(storeRequest(request),{confirm:true}),error=>error.code==='SFX_DUPLICATE');
+  await assert.rejects(reopened.reserve(storeRequest({
     ...request,requestId:'different-request',
-  },{confirm:true}),error=>error.code==='SFX_DUPLICATE');
-  await assert.rejects(reopened.reserve({
+  }),{confirm:true}),error=>error.code==='SFX_DUPLICATE');
+  await assert.rejects(reopened.reserve(storeRequest({
     ...request,requestId:'different-id',authorizationId:'auth-new',
-  },{confirm:true}),error=>error.code==='SFX_ACTIVE_LIMIT');
+  }),{confirm:true}),error=>error.code==='SFX_ACTIVE_LIMIT');
 });
 
 test('daily limit applies to completed and rejected jobs; no automatic quota reset',async t=>{
   const {store}=await fixture(t);
   for(let n=0;n<3;n++){
     const id='limit-'+n;
-    await store.reserve({
+    await store.reserve(storeRequest({
       requestId:id,authorizationId:'auth-'+id,sourceLineId:'L1',
       modelCandidate:model,kind:'SFX',prompt:'Rain',durationSeconds:1,seed:0,
-    },{confirm:true});
+    }),{confirm:true});
     await store.update(id,'QUEUED',{remoteJobId:'fc-'+n});
     await store.update(id,'FAILED');
   }
-  await assert.rejects(store.reserve({
+  await assert.rejects(store.reserve(storeRequest({
     requestId:'fourth',authorizationId:'auth-fourth',
     sourceLineId:'L1',modelCandidate:model,kind:'SFX',prompt:'Rain',durationSeconds:1,seed:0,
-  },{confirm:true}),error=>error.code==='SFX_DAILY_LIMIT');
+  }),{confirm:true}),error=>error.code==='SFX_DAILY_LIMIT');
 });
 
 test('remote timeout creates an uncertain, non-retryable reservation',async t=>{
@@ -196,7 +209,7 @@ test('same-origin and JSON checks happen before remote calls or journal modifica
   const p=payload();
   assert.equal((await post(base,'/api/sfx/jobs',p,{origin:'https://wrong.example'})).status,403);
   assert.equal((await post(base,'/api/sfx/jobs',p,{type:'text/plain'})).status,403);
-  assert.equal((await fetch(base+'/api/sfx/jobs')).status,405);
+  assert.equal((await fetch(base+'/api/sfx/jobs')).status,200);
   assert.equal((await post(base,'/api/sfx/jobs',{...p,confirmed:false})).status,400);
   assert.equal((await post(base,'/api/sfx/jobs',{...p,durationSeconds:13})).status,400);
   assert.equal(calls.start,0);
@@ -221,7 +234,7 @@ test('corrupted WAV in local library is rejected instead of served to audition',
   const {store,directory}=await fixture(t);
   const output=wav();
   const saved=payload();
-  await store.reserve({ ...saved,modelCandidate:model }, {confirm:true});
+  await store.reserve(storeRequest({ ...saved,modelCandidate:model }), {confirm:true});
   await store.update(saved.requestId,'QUEUED',{remoteJobId:'fc-123'});
   await store.storeWav(saved.requestId, output, inspectPcm16Wav(output));
   const names=await readdir(directory);

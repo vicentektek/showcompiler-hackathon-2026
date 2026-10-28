@@ -127,6 +127,7 @@ body::before{content:"";position:fixed;pointer-events:none;inset:0;background:ra
 .workspace-tab[data-workspace-nav="ai"]::before{content:"✦"}
 .workspace-tab[data-workspace-nav="cues"]::before{content:"▤"}
 .workspace-tab[data-workspace-nav="audio"]::before{content:"◉"}
+.workspace-tab[data-workspace-nav="soundlab"]::before{content:"≈"}
 .workspace-tab[data-workspace-nav="setup"]::before{content:"⚙"}
 .workspace-tab[data-workspace-nav="operation"]::before{content:"▶"}
 .workspace-tab:hover{background:#1b3540;color:#eaf6f5}

@@ -69,7 +69,13 @@ export async function exportPortableShow(project, fileMap) {
     const bytes = new Uint8Array(raw);
     size += bytes.byteLength;
     if (size > MAX_PORTABLE_ZIP_BYTES - 20_000) reject('archive exceeds 64 MB');
-    audio.push({ assetId: asset.id, name: asset.name, path, bytes: bytes.byteLength, sha256: await digest(bytes) });
+    const sha256 = await digest(bytes);
+    if (asset.provenance &&
+        (asset.provenance.byteLength !== bytes.byteLength ||
+         asset.provenance.sha256 !== sha256)) {
+      reject('generated audio provenance does not match original file: ' + asset.id);
+    }
+    audio.push({ assetId: asset.id, name: asset.name, path, bytes: bytes.byteLength, sha256 });
     entries.push({ name: path, bytes });
   }
   const manifest = { format: FORMAT, version: VERSION, audio };
@@ -105,6 +111,11 @@ export async function importPortableShow(input) {
         names.has(item.path) || !Number.isSafeInteger(item.bytes) ||
         item.bytes < 1 || item.bytes > MAX_AUDIO_BYTES || !HEX256.test(item.sha256)) {
       reject('audio inventory does not match project');
+    }
+    if (asset.provenance &&
+        (asset.provenance.byteLength !== item.bytes ||
+         asset.provenance.sha256 !== item.sha256)) {
+      reject('generated audio provenance does not match archive: ' + asset.id);
     }
     names.add(item.path);
     const bytes = files.get(item.path);

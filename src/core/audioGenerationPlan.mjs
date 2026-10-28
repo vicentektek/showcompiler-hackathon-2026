@@ -23,11 +23,13 @@ function positive(value,name,max){
 
 /** Pure preparation contract: no network, persistence, asset binding or transport action. */
 export function prepareAudioGenerationPlan(input={}){
-  if(!LINE.test(input.sourceLineId??'')||!KINDS.has(input.kind)||
+  const sourceLineId=input.sourceLineId===undefined||input.sourceLineId===null
+    ? null:input.sourceLineId;
+  if(!(sourceLineId===null||LINE.test(sourceLineId))||!KINDS.has(input.kind)||
     !MODEL_CANDIDATES.has(input.modelCandidate))throw new TypeError('Invalid generation plan');
   const common={contractVersion:1,phase:'PREPARATION_ONLY',
     status:'AWAITING_OPERATOR_AUTHORIZATION',automaticSubmission:false,
-    sourceLineId:input.sourceLineId,kind:input.kind,modelCandidate:input.modelCandidate};
+    sourceLineId,kind:input.kind,modelCandidate:input.modelCandidate};
   if(input.kind==='VOICEOVER'){
     return {...common,voiceover:{text:text(input.text,'voiceover text',2000),
       voice:text(input.voice,'voice',120),language:text(input.language,'language',35)}};

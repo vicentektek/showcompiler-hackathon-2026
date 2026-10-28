@@ -11,6 +11,7 @@ import { formatCueTime,parseCueTime,clampCueFade } from '../core/cueTimeEditing.
 import { exportPortableShow, importPortableShow, MAX_PORTABLE_ZIP_BYTES } from '../core/showArchive.mjs';
 import { planAudioLibraryBatch } from '../core/audioBatchImport.mjs';
 import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
+import { prepareReviewedSfxImport } from '../core/sfxImportCandidate.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -68,13 +69,14 @@ let selectedCueId = null; // Selection inspects only; it never changes the GO qu
 let inspectorTab = 'audio';
 let inspectorPendingChanges = false;
 let activeWorkspace = 'home';
-const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'setup', 'rehearsal', 'operation']);
+const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'soundlab', 'setup', 'rehearsal', 'operation']);
 let operatorQueue = startOperatorQueue(show.cues);
 let lastGoCueId = null;
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 let player = createBrowserAudioBackend({ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); } });
+let soundLabModulePromise = null;
 // ON AIR is a transport *snapshot*, not a new independent cue player.
 // Reuse existing stopCue and Web Audio clock; rows survive 250ms clock refreshes.
 let runningCuesTicker=null;
@@ -280,8 +282,12 @@ function setWorkspace(workspace) {
     inspectorPendingChanges = false;
     renderCueInspector(); // Discard local form changes, not stored show data.
   }
+  if (activeWorkspace === 'soundlab' && workspace !== 'soundlab' && soundLabModulePromise) {
+    void soundLabModulePromise.then(module => module.stopSoundLabAudition()).catch(() => {});
+  }
   activeWorkspace = workspace;
   renderWorkspaceShell();
+  if (workspace === 'soundlab') void ensureSoundLabInitialized().catch(showError);
   return true;
 }
 
@@ -2521,12 +2527,10 @@ $('audioBatchZipInput').addEventListener('change',event=>{
 });
 
 $('loadAudioBtn').addEventListener('click', () => pickAudioFile());
-$('audioFileInput').addEventListener('change', async event => {
-  const file = event.target.files?.[0];
-  const cueId = pendingAudioCueId;
-  pendingAudioCueId = null;
-  event.target.value = '';
-  if (!file || audioInFlight) return;
+async function importSingleAudioFile(file, {
+  cueId = null, provenance = undefined, refuseReplacement = false,
+} = {}) {
+  if (!file || audioInFlight) return null;
   audioInFlight = true;
   refreshAudioControls();
   const generation = projectGeneration;
@@ -2537,6 +2541,15 @@ $('audioFileInput').addEventListener('change', async event => {
     if (file.name.length > 200) throw uiError('errors.audioFilenameLong');
     const existing = before.assets.filter(asset => asset.name === file.name);
     if (existing.length > 1) throw uiError('errors.duplicateAudioName');
+    if (provenance) {
+      const alreadyImported = before.assets.find(asset =>
+        asset.provenance?.origin === 'AI_GENERATED_SFX' &&
+        asset.provenance.requestId === provenance.requestId);
+      if (alreadyImported) throw new Error('This generated request is already in the library as ' + alreadyImported.name);
+      if (existing.length || refuseReplacement && player.hasAsset(existing[0]?.id)) {
+        throw new Error('Generated audio cannot replace an existing library asset');
+      }
+    }
     let nextShow;
     let assetId;
     if (cueId) {
@@ -2547,7 +2560,8 @@ $('audioFileInput').addEventListener('change', async event => {
       assetId = existing.length
         ? existing[0].id
         : nextAvailableId('asset', before.assets.map(asset => asset.id));
-      nextShow = existing.length ? before : addAudioReference(before, file.name);
+      nextShow = existing.length ? before : addAudioReference(before, file.name,
+        provenance === undefined ? {} : { provenance });
       if (nextShow.assets.at(-1)?.id !== assetId && !existing.length) {
         throw uiError('errors.staleAudioList');
       }
@@ -2572,20 +2586,55 @@ $('audioFileInput').addEventListener('change', async event => {
       duration: info.durationSeconds.toFixed(1),
       channels: info.channels,
     }, 'success');
-  } catch (error) {
-    showError(error);
+    return { assetId, info };
   } finally {
     audioInFlight = false;
     button.disabled = false;
     for (const picker of document.querySelectorAll('[data-cue-audio-pick]')) picker.disabled = false;
     refreshAudioControls();
   }
+}
+$('audioFileInput').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  const cueId = pendingAudioCueId;
+  pendingAudioCueId = null;
+  event.target.value = '';
+  try { await importSingleAudioFile(file, { cueId }); }
+  catch (error) { showError(error); }
 });
 
+async function importReviewedGeneratedSfx({ job, audioBytes, reviewedRegion } = {}) {
+  const candidate = await prepareReviewedSfxImport({ job, audioBytes, reviewedRegion });
+  const result = await importSingleAudioFile(candidate.file, {
+    provenance: candidate.provenance,
+    refuseReplacement: true,
+  });
+  if (!result) throw new Error('Generated audio was not imported');
+  setWorkspace('audio');
+  return {
+    assetId: result.assetId,
+    message: `Imported ${candidate.file.name} as ${result.assetId}. Choose a cue explicitly; no cue was changed.`,
+  };
+}
+
+async function ensureSoundLabInitialized() {
+  if (!soundLabModulePromise) {
+    soundLabModulePromise = import('../sfx/lab.mjs').catch(error => {
+      soundLabModulePromise = null;
+      throw error;
+    });
+  }
+  const module = await soundLabModulePromise;
+  await module.initializeSoundLab({ onImportReviewed: importReviewedGeneratedSfx });
+}
+
 $('uiLocaleSelect').value = uiLocale;
+const requestedWorkspace = new URLSearchParams(window.location.search).get('workspace');
+if (availableWorkspaces.includes(requestedWorkspace)) activeWorkspace = requestedWorkspace;
 translateDocument(document, uiLocale);
 resetScriptLanguageHint();
 render();
+if (activeWorkspace === 'soundlab') void ensureSoundLabInitialized().catch(showError);
 refreshMetaMessage();
 feedback(statusState.key, statusState.values, statusState.tone);
 refreshMetaStatus();
