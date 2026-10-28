@@ -10,7 +10,7 @@ const $ = id => document.getElementById(id);
 const lang = () => $('uiLocaleSelect')?.value === 'es' ? 'es' : 'en';
 const copy = {
   en: {
-    title:'VOICE FOLLOW',sub:'OFFLINE REHEARSAL SIMULATOR · NO MICROPHONE · NO GO',
+    title:'VOICE FOLLOW',sub:'LIVE VOICE ASSISTANT + OFFLINE SIMULATOR · GO ALWAYS MANUAL',
     source:'Scenario',fixture:'Example scene',project:'Current show (configured triggers)',
     start:'Play',pause:'Pause',step:'Next event',reset:'Restart',loading:'Loading...',
     input:'TRANSCRIPT',result:'MATCH RESULT',history:'EVENT LOG',
@@ -26,7 +26,7 @@ const copy = {
     readOnly:'SIMULATION ONLY',error:'Replay failed safely; no cue has been executed.'
   },
   es: {
-    title:'VOICE FOLLOW',sub:'SIMULADOR DE ENSAYO LOCAL · SIN MICRÓFONO · SIN GO',
+    title:'VOICE FOLLOW',sub:'ASISTENTE DE VOZ EN DIRECTO + SIMULADOR LOCAL · GO SIEMPRE MANUAL',
     source:'Escenario',fixture:'Escena de ejemplo',project:'Espectáculo actual (pies configurados)',
     start:'Reproducir',pause:'Pausar',step:'Siguiente evento',reset:'Reiniciar',loading:'Cargando...',
     input:'TRANSCRIPCIÓN',result:'COINCIDENCIA',history:'REGISTRO DE EVENTOS',
