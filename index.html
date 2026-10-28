@@ -16,10 +16,12 @@
   <link rel="stylesheet" href="/src/ui/audio-library-batch.css">
   <link rel="stylesheet" href="/src/sfx/lab.css">
   <link rel="stylesheet" href="/src/ui/voice-follow.css">
+  <link rel="stylesheet" href="/src/ui/cue-conversation.css">
   <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
   <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
   <script type="module" src="/src/ui/voice-live-ui.mjs"></script>
   <script type="module" src="/src/ui/rehearsal-auto-ui.mjs"></script>
+  <script type="module" src="/src/ui/cue-conversation-ui.mjs"></script>
   <script src="/src/ui/app.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
@@ -561,6 +563,45 @@
               <p class="empty" data-i18n="workspace.noSelection">Select a cue to inspect its details without preparing GO.</p>
             </aside>
           </div>
+          <section id="rqCueChatPanel" class="rq-chat-panel" hidden aria-labelledby="rqChatTitle">
+            <header class="rq-chat-header">
+              <div><strong id="rqChatTitle">Editar cue conversando</strong>
+                <small id="rqChatContext">Selecciona un cue para editarlo</small></div>
+              <button type="button" id="rqChatClose" class="btn subtle small" aria-label="Cerrar editor conversacional">✕</button>
+            </header>
+            <div id="rqChatHistory" class="rq-chat-history" aria-live="polite"></div>
+            <div id="rqChatProposal" class="rq-chat-proposal" hidden>
+              <strong id="rqChatProposalTitle">Cambios propuestos · sin aplicar</strong>
+              <div id="rqChatDiff" class="rq-chat-diff"></div>
+              <div class="rq-chat-actions">
+                <button type="button" id="rqChatApply" class="btn accent small">Aplicar cambios</button>
+                <button type="button" id="rqChatDiscard" class="btn subtle small">Descartar</button>
+              </div>
+            </div>
+            <div class="rq-chat-composer">
+              <label for="rqChatPrompt" id="rqChatPromptLabel">¿Qué quieres cambiar?</label>
+              <textarea id="rqChatPrompt" rows="3" maxlength="1200" placeholder="Ej.: Baja 6 dB y pon un fade in de 3 segundos."></textarea>
+              <label class="rq-chat-consent"><input type="checkbox" id="rqChatAiConsent">
+                <span id="rqChatAiConsentText">Autorizar una consulta a Meta cuando no baste la interpretación local</span>
+              </label>
+              <div class="rq-chat-buttons">
+                <button type="button" id="rqChatSubmit" class="btn accent small">Proponer cambios</button>
+                <button type="button" id="rqChatUndo" class="btn subtle small" disabled>Deshacer última aplicación</button>
+              </div>
+              <details id="rqChatVoiceDetails" class="rq-chat-voice">
+                <summary id="rqChatVoiceSummary">Dictado opcional · Muse Voice</summary>
+                <label class="rq-chat-consent"><input type="checkbox" id="rqChatVoiceConsent">
+                  <span id="rqChatVoiceConsentText">Autorizo enviar esta grabación a Meta para transcribirla</span>
+                </label>
+                <div class="rq-chat-buttons">
+                  <button type="button" id="rqChatRecord" class="btn subtle small">Grabar instrucción (máx. 10 s)</button>
+                  <button type="button" id="rqChatTranscribe" class="btn subtle small" disabled>Transcribir</button>
+                </div>
+                <small id="rqChatVoiceStatus">El dictado no ejecuta cambios automáticamente.</small>
+              </details>
+            </div>
+            <output id="rqChatStatus" role="status" aria-live="polite">Las modificaciones requieren aprobación.</output>
+          </section>
           <div id="transportStatus" class="caption" role="status" aria-live="polite" data-i18n="cues.transportInitial">Transport stopped.</div>
           <div class="info">
             <strong data-i18n="cues.scopeHeading">Prototype scope</strong>
