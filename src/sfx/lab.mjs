@@ -5,10 +5,10 @@ const api = '/api/sfx';
 const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT']);
 const ACTIVE_STATUS = new Set(['QUEUED','RUNNING','CANCEL_REQUESTED']);
 const STATUS_LABEL = Object.freeze({
-  SUBMISSION_UNKNOWN:'Submission uncertain — investigate before retrying',
-  QUEUED:'Pending', RUNNING:'Generating', READY_FOR_REVIEW:'Completed — review required',
-  ACCEPTED_FOR_MANUAL_IMPORT:'Accepted for local import', REJECTED:'Rejected',
-  CANCEL_REQUESTED:'Cancellation requested', CANCELLED:'Cancelled', FAILED:'Error',
+  SUBMISSION_UNKNOWN:'Envío incierto — no reintentar automáticamente',
+  QUEUED:'En cola', RUNNING:'Generando', READY_FOR_REVIEW:'Lista para escuchar',
+  ACCEPTED_FOR_MANUAL_IMPORT:'Aceptada para guardar', REJECTED:'Descartada',
+  CANCEL_REQUESTED:'Cancelación solicitada', CANCELLED:'Cancelada', FAILED:'Error',
 });
 
 export const SFX_ACCEPTANCE_CASES = Object.freeze({
@@ -64,11 +64,11 @@ function showCost(settings) {
   const ready=policy.perRequest!==null&&policy.daily!==null;
   element.classList.toggle('ready',ready);
   element.textContent=ready
-    ? `Conservative configured maximum: ${money(policy.perRequest)} for this request; daily reservation cap ${money(policy.daily)}. This is an estimate, not an invoice.`
+    ? `Límite estimado por solicitud: ${money(policy.perRequest)}. Presupuesto diario: ${money(policy.daily)}. Son límites preventivos, no el importe facturado.`
     : 'Cost estimate unavailable. Generation is blocked until the local service exposes a configured maximum.';
   text('confirmRequestLabel',ready
-    ? `I authorize exactly one request up to ${money(policy.perRequest)}.`
-    : 'I authorize exactly one request up to the maximum shown above.');
+    ? `Autorizo UNA generación con un límite estimado de ${money(policy.perRequest)}.`
+    : 'Autorizo una única solicitud con el límite indicado.');
 }
 async function request(path,{method='GET',data}={}) {
   const options={method,cache:'no-store'};
@@ -100,7 +100,7 @@ function updateControls(){
   const allowed=state.enabled&&!state.working&&costReady&&promptReady&&$('confirmRequest').checked;
   $('generateBtn').disabled=!allowed;
   $('generationHint').textContent=state.working?'Procesando la solicitud…':
-    !state.enabled?'Generador desconectado. Comprueba el estado arriba.':
+    !state.enabled?'No disponible: '+connectionProblem(state.settings):
     !costReady?'Falta la política de coste del servidor.':
     !promptReady?'Escribe un prompt y comprueba la duración.':
     !$('confirmRequest').checked?'Marca la autorización de una única generación.':
@@ -142,7 +142,8 @@ function viewJob(job){
     timing.generationMs?`generation ${timing.generationMs} ms · cold start ${timing.coldStartMs??'unknown'} ms`:null,
     job.prompt,
   ].filter(Boolean).join('\n') : 'No remote call is made when a saved record is opened.';
-  text('jobDetails',detail);
+  text('jobTechnicalDetails',detail);
+  text('jobDetails',job ? `Toma ${job.durationSeconds}s · ${STATUS_LABEL[job.status]??job.status} · ${job.sourceLineId??'prompt libre'}` : 'Genera un sonido para obtener un resultado.');
   if(job){
     $('requestId').value=job.requestId;
     try{localStorage.setItem('runq-sfx-last-id-v1',job.requestId);}catch{}
