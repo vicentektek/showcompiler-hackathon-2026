@@ -42,11 +42,22 @@ try{
   assert.equal(await page.locator('#operatorGoBtn').isVisible(),true);
   assert.equal(await page.locator('#rqRehArm').isDisabled(),true);
   assert.equal(await page.locator('#rqRehStop').isDisabled(),true);
+  assert.equal(await page.locator('.rq-rehearsal-feedback').isVisible(),false,
+    'Manual rehearsal must not waste workspace height on speech panels');
+  if(process.env.RUNQ_CAPTURE_UI==='1'&&viewport.width===1366){
+    await mkdir('artifacts/runq-ui',{recursive:true});
+    await page.screenshot({path:'artifacts/runq-ui/voice-v5-rehearsal-manual.png'});
+  }
   await page.locator('#rqRehMode').selectOption('auto');
   assert.equal(await page.locator('#rqRehArm').isDisabled(),true,
     'Automatic GO must be impossible without live mic and operator consent');
   await page.locator('#rqRehMode').selectOption('assist');
   assert.equal(await page.locator('#rqRehMode').inputValue(),'assist');
+  assert.equal(await page.locator('.rq-rehearsal-feedback').isVisible(),true,
+    'Assisted mode must show the last transcript and cue suggestion');
+  if(process.env.RUNQ_CAPTURE_UI==='1'&&viewport.width===1366){
+    await page.screenshot({path:'artifacts/runq-ui/voice-v5-rehearsal-assisted.png'});
+  }
   assert.equal(await page.locator('#rqRehArm').isDisabled(),true);
   await page.locator('#rqRehConfigure').click();
   assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'voice');
