@@ -77,6 +77,10 @@ try{
   await page.waitForFunction(()=>!['Checking engine','Comprobando conexión'].includes(document.querySelector('#engineBadge')?.textContent?.trim()),null,{timeout:4000});
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
+  // The normal user sees only Generate/Listen/Use. Open optional test/edit
+  // details explicitly for this specialist regression smoke.
+  await page.locator('.sfx-extra-import').evaluate(el=>el.open=true);
+  await page.locator('.sfx-sound-edits').evaluate(el=>el.open=true);
   await page.locator('#demoAudioBtn').click();
   await page.getByText('Synthetic test sound loaded locally.',{exact:false}).waitFor();
   assert.match(await page.locator('#audioName').innerText(),/NOT AI/);

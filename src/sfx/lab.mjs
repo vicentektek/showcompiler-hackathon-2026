@@ -151,16 +151,20 @@ function updateControls(){
   const costReady=policy.perRequest!==null&&policy.daily!==null;
   const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity();
   const activeJob=state.history?.active?.[0]??null;
-  const allowed=state.enabled&&!state.working&&costReady&&promptReady&&
-    !activeJob&&$('confirmRequest').checked;
+  // The native confirmation is the one and only explicit per-request approval.
+  // Do not require an additional consent checkbox for the same action.
+  const allowed=state.enabled&&!state.working&&costReady&&promptReady&&!activeJob;
   $('generateBtn').disabled=!allowed;
+  const variation=$('sfxAnotherVariationBtn');
+  if(variation)variation.disabled=!allowed||!job||!STATUS_WITH_AUDIO.has(job.status);
   $('generationHint').textContent=state.working?'Procesando la solicitud…':
     !state.enabled?'No disponible: '+connectionProblem(state.settings):
     !costReady?'Falta la política de coste del servidor.':
     !promptReady?'Escribe un prompt y comprueba la duración.':
-    activeJob?'Trabajo pendiente '+activeJob.requestId+': recupera y comprueba su estado antes de generar otra toma.':
-    !$('confirmRequest').checked?'Marca la autorización de una única generación.':
-    'Listo: puedes generar una toma.';
+    activeJob?.status==='SUBMISSION_UNKNOWN'?'No podemos confirmar el envío anterior. Abre «Mis otros sonidos» para revisarlo antes de generar.':
+    activeJob?.status==='CANCEL_REQUESTED'?'La cancelación anterior no está confirmada. Revisa «Mis otros sonidos».':
+    activeJob?('Hay una generación pendiente. '+(job?.requestId===activeJob.requestId?'Pulsa «Ver resultado».':'Abre «Mis otros sonidos».')):
+    'Listo para generar. Cada intento pide confirmación del coste.';
   const openHistory=$('sfxOpenHistoryBtn');
   if(openHistory)openHistory.disabled=state.working||!$('sfxHistorySelect')?.value;
   const reconnect=$('sfxReconnectBtn');
@@ -255,7 +259,15 @@ function viewJob(job){
     state.loadedRemoteRequestId=null;
     state.auditionedRemoteRequestId=null;
   }
-  text('jobState',job ? (STATUS_LABEL[job.status]??job.status?.replaceAll('_',' ')) : 'No job loaded');
+  text('jobState',job ? (
+    job.status==='ACCEPTED_FOR_MANUAL_IMPORT'?'Sonido listo para usar':
+    job.status==='READY_FOR_REVIEW'?'Sonido generado':
+    job.status==='QUEUED'?'Preparando tu sonido…':
+    job.status==='RUNNING'?'Generando sonido…':
+    job.status==='SUBMISSION_UNKNOWN'?'Comprobar solicitud pendiente':
+    job.status==='FAILED'?'No se pudo generar':
+    STATUS_LABEL[job.status]??job.status?.replaceAll('_',' ')
+  ) : 'Todavía no hay ningún sonido');
   const cost=job?.cost??{};
   const timing=job?.latencies??job?.timing??job?.timings??{};
   const detail=job ? [
@@ -266,7 +278,13 @@ function viewJob(job){
     job.prompt,
   ].filter(Boolean).join('\n') : 'No remote call is made when a saved record is opened.';
   text('jobTechnicalDetails',detail);
-  text('jobDetails',job ? `Toma ${job.durationSeconds}s · ${STATUS_LABEL[job.status]??job.status} · ${job.sourceLineId??'prompt libre'}` : 'Genera un sonido para obtener un resultado.');
+  text('jobDetails',job ? (
+    STATUS_WITH_AUDIO.has(job.status)?'Escúchalo y pulsa «Usar sonido» para guardarlo. Si no te convence, puedes probar otra versión.':
+    ['QUEUED','RUNNING'].includes(job.status)?'Tu solicitud sigue en curso. Pulsa «Ver resultado» para comprobar si ha terminado.':
+    job.status==='SUBMISSION_UNKNOWN'?'No repitas la generación: comprueba la solicitud pendiente en las opciones técnicas.':
+    job.status==='REJECTED'?'Descartado. Puedes generar otro sonido cuando haya presupuesto y pruebas disponibles.':
+    'Puedes crear otro sonido cuando el generador esté disponible.'
+  ) : 'Describe un sonido y pulsa «Generar sonido».');
   if(job){
     $('requestId').value=job.requestId;
     try{localStorage.setItem('runq-sfx-last-id-v1',job.requestId);}catch{}
@@ -352,9 +370,9 @@ function updateSfxEditorLocale(){
  modes[1].textContent=es?'Mover fundido de entrada':'Move fade-in edge';
  modes[2].textContent=es?'Mover fundido de salida':'Move fade-out edge';
  text('acceptBtn',es?'Solo aceptar (sin importar)':'Accept only (without importing)');
- text('sfxAnotherVariationBtn',es?'Otra variación (sin generar)':'Another variation (no generation)');
- text('importLibraryBtn',es?'Guardar en biblioteca':'Save to library');
- text('importCueBtn',es?'Guardar y crear cue':'Save & create cue');
+ text('sfxAnotherVariationBtn',es?'Probar otra versión':'Try another version');
+ text('importLibraryBtn',es?'Usar sonido':'Use sound');
+ text('importCueBtn',es?'Guardar y crear cue':'Save and create cue');
  updateFades(state.fadeInSeconds,state.fadeOutSeconds);
  updateControls();
 }
@@ -510,7 +528,7 @@ function bindEvents(){
     event.preventDefault();
     void action(async()=>{
       const policy=costPolicy();
-      if(!state.enabled||!$('confirmRequest').checked||policy.perRequest===null)throw new Error('Generator is disabled, unpriced or not confirmed');
+      if(!state.enabled||policy.perRequest===null)throw new Error('Generator is disabled or unpriced');
       // Read-only journal check before creating a new paid request.
       const history=await refreshSfxHistory();
       if(history.active.length){
@@ -526,7 +544,7 @@ function bindEvents(){
         durationSeconds:Number($('duration').value),seed:Number($('seed').value),
         acknowledgedMaxCostUsd:policy.perRequest,
       };
-      if(!confirm(`Submit ONE external generation request with a configured maximum estimate of ${money(policy.perRequest)}? No automatic retries.`))return;
+      if(!confirm(`¿Generar este sonido? Se hará UNA solicitud a Modal con una estimación máxima de ${money(policy.perRequest)}. El gasto real puede diferir. No se repetirá automáticamente.`))return;
       let response;
       try{response=await request('/jobs',{method:'POST',data:requestData});}
       catch(error){
@@ -580,11 +598,12 @@ function bindEvents(){
     await loadSfxHistoryJob($('sfxHistorySelect').value);
   }));
   $('sfxAnotherVariationBtn')?.addEventListener('click',()=>{
-    const next=nextSfxVariationSeed($('seed').value);
-    $('seed').value=String(next);
-    $('confirmRequest').checked=false;
+    if(state.working||!state.enabled||state.history?.active?.length)return;
+    $('seed').value=String(nextSfxVariationSeed($('seed').value));
     updateControls();
-    inform('Nueva semilla '+next+' preparada. No se ha enviado ninguna solicitud; revisa y autoriza otro intento si lo deseas.');
+    // One user click -> one cost confirmation -> one job reservation. The
+    // same submit validation and safe one-shot logic are reused.
+    $('generateForm').requestSubmit();
   });
   // One explicit check combines the two safe steps users previously had to
   // discover: refresh the remote status ONCE, then download WAV if ready.
@@ -728,10 +747,9 @@ function bindEvents(){
   }));
   async function commitReviewedSfx(createCue=false){
     if(!canCommitCurrentSfx())throw new Error('Escucha la toma generada antes de guardarla.');
-    const message=createCue
-      ? 'Aceptar esta toma, guardarla en la biblioteca y crear UN cue editable? GO seguirá siendo manual.'
-      : 'Aceptar esta toma y guardarla en la biblioteca del proyecto? No se creará ni ejecutará ningún cue.';
-    if(!confirm(message))return; // No review or import before user confirmation.
+    // "Usar sonido" is itself the operator's explicit acceptance/import action;
+    // asking again was redundant. Additional cue creation still confirms.
+    if(createCue && !confirm('Guardar el sonido y crear UN cue editable? GO seguirá siendo manual.'))return;
     if(state.job.status==='READY_FOR_REVIEW'){
       const accepted=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{
         method:'POST',data:{decision:'ACCEPT'},
@@ -754,6 +772,7 @@ function bindEvents(){
     // to the library source identity so a double-click cannot import twice.
     // Operators can still use the local 'create/assign cue' actions afterwards.
     if(typeof result?.assetId==='string' && result.assetId.length){
+      text('jobState','Guardado en biblioteca');
       state.fileOrigin='library';
       state.libraryAssetId=result.assetId;
       updateControls();
