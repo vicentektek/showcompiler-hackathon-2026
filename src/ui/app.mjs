@@ -2109,6 +2109,7 @@ document.addEventListener('runq:agent-read',event=>{
  if(typeof respond!=='function')return;
  respond({project:show,selectedCueId,workspace:activeWorkspace,
   language:uiLocale,canApply:safeAgentEditState(),
+  undoAvailable:Boolean(runqAgentUndo&&JSON.stringify(show)===runqAgentUndo.afterSnapshot),
   assets:show.assets.map(a=>({id:a.id,ready:player.hasAsset(a.id)}))});
 });
 document.addEventListener('runq:agent-apply',event=>{
