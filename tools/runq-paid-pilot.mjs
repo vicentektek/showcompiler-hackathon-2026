@@ -18,7 +18,9 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
+import {acquireGlobalSpendLedger,globalLedgerDefaultPath} from '../src/qa/globalSpendLedger.mjs';
+import {createAppServer} from './dev-server.mjs';
+import {createSfxJobStore} from '../src/core/sfxJobStore.mjs';
 import {validateMassCampaign} from './mass-campaign-preflight.mjs';
 import {runMetaSeminarEval} from './metaSeminarEval.mjs';
 import {
@@ -206,7 +208,14 @@ export async function runPaidPilot(options,{fetchImpl=globalThis.fetch}={}){
    providerReport=await runSfxLatencyLab({
     live:true,ackPaid:true,maxCalls:options.requests,budgetUsd:1,
     timeoutSeconds:90,
-   },{fetchImpl:guardedFetch});
+   },{fetchImpl:guardedFetch,
+    serverFactory:()=>createAppServer({
+     sfxStore:createSfxJobStore({
+      directory:join(dirname(globalLedgerDefaultPath()),'shared-modal-jobs-v1'),
+      maxDailyStarts:6,
+     }),
+    }),
+   });
    await writeFile(join(logFolder,'modal-sfx-report.json'),JSON.stringify(providerReport,null,2)+'\n',{flag:'wx'});
   }
   record.finishedAt=new Date().toISOString();
