@@ -33,4 +33,7 @@ test('SFX prompt advice is non-generative and detects common quality pitfalls',(
   assert.match(assessSfxPrompt('A heavy wooden door slams once and then a distant bell rings with a long echo',5),/varios momentos/);
   assert.match(assessSfxPrompt('A single heavy bronze bell strike recorded close, with natural decay and a deep metallic resonance',12),/2–4/);
   assert.match(assessSfxPrompt('A single heavy bronze bell strike recorded close, with natural decay and a deep metallic resonance',3),/semilla/);
+  assert.match(assessSfxPrompt('A single heavy bronze bell strike recorded close, with natural decay and a deep metallic resonance',3,'en'),/seed/);
+  assert.match(assessSfxPrompt('Una campana suena en el teatro',3,'en'),/English/);
+
 });
