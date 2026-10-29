@@ -20,13 +20,14 @@ Write-Host "RUNQ Windows preflight (offline; no secrets, no provider calls)"
 Write-Host "Project: $root"
 try {
  # Git worktree add <path> origin/<branch> intentionally creates a detached HEAD.
- # In this state Git reports no branch name. Coerce to an empty string before Trim().
- $branch = [string](& git branch --show-current 2>$null)
+ # On Windows PowerShell 5.1, empty native stdout can be $null, even
+ # after a scalar string conversion. Never call instance methods on git output.
+ $branchLines = @(& git branch --show-current 2>$null)
  $branchOk = ($LASTEXITCODE -eq 0)
- $branch = $branch.Trim()
- $head = [string](& git rev-parse --short HEAD 2>$null)
+ $branch = if($branchLines.Count -gt 0 -and $null -ne $branchLines[0]) { [string]$branchLines[0] } else { '' }
+ $headLines = @(& git rev-parse --verify --short HEAD 2>$null)
  $headOk = ($LASTEXITCODE -eq 0)
- $head = $head.Trim()
+ $head = if($headLines.Count -gt 0 -and $null -ne $headLines[0]) { [string]$headLines[0] } else { '' }
  $label = if($branch.Length -gt 0) { $branch } else { '(detached HEAD)' }
  Check 'Git checkout' ($branchOk -and $headOk -and $head.Length -gt 0) "$label @ $head"
  if($branch.Length -eq 0) {
