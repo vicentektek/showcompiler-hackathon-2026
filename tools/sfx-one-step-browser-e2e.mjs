@@ -115,7 +115,8 @@ try{
   // Restore the unaccepted first take, load and genuinely audition it again.
   await page.locator('#sfxHistorySelect').selectOption(firstRequestId);
   await page.locator('#sfxOpenHistoryBtn').click();
-  assert.equal(await page.locator('#requestId').inputValue(),firstRequestId);
+  await page.waitForFunction(id=>document.querySelector('#requestId')?.value===id,firstRequestId);
+  await page.locator('#sfxOpenHistoryBtn').waitFor({state:'visible'});
   await page.locator('#sfxCheckResultBtn').click();
   await page.locator('#playBtn').click();
   const assetsBefore=await page.locator('#assetList .asset-list-row').count();
@@ -143,6 +144,7 @@ try{
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   await page.locator('#sfxHistorySelect').selectOption(secondRequestId);
   await page.locator('#sfxOpenHistoryBtn').click();
+  await page.waitForFunction(id=>document.querySelector('#requestId')?.value===id,secondRequestId);
   await page.locator('#sfxCheckResultBtn').click();
   await page.locator('#playBtn').click();
   page.once('dialog',dialog=>dialog.accept());
