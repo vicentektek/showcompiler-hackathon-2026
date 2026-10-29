@@ -50,6 +50,7 @@ const allowed = new Map([
   ['/src/sfx/lab.mjs', ['src/sfx/lab.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/jobRecovery.mjs', ['src/sfx/jobRecovery.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/freeTextPrompt.mjs', ['src/sfx/freeTextPrompt.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/sfx/sfxLocale.mjs', ['src/sfx/sfxLocale.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/soundPromptCompiler.mjs', ['src/core/soundPromptCompiler.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/sfxImportCandidate.mjs', ['src/core/sfxImportCandidate.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/dramaticStructure.mjs', ['src/core/dramaticStructure.mjs', 'text/javascript; charset=utf-8']],
