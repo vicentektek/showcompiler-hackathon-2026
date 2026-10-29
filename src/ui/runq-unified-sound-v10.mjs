@@ -55,7 +55,8 @@ function mountUnifiedSound(){
   function setMode(next){
     if(next!=='library'&&next!=='generate')return;
     // Switch only the right editor; original project library stays visible.
-    if(mode==='generate'&&next==='library')$('stopBtn')?.click();
+    if(mode==='generate'&&next==='library')
+      document.dispatchEvent(new Event('runq:sound-stop-preview'));
     mode=next;
     audio.dataset.rq10SoundView=next;
     for(const [tab,name] of [[library,'library'],[generate,'generate']]){
