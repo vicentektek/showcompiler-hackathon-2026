@@ -39,7 +39,7 @@ export function buildAgentContext(project,{
  const cues=cueIds===null?p.cues:p.cues.filter(c=>cueIds.includes(c.id));
  const lines=parseScript(p.scriptText);
  const focus=Number(/^L([1-9]\d*)$/.exec(focusLineId??'')?.[1])||1;
- const first=Math.max(0,Math.min(focus-1,Math.max(0,lines.length-maxScriptLines)));
+ const first=Math.max(0,Math.min(focus-1-Math.floor(maxScriptLines/2),Math.max(0,lines.length-maxScriptLines)));
  return {
   projectId:p.id,projectName:p.name,
   counts:{cues:p.cues.length,assets:p.assets.length,scriptLines:lines.length},
