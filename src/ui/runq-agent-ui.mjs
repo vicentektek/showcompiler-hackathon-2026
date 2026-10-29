@@ -141,6 +141,21 @@ async function sendRequest(forceAI=false,custom=null){
    addMessage('assistant',lang('Pendientes de revisión: ','Needs review: ')+
     [...counts].map(([reason,n])=>reason+': '+n).join(' · '));
   }
+  if(reply.sound){
+   const action=make('button','btn accent small',
+    lang('Preparar alternativa en Sound Lab','Prepare alternative in Sound Lab'));
+   action.type='button';
+   action.addEventListener('click',()=>{
+    document.dispatchEvent(new CustomEvent('runq:navigate-to-cue',{
+     detail:{cueId:reply.sound.cueId}
+    }));
+    document.dispatchEvent(new CustomEvent('runq:open-contextual-ia',{
+     detail:{mode:'sound',lineId:reply.sound.lineId,prompt:reply.sound.prompt}
+    }));
+    close();
+   });
+   $('rqAgentMessages').append(action);
+  }
   if(reply.status==='PLAN'){
    const plan=prepareAgentPlan(s.project,reply.operations);
    showPlan(plan);
