@@ -8,30 +8,35 @@
 
 /* ── Shell root ── */
 .shell {
-  display: grid;
-  grid-template-rows: 46px 34px 1fr;
-  grid-template-columns: 250px 1fr 380px;
+  display: grid !important;
+  grid-template-rows: 46px 34px 1fr !important;
+  grid-template-columns: 250px 1fr 380px !important;
   grid-template-areas:
     "topbar topbar topbar"
     "nav   main    inspector"
-    "nav   bottom  bottom";
-  height: 100vh;
-  min-height: 0;
-  background: var(--rq-bg);
-  overflow: hidden;
+    "nav   bottom  bottom" !important;
+  height: 100vh !important;
+  min-height: 0 !important;
+  background: var(--rq-bg) !important;
+  color: var(--rq-text) !important;
+  overflow: hidden !important;
 }
 
 /* ── Topbar ── */
 .rq-topbar {
-  grid-area: topbar;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 18px;
-  background: var(--rq-panel);
-  border-bottom: 1px solid var(--rq-border);
-  flex-shrink: 0;
-  z-index: 40;
+  grid-area: topbar !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 0 18px !important;
+  background: var(--rq-panel) !important;
+  border-bottom: 1px solid var(--rq-border) !important;
+  flex-shrink: 0 !important;
+  z-index: 40 !important;
+}
+.rq-topbar,
+.rq-topbar * {
+  color: var(--rq-text) !important;
 }
 .rq-brand {
   display: flex;
@@ -115,86 +120,95 @@
 
 /* ── Navigation rail ── */
 .rq-nav {
-  grid-area: nav;
-  display: flex;
-  flex-direction: column;
-  background: var(--rq-panel);
-  border-right: 1px solid var(--rq-border);
-  flex-shrink: 0;
-  overflow: hidden;
+  grid-area: nav !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--rq-panel) !important;
+  border-right: 1px solid var(--rq-border) !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
 }
 .rq-nav-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--rq-border);
-  flex-shrink: 0;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 12px 14px !important;
+  border-bottom: 1px solid var(--rq-border) !important;
+  flex-shrink: 0 !important;
+  background: var(--rq-surface-hover) !important;
 }
 .rq-nav-title {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .03em;
-  color: var(--rq-text-muted);
-  text-transform: uppercase;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: .05em !important;
+  color: var(--rq-text-muted) !important;
+  text-transform: uppercase !important;
 }
 .rq-nav-list {
-  flex: 1;
-  overflow: auto;
-  padding: 8px 4px;
-  display: flex;
-  flex-direction: column;
+  flex: 1 !important;
+  overflow: auto !important;
+  padding: 6px 4px !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 .rq-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: var(--rq-radius);
-  margin: 2px 6px;
-  cursor: pointer;
-  color: var(--rq-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  transition: background var(--rq-transition), color var(--rq-transition);
-  white-space: nowrap;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 10px !important;
+  border-radius: var(--rq-radius-sm) !important;
+  margin: 3px 6px !important;
+  cursor: pointer !important;
+  color: var(--rq-text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  transition: background var(--rq-transition), color var(--rq-transition), border-color var(--rq-transition) !important;
+  white-space: nowrap !important;
+  border: 1px solid transparent !important;
 }
 .rq-nav-item:hover {
-  background: var(--rq-surface-hover);
-  color: var(--rq-text);
+  background: var(--rq-surface-hover) !important;
+  color: var(--rq-text) !important;
+  border-color: var(--rq-border-hover) !important;
 }
 .rq-nav-item[aria-pressed="true"] {
-  background: var(--rq-selection-soft);
-  color: var(--rq-text);
-  border: 1px solid var(--rq-selection);
-  box-sizing: border-box;
-  margin: 2px 5px;
+  background: var(--rq-selection-soft) !important;
+  color: var(--rq-text) !important;
+  border-left: 4px solid var(--rq-selection) !important;
+  box-sizing: border-box !important;
+  margin: 3px 5px !important;
+  border-right: 1px solid transparent !important;
 }
+.rq-nav-item[aria-pressed="true"].rq-ctx-studio { border-left-color: var(--rq-accent-blue) !important; }
+.rq-nav-item[aria-pressed="true"].rq-ctx-rehearsal { border-left-color: var(--rq-accent-amber) !important; }
+.rq-nav-item[aria-pressed="true"].rq-ctx-directo { border-left-color: var(--rq-accent-green) !important; }
 .rq-nav-item .rq-nav-icon {
-  width: 18px;
-  text-align: center;
-  font-size: 13px;
+  width: 20px !important;
+  text-align: center !important;
+  font-size: 15px !important;
+  flex-shrink: 0 !important;
 }
 .rq-nav-divider {
-  height: 1px;
-  background: var(--rq-border);
-  margin: 6px 12px;
-  flex-shrink: 0;
+  height: 1px !important;
+  background: var(--rq-border) !important;
+  margin: 8px 14px !important;
+  flex-shrink: 0 !important;
 }
 .rq-nav-foot {
-  padding: 10px 14px;
-  border-top: 1px solid var(--rq-border);
-  flex-shrink: 0;
+  padding: 10px 14px !important;
+  border-top: 1px solid var(--rq-border) !important;
+  flex-shrink: 0 !important;
+  background: var(--rq-surface-hover) !important;
 }
 .rq-density-select {
-  width: 100%;
-  font-size: 11px;
-  background: var(--rq-panel-active);
-  color: var(--rq-text);
-  border: 1px solid var(--rq-border);
-  border-radius: var(--rq-radius);
-  padding: 6px 8px;
-  cursor: pointer;
+  width: 100% !important;
+  font-size: 11px !important;
+  background: var(--rq-panel-active) !important;
+  color: var(--rq-text) !important;
+  border: 1px solid var(--rq-border) !important;
+  border-radius: var(--rq-radius) !important;
+  padding: 7px 10px !important;
+  cursor: pointer !important;
 }
 
 /* ── Main workspace area ── */
@@ -310,27 +324,77 @@
   border-left-color: var(--rq-prepared);
 }
 .shell .cue-item.cue-row-select {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 30px 44px minmax(0,1fr) 90px 70px 90px 52px 64px 150px;
-  grid-template-rows: auto auto;
-  column-gap: 8px;
-  row-gap: 3px;
-  padding: 4px 8px;
-  align-items: center;
-  text-align: left;
-  border: 0;
-  border-radius: var(--rq-radius-sm);
-  background: transparent;
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 28px 42px minmax(0,1.4fr) 78px 66px 84px 48px 56px 130px !important;
+  grid-template-rows: auto auto !important;
+  column-gap: 7px !important;
+  row-gap: 2px !important;
+  padding: 3px 7px !important;
+  align-items: center !important;
+  text-align: left !important;
+  border: 0 !important;
+  border-radius: var(--rq-radius-sm) !important;
+  background: transparent !important;
+  color: var(--rq-text) !important;
+  font: inherit !important;
+  cursor: pointer !important;
+  height: var(--rq-density-row) !important;
+  min-height: 28px !important;
+}
+.shell .cue-row-select:hover {
+  background: var(--rq-surface-hover) !important;
+}
+/* ── Celdas individuales de la fila de cue (compatibles con HTML de app.mjs) ── */
+.shell .cue-row-index {
+  font: 700 12px/1.3 var(--rq-font-mono) !important;
+  color: var(--rq-text-muted) !important;
+}
+.shell .cue-row-title {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: var(--rq-text) !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.shell .cue-row-meta {
+  font-size: 10.5px !important;
+  color: var(--rq-text-dim) !important;
+  line-height: 1.25 !important;
+}
+.shell .cue-row-trigger {
+  font-size: 10px !important;
+  color: var(--rq-text-muted) !important;
+  white-space: nowrap !important;
+}
+.shell .cue-row-next {
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  color: var(--rq-prepared) !important;
+}
+.shell .cue-row-next-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  background: var(--rq-prepared) !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+}
+
 /* ── Operator transport (GO / STOP / STOP ALL) — mockup Directo ── */
 .shell .operator-queue-controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 10px 14px;
-  border-top: 1px solid var(--rq-border);
-  background: var(--rq-panel);
-  flex-wrap: wrap;
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  padding: 10px 14px !important;
+  border-top: 1px solid var(--rq-border) !important;
+  background: var(--rq-panel) !important;
+  flex-wrap: wrap !important;
 }
 .shell .operator-queue-controls #operatorGoBtn {
   width: 110px;
@@ -377,11 +441,66 @@
 .shell .operator-queue-controls #operatorBackBtn:disabled,
 .shell .operator-queue-controls #operatorSkipBtn:disabled,
 .shell .operator-queue-controls #operatorResetBtn:disabled {
-  opacity: .45;
+  opacity: .45 !important;
+}
+
+/* ── Operator transport buttons — reforzados ── */
+.shell .operator-queue-controls #operatorGoBtn {
+  width: 115px !important;
+  height: 62px !important;
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  border-radius: var(--rq-radius-lg) !important;
+  background: var(--rq-accent-green) !important;
+  border: 1px solid var(--rq-accent-green) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  letter-spacing: .02em !important;
+}
+.shell .operator-queue-controls #operatorGoBtn:hover:not(:disabled) {
+  background: #2fb34e !important;
+}
+.shell .operator-queue-controls #operatorGoBtn:disabled {
+  opacity: .6 !important;
+  background: #3A4250 !important;
+  border-color: #4C5464 !important;
+  color: #8E97A5 !important;
+}
+.shell .operator-queue-controls #operatorPanicBtn {
+  width: 115px !important;
+  height: 62px !important;
+  font-size: 19px !important;
+  font-weight: 900 !important;
+  border: 2px solid var(--rq-accent-red) !important;
+  border-radius: var(--rq-radius-lg) !important;
+  background: var(--rq-accent-red) !important;
+  color: #fff !important;
+  letter-spacing: .01em !important;
+}
+.shell .operator-queue-controls #operatorPanicBtn:hover:not(:disabled) {
+  background: #d43f43 !important;
+}
+.shell .operator-queue-controls #operatorBackBtn,
+.shell .operator-queue-controls #operatorSkipBtn,
+.shell .operator-queue-controls #operatorResetBtn {
+  height: 46px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 0 14px !important;
+  border-radius: var(--rq-radius) !important;
 }
 
 /* ── Cue inspector (compact, grouped) ── */
 .shell .cue-inspector {
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--rq-panel) !important;
+  border: 1px solid var(--rq-border) !important;
+  border-radius: var(--rq-radius) !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+
 /* ── Context identity — topbar and nav color by mode ── */
 .shell.rq-ctx-studio .rq-topbar { border-bottom-color: var(--rq-accent-blue); }
 .shell.rq-ctx-studio .rq-brand-icon { color: var(--rq-accent-blue); border-color: var(--rq-accent-blue); }

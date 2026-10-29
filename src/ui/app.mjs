@@ -814,7 +814,11 @@ function renderCueList({ resetScroll = false } = {}) {
     const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
-    const detail = node('span', 'cue-row-meta', cue.sourceLineIds.join(', ') + ' · ' + describeCueActions(cue.actions));
+    const actionText = describeCueActions(cue.actions);
+    const actionKind = cue.actions.some(a => a.type === 'PLAY') ? t('status.play') : t('status.unresolved');
+    const detail = node('span', 'cue-row-meta',
+      node('span', 'cue-row-state', actionKind),
+      node('span', '', cue.sourceLineIds.join(', ') + ' · ' + actionText));
     select.append(top, detail);
     if (cue.trigger) select.append(node('span', 'cue-row-trigger', t('cue.trigger') + ': ' + cue.trigger));
     if (cue.id === operatorQueue.preparedCueId) {
