@@ -819,6 +819,32 @@
 .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-next-info:last-of-type{
  border-color:#70804d;
 }
+/* Existing V7 read-only browser stays fully operational in Stage; it is
+   docked INSIDE the new monitor, never over the cue stack hit targets. */
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor #rq7LiveInspector{
+ display:block!important;flex:none!important;
+ border-top:1px solid #3f5a6c;margin-top:6px!important;
+ padding-top:5px!important;background:transparent!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-inspector-title{
+ padding:6px 3px!important;font-size:10px!important;background:transparent!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-inspector-content{
+ padding:6px 3px!important;font-size:11px!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-info-fields{
+ grid-template-columns:68px minmax(0,1fr)!important;
+ gap:4px 7px!important;margin:6px 0!important;font-size:10px!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-info-name{
+ font-size:13px!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-info-note{
+ font-size:10px!important;padding:5px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] #rq7LiveInspector{
+ display:none!important;
+}
 .rq8.rq14 .rq14-rehearsal-context{display:none}
 .rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-rehearsal-context{
  display:flex;flex-direction:column;gap:3px;
