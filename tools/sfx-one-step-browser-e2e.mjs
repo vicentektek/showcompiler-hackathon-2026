@@ -192,6 +192,10 @@ try{
   assert.equal(calls.start,2);
   assert.equal(calls.download,2, 'Both resumed samples reuse stored local WAVs');
   assert.equal(await page.evaluate(()=>window.__auditionStarts),4);
+  // Saving a sound can switch the Audio workspace to Library; explicitly
+  // return to Generate before exercising a fresh Spanish request.
+  await page.locator('[data-workspace-nav="audio"]').click();
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
   // Spanish -> Meta text proposal MUST NOT submit any Modal sound yet.
   await page.locator('#soundPrompt').fill('Una puerta de hierro se cierra de golpe en un pasillo');
   await page.locator('#duration').fill('3');
