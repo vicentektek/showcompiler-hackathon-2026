@@ -76,7 +76,7 @@
       "priority": "P0",
       "provider": "meta",
       "automation": "existing",
-      "fixture": "test/fixtures/seminar",
+      "fixture": "fixtures/qa/seminar/corpus-v1.json",
       "metric": "precision recall F1 paired validated-gold only",
       "videoShot": "S04"
     },
@@ -146,7 +146,7 @@
       "priority": "P0",
       "provider": "baseten",
       "automation": "existing",
-      "fixture": "test/fixtures/seminar",
+      "fixture": "fixtures/qa/seminar/corpus-v1.json",
       "metric": "precision recall F1 paired with Meta on identical gold",
       "videoShot": "S04"
     },
