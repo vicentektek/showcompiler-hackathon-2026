@@ -271,11 +271,26 @@ try {
     const canScroll=node.scrollHeight>node.clientHeight+100;
     node.scrollTop=node.scrollHeight;
     const moved=node.scrollTop>0;
+    const debug={
+      client:node.clientHeight,scroll:node.scrollHeight,top:node.scrollTop,
+      rows:node.querySelectorAll('.asset-list-row').length,
+      ancestors:[],
+    };
+    for(let el=node,n=0;el&&n<6;el=el.parentElement,n++){
+      const st=getComputedStyle(el),box=el.getBoundingClientRect();
+      debug.ancestors.push({
+        cls:el.className,id:el.id,
+        display:st.display,flex:st.flex,overflow:st.overflowY,
+        height:st.height,minHeight:st.minHeight,maxHeight:st.maxHeight,
+        rectH:box.height,client:el.clientHeight,scroll:el.scrollHeight,
+      });
+    }
     extra.forEach(item=>item.remove());
     node.scrollTop=0;
-    return {canScroll,moved};
+    return {canScroll,moved,debug};
   });
-  assert.equal(scrollCheck.canScroll,true,'Library requires an independent scrollable file list');
+  assert.equal(scrollCheck.canScroll,true,
+    'Library requires an independent scrollable file list '+JSON.stringify(scrollCheck.debug));
   assert.equal(scrollCheck.moved,true,'Source list scroll position must actually move');
   assert.equal(await page.locator('#assetList .asset-list-row').count(),3);
   assert.equal(await page.locator('#rq10LibrarySearch').isVisible(),true);
