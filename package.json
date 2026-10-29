@@ -19,10 +19,13 @@
     "qa:systematic": "node tools/runq-systematic-lab.mjs",
     "qa:baseten:plan": "node tools/run-baseten-seminar-eval.mjs",
     "qa:compare-providers": "node tools/compare-provider-seminar.mjs",
-    "eval:offline": "npm run qa:codex",
+    "eval:offline": "node tools/eval-commands.mjs offline",
     "eval:ai": "node tools/eval-commands.mjs ai",
     "eval:full": "node tools/eval-commands.mjs full",
-    "eval:report": "node tools/eval-commands.mjs report"
+    "eval:report": "node tools/eval-commands.mjs report",
+    "eval:video": "node tools/eval-commands.mjs video",
+    "eval:cli:test": "node --test test/eval-commands.test.mjs",
+    "eval:video:smoke": "node tools/video-layout-smoke.mjs"
   },
   "engines": {
     "node": ">=20"
