@@ -753,7 +753,13 @@
 .rq8.rq14 .rq14-library-ai{
  margin:4px 8px!important;
 }
-.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
+/* V7 forced its legacy read-only inspector to display:flex !important
+   over the Stage stack. The V14 monitor replaces that inspector: hiding it
+   prevents an invisible hit-testing overlay above cue rows and search. */
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-inspector-frame{
+ display:none!important;pointer-events:none!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
  grid-template-columns:minmax(285px,.95fr) minmax(330px,1.05fr)!important;
  grid-template-rows:minmax(0,1fr)!important;
 }
