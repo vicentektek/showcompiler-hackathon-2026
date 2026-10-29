@@ -272,3 +272,8 @@
   .sfx-lab .sfx-export{flex-direction:column;align-items:stretch;}
   .sfx-lab .sfx-export > .sfx-buttons{justify-content:flex-start;}
 }
+
+/* The translated draft is the only contextual addition to the normal UI. */
+.sfx-lab .sfx-english-review{padding:12px;border:1px solid #3a617d;border-radius:8px;background:rgba(46,102,143,.1);margin:10px 0;}
+.sfx-lab .sfx-english-review textarea{width:100%;min-height:84px;resize:vertical;margin-top:5px;}
+.sfx-lab .sfx-english-review[hidden]{display:none!important;}
