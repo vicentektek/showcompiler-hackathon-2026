@@ -23,6 +23,7 @@ function mountUnifiedSound(){
   lab.hidden=false; // Parent Audio workspace owns visibility from now on.
   lab.classList.add('rq10-integrated-lab');
   grid.append(lab);
+  const assetList=$('assetList'); // Original list is needed by inspector before mount finishes.
   // V13: MediaBay-style permanent file browser + attribute inspector with a
   // separate bottom preview dock. Move the SINGLE existing waveform editor;
   // never duplicate source selection, transport, original media or handlers.
@@ -121,7 +122,6 @@ function mountUnifiedSound(){
 
   // Real library search: filters existing media rows without changing
   // project state, original bytes, cue numbering or transport/GO.
-  const assetList=$('assetList');
   const searchBar=document.createElement('div');
   searchBar.className='rq10-library-search';
   const search=document.createElement('input');
