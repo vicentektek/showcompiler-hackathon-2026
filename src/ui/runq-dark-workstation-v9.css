@@ -352,3 +352,16 @@
   min-height:25px!important;height:25px!important;
  }
 }
+
+/* The compact V9 row is a grid. Keep STOP/FADE visible for the inspected
+   cue (legacy Stagecraft smoke + actual operator access), without hiding
+   the always-visible left Play/NEXT rail. */
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item.cue-selected .cue-operation-actions,
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item:focus-within .cue-operation-actions,
+.rq8 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-item.cue-selected .cue-operation-actions,
+.rq8 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-item:focus-within .cue-operation-actions{
+ display:flex!important;visibility:visible!important;
+ align-items:center!important;gap:6px!important;
+ grid-column:2!important;grid-row:auto!important;
+ min-height:30px!important;
+}
