@@ -32,7 +32,7 @@ Todo lo anterior es **planificación o inventario**; muestra 0 ejecuciones y cer
 
     npm run eval:cli:test
 
-12 tests de CLI y catálogo sin pagos. No ejecutan las pruebas masivas.
+20 tests previstos en dos archivos: 12 del CLI/catálogo y 8 del auditor del vídeo. No ejecutan campañas masivas ni proveedores.
 
 ## 4. Solo al congelar una versión (QA local, no IA)
 
@@ -55,6 +55,12 @@ Solo muestra qué falta capturar. Opcional, cuando quieras validar el layout en 
 
 Genera hasta siete PNG de los módulos de V9 (1920x1080) bajo artifacts/video-smoke y un manifest.json etiquetado UI_LAYOUT_ONLY_NOT_FUNCTIONAL_PROOF. No son capturas válidas para demostrar la inferencia o el autopiloto; se deben grabar las acciones reales del producto.
 
+Auditor de evidencias (solo cuando existan capturas reales):
+
+    npm run eval:video:audit
+
+El auditor comienza en NOT_READY. Utiliza como plantilla test/fixtures/video-evidence-template.json; la evidencia real se rellena en artifacts/video-captures/evidence.json, con SHA, revisor, tipo de evidencia y fichero local de cada escena. Comprueba los once planos, hashes, límite oficial, variante de locución y MP4 final. No puede certificar automáticamente el contenido artístico: debe revisarse manualmente.
+
 ## 6. Salvaguardas
 
 - Este CLI no admite --live ni --ack-paid.
@@ -71,6 +77,9 @@ Genera hasta siete PNG de los módulos de V9 (1920x1080) bajo artifacts/video-sm
 - test/fixtures/eval-campaign-catalog.json — 91 escenarios.
 - test/eval-commands.test.mjs — tests del planificador y rutas de fixtures.
 - tools/video-layout-smoke.mjs — capturas V9 para revisión de layout.
+- tools/video-evidence-audit.mjs — revisión fail-closed de evidencia del vídeo (pendiente hasta capturas reales).
+- test/fixtures/video-evidence-template.json — ficha vacía S01–S11, NO prueba final.
+- test/video-evidence-audit.test.mjs — 8 tests de falsificación/mismatch/claims.
 - docs/RUNQ_MASTER_EVAL_PROTOCOL_2026-10-29.md — metodología y métricas.
 - docs/RUNQ_VIDEO_QA_GATES.md — prueba audiovisual y claims.
 - docs/QA_RUNBOOK_V9.md — este documento.
