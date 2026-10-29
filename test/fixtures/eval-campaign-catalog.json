@@ -919,6 +919,36 @@
       "fixture": "TO_AUTHOR",
       "metric": "montage claims match proven real capabilities",
       "videoShot": "S10"
+    },
+    {
+      "id": "EDIT-010",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/eval-conversational-cue.test.mjs",
+      "metric": "ES/EN local command parser exact gain, fade, loop and delay",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-011",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/eval-conversational-cue.test.mjs",
+      "metric": "Local cue-chat rejects GO, action injection and unsupported routing",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-012",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/eval-conversational-cue.test.mjs",
+      "metric": "Ambiguous cue-chat messages require clarification, no patch",
+      "videoShot": null
     }
   ]
 }
