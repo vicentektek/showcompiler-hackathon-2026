@@ -1,162 +1,228 @@
 #!/usr/bin/env node
 /**
- * RunQ evaluation CLI: offline orchestration only.
- * No provider calls, automatic spending, or secret handling.
+ * RunQ Evaluation Campaign Planner.
+ *
+ * Zero remote providers. Default actions produce plans/reports ONLY.
+ * Only --execute-offline can run existing deterministic local checks.
+ * The paid Meta, Baseten, Modal and realtime voice harnesses are intentionally
+ * absent: no --live flag, no provider credentials, no network transport.
  */
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const outputRoot = join(repoRoot, 'artifacts', 'eval-qa');
-const browserScenarios = [
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const outputs = join(root, 'artifacts', 'eval-qa');
+const catalogPath = join(root, 'test', 'fixtures', 'eval-campaign-catalog.json');
+
+export const browserChecks = Object.freeze([
   'tools/browser-e2e.mjs',
   'tools/stagecraft-cue-safety-e2e.mjs',
   'tools/stagecraft-keymap-browser-e2e.mjs',
   'tools/stagecraft-audio-batch-e2e.mjs',
-];
+  'tools/voice-follow-click-e2e.mjs',
+  'tools/rehearsal-auto-browser-e2e.mjs',
+  'tools/sfx-lab-browser-e2e.mjs',
+]);
 
-export function parseEvalArguments(mode, args) {
-  if (!['ai', 'full', 'report'].includes(mode)) throw new Error('Modo desconocido.');
-  const allowed = mode === 'ai' ? new Set(['--provider', '--runs']) :
-    mode === 'full' ? new Set(['--runs']) : new Set();
-  const values = {};
-  for (let i = 0; i < args.length; i += 2) {
-    const flag = args[i];
-    if (!allowed.has(flag) || values[flag] !== undefined || args[i + 1] === undefined ||
-        String(args[i + 1]).startsWith('--')) {
-      throw new Error('Argumento desconocido, repetido o incompleto: ' + flag);
+const providerSecrets = Object.freeze([
+  'MODEL_API_KEY', 'BASETEN_API_KEY', 'MODAL_PROXY_TOKEN_ID',
+  'MODAL_PROXY_TOKEN_SECRET', 'OPENAI_API_KEY', 'META_API_KEY',
+  'RUNQ_META_API_KEY', 'RUNQ_BASETEN_API_KEY', 'ANTHROPIC_API_KEY',
+]);
+
+export function parseEvalArguments(mode, argv = []) {
+  if (!['offline', 'ai', 'full', 'report', 'video'].includes(mode)) {
+    throw new Error('Modo desconocido: ' + mode);
+  }
+  const allowed = mode === 'ai' ? ['--provider', '--runs'] :
+    mode === 'offline' || mode === 'full' ? ['--runs', '--execute-offline'] : [];
+  const values = new Map();
+  for (let i = 0; i < argv.length; i++) {
+    const flag = argv[i];
+    if (!allowed.includes(flag) || values.has(flag)) throw new Error('Opcion no permitida o repetida: ' + flag);
+    if (flag === '--execute-offline') {
+      values.set(flag, true);
+    } else {
+      if (i + 1 >= argv.length || argv[i + 1].startsWith('--')) {
+        throw new Error('Falta el valor de ' + flag);
+      }
+      values.set(flag, argv[++i]);
     }
-    values[flag] = args[i + 1];
   }
-  if (mode === 'ai' && !['meta', 'baseten'].includes(values['--provider'])) {
-    throw new Error('Especifica --provider meta o --provider baseten.');
+  const provider = values.get('--provider') ?? null;
+  if (mode === 'ai' && !['meta', 'baseten', 'modal', 'voice'].includes(provider)) {
+    throw new Error('Usa --provider meta|baseten|modal|voice.');
   }
-  const maxRuns = mode === 'full' ? 20 : 1000;
-  const runs = values['--runs'] === undefined ? 1 : Number(values['--runs']);
-  if (!Number.isSafeInteger(runs) || runs < 1 || runs > maxRuns) {
-    throw new Error('El numero de repeticiones debe estar entre 1 y ' + maxRuns + '.');
+  const runs = values.has('--runs') ? Number(values.get('--runs')) : 1;
+  const maximum = mode === 'ai' ? 1000 : 20;
+  if (!Number.isSafeInteger(runs) || runs < 1 || runs > maximum) {
+    throw new Error('El numero de repeticiones debe ser entero entre 1 y ' + maximum);
   }
-  return { provider: values['--provider'] ?? null, runs };
+  return { mode, provider, runs, executeOffline: values.get('--execute-offline') === true };
 }
 
-function offlineEnvironment() {
+export function makePlan(settings, catalog) {
+  if (!catalog || !Array.isArray(catalog.cases)) throw new Error('Catalogo de pruebas ausente.');
+  const candidates = catalog.cases.filter(item => {
+    if (settings.mode === 'video') return item.videoShot !== null;
+    if (settings.mode === 'ai') return item.provider === settings.provider;
+    if (settings.mode === 'offline' || settings.mode === 'full') return item.provider === 'offline';
+    return false;
+  });
+  const automated = candidates.filter(item => item.automation === 'existing' || item.automation === 'planned');
+  return {
+    schemaVersion: 1,
+    mode: settings.mode,
+    state: 'PLAN_ONLY_NO_EXECUTION',
+    provider: settings.provider,
+    requestedRuns: settings.runs,
+    completedRuns: 0,
+    providerCalls: 0,
+    note: 'Plan provisional. Ninguna prueba ni inferencia ejecutada; resultados de calidad no disponibles.',
+    scenarioCount: candidates.length,
+    automatedOrPlannedCount: automated.length,
+    totalProposedScenarioExecutions: candidates.length * settings.runs,
+    scenarios: candidates.map(x => ({
+      id: x.id, priority: x.priority, automation: x.automation,
+      fixture: x.fixture, metric: x.metric, videoShot: x.videoShot,
+    })),
+  };
+}
+
+function now() { return new Date().toISOString(); }
+async function save(name, value) {
+  await mkdir(outputs, { recursive: true });
+  await writeFile(join(outputs, name + '.json'), JSON.stringify(value, null, 2) + '\n');
+}
+async function loadCatalog() {
+  return JSON.parse(await readFile(catalogPath, 'utf8'));
+}
+
+function strippedEnvironment() {
   const env = { ...process.env };
-  // Child processes running offline QA must not inherit provider credentials.
-  for (const name of ['MODEL_API_KEY', 'BASETEN_API_KEY', 'MODAL_PROXY_TOKEN_ID',
-    'MODAL_PROXY_TOKEN_SECRET', 'OPENAI_API_KEY']) delete env[name];
+  for (const name of providerSecrets) delete env[name];
+  delete env.RUNQ_ENABLE_SFX_PILOT;
+  delete env.RUNQ_ALLOW_REMOTE;
   return env;
 }
 
-function execute(program, args) {
-  const isWindowsNpm = process.platform === 'win32' && program === 'npm';
-  const result = spawnSync(isWindowsNpm ? 'npm.cmd' : program, args, {
-    cwd: repoRoot, env: offlineEnvironment(), stdio: 'inherit',
-    shell: isWindowsNpm,
+function executeLocal(program, args) {
+  const windowsNpm = process.platform === 'win32' && program === 'npm';
+  const result = spawnSync(windowsNpm ? 'npm.cmd' : program, args, {
+    cwd: root, stdio: 'inherit', env: strippedEnvironment(),
+    shell: windowsNpm,
   });
-  if (result.error) return { ok: false, reason: result.error.message };
+  if (result.error) return { ok: false, error: result.error.message };
   return { ok: result.status === 0, exitCode: result.status, signal: result.signal };
 }
 
-async function save(name, data) {
-  await mkdir(outputRoot, { recursive: true });
-  await writeFile(join(outputRoot, name + '.json'), JSON.stringify(data, null, 2) + '\n');
+async function executeOffline(settings, plan) {
+  const run = { ...plan, state: 'OFFLINE_RUNNING', startedAt: now(), results: [] };
+  await save('offline-run', run);
+  const core = executeLocal('npm', ['run', 'qa:codex']);
+  run.results.push({ scenario: 'qa:codex', ...core });
+  await save('offline-run', run);
+  if (!core.ok) throw new Error('Ha fallado qa:codex. Lee la salida de consola.');
+  if (settings.mode === 'full') {
+    try { await import('playwright-core'); }
+    catch {
+      run.results.push({ scenario: 'playwright-core', ok: false, reason: 'module_missing' });
+      await save('offline-run', run);
+      throw new Error('Instala playwright-core@1.56.1 antes de ejecutar Chrome.');
+    }
+    for (const path of browserChecks) await access(join(root, path));
+    for (let iteration = 1; iteration <= settings.runs; iteration++) {
+      for (const path of browserChecks) {
+        console.log('[RunQ QA] ' + iteration + '/' + settings.runs + ': ' + path);
+        const result = executeLocal(process.execPath, [join(root, path)]);
+        run.results.push({ iteration, scenario: path, ...result });
+        await save('offline-run', run);
+        if (!result.ok) {
+          run.state = 'OFFLINE_FAILED';
+          await save('offline-run', run);
+          throw new Error('Falló ' + path + ' (iteracion ' + iteration + ').');
+        }
+      }
+    }
+  }
+  run.state = 'OFFLINE_PASSED';
+  run.completedRuns = settings.mode === 'full' ? settings.runs : 1;
+  run.finishedAt = now();
+  await save('offline-run', run);
+  console.log('OFFLINE_PASSED: zero provider calls. artifacts/eval-qa/offline-run.json');
 }
 
-function stamp() { return new Date().toISOString(); }
+export function classifyArtifact(parsed, relativePath) {
+  // Deliberately never infer model quality from the existence of a report.
+  const p = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  const serialized = JSON.stringify(p ?? {});
+  const provenance = p?.fixtureProvenance ?? p?.provenance?.kind ?? p?.sourceType ?? null;
+  return {
+    path: relativePath, present: true,
+    sha256: createHash('sha256').update(serialized).digest('hex'),
+    provenanceLabel: typeof provenance === 'string' ? provenance.slice(0, 100) : 'UNVERIFIED',
+    qualityVerified: false,
+    warning: 'Existencia o formato de informe NO demuestra inferencia real ni gold validado.',
+  };
+}
 
 async function createReport() {
-  const filenames = {
+  const paths = {
     cues: 'artifacts/cue-qa/report.json',
     seminar: 'artifacts/seminar-qa/contract.json',
     codex: 'artifacts/codex-qa/summary.json',
     meta: 'artifacts/seminar-live/report.json',
     baseten: 'artifacts/seminar-baseten/report.json',
     comparison: 'artifacts/seminar-compare/report.json',
+    offlineRun: 'artifacts/eval-qa/offline-run.json',
   };
-  const inventory = {};
-  for (const [name, rel] of Object.entries(filenames)) {
-    try {
-      const parsed = JSON.parse(await readFile(join(repoRoot, rel), 'utf8'));
-      inventory[name] = { present: true, type: typeof parsed, path: rel };
-    } catch {
-      inventory[name] = { present: false, path: rel };
-    }
+  const files = {};
+  for (const [name, p] of Object.entries(paths)) {
+    try { files[name] = classifyArtifact(JSON.parse(await readFile(join(root, p), 'utf8')), p); }
+    catch { files[name] = { path: p, present: false, qualityVerified: false }; }
   }
-  const report = { createdAt: stamp(), kind: 'artifact_inventory_not_quality_score',
-    note: 'Presencia de informes, no prueba de ejecucion real ni calidad de modelos.',
-    files: inventory };
+  const report = {
+    schemaVersion: 1, createdAt: now(), kind: 'ARTIFACT_INVENTORY_NOT_PROVIDER_SCORE',
+    files, providerQualityMeasured: false,
+    warning: 'No declarar ganadores Meta/Baseten sin ejecutar casos pareados y verificar gold.',
+  };
   await save('report', report);
-  const lines = [
-    '# RunQ — inventario de evaluaciones',
-    '',
-    'Informe offline. La presencia de un artefacto NO demuestra que proceda de una API real.',
-    '',
-    '| Informe | Estado | Ubicacion |',
+  const lines = ['# RunQ — inventario de evaluaciones', '',
+    'No es un informe de precision real de los proveedores.','',
+    '| Artefacto | Archivo | Procedencia validada |',
     '| --- | --- | --- |',
-    ...Object.entries(inventory).map(([k, v]) =>
-      '| ' + k + ' | ' + (v.present ? 'Encontrado' : 'No disponible') +
-      ' | \`' + v.path + '\` |'),
-    '',
-    'La puntuacion de Meta y Baseten debe interpretarse solo tras validar la procedencia y emparejar los casos.',
-    '',
-  ];
-  await writeFile(join(outputRoot, 'report.md'), lines.join('\n'));
-  console.log('REPORT_OK: artifacts/eval-qa/report.md y report.json (sin llamadas de pago).');
-}
-
-async function full(runs) {
-  const record = { createdAt: stamp(), mode: 'full_offline', runsRequested: runs, results: [],
-    note: 'Chrome utiliza motor de audio simulado; no certifica hardware real ni IA remota.' };
-  const core = execute('npm', ['run', 'qa:codex']);
-  record.results.push({ check: 'qa:codex', ...core });
-  await save('full-last', record);
-  if (!core.ok) throw new Error('Fallo en qa:codex; consulta la salida anterior.');
-  try { await import('playwright-core'); } catch {
-    record.results.push({ check: 'playwright-core', ok: false, reason: 'not_installed' });
-    await save('full-last', record);
-    throw new Error('Falta playwright-core. Instala: npm install --no-save --package-lock=false playwright-core@1.56.1');
-  }
-  for (const script of browserScenarios) await access(join(repoRoot, script));
-  for (let i = 1; i <= runs; i++) {
-    for (const script of browserScenarios) {
-      console.log('\n[RunQ eval] Iteracion ' + i + '/' + runs + ': ' + script);
-      const result = execute(process.execPath, [join(repoRoot, script)]);
-      record.results.push({ iteration: i, check: script, ...result });
-      await save('full-last', record);
-      if (!result.ok) throw new Error('Fallo en ' + script + ' (iteracion ' + i + ').');
-    }
-  }
-  record.finishedAt = stamp();
-  record.ok = true;
-  await save('full-last', record);
-  console.log('FULL_OFFLINE_OK: ' + runs + ' iteraciones de 4 pruebas Chrome.');
+    ...Object.entries(files).map(([name, f]) =>
+      '| ' + name + ' | ' + (f.present ? 'Encontrado' : 'Ausente') + ' | NO |'),
+    '', 'Los informes procedentes de fixtures sintéticos no miden la precisión de Meta, Baseten o Modal.'];
+  await writeFile(join(outputs, 'report.md'), lines.join('\n') + '\n');
+  console.log('REPORT_INVENTORY_ONLY: artifacts/eval-qa/report.md');
 }
 
 export async function main(mode, args) {
-  const options = parseEvalArguments(mode, args);
-  if (mode === 'ai') {
-    const plan = {
-      createdAt: stamp(), mode: 'PLAN_ONLY_NO_PROVIDER_CALLS',
-      provider: options.provider, requestedRuns: options.runs,
-      executedRuns: 0,
-      warning: 'No se ha ejecutado inferencia. El presupuesto existente del repositorio limita las campañas reales.',
-      existingPlanCommand: options.provider === 'meta' ? 'npm run qa:meta:plan' : 'npm run qa:baseten:plan',
-    };
-    await save('ai-' + options.provider + '-plan', plan);
-    console.log('AI_PLAN_ONLY: ' + options.runs + ' ejecuciones solicitadas para ' + options.provider +
-      '; 0 ejecutadas y $0 gastados. Revisa artifacts/eval-qa/ai-' + options.provider + '-plan.json');
-  } else if (mode === 'full') {
-    await full(options.runs);
+  const settings = parseEvalArguments(mode, args);
+  if (mode === 'report') return createReport();
+  const plan = makePlan(settings, await loadCatalog());
+  const basename = mode === 'ai' ? 'ai-' + settings.provider + '-plan' : mode + '-plan';
+  await save(basename, { ...plan, generatedAt: now() });
+  if (mode === 'video') {
+    const shots = [...new Set(plan.scenarios.map(x => x.videoShot).filter(Boolean))].sort();
+    console.log('VIDEO_PLAN_ONLY: ' + shots.join(', ') + '; pruebas de captura NO ejecutadas.');
   } else {
-    await createReport();
+    console.log('EVAL_PLAN_ONLY: ' + settings.mode + ' ' + settings.runs +
+      ' repeticiones; 0 ejecutadas, 0 llamadas de proveedor.');
+  }
+  if (settings.executeOffline) {
+    if (settings.mode !== 'offline' && settings.mode !== 'full') throw new Error('Solo se ejecuta QA local.');
+    await executeOffline(settings, plan);
   }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  main(process.argv[2], process.argv.slice(3)).catch(e => {
-    console.error('EVAL_ERROR: ' + e.message);
+  main(process.argv[2], process.argv.slice(3)).catch(error => {
+    console.error('EVAL_ERROR: ' + error.message);
     process.exitCode = 1;
   });
 }
