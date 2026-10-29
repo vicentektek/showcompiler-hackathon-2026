@@ -20,6 +20,7 @@ function mountUnifiedSound(){
   document.documentElement.classList.add('rq10');
   audio.dataset.rq10Unified='true';
   lab.removeAttribute('data-workspaces');
+  lab.hidden=false; // Parent Audio workspace owns visibility from now on.
   lab.classList.add('rq10-integrated-lab');
   grid.append(lab);
   const header=document.createElement('div');
