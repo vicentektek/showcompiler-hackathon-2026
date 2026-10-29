@@ -127,7 +127,7 @@ function createAudioEnhancements(){
   const updateCounts=()=>{
     const rows=assetList.querySelectorAll('.asset-list-row');
     assetCount.textContent=String(rows.length);
-    readyCount.textContent=String([...rows].filter(row=>!row.querySelector('[data-asset-audition]')?.disabled).length);
+    readyCount.textContent=String([...rows].filter(row=>row.dataset.audioLoaded==='true').length);
   };
   new MutationObserver(updateCounts).observe(assetList,{childList:true});
   updateCounts();
