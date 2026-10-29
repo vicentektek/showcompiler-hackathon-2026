@@ -98,7 +98,7 @@ try{
     await page.locator('#duration').fill('2');
     page.once('dialog',dialog=>dialog.accept());
     await page.locator('#generateBtn').click();
-    await page.waitForFunction(()=>document.querySelector('#jobState')?.textContent?.includes('Preparando'));
+    await page.waitForFunction(()=>/^(Preparing your sound|Preparando tu sonido)/.test(document.querySelector('#jobState')?.textContent||''));
     assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true);
     assert.equal(await page.locator('#generateBtn').isDisabled(),true,
       'An unresolved prior job must block another SFX generation');
