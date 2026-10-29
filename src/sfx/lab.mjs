@@ -623,6 +623,10 @@ function bindEvents(){
       viewJob(await accepted.json());
     }
     if(!canUseAcceptedSource())throw new Error('La toma no está aceptada; no se ha importado.');
+    // Release the single audio-preview lease before the existing library
+    // importer checks its transport safety gate. Without this, a sounding
+    // prelisten blocks saving, even though the take has been reviewed.
+    stopSoundLabAudition();
     const result=await state.onImportReviewed({
       createCue,job:structuredClone(state.job),
       audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
