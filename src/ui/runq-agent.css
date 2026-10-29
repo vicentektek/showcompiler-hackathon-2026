@@ -1,0 +1,44 @@
+/* RUNQ AI Agent: scoped Studio drawer, no overlay on critical transport. */
+.rq-agent-drawer[hidden],#rqAgentToggle[hidden],.rq-agent-proposal[hidden]{display:none!important}
+.rq-agent-drawer{position:fixed;z-index:85;top:74px;right:12px;bottom:14px;
+ width:min(458px,calc(100vw - 24px));display:flex;flex-direction:column;gap:0;
+ background:#171e29;color:#e6ebf3;border:1px solid #40516a;border-radius:12px;
+ box-shadow:0 20px 60px #000a;overflow:hidden;font:inherit}
+.rq-agent-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ padding:14px 16px;background:#202b3b;border-bottom:1px solid #39495e}
+.rq-agent-title{display:flex;flex-direction:column;gap:3px}
+.rq-agent-title strong{font-size:15px;letter-spacing:.02em}
+.rq-agent-title small{color:#b3c3d5;font-size:11px}
+.rq-agent-messages{flex:1;min-height:100px;overflow:auto;padding:14px;
+ display:flex;flex-direction:column;gap:10px}
+.rq-agent-message{max-width:96%;border:1px solid #354256;background:#222c3b;
+ border-radius:9px;padding:10px 11px;overflow-wrap:anywhere}
+.rq-agent-message.user{background:#263b5c;border-color:#3d6193;align-self:flex-end}
+.rq-agent-message small{display:block;color:#a8bbd2;font-size:10px;font-weight:700;margin-bottom:5px}
+.rq-agent-message p{white-space:pre-wrap;margin:0;line-height:1.45;font-size:13px}
+.rq-agent-proposal{max-height:38%;overflow:auto;background:#1b283b;
+ border-top:1px solid #3c5475;padding:12px 14px}
+.rq-agent-proposal>strong{font-size:12px;color:#c6dbfa}
+.rq-agent-diff{display:flex;flex-direction:column;gap:7px;margin:9px 0 12px;
+ padding:0;list-style:none}
+.rq-agent-diff-item{padding:7px 9px;background:#253347;border:1px solid #364860;
+ border-radius:6px;font-size:12px;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere}
+.rq-agent-diff-item strong{font-size:12px}
+.rq-agent-diff-item small{color:#c6ced9;font-size:11px;white-space:pre-wrap}
+.rq-agent-compose{border-top:1px solid #3b4b62;background:#1d2735;padding:12px 14px;
+ display:flex;flex-direction:column;gap:8px}
+.rq-agent-compose>label:first-child{font-size:12px;font-weight:650}
+#rqAgentPrompt{display:block;resize:vertical;width:100%;min-height:75px;max-height:140px;
+ background:#111a26;color:#f1f5f9;border:1px solid #526782;border-radius:7px;
+ padding:9px;line-height:1.4;font:inherit;font-size:13px}
+#rqAgentPrompt:focus{outline:2px solid #7ca4e8;outline-offset:1px}
+.rq-agent-examples,.rq-agent-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rq-agent-consent{display:flex;align-items:flex-start;gap:8px;font-size:11px;
+ line-height:1.35;color:#c8d4e4;cursor:pointer}
+.rq-agent-consent input{width:16px;height:16px;flex:none;margin:1px 0}
+.rq-agent-actions .btn{white-space:normal;line-height:1.25}
+.rq-agent-status{font-size:11px;color:#bbd8c2;line-height:1.35}
+.rq-agent-status.is-error{color:#ffb7aa}
+@media(max-width:700px){.rq-agent-drawer{top:55px;right:5px;bottom:5px;
+ width:calc(100vw - 10px);border-radius:8px}
+ .rq-agent-compose{padding:9px}.rq-agent-messages{padding:9px}}
