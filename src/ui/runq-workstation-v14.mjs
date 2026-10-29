@@ -63,6 +63,11 @@ function install(){
  rehearsalState.setAttribute('role','status');
  rehearsal.append(rehearsalHeading,rehearsalCue,rehearsalState);
  monitor.append(monHeading,showLabel,nowTitle,nowSub,waveform,progress,clock,previous,next,rehearsal);
+ // Preserve the ORIGINAL V7 read-only cue browser/inspector with its real
+ // Set NEXT control and jump navigation. Place it in Stage's right-hand
+ // status column instead of allowing its old grid frame to block cue rows.
+ const originalLiveInspector=$('rq7LiveInspector');
+ if(originalLiveInspector)monitor.append(originalLiveInspector);
  stageBody.append(monitor);
  const events=make('section','rq14-events');
  events.id='rq14Events';
