@@ -542,6 +542,123 @@
 .shell .rq-operation-status {
   width: 360px;
   flex-shrink: 0;
+/* ── Script / Guion (mockup C) ── */
+.shell .script-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--rq-radius-sm);
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+}
+.shell .script-line:hover {
+  background: var(--rq-surface-hover);
+}
+.shell .script-line.selected {
+  background: var(--rq-selection-soft);
+  border: 1px solid var(--rq-selection);
+}
+.shell .script-line-number {
+  width: 40px;
+  font: 700 12px/1.3 var(--rq-font-mono);
+  color: var(--rq-text-muted);
+  align-self: center;
+}
+.shell .script-line-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--rq-text);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.shell .script-line-cues {
+  display: flex;
+  gap: 6px;
+  align-self: center;
+  flex-shrink: 0;
+}
+.shell .script-line-cue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--rq-panel-active);
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius-sm);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--rq-accent-blue);
+}
+.shell .script-search {
+  width: 100%;
+  background: var(--rq-panel-active);
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius);
+  color: var(--rq-text);
+  padding: 7px 10px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+/* ── AI contextual suggestions (dock, non-intrusive) ── */
+.shell .rq-ai-dock {
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius);
+  margin: 10px 12px;
+  background: var(--rq-panel-active);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+}
+.shell .rq-ai-dock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--rq-border);
+  background: var(--rq-surface-hover);
+  flex-shrink: 0;
+}
+.shell .rq-ai-dock-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--rq-text-muted);
+  text-transform: uppercase;
+}
+.shell .rq-ai-dock-body {
+  padding: 10px 12px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+.shell .rq-ai-suggestion {
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--rq-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shell .rq-ai-suggestion-text {
+  font-size: 12px;
+  color: var(--rq-text);
+}
+.shell .rq-ai-suggestion-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.shell .rq-ai-suggestion-actions .rq-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+}
   border-left: 1px solid var(--rq-border);
   display: flex;
   flex-direction: column;
