@@ -38,7 +38,8 @@ export function parseEvalArguments(mode, argv = []) {
     throw new Error('Modo desconocido: ' + mode);
   }
   const allowed = mode === 'ai' ? ['--provider', '--runs'] :
-    mode === 'offline' || mode === 'full' ? ['--runs', '--execute-offline'] : [];
+    mode === 'offline' ? ['--execute-offline'] :
+    mode === 'full' ? ['--runs', '--execute-offline'] : [];
   const values = new Map();
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
