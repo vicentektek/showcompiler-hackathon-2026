@@ -32,6 +32,7 @@ const state = {
   fileOrigin:null, loadedRemoteRequestId:null, auditionedRemoteRequestId:null,
   inSeconds:0, outSeconds:0, fadeInSeconds:0, fadeOutSeconds:0, dragStart:null, settings:null,
   onImportReviewed:null,
+  onReservePreview:null, onPreviewReleased:null, previewReserved:false, previewEpoch:0,
 };
 const $ = id => document.getElementById(id);
 const text = (id,value) => { const element=$(id); if(element)element.textContent=value; };
@@ -170,10 +171,16 @@ function formatTime(seconds){
   return String(Math.floor(whole/60)).padStart(2,'0')+':'+String(whole%60).padStart(2,'0')+'.'+String(Math.floor((seconds-whole)*1000)).padStart(3,'0');
 }
 export function stopSoundLabAudition(){
+  // Invalidates a pending AudioContext.resume() before it can start sound.
+  state.previewEpoch++;
   const source=state.source;
   state.source=null;
   if(source){source.onended=null;try{source.stop();}catch{}try{source.disconnect();}catch{}}
   if(state.gain){try{state.gain.disconnect();}catch{}state.gain=null;}
+  if(state.previewReserved){
+    state.previewReserved=false;
+    try{state.onPreviewReleased?.();}catch{}
+  }
   updateControls();
 }
 function drawWave(){
@@ -454,7 +461,17 @@ function bindEvents(){
   $('playBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.audio)return;
     stopSoundLabAudition();
-    const context=await ensureContext();const source=context.createBufferSource();const gain=context.createGain();
+    // The show controller owns the global GO/preview lease. Reserve it
+    // synchronously BEFORE awaiting device unlock to prevent a concurrent GO.
+    if(typeof state.onReservePreview!=='function'||state.onReservePreview()!==true)
+      throw new Error('Detén los cues activos o la preescucha antes de escuchar un sonido.');
+    state.previewReserved=true;
+    const epoch=state.previewEpoch;
+    try{
+    const context=await ensureContext();
+    if(epoch!==state.previewEpoch||!state.previewReserved)
+      throw new Error('Preescucha cancelada por PARAR TODO.');
+    const source=context.createBufferSource();const gain=context.createGain();
     source.buffer=state.audio;
     const level=Number($('monitorLevel').value)/100;
     const now=context.currentTime;
@@ -468,10 +485,22 @@ function bindEvents(){
       gain.gain.linearRampToValueAtTime(0,now+length);
     }
     source.connect(gain);gain.connect(context.destination);state.source=source;state.gain=gain;
-    source.onended=()=>{if(state.source===source){state.source=null;gain.disconnect();state.gain=null;updateControls();}};
+    source.onended=()=>{
+      if(state.source===source){
+        state.source=null;
+        try{gain.disconnect();}catch{}
+        state.gain=null;
+        if(state.previewReserved){
+          state.previewReserved=false;
+          try{state.onPreviewReleased?.();}catch{}
+        }
+        updateControls();
+      }
+    };
     source.start(0,state.inSeconds,state.outSeconds-state.inSeconds);
     if(state.fileOrigin==='remote')state.auditionedRemoteRequestId=state.loadedRemoteRequestId;
     updateControls();inform('Previewing the reviewed region through the default audio output.');
+    }catch(error){stopSoundLabAudition();throw error;}
   }));
   $('stopBtn').addEventListener('click',()=>{stopSoundLabAudition();inform('Preview stopped.');});
   for(const id of ['inPoint','outPoint'])$(id).addEventListener('change',()=>{
@@ -565,9 +594,11 @@ async function checkConnection(){
   })();
   try{await connectionCheck;}finally{connectionCheck=null;}
 }
-export async function initializeSoundLab({onImportReviewed}={}){
+export async function initializeSoundLab({onImportReviewed,onReservePreview,onPreviewReleased}={}){
   if(!requiredDom())throw new Error('Sound Lab workspace is unavailable');
   if(typeof onImportReviewed==='function')state.onImportReviewed=onImportReviewed;
+  if(typeof onReservePreview==='function')state.onReservePreview=onReservePreview;
+  if(typeof onPreviewReleased==='function')state.onPreviewReleased=onPreviewReleased;
   if(!state.initialized){
     state.initialized=true;bindEvents();bindScriptCompiler();
     try{$('requestId').value=localStorage.getItem('runq-sfx-last-id-v1')??'';}catch{}
