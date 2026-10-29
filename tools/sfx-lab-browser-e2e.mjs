@@ -57,7 +57,7 @@ try{
     }
     return route.continue();
   });
-  await page.goto('http://127.0.0.1:'+port+'/',{waitUntil:'domcontentloaded'});
+  await page.goto('http://127.0.0.1:'+port+'/?sfxqa=1',{waitUntil:'domcontentloaded'});
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'audio');
   assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1,
