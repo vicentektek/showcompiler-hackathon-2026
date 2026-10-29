@@ -417,12 +417,17 @@
 }
 .rq13 .rq13-wave-dock .rq5-wave-stats strong{font-size:9px!important}
 .rq13 .rq13-wave-dock .rq5-wave-note{display:none!important}
-.rq13 .rq5-audio-library #assetList{
-  /* A percentage height on a flex child let the list grow with 40+ files.
-     Zero flex basis consumes ONLY remaining pane height and scrolls inside. */
+.rq8.rq13 .shell[data-active-workspace="audio"] .rq12-library #assetList{
+  /* Force the intended VERTICAL catalogue. The legacy .tags rule set a
+     horizontal flex row: 43 files marched offscreen to the right and the
+     list reported scrollHeight=clientHeight. That was the root cause. */
+  display:flex!important;flex-direction:column!important;
+  flex-wrap:nowrap!important;align-items:stretch!important;
+  justify-content:flex-start!important;
   min-height:100px!important;height:0!important;
   flex:1 1 0%!important;max-height:100%!important;
-  overflow-y:auto!important;overscroll-behavior:contain!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
 }
 .rq13 .rq13-media-columns{
   display:grid;grid-template-columns:minmax(0,1fr) 32px 55px;
