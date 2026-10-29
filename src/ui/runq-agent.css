@@ -47,3 +47,8 @@
 .rq-agent-op{padding:5px 7px;border:1px solid #354c68;border-radius:5px;background:#222e41}
 .rq-agent-op label{display:flex;gap:8px;align-items:center;font-size:11px;color:#d9e4f4;cursor:pointer}
 .rq-agent-op input{width:15px;height:15px;flex:none;accent-color:#7da7f2}
+
+.rq-agent-provider{display:flex;align-items:center;justify-content:space-between;gap:8px;
+ font-size:11px;color:#c8d4e4}
+.rq-agent-provider select{min-width:160px;max-width:58%;padding:6px 8px;border:1px solid #536785;
+ border-radius:6px;background:#121d2b;color:#edf4fa;font:inherit}
