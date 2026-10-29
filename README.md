@@ -6,7 +6,7 @@ ShowCompiler is a new, hackathon-only browser prototype for turning theatre scri
 
 ## Run locally
 
-Node.js 20 or newer is required; there are no npm dependencies to install.
+Node.js 20 or newer is required. Run `npm install` once to install the pinned local libarchive.js dependency used for RAR/7z imports. Offline tests never call paid model providers.
 
 ```sh
 npm test
@@ -14,6 +14,10 @@ npm run check:syntax
 npm run demo:package
 npm run dev
 ```
+
+**RUNQ V14 + AI Agent preview (29 October 2026):** The default `main` branch is documentation-only and is not the runnable V14 application. Use the experimental agent branch, or the isolated QA fix branch `fix/runq-v14-agent-audit-2026-10-29`. On Windows, run `powershell -ExecutionPolicy Bypass -File .\\tools\\runq-preflight.ps1 -RunTests -StartServer` to validate the local checkout and start the browser server on an available port. It never accesses provider keys or executes paid AI requests. To preserve another checkout, use a separate `git worktree`.
+
+The preview is not an installed Windows application. JSON export does not bundle WAV/MP3 data; save/open a complete show ZIP for local audio portability. Large WAV, RAR and 7z imports have explicit limits; use the library's displayed errors rather than assuming a corrupted project.
 
 Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface; Spanish is selectable. `npm run demo:core` runs the terminal-only review demonstration.
 
