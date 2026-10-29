@@ -177,3 +177,97 @@
 .sfx-fade-editor input[type="range"]{width:100%;accent-color:#8ad4f7;cursor:ew-resize}
 .sfx-fade-editor select{padding:7px;border:1px solid #5a7079;border-radius:4px;background:#15232b;color:#eaf4f7}
 .sfx-audio-panel #importCueBtn{background:#257160;color:white;white-space:normal}
+
+
+/* RUNQ Sound Lab simple flow — deliberately scope this to generator only.
+   Existing advanced functions remain available under native details controls. */
+.sfx-lab .sfx-assistant-options,
+.sfx-lab .sfx-older-takes,
+.sfx-lab .sfx-extra-import,
+.sfx-lab .sfx-sound-edits,
+.sfx-lab .sfx-save-extra {
+  border:1px solid #38424d;
+  border-radius:6px;
+  padding:8px 11px;
+  background:rgba(255,255,255,.025);
+}
+.sfx-lab .sfx-assistant-options > summary,
+.sfx-lab .sfx-older-takes > summary,
+.sfx-lab .sfx-extra-import > summary,
+.sfx-lab .sfx-sound-edits > summary,
+.sfx-lab .sfx-save-extra > summary {
+  cursor:pointer;
+  font-size:12px;
+  font-weight:600;
+  color:#b8c4cb;
+  list-style-position:inside;
+}
+.sfx-lab .sfx-assistant-options[open],
+.sfx-lab .sfx-older-takes[open],
+.sfx-lab .sfx-extra-import[open],
+.sfx-lab .sfx-sound-edits[open],
+.sfx-lab .sfx-save-extra[open] {border-color:#5a6979;}
+.sfx-lab .sfx-assistant-options > .sfx-advanced-content,
+.sfx-lab .sfx-sound-edits > .sfx-advanced-content,
+.sfx-lab .sfx-save-extra > .sfx-buttons,
+.sfx-lab .sfx-older-takes > .sfx-history-panel {
+  margin-top:12px;
+}
+.sfx-lab .sfx-assistant-options > .sfx-advanced-content,
+.sfx-lab .sfx-sound-edits > .sfx-advanced-content {
+  display:grid;
+  gap:11px;
+}
+.sfx-lab .sfx-card {
+  border-radius:9px;
+}
+.sfx-lab .sfx-job-info {
+  border-top:0;
+  margin-top:4px;
+  padding-top:5px;
+}
+.sfx-lab #jobState {
+  font-size:12px;
+  letter-spacing:0;
+  text-transform:none;
+}
+.sfx-lab .sfx-export {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
+  border-top:1px solid #425060;
+  padding-top:17px;
+  margin-top:16px;
+}
+.sfx-lab .sfx-export h3 {margin:0 0 5px;font-size:15px;}
+.sfx-lab .sfx-export p {margin:0;max-width:330px;color:#bac8d3;}
+.sfx-lab .sfx-export > .sfx-buttons {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.sfx-lab #importLibraryBtn {
+  min-width:150px;
+  min-height:42px;
+  font-weight:750;
+}
+.sfx-lab #sfxAnotherVariationBtn {min-height:42px;}
+.sfx-lab .sfx-save-extra {align-self:center;}
+.sfx-lab .sfx-buttons > .sfx-save-extra {
+  display:block;
+  flex:0 0 auto;
+}
+.sfx-lab .sfx-cost.ready {
+  background:transparent;
+  border:1px solid #4a5e57;
+  color:#b8d8c5;
+}
+.sfx-lab .sfx-checkline[hidden] {display:none!important;}
+.sfx-lab .sfx-source-file label {font-size:11px;}
+.sfx-lab .sfx-more-actions {color:#b4c0c7;}
+@media (max-width:1100px) {
+  .sfx-lab .sfx-export{flex-direction:column;align-items:stretch;}
+  .sfx-lab .sfx-export > .sfx-buttons{justify-content:flex-start;}
+}
