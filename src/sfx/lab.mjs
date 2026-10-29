@@ -416,6 +416,8 @@ async function action(operation){
   try{await operation();}
   catch(error){
     if(typeof error?.code==='string'&&error.code.startsWith('SFX_')){
+      // A blocked or uncertain attempt never retains authorization for later.
+      if($('confirmRequest'))$('confirmRequest').checked=false;
       try{await refreshSfxHistory();}catch{/* Existing journal still protects reservations. */}
       inform(explainSfxError(error.code,sfxUiLocale())+
         (error.requestId?' Registro: '+error.requestId:''),true);
