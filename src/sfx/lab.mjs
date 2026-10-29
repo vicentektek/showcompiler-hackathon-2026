@@ -598,15 +598,28 @@ function bindEvents(){
     finally{setTimeout(()=>URL.revokeObjectURL(url),1500);}
     inform('Original verified PCM16 WAV downloaded. The reviewed IN/OUT did not alter it.');
   }));
-  $('importLibraryBtn').addEventListener('click',()=>void action(async()=>{
-    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accepted generated source is not available for integrated import');
-    if(!confirm('Import the verified original WAV into this show library? It will not be assigned to a cue automatically.'))return;
+  async function commitReviewedSfx(createCue=false){
+    if(!canCommitCurrentSfx())throw new Error('Escucha la toma generada antes de guardarla.');
+    const message=createCue
+      ? 'Aceptar esta toma, guardarla en la biblioteca y crear UN cue editable? GO seguirá siendo manual.'
+      : 'Aceptar esta toma y guardarla en la biblioteca del proyecto? No se creará ni ejecutará ningún cue.';
+    if(!confirm(message))return; // No review or import before user confirmation.
+    if(state.job.status==='READY_FOR_REVIEW'){
+      const accepted=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{
+        method:'POST',data:{decision:'ACCEPT'},
+      });
+      viewJob(await accepted.json());
+    }
+    if(!canUseAcceptedSource())throw new Error('La toma no está aceptada; no se ha importado.');
     const result=await state.onImportReviewed({
-      job:structuredClone(state.job),audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
-      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
+      createCue,job:structuredClone(state.job),
+      audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
+      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,
+        fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
     });
-    inform(result?.message??'Accepted source imported to the local library. Assign it to a cue manually.');
-  }));
+    inform(result?.message??(createCue?'WAV guardado y cue creado.':'WAV guardado en la biblioteca.'));
+  }
+  $('importLibraryBtn').addEventListener('click',()=>void action(()=>commitReviewedSfx(false)));
   // These buttons are contributed by the unified workspace. Unlike AI
   // acceptance, local sources are already registered; no additional upload.
   const reviewedRegion=()=>Object.freeze({
@@ -633,17 +646,7 @@ function bindEvents(){
     });
     inform(result?.message??'Source and edits assigned to existing cue');
   }));
-  $('importCueBtn').addEventListener('click',()=>void action(async()=>{
-    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accept and review a generated take first');
-    if(!confirm('Import verified WAV AND create one manual cue? GO stays manual.'))return;
-    const result=await state.onImportReviewed({
-      createCue:true,job:structuredClone(state.job),
-      audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
-      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,
-        fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
-    });
-    inform(result?.message??'Created an editable sound cue.');
-  }));
+  $('importCueBtn').addEventListener('click',()=>void action(()=>commitReviewedSfx(true)));
   window.addEventListener('resize',drawWave);
   window.addEventListener('pagehide',()=>{stopSoundLabAudition();if(state.context)void state.context.close();});
 }
