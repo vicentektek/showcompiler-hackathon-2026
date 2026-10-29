@@ -129,8 +129,9 @@ function caseCheck(id,category,rand){
   if(scenario===4)prompt='elimina el cue 999';
   expected={kind:'NO_PLAN'};
  }else if(category==='reorder-and-undo'){
-  const from=2+Math.floor(rand()*3),to=1;
   const before=variant%2===0;
+  const from=before?2+Math.floor(rand()*3):2+Math.floor(rand()*2);
+  const to=before?1:4;
   prompt=before?('Mueve el cue '+from+' antes del '+to):
    ('Move cue '+from+' after cue '+to);
   expected={kind:'REORDER_CUE',id:show.cues[from-1].id};
