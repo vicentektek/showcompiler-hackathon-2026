@@ -3,7 +3,7 @@ import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
 import { setCueEntryPolicy,planEntryStops,normalizeCueEntryPolicy } from '../core/cueEntryPolicy.mjs';
-import { insertManualCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue } from '../core/manualCues.mjs';
+import { insertManualCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue, reorderOperatorCue } from '../core/manualCues.mjs';
 import { stageAddCueTrack, stageChangeCueTrack, stageRemoveCueTrack } from '../core/cueTracks.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
@@ -111,6 +111,7 @@ let scriptMatchIndex = 0;
 let preflightVisible = false;
 let editingCueId = null;
 let selectedCueId = null; // Selection inspects only; it never changes the GO queue.
+let draggingCueId = null; // HTML5 drag source; only meaningful inside editable Cues.
 let inspectorTab = 'audio';
 let inspectorPendingChanges = false;
 let activeWorkspace = 'home';
@@ -293,6 +294,15 @@ function refreshAudioControls() {
   $('operatorSkipBtn').disabled = !prepared || audioInFlight || pending > 0;
   $('operatorResetBtn').disabled = !show.cues.length || audioInFlight || pending > 0 ||
     (preparedIndex === 0 && !operatorQueue.completedCueIds.length && !operatorQueue.skippedCueIds.length);
+  for (const button of document.querySelectorAll('[data-cue-quick-go]')) {
+    const cue = show.cues.find(item=>item.id===button.dataset.cueQuickGo);
+    const status = player.getStatus();
+    button.disabled = !cue || audioInFlight || bundleInFlight || auditioning ||
+      goTransportPending || status.pendingGoCount > 0 || status.auditionPending ||
+      cue.actions.some(action=>action.type!=='PLAY'||!player.hasAsset(action.assetId)) ||
+      (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)) ||
+      player.isPlaying(cue.id) || player.isStopping(cue.id);
+  }
   for (const button of document.querySelectorAll('[data-cue-action]')) {
     const cue = show.cues.find(item => item.id === button.dataset.cueId);
     if (!cue) continue;
@@ -769,7 +779,69 @@ function renderCueList({ resetScroll = false } = {}) {
       target?.focus();
       target?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
-    card.append(select);
+    // Direct row controls are distinct from selection: ▶ executes this cue
+    // without changing NEXT; ↦ prepares NEXT without playing. Both are
+    // accessible by keyboard and always visible, especially in Live.
+    const quick = node('div', 'rq9-row-actions');
+    const dragHandle=node('span','rq9-cue-grip','⠿');
+    dragHandle.title=uiLocale==='es'?'Arrastrar para reordenar (solo edición)':'Drag to reorder (editing only)';
+    dragHandle.setAttribute('aria-hidden','true');
+    dragHandle.draggable=activeWorkspace==='cues';
+    dragHandle.addEventListener('dragstart',event=>{
+      if(activeWorkspace!=='cues'){event.preventDefault();return;}
+      draggingCueId=cue.id;
+      event.dataTransfer.effectAllowed='move';
+      event.dataTransfer.setData('text/plain',cue.id);
+      card.classList.add('rq9-dragging');
+    });
+    dragHandle.addEventListener('dragend',()=>{
+      draggingCueId=null;
+      cueList.querySelectorAll('.rq9-drop-before,.rq9-drop-after,.rq9-dragging')
+        .forEach(row=>row.classList.remove('rq9-drop-before','rq9-drop-after','rq9-dragging'));
+    });
+    const play=node('button','rq9-cue-play','▶');
+    play.type='button';
+    play.dataset.cueQuickGo=cue.id;
+    play.setAttribute('aria-label',(uiLocale==='es'?'Ejecutar directamente cue ':'Run cue directly ')+cue.number+' · '+cue.label);
+    play.title=uiLocale==='es'?'GO directo · no cambia NEXT':'Direct GO · does not change NEXT';
+    play.disabled=true; // refreshAudioControls applies the real audio safety guards
+    play.addEventListener('click',()=>{
+      document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'manual_go'}}));
+      void executeCueById(cue.id,{advancePrepared:false});
+    });
+    const prepare=node('button','rq9-cue-next','↦');
+    prepare.type='button';
+    prepare.dataset.cueQuickNext=cue.id;
+    prepare.setAttribute('aria-label',(uiLocale==='es'?'Preparar como NEXT cue ':'Set as NEXT cue ')+cue.number+' · '+cue.label);
+    prepare.title=uiLocale==='es'?'Set NEXT · no reproduce audio':'Set NEXT · does not play audio';
+    prepare.disabled=operatorQueue.preparedCueId===cue.id;
+    prepare.addEventListener('click',()=>{
+      operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cue.id);
+      render();
+      feedback('operator.preparedFeedback',{number:cue.number},'success');
+    });
+    quick.append(dragHandle,play,prepare);
+    card.append(quick,select);
+    card.addEventListener('dragover',event=>{
+      if(activeWorkspace!=='cues'||!draggingCueId||draggingCueId===cue.id)return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect='move';
+      const after=event.clientY>=card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;
+      card.classList.toggle('rq9-drop-after',after);
+      card.classList.toggle('rq9-drop-before',!after);
+    });
+    card.addEventListener('dragleave',event=>{
+      if(!card.contains(event.relatedTarget))
+        card.classList.remove('rq9-drop-before','rq9-drop-after');
+    });
+    card.addEventListener('drop',event=>{
+      if(activeWorkspace!=='cues'||!draggingCueId||draggingCueId===cue.id)return;
+      event.preventDefault();
+      const sourceId=draggingCueId;
+      draggingCueId=null;
+      const after=event.clientY>=card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;
+      editCueSequence(()=>({project:reorderOperatorCue(show,sourceId,cue.id,after?'after':'before'),cueId:sourceId}));
+    });
     const sourceActions = node('div', 'item-actions cue-edit-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
     card.append(sourceActions);
@@ -808,17 +880,8 @@ function renderCueList({ resetScroll = false } = {}) {
       card.append(replaceAudio);
     }
     const controls = node('div', 'item-actions cue-operation-actions');
-    const prepare = node('button', 'btn accent small', t('operator.setNext'));
-    prepare.type = 'button';
-    prepare.disabled = operatorQueue.preparedCueId === cue.id;
-    prepare.addEventListener('click', () => {
-      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
-      render();
-      feedback('operator.preparedFeedback', { number: cue.number }, 'success');
-    });
-    controls.append(prepare);
-    // Only the global prepared-sequence GO can start playback. Row buttons stop
-    // an already-running cue or intentionally reposition the next GO.
+    // The per-row NEXT button is always visible in the left action rail.
+    // STOP/FADE remain separate commands for an already-running cue.
     const commands = [['stop', t('actions.stop'), 'btn subtle small'], ['fade', t('actions.fade'), 'btn subtle small']];
     for (const [action, title, style] of commands) {
       const button = node('button', style, title);
@@ -2055,14 +2118,13 @@ $('checkPreflightBtn').addEventListener('click', () => {
   preflightVisible = !preflightVisible;
   renderPreflight();
 });
-// V7 deliberately has no double-click or custom-event Prepare+GO path.
-// Only the guarded explicit GO transport (and expressly armed rehearsal) may start cues.
+// Row selection/double-click remains inspection-only. The explicit ▶ row
+// control is a separate intentional GO gesture; it never mutates NEXT.
 
 // Shared guarded path for manual GO and explicitly ARMED rehearsal auto-GO.
 // Both use the same audio engine, cue entry policies and completion logic.
 let goTransportPending=false;
-async function executePreparedGo(){
- const id=operatorQueue.preparedCueId;
+async function executeCueById(id,{advancePrepared=false}={}){
  if(!id||goTransportPending||audioInFlight||bundleInFlight)return false;
  const generation=projectGeneration;
  const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
@@ -2083,12 +2145,16 @@ async function executePreparedGo(){
    await player.go(cue);
    if(generation!==projectGeneration)return false;
    lastGoCueId=id;
-   if(operatorQueue.preparedCueId===id)operatorQueue=completePreparedCue(operatorQueue,show.cues,id);
+   if(advancePrepared&&operatorQueue.preparedCueId===id)
+     operatorQueue=completePreparedCue(operatorQueue,show.cues,id);
    render();
    feedback('operator.goFeedback',{number:cue.number},'success');
    return true;
  }catch(error){showError(error);return false;}
  finally{goTransportPending=false;refreshAudioControls();}
+}
+function executePreparedGo(){
+ return executeCueById(operatorQueue.preparedCueId,{advancePrepared:true});
 }
 $('operatorGoBtn').addEventListener('click',()=>{ 
  document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'manual_go'}}));
