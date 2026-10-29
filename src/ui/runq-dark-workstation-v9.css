@@ -653,3 +653,298 @@
   min-height:210px!important;max-height:60dvh!important;
  }
 }
+
+
+/* RUNQ V14 — two first-class work surfaces, one engine/cue sequence.
+   This is scoped in the existing canonical dark workstation stylesheet.
+   Nothing here fabricates waveform or output data. */
+.rq8.rq14{
+ --rq14-base:#14181f;
+ --rq14-panel:#1a1f27;
+ --rq14-panel-active:#202735;
+ --rq14-border:#344354;
+ --rq14-studio:#397fc8;
+ --rq14-rehearsal:#e1a94f;
+ --rq14-stage:#31ba77;
+ --rq14-emergency:#e46b76;
+}
+.rq8.rq14 .shell{
+ --rq14-accent:var(--rq14-studio);
+}
+.rq8.rq14 .shell[data-rq14-surface="rehearsal"]{--rq14-accent:var(--rq14-rehearsal)}
+.rq8.rq14 .shell[data-rq14-surface="stage"]{--rq14-accent:var(--rq14-stage)}
+.rq8.rq14 .topbar{
+ background:#151f2a!important;border-bottom:1px solid var(--rq14-border)!important;
+ box-shadow:inset 3px 0 var(--rq14-accent)!important;
+}
+.rq8.rq14 .rq8-marker{color:var(--rq14-accent)!important}
+.rq8.rq14 .shell[data-rq14-surface="rehearsal"] .workspace-tab[aria-pressed="true"],
+.rq8.rq14 .shell[data-rq14-surface="stage"] .workspace-tab[aria-pressed="true"]{
+ border-color:var(--rq14-accent)!important;
+ box-shadow:inset 3px 0 var(--rq14-accent)!important;
+ color:#eaf3f8!important;background:#263c4b!important;
+}
+.rq8.rq14 .shell[data-rq14-surface="stage"] .rq7-mode-button[aria-pressed="true"]{
+ background:#216348!important;color:#effff6!important;border-color:#4fb68a!important;
+}
+.rq8.rq14 .shell[data-rq14-surface="rehearsal"] .rq7-mode-button[aria-pressed="true"]{
+ background:#725123!important;color:#fff4dd!important;border-color:#d8a35d!important;
+}
+/* Global STOP is never made green. */
+.rq8.rq14 #stopAllBtn,
+.rq8.rq14 #operatorPanicBtn{
+ background:#783039!important;color:#fff!important;border-color:#d6727c!important;
+}
+/* Three density profiles; no action disappears in compact mode. */
+.rq8.rq14 .shell[data-cue-density="compact"]{
+ --rq14-row:30px;--rq14-font:11px;--rq14-pad:3px;
+}
+.rq8.rq14 .shell[data-cue-density="standard"]{
+ --rq14-row:38px;--rq14-font:12px;--rq14-pad:5px;
+}
+.rq8.rq14 .shell[data-cue-density="comfortable"]{
+ --rq14-row:46px;--rq14-font:13px;--rq14-pad:7px;
+}
+.rq8.rq14 .shell .rq5-show-workspace .cue-item{
+ min-height:var(--rq14-row,38px)!important;
+ border-radius:0!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .cue-row-select{
+ min-height:var(--rq14-row,38px)!important;
+ padding:var(--rq14-pad,5px) 7px!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .cue-row-title{
+ font-size:var(--rq14-font,12px)!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .rq9-row-actions{
+ min-height:var(--rq14-row,38px)!important;
+ align-items:center!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .rq9-row-actions .rq9-cue-play,
+.rq8.rq14 .shell .rq5-show-workspace .rq9-row-actions .rq9-cue-next{
+ min-height:27px!important;min-width:27px!important;
+}
+/* Contextual AI appears at the point of editing, never as a permanent chat. */
+.rq8.rq14 .rq14-script-ai{
+ display:flex!important;flex-wrap:wrap;align-items:center;gap:6px;
+ padding:6px 9px!important;border:1px solid #52759a;
+ border-left:3px solid #5298d8;border-radius:3px!important;
+ background:#1d3245;color:#e8f3fa;
+ max-width:100%;min-width:0!important;
+}
+.rq8.rq14 .rq14-script-ai[hidden]{display:none!important}
+.rq8.rq14 .rq14-script-ref{
+ flex:1;min-width:155px;overflow:hidden;text-overflow:ellipsis;
+ white-space:nowrap;font-size:11px;color:#d1e1f0;
+}
+.rq8.rq14 .rq14-script-ai .btn,
+.rq8.rq14 .rq14-cue-ai,
+.rq8.rq14 .rq14-library-ai{
+ min-height:29px!important;font-size:10px!important;
+ padding:5px 8px!important;border-radius:3px!important;
+ background:#263e52!important;color:#e2f4fc!important;
+ border:1px solid #50738d!important;
+}
+.rq8.rq14 .rq14-cue-ai{
+ margin-left:auto!important;max-width:142px!important;
+ text-align:center;
+}
+.rq8.rq14 .rq14-library-ai[hidden]{display:none!important}
+.rq8.rq14 .rq14-library-ai{
+ margin:4px 8px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
+ grid-template-columns:minmax(285px,.95fr) minmax(330px,1.05fr)!important;
+ grid-template-rows:minmax(0,1fr)!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-stage-body{
+ flex:1!important;min-height:145px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-sequence-frame{
+ min-height:0!important;grid-column:1!important;grid-row:1!important;
+ border-right:1px solid #415568!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor{
+ grid-column:2!important;grid-row:1!important;
+}
+.rq8.rq14 .rq14-stage-monitor{
+ display:flex;flex-direction:column;gap:9px;overflow:auto;
+ min-width:0;min-height:0!important;
+ padding:15px 18px!important;background:linear-gradient(160deg,#182a38,#101d28);
+ color:#e6f0f7;border-left:1px solid #3b5064;
+}
+.rq8.rq14 .rq14-stage-monitor[hidden]{display:none!important}
+.rq8.rq14 .rq14-monitor-heading{
+ font:800 11px ui-monospace,Consolas,monospace!important;
+ letter-spacing:.11em;color:var(--rq14-accent);
+}
+.rq8.rq14 .rq14-show-id{font-size:11px;color:#a8bdcc}
+.rq8.rq14 .rq14-now-title{
+ font-size:clamp(18px,2.1vw,27px)!important;
+ line-height:1.18!important;letter-spacing:-.035em;
+ overflow-wrap:anywhere;
+}
+.rq8.rq14 .rq14-now-sub{
+ font-size:12px;color:#a9c4d2;line-height:1.35;
+}
+.rq8.rq14 .rq14-progress-track{
+ background:#11202c;height:14px;min-height:14px;
+ border:1px solid #405e72;border-radius:3px;overflow:hidden;
+}
+.rq8.rq14 .rq14-progress-fill{
+ height:100%;width:0;background:var(--rq14-stage);
+ transition:width .35s linear;
+}
+.rq8.rq14 .rq14-time{
+ font:700 16px ui-monospace,Consolas,monospace;
+ font-variant-numeric:tabular-nums;color:#ebf5fc;
+}
+.rq8.rq14 .rq14-next-info{
+ padding:9px 10px!important;border:1px solid #3d5669;
+ border-radius:3px;background:#203544;
+ font-size:12px;font-weight:650;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-next-info:last-of-type{
+ border-color:#70804d;
+}
+.rq8.rq14 .rq14-rehearsal-context{display:none}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-rehearsal-context{
+ display:flex;flex-direction:column;gap:3px;
+}
+.rq8.rq14 .rq14-rehearsal-head{
+ font:750 10px ui-monospace,Consolas,monospace;color:#e9bb70;
+}
+.rq8.rq14 .rq14-rehearsal-cue{
+ margin:0!important;font-size:12px;color:#d9e8f3;
+ overflow-wrap:anywhere;
+}
+.rq8.rq14 .rq14-rehearsal-status{
+ font:700 11px ui-monospace,Consolas,monospace!important;color:#edc482;
+}
+.rq8.rq14 .rq14-rehearsal-status[data-auto-armed="true"]{
+ color:#bff3d9;
+}
+/* Rehearsal already has a real full script and microphone dock.
+   The second panel is compact and read-only to avoid duplicating commands. */
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq5-show-workspace .cue-workspace-body{
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:minmax(150px,1fr) minmax(110px,auto)!important;
+ overflow:hidden!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq5-sequence-frame{
+ grid-column:1!important;grid-row:1!important;
+ min-height:0!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-stage-monitor{
+ grid-column:1!important;grid-row:2!important;
+ border-top:1px solid #745d42;border-left:0;
+ padding:8px 12px!important;gap:4px!important;
+ background:#192838;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-now-title{
+ font-size:13px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-progress-track,
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-time,
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-next-info,
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-show-id{
+ display:none!important;
+}
+/* Stage control remains the original guarded GO/NEXT/STOP ALL transport. */
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace>.rq5-transport-dock{
+ order:0!important;
+ background:#15242e!important;border-bottom:1px solid #466173!important;
+ padding:7px 11px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .operator-queue{
+ min-height:106px!important;padding:10px 13px!important;
+ background:#1a2e33!important;border-color:#4f807a!important;
+ border-left:5px solid #37b77c!important;
+ box-shadow:none!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] #operatorGoBtn{
+ background:#22975b!important;color:white!important;
+ border:2px solid #4ad488!important;
+ font-size:24px!important;min-height:65px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] #operatorGoBtn:disabled{
+ background:#42505b!important;border-color:#63717d!important;
+ color:#aab6be!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] #operatorPanicBtn{
+ min-height:65px!important;font-size:17px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .operator-prepared{
+ font-size:20px!important;color:#dcfaeb!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .operator-kicker{
+ color:#85e6ac!important;
+}
+/* Real event log, bounded and read-only; never contains raw transcript. */
+.rq8.rq14 .rq14-events{
+ display:flex;flex-direction:column;flex:0 0 91px;
+ min-height:0!important;max-height:140px;
+ overflow:hidden;border-top:1px solid #3e5668;
+ background:#142330;color:#dae9f4;order:2;
+}
+.rq8.rq14 .rq14-events[hidden]{display:none!important}
+.rq8.rq14 .rq14-events-head{
+ display:flex;align-items:center;gap:9px;justify-content:space-between;
+ padding:5px 12px!important;min-height:27px;flex:none;
+ border-bottom:1px solid #395366;
+ font:750 10px ui-monospace,Consolas,monospace;
+ letter-spacing:.05em;color:#bdd2df;
+}
+.rq8.rq14 .rq14-events-count{font-variant-numeric:tabular-nums}
+.rq8.rq14 .rq14-events-list{
+ list-style:none!important;margin:0!important;padding:4px 10px!important;
+ display:flex;flex-direction:column;gap:2px;
+ flex:1;min-height:0;overflow-y:auto!important;
+ scrollbar-color:#58798d #172936;
+}
+.rq8.rq14 .rq14-event-row{
+ display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;
+ padding:3px 6px;border-bottom:1px solid #283f51;
+ font-size:10px;line-height:1.3;
+}
+.rq8.rq14 .rq14-event-row[data-event-type="GO_REJECTED"],
+.rq8.rq14 .rq14-event-row[data-event-type="AUDIO_ERROR"]{color:#f2a5a5}
+.rq8.rq14 .rq14-event-row[data-event-type="CUE_STARTED"]{color:#a8e6c6}
+.rq8.rq14 .rq14-event-time{font-variant-numeric:tabular-nums;color:#9db5c5}
+.rq8.rq14 .rq14-event-name{overflow-wrap:anywhere}
+.rq8.rq14 .rq14-empty{font-size:10px;color:#8ca6b8}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-events{
+ display:none!important; /* Real voice dock retains remaining vertical space. */
+}
+/* Avoid hiding control rails behind a fixed monitor at compact resolutions. */
+@media(max-width:1080px){
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
+  grid-template-columns:minmax(245px,1fr) minmax(260px,.8fr)!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor{
+  padding:10px!important;gap:7px!important;
+ }
+}
+@media(max-width:740px){
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(150px,1fr) 165px!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq5-sequence-frame{
+  grid-column:1!important;grid-row:1!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor{
+  grid-column:1!important;grid-row:2!important;
+  border-top:1px solid #405a6f;border-left:0;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-now-title{font-size:16px!important}
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-next-info{padding:4px!important}
+ .rq8.rq14 .shell[data-active-workspace="operation"] .operator-queue{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] #operatorGoBtn,
+ .rq8.rq14 .shell[data-active-workspace="operation"] #operatorPanicBtn{
+  min-height:53px!important;font-size:18px!important;
+ }
+ .rq8.rq14 .rq14-events{flex-basis:65px}
+}
