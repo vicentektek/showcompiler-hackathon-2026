@@ -1,0 +1,21 @@
+A theatre cue is a promise: when the moment arrives, the right sound has to happen.
+
+But before opening night, someone has to read the entire script, identify every sound, find or create the audio, and build a cue list. Then the cast starts rehearsing — skipping scenes, repeating lines, changing the timing.
+
+Meet RunQ: an AI-assisted cue workflow for live performance.
+
+Start with a script. RunQ keeps the original text intact, with precise line references. Meta Muse Spark analyzes the dramatic context and suggests where sound may be needed — from a sudden impact to a continuous atmosphere.
+
+Every suggestion is tied to its source in the script. The AI does not decide what plays. A human operator reviews the proposal, accepts or rejects it, and chooses the right audio.
+
+Once a cue is ready, RunQ brings the sound into the editor. You can inspect the waveform, trim the region, adjust fades, and prepare the sequence without changing the original file.
+
+Now comes the hard part: rehearsal. Actors don't always follow the script in order.
+
+In RunQ's rehearsal mode, speech recognition can follow spoken cues. With explicit operator arming, the rehearsal autopilot can respond to a repeated line, jump ahead, or return to an earlier moment — without firing the cues in between.
+
+And for performance, the operator stays in control. Prepare the next cue. Press GO. Stop an individual sound, or use STOP ALL.
+
+RunQ combines AI-powered script understanding, practical sound editing, and a rehearsal-first workflow — designed around the people who make live shows happen.
+
+From words on a page to sound on cue. RunQ.
