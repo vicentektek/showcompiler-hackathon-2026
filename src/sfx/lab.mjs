@@ -93,6 +93,50 @@ function canUseAcceptedSource(){
     state.job.requestId===state.loadedRemoteRequestId &&
     state.sourceBytes instanceof ArrayBuffer;
 }
+/**
+ * Only an actually auditioned, downloaded remote WAV can be committed to a
+ * show. Approval and import remain one explicit operator decision, never GO.
+ */
+export function canCommitReviewedSfx({status,requestId,loadedId,auditionedId,sourceOrigin,hasBytes,hasImporter}={}){
+  return ['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT'].includes(status) &&
+    typeof requestId==='string' && requestId.length>0 &&
+    requestId===loadedId && requestId===auditionedId &&
+    sourceOrigin==='remote' && hasBytes===true && hasImporter===true;
+}
+function canCommitCurrentSfx(){
+  return canCommitReviewedSfx({
+    status:state.job?.status,requestId:state.job?.requestId,
+    loadedId:state.loadedRemoteRequestId,auditionedId:state.auditionedRemoteRequestId,
+    sourceOrigin:state.fileOrigin,hasBytes:state.sourceBytes instanceof ArrayBuffer,
+    hasImporter:typeof state.onImportReviewed==='function',
+  });
+}
+export function nextSfxVariationSeed(input){
+  const seed=Number(input);
+  return Number.isSafeInteger(seed)&&seed>=0&&seed<=2147483647
+    ? (seed+1)%2147483648 : 42;
+}
+export function assessSfxPrompt(prompt,duration,locale='es'){
+  const value=String(prompt??'').trim();
+  const t=(spanish,english)=>locale==='en'?english:spanish;
+  if(!value)return t(
+    'Describe qué suena, qué ocurre y cómo se escucha. El modelo SFX trabaja mejor con descripciones en inglés.',
+    'Describe the source, action and recording character. Small-SFX works best with English descriptions.');
+  if(/[áéíóúñ¿¡]/i.test(value) || /\b(?:puerta|campana|lluvia|pasos|sonido|ruido|golpe|madera|escenario)\b/i.test(value))
+    return t('Este modelo fue entrenado principalmente en inglés. Reescribe la descripción en inglés antes de generar; no se traduce automáticamente.',
+      'Small-SFX was trained mainly on English. Rewrite your description in English; no automatic translation occurs.');
+  if(value.length<45)return t(
+    'Para más precisión, describe fuente, acción, material, distancia del micrófono y acústica.',
+    'For precision, describe the source, action, material, microphone distance and room character.');
+  if(/\b(?:then|followed by|afterwards|after that)\b/i.test(value))
+    return t('Este prompt contiene varios momentos. Para efectos concretos, prueba separar cada acción en una toma.',
+      'This prompt describes multiple events. For precise effects, split each action into a separate take.');
+  if(Number(duration)>=8 && /\b(?:single|one|short|hit|slams?|strikes?|snap|clap|chime)\b/i.test(value))
+    return t('Para un golpe aislado, prueba 2–4 segundos; una duración excesiva puede añadir ruido o eventos.',
+      'For an isolated impact, try 2–4 seconds; longer durations may add unwanted sounds.');
+  return t('Prueba otra semilla si el efecto no convence. Cambiar la semilla NO envía otra solicitud ni acepta gastos.',
+    'Try another seed if the take is poor. Changing the seed does NOT generate audio or authorize spending.');
+}
 function updateControls(){
   if(!requiredDom())return;
   const job=state.job;
@@ -127,8 +171,10 @@ function updateControls(){
   $('sfxFadeIn').disabled=!state.audio;
   $('sfxFadeOut').disabled=!state.audio;
   $('exportBtn').disabled=state.working||!canUseAcceptedSource();
-  $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
-  $('importCueBtn').disabled=$('importLibraryBtn').disabled;
+  const commitReady=canCommitCurrentSfx()&&!state.working;
+  $('importLibraryBtn').disabled=!commitReady;
+  $('importCueBtn').disabled=!commitReady;
+  text('sfxPromptQualityHint',assessSfxPrompt($('soundPrompt').value,Number($('duration').value),$('uiLocaleSelect')?.value));
   const fromLibrary=state.fileOrigin==='library'&&typeof state.libraryAssetId==='string'&&!!state.audio;
   const libraryActions=$('rq10LibraryEditActions');
   if(libraryActions)libraryActions.hidden=!fromLibrary;
@@ -251,8 +297,12 @@ function updateSfxEditorLocale(){
  modes[0].textContent=es?'Seleccionar IN/OUT':'Select IN/OUT';
  modes[1].textContent=es?'Mover fundido de entrada':'Move fade-in edge';
  modes[2].textContent=es?'Mover fundido de salida':'Move fade-out edge';
- text('importCueBtn',es?'Importar y crear cue':'Import + create cue');
+ text('acceptBtn',es?'Solo aceptar (sin importar)':'Accept only (without importing)');
+ text('sfxAnotherVariationBtn',es?'Otra variación (sin generar)':'Another variation (no generation)');
+ text('importLibraryBtn',es?'Guardar en biblioteca':'Save to library');
+ text('importCueBtn',es?'Guardar y crear cue':'Save & create cue');
  updateFades(state.fadeInSeconds,state.fadeOutSeconds);
+ updateControls();
 }
 function updateTrim(inSeconds,outSeconds){
   if(!state.audio)return;
@@ -418,6 +468,13 @@ function bindEvents(){
     $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
   }
   $('loadPresetBtn').addEventListener('click',applyPreset);
+  $('sfxAnotherVariationBtn')?.addEventListener('click',()=>{
+    const next=nextSfxVariationSeed($('seed').value);
+    $('seed').value=String(next);
+    $('confirmRequest').checked=false;
+    updateControls();
+    inform('Nueva semilla '+next+' preparada. No se ha enviado ninguna solicitud; revisa y autoriza otro intento si lo deseas.');
+  });
   // One explicit check combines the two safe steps users previously had to
   // discover: refresh the remote status ONCE, then download WAV if ready.
   // It never triggers a new generation, never retries an uncertain submission
@@ -553,15 +610,40 @@ function bindEvents(){
     finally{setTimeout(()=>URL.revokeObjectURL(url),1500);}
     inform('Original verified PCM16 WAV downloaded. The reviewed IN/OUT did not alter it.');
   }));
-  $('importLibraryBtn').addEventListener('click',()=>void action(async()=>{
-    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accepted generated source is not available for integrated import');
-    if(!confirm('Import the verified original WAV into this show library? It will not be assigned to a cue automatically.'))return;
+  async function commitReviewedSfx(createCue=false){
+    if(!canCommitCurrentSfx())throw new Error('Escucha la toma generada antes de guardarla.');
+    const message=createCue
+      ? 'Aceptar esta toma, guardarla en la biblioteca y crear UN cue editable? GO seguirá siendo manual.'
+      : 'Aceptar esta toma y guardarla en la biblioteca del proyecto? No se creará ni ejecutará ningún cue.';
+    if(!confirm(message))return; // No review or import before user confirmation.
+    if(state.job.status==='READY_FOR_REVIEW'){
+      const accepted=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{
+        method:'POST',data:{decision:'ACCEPT'},
+      });
+      viewJob(await accepted.json());
+    }
+    if(!canUseAcceptedSource())throw new Error('La toma no está aceptada; no se ha importado.');
+    // Release the single audio-preview lease before the existing library
+    // importer checks its transport safety gate. Without this, a sounding
+    // prelisten blocks saving, even though the take has been reviewed.
+    stopSoundLabAudition();
     const result=await state.onImportReviewed({
-      job:structuredClone(state.job),audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
-      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
+      createCue,job:structuredClone(state.job),
+      audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
+      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,
+        fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
     });
-    inform(result?.message??'Accepted source imported to the local library. Assign it to a cue manually.');
-  }));
+    // The exact reviewed original is now registered in THIS show. Switch
+    // to the library source identity so a double-click cannot import twice.
+    // Operators can still use the local 'create/assign cue' actions afterwards.
+    if(typeof result?.assetId==='string' && result.assetId.length){
+      state.fileOrigin='library';
+      state.libraryAssetId=result.assetId;
+      updateControls();
+    }
+    inform(result?.message??(createCue?'WAV guardado y cue creado.':'WAV guardado en la biblioteca.'));
+  }
+  $('importLibraryBtn').addEventListener('click',()=>void action(()=>commitReviewedSfx(false)));
   // These buttons are contributed by the unified workspace. Unlike AI
   // acceptance, local sources are already registered; no additional upload.
   const reviewedRegion=()=>Object.freeze({
@@ -588,17 +670,7 @@ function bindEvents(){
     });
     inform(result?.message??'Source and edits assigned to existing cue');
   }));
-  $('importCueBtn').addEventListener('click',()=>void action(async()=>{
-    if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accept and review a generated take first');
-    if(!confirm('Import verified WAV AND create one manual cue? GO stays manual.'))return;
-    const result=await state.onImportReviewed({
-      createCue:true,job:structuredClone(state.job),
-      audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
-      reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,
-        fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
-    });
-    inform(result?.message??'Created an editable sound cue.');
-  }));
+  $('importCueBtn').addEventListener('click',()=>void action(()=>commitReviewedSfx(true)));
   window.addEventListener('resize',drawWave);
   window.addEventListener('pagehide',()=>{stopSoundLabAudition();if(state.context)void state.context.close();});
 }
