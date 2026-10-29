@@ -32,7 +32,7 @@ Todo lo anterior es **planificación o inventario**; muestra 0 ejecuciones y cer
 
     npm run eval:cli:test
 
-20 tests previstos en dos archivos: 12 del CLI/catálogo y 8 del auditor del vídeo. No ejecutan campañas masivas ni proveedores.
+25 tests previstos en dos archivos: 12 del CLI/catálogo, 8 del auditor del vídeo y 5 del editor conversacional. No ejecutan campañas masivas ni proveedores.
 
 ## 4. Solo al congelar una versión (QA local, no IA)
 
@@ -74,12 +74,14 @@ El auditor comienza en NOT_READY. Utiliza como plantilla test/fixtures/video-evi
 ## 7. Entregables preparados
 
 - tools/eval-commands.mjs — planificador, CLI, guardas, inventario de reportes.
-- test/fixtures/eval-campaign-catalog.json — 91 escenarios.
+- test/fixtures/eval-campaign-catalog.json — 94 escenarios.
 - test/eval-commands.test.mjs — tests del planificador y rutas de fixtures.
 - tools/video-layout-smoke.mjs — capturas V9 para revisión de layout.
 - tools/video-evidence-audit.mjs — revisión fail-closed de evidencia del vídeo (pendiente hasta capturas reales).
 - test/fixtures/video-evidence-template.json — ficha vacía S01–S11, NO prueba final.
 - test/video-evidence-audit.test.mjs — 8 tests de falsificación/mismatch/claims.
+- test/fixtures/eval-conversational-cue-local-v1.json — 17 instrucciones ES/EN originales con oráculo.
+- test/eval-conversational-cue.test.mjs — 5 tests de parser local, rechazo de GO y aclaración.
 - docs/RUNQ_MASTER_EVAL_PROTOCOL_2026-10-29.md — metodología y métricas.
 - docs/RUNQ_VIDEO_QA_GATES.md — prueba audiovisual y claims.
 - docs/QA_RUNBOOK_V9.md — este documento.
