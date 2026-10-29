@@ -331,7 +331,7 @@
               <h2 id="generatorHeading">Crear sonido</h2>
               <p>Describe lo que quieres escuchar. RUNQ lo genera y puedes usarlo directamente en tu espectáculo.</p>
             </div>
-            <div class="sfx-connection"><span id="engineBadge" class="sfx-status-badge">Comprobando…</span><button class="btn subtle small" type="button" id="sfxReconnectBtn">Comprobar conexión</button></div>
+            <div class="sfx-connection"><span id="engineBadge" class="sfx-status-badge">Comprobando…</span><button class="btn subtle small" type="button" id="sfxReconnectBtn" hidden>Comprobar conexión</button></div>
           </div>
           <div class="sfx-layout">
             <div class="sfx-left">
@@ -341,14 +341,14 @@
                   <label class="sfx-prompt-main">Describe el sonido que quieres generar<textarea id="soundPrompt" rows="5" maxlength="1000" required placeholder="Una puerta pesada chirría y se cierra de golpe. Sin música."></textarea></label><details class="sfx-assistant-options"><summary>Ayuda para describir el sonido</summary><div class="sfx-advanced-content"><p id="sfxPromptQualityHint" role="status" aria-live="polite" class="sfx-muted sfx-small">El modelo Small-SFX funciona mejor con descripciones precisas en inglés.</p><div class="sfx-buttons"><button id="sfxSuggestEnglishBtn" type="button" class="btn subtle" title="Sugerencia local para acotaciones reconocidas. No llama a Meta ni Modal y no traduce frases arbitrarias.">Proponer prompt inglés (sin coste)</button><button id="sfxRestoreOriginalPromptBtn" type="button" class="btn subtle" disabled>Recuperar texto original</button></div><p id="sfxPromptSuggestionStatus" class="sfx-muted sfx-small" role="status" aria-live="polite"></p>
 </div></details>
 <div class="sfx-row-fields"><label>Tipo<select id="soundKind"><option value="SFX">Efecto puntual</option><option value="ENVIRONMENT">Ambiente continuo</option></select></label><label>Duración (segundos)<input id="duration" type="number" min="1" max="12" value="8" step="1" required></label></div>
-<details class="sfx-advanced" id="sfxAdvanced"><summary>Ejemplos y opciones avanzadas</summary><div class="sfx-advanced-content">
+<details class="sfx-advanced" id="sfxAdvanced" hidden><summary>Ejemplos y opciones avanzadas</summary><div class="sfx-advanced-content">
 <label>Ejemplos<span class="sfx-inline"><select id="acceptancePreset"><option value="">Seleccionar ejemplo…</option><option value="door">Puerta antigua</option><option value="storm">Tormenta</option><option value="audience">Público de teatro</option></select><button class="btn subtle" id="loadPresetBtn" type="button">Usar ejemplo</button></span></label>
 <div class="sfx-row-fields"><label>Referencia al guion (opcional)<input id="sourceLine" type="text" pattern="L[1-9][0-9]*" maxlength="30" placeholder="L12"></label><label>Semilla<input id="seed" type="number" min="0" max="2147483647" value="104729" step="1" required></label></div>
 </div></details><div class="sfx-notice">Revisarás el coste antes de cada generación. No se enviará nada sin tu confirmación.</div>
                   <div id="costEstimate" class="sfx-cost" role="status">Comprobando coste…</div>
                   <label class="sfx-checkline" hidden><input id="confirmRequest" type="checkbox"><span id="confirmRequestLabel">Confirmación por solicitud</span></label>
                   <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled>Generar sonido</button><span id="generationHint" class="sfx-muted">Comprobando generador…</span></div>
-                </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret"><summary>Interpretar una acotación de guion <span class="sfx-muted">· opcional</span></summary><div class="sfx-script-body">
+                </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret" hidden><summary>Interpretar una acotación de guion <span class="sfx-muted">· opcional</span></summary><div class="sfx-script-body">
                   <p id="scriptSfxHeading" class="sfx-muted">Interpreta el guion y ajusta la propuesta; no genera sonido automáticamente.</p>
                   <label>Acotación del guion<textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
                   <div class="sfx-row-fields">
@@ -382,8 +382,8 @@
                   <button class="btn subtle" id="rejectBtn" type="button">Descartar sonido</button>
                 </div>
                 <p class="sfx-muted sfx-small">Cuando esté listo, pulsa «Ver resultado». Después escúchalo y elige «Usar sonido».</p>
-                <details class="sfx-advanced sfx-technical-jobs">
-                  <summary>Historial y controles técnicos</summary><div class="sfx-buttons"><button class="btn" id="acceptBtn" type="button">Aceptar sin guardar</button></div>
+                <details class="sfx-advanced sfx-technical-jobs" hidden>
+                  <summary>Resolución de problemas</summary><div class="sfx-buttons"><button class="btn" id="acceptBtn" type="button">Aceptar sin guardar</button></div>
                   <div class="sfx-advanced-content">
                     <label>ID de solicitud<input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
                     <p id="jobTechnicalDetails" class="sfx-muted sfx-small sfx-technical-details"></p>
@@ -399,7 +399,7 @@
             </div>
             <section class="sfx-card sfx-audio-panel" aria-labelledby="editorHeading">
               <div class="sfx-section-header"><span class="sfx-index">03</span><div><h3 id="editorHeading">3. Escucha y utiliza</h3><p>Preescucha del sonido, sin disparar ningún cue</p></div></div>
-              <details class="sfx-extra-import"><summary>Abrir WAV local o ejemplo de prueba</summary><div class="sfx-source-file"><label for="localWav">Open a local WAV for zero-cost editing checks</label><input id="localWav" type="file" accept=".wav,audio/wav"><button class="btn" id="demoAudioBtn" type="button">Load offline synthetic test sound</button><span id="audioName" class="sfx-muted sfx-small">No audio loaded</span></div>
+              <details class="sfx-extra-import" hidden><summary>Abrir WAV local o ejemplo de prueba</summary><div class="sfx-source-file"><label for="localWav">Open a local WAV for zero-cost editing checks</label><input id="localWav" type="file" accept=".wav,audio/wav"><button class="btn" id="demoAudioBtn" type="button">Load offline synthetic test sound</button><span id="audioName" class="sfx-muted sfx-small">No audio loaded</span></div>
               </details><div class="sfx-wavepanel"><p class="sfx-wave-empty" id="sfxWaveEmpty">Cuando generes o cargues un WAV aparecerá aquí su onda de audio.</p><div class="sfx-wave-top"><span id="waveDuration">00:00.000</span><span>Real decoded PCM waveform · drag to select</span></div><canvas id="waveCanvas" width="900" height="250" aria-label="Waveform and selected non-destructive review region"></canvas><div class="sfx-time-ruler"><span>IN</span><span>Reviewed region</span><span>OUT</span></div></div>
               <details class="sfx-sound-edits"><summary>Recortar y aplicar fundidos (opcional)</summary><div class="sfx-advanced-content"><div class="sfx-row-fields"><label>IN (seconds)<input id="inPoint" type="number" min="0" step="0.001" value="0" disabled></label><label>OUT (seconds)<input id="outPoint" type="number" min="0" step="0.001" value="0" disabled></label></div>
               <div class="sfx-fade-editor">
