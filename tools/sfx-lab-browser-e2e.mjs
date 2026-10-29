@@ -124,6 +124,14 @@ try{
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('#assetList [data-sound-edit]').count(),3);
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  await page.locator('#demoAudioBtn').click();
+  await page.locator('#playBtn').click();
+  assert.equal(await page.locator('#operatorGoBtn').isDisabled(),true,
+    'Prepared GO must be blocked throughout Sound Lab preview');
+  await page.locator('#stopAllBtn').click();
+  assert.equal(await page.locator('#operatorGoBtn').isEnabled(),true,
+    'STOP ALL releases the preview lease so prepared GO can run');
   const beforeReviewStarts=await page.evaluate(()=>window.__labStarted);
   await page.locator('#assetList [data-sound-edit]').first().click();
   await page.locator('#rq10CreateLibraryCue').waitFor({state:'visible'});
