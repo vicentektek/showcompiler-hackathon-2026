@@ -59,7 +59,7 @@
  min-height:0;margin:0 0 4px!important;
  color:#adc0cf;font-size:9px;
 }
-.rq11 .rq5-audio-grid{
+.rq10.rq11 .shell[data-active-workspace="audio"] .rq5-audio-grid{
  grid-template-columns:minmax(295px,1.15fr) minmax(365px,1fr)!important;
  gap:9px!important;
 }
@@ -143,10 +143,10 @@
 }
 .rq11 .rq10-integrated-lab .sfx-transport:empty{display:none!important}
 @media(max-width:1180px){
- .rq11 .rq5-audio-grid{grid-template-columns:minmax(260px,1fr) minmax(0,1fr)!important}
+ .rq10.rq11 .shell[data-active-workspace="audio"] .rq5-audio-grid{grid-template-columns:minmax(260px,1fr) minmax(0,1fr)!important}
 }
 @media(max-width:880px){
- .rq11 .rq5-audio-grid{grid-template-columns:minmax(0,1fr)!important}
+ .rq10.rq11 .shell[data-active-workspace="audio"] .rq5-audio-grid{grid-template-columns:minmax(0,1fr)!important}
  .rq11 .rq11-audition-transport{position:sticky;top:0;z-index:6}
  .rq11 .rq5-audio-library .asset-list-row{min-height:42px!important}
  .rq11 .rq5-audio-workspace{overflow-y:auto!important;max-height:none!important}
