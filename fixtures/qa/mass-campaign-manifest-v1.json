@@ -115,7 +115,7 @@
       "maxAudioSecondsTotal": 1800,
       "taskGroups": [
         {
-          "task": "speech_transcription_ES_EN",
+          "task": "speech_transcription_es_en",
           "requests": 100
         }
       ],
