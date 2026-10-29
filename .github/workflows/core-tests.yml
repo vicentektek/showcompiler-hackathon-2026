@@ -68,6 +68,18 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Build original Spanish voice-foot rehearsal demo
+        run: npm run demo:rehearsal
+      - name: Verify Spanish rehearsal ZIP integrity
+        run: unzip -t demo/RUNQ_ENSAYO_ES.showcompiler.zip
+      - name: Publish Spanish rehearsal ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-spanish-rehearsal-show-zip
+          path: demo/RUNQ_ENSAYO_ES.showcompiler.zip
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Install pinned browser smoke driver (CI-only, no lockfile)
         run: npm install --no-save --package-lock=false playwright-core@1.56.1
       - name: Voice Follow click and navigation Chrome smoke (offline)
