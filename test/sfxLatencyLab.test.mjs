@@ -42,7 +42,8 @@ test('paid lab cancels stalled first job and never sends second', async () => {
   try {
     let starts=0,cancels=0,tick=0;
     const cfg={enabled:true,endpointUrl:'https://dummy.modal.run',proxyTokenId:'wk-dummy',
-      proxyTokenSecret:'ws-dummy',estimatedMaxCostUsdPerRequest:0.05,dailyBudgetUsd:0.5};
+      proxyTokenSecret:'ws-dummy',estimatedMaxCostUsdPerRequest:0.05,dailyBudgetUsd:0.5,
+      modelRevision:'a'.repeat(40)};
     const client={
       start:async()=>{starts++;return {jobId:'fc-safetest',status:'QUEUED'};},
       status:async()=>({jobId:'fc-safetest',status:'RUNNING'}),

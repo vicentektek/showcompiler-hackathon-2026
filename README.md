@@ -4,9 +4,25 @@ ShowCompiler is a new, hackathon-only browser prototype for turning theatre scri
 
 **Current truth:** the Meta and Baseten adapters, strict validation, review workflow, and browser audio engine are implemented. The user successfully completed one guarded live Meta Muse Spark 1.3 smoke test (1 valid bell cue, 3.968 s, 1,170 tokens), and manually confirmed AI proposal and approval into DRAFT in the browser. Baseten live inference and paid audio generation remain unverified/unimplemented.
 
+## RUNQ RC1 candidate (29–30 October 2026)
+
+The current integration candidate lives in `integration/runq-demo-2026-10-30`, based on V15 (PR #110), with selected safety fixes from audit PR #109. The repo's `main` branch is not this runnable release. The precise candidate changes and remaining checks are tracked in [the hackathon execution plan](docs/RUNQ_HACKATHON_EXECUTION_PLAN_2026-10-29.md).
+
+Windows developer quick start in a **separate worktree** (does not touch another checkout):
+
+```powershell
+git fetch origin
+git worktree add "..\\runq-demo-2026-10-30" origin/integration/runq-demo-2026-10-30
+cd "..\\runq-demo-2026-10-30"
+npm install --no-audit --no-fund
+powershell -ExecutionPolicy Bypass -File .\\tools\\runq-preflight.ps1 -RunTests -StartServer
+```
+
+Use Chrome/Edge on the local address printed by the preflight. This script does not read secrets or contact paid AI providers. Offline CI is not certification for live-show use. The browser uses the system's default audio output for show and preview; there is no isolated PFL bus. JSON stores references but **not audio bytes**; export a full show ZIP to move/reopen media. Modal SFX generation needs separate provider and cost-policy configuration and is not a prerequisite for the offline demo.
+
 ## Run locally
 
-Node.js 20 or newer is required; there are no npm dependencies to install.
+Node.js 20 or newer is required. Run `npm install` to install pinned `libarchive.js` for RAR/7z imports before testing.
 
 ```sh
 npm test

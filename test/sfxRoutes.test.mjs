@@ -296,3 +296,18 @@ test('manual free-text sound generation needs no script reference and never assi
   assert.equal(Object.hasOwn(queued,'cueId'),false);
   assert.equal(Object.hasOwn(queued,'assetId'),false);
 });
+
+test('SFX status refuses missing or free-form model revision even with valid cost caps',async t=>{
+  const {store}=await fixture(t);
+  const {pilot,calls}=fakePilot();
+  const base=await server(t,{
+    sfxStore:store,sfxPilotClient:pilot,
+    sfxConfig:()=>({...enabled(),modelRevision:'not-pinned'}),
+  });
+  const status=await(await fetch(base+'/api/sfx/status')).json();
+  assert.equal(status.enabled,false);
+  assert.equal(status.configurationChecks.modelRevisionValid,false);
+  assert.equal(status.modelRevision,null);
+  assert.equal((await post(base,'/api/sfx/jobs',payload())).status,503);
+  assert.equal(calls.start,0);
+});

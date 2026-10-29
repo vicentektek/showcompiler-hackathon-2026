@@ -67,8 +67,13 @@ function safePolicy(config) {
 }
 
 function safeRevision(config) {
-  try { return normalizeSfxModelRevision(config.modelRevision); }
-  catch { return undefined; }
+  try {
+    const revision = normalizeSfxModelRevision(config.modelRevision);
+    // Imported SFX assets require reproducible 40/64-character source SHAs.
+    // A missing or free-form revision must not make the pilot appear ready.
+    return /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(revision ?? '')
+      ? revision : undefined;
+  } catch { return undefined; }
 }
 
 function sendFailure(response, error, headers) {

@@ -84,6 +84,21 @@ try{
  assert.deepEqual((await read()).cues.map(c=>c.trigger),['',''],
    'Creative cue preview may not modify show');
  await page.locator('#rqAgentProposal').locator('button').last().click();
+ // A destructive edit in an 81-cue show must show all resulting renumbers,
+ // not silently truncate after 75. Never apply this plan in the test.
+ let longShow=createNewShow({name:'Large review',scriptText:lines});
+ for(let i=0;i<81;i++)longShow=insertManualCue(longShow,{label:'Effect '+i}).project;
+ await page.locator('#projectFileInput').setInputFiles({
+  name:'agent-large-fixture.json',mimeType:'application/json',
+  buffer:Buffer.from(serializeShowProject(longShow))
+ });
+ await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='81');
+ await page.locator('#rqAgentPrompt').fill('Elimina el cue 1');
+ await page.locator('#rqAgentSubmit').click();
+ await page.locator('#rqAgentApply').waitFor({state:'visible'});
+ assert.equal(await page.locator('#rqAgentDiff li.rq-agent-diff-item').count(),82,
+  '81 changed cues plus a visible large-batch warning must be reviewable');
+ assert.equal((await read()).cues.length,81,'A preview never deletes a cue');
  await page.locator('[data-workspace-nav="rehearsal"]').click();
  assert.equal(await page.locator('#rqAgentToggle').isVisible(),false);
  assert.equal(await page.locator('#rqAgentDrawer').isVisible(),false);
