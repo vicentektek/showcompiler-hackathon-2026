@@ -130,6 +130,8 @@ function updateControls(){
   $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
   $('importCueBtn').disabled=$('importLibraryBtn').disabled;
   const fromLibrary=state.fileOrigin==='library'&&typeof state.libraryAssetId==='string'&&!!state.audio;
+  const libraryActions=$('rq10LibraryEditActions');
+  if(libraryActions)libraryActions.hidden=!fromLibrary;
   const create=$('rq10CreateLibraryCue');
   if(create)create.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
   const assign=$('rq10AssignLibraryCue');
