@@ -96,6 +96,8 @@ jobs:
         env:
           RUNQ_CAPTURE_UI: '1'
         run: node tools/sfx-lab-browser-e2e.mjs
+      - name: Sound Lab one-step library save Chrome E2E (fake Modal)
+        run: node tools/sfx-one-step-browser-e2e.mjs
       - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
         run: node tools/runq-agent-browser-e2e.mjs
       - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
