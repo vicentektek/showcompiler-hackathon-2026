@@ -18,7 +18,11 @@
     "qa:meta:live": "node tools/run-meta-seminar-eval.mjs --live --ack-paid --budget-usd 2 --max-requests 13 --mode literal",
     "qa:systematic": "node tools/runq-systematic-lab.mjs",
     "qa:baseten:plan": "node tools/run-baseten-seminar-eval.mjs",
-    "qa:compare-providers": "node tools/compare-provider-seminar.mjs"
+    "qa:compare-providers": "node tools/compare-provider-seminar.mjs",
+    "eval:offline": "npm run qa:codex",
+    "eval:ai": "node tools/eval-commands.mjs ai",
+    "eval:full": "node tools/eval-commands.mjs full",
+    "eval:report": "node tools/eval-commands.mjs report"
   },
   "engines": {
     "node": ">=20"
