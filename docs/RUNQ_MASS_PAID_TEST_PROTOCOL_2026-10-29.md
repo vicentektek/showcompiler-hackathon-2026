@@ -121,9 +121,15 @@ Genera artifacts/mass-campaign-prep/preflight.md y preflight.json sin red ni cos
 
   npm run eval:mass:preflight
 
+Contrato del ledger (offline): npm run eval:mass:test.
+
 Preflight NO-LIVE con salida 2 si faltan gates (esto es lo esperado). Cualquier nombre eval:mass:live es deliberadamente **inexistente**. Ninguno de estos comandos autoriza o consume créditos.
 
 No ejecutar 380 solicitudes copiando manualmente los scripts históricos para eludir los topes. La siguiente implementación deberá conectar todos los proveedores a un ledger central único, auditable y seguro.
+
+### Prototipo del ledger central (todavía NO conectado a proveedores)
+
+Se ha implementado de forma aislada src/qa/globalSpendLedger.mjs. Usa una ruta canónica por usuario fuera de los clones (Windows: %LOCALAPPDATA%\\RunQ\\Evaluation\\global-spend-v1.json), un lock exclusivo entre procesos, reserva previa en microdólares, límites por proveedor y control de IDs duplicados. Un importe en estado UNKNOWN sigue reservado: nunca se devuelve automáticamente. El prototipo se niega a crear un fichero de autorización por sí solo, y no puede llamar a una API. Se valida con test/global-spend-ledger.test.mjs; todavía falta enlazarlo con cada ejecutor de proveedor, presupuestar cada petición y aportar un procedimiento de aprobación local.
 
 ## 12. Referencias
 
