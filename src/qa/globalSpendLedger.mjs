@@ -48,6 +48,7 @@ export function checkLedgerAuthorization(state,campaignId){
   }
   if(aggregate!==total)throw new TypeError('PROVIDER_CAPS_DO_NOT_SUM_TO_GLOBAL_CAP');
   const existing=new Set(),byProvider=Object.fromEntries(providers.map(p=>[p,0]));
+  const counts=Object.fromEntries(providers.map(p=>[p,0]));
   let spent=0;
   for(const entry of state.reservations){
     if(!entry||!isId(entry.requestId)||existing.has(entry.requestId)||
@@ -58,12 +59,13 @@ export function checkLedgerAuthorization(state,campaignId){
     }
     existing.add(entry.requestId);
     spent+=entry.amountMicros;byProvider[entry.provider]+=entry.amountMicros;
+    counts[entry.provider]++;
   }
   if(spent>total||providers.some(p=>byProvider[p]>caps[p])){
     throw new TypeError('SPEND_RESERVATIONS_OVER_CAP');
   }
   return {totalMicros:total,capsMicros:caps,reservedMicros:spent,
-    providerReservedMicros:byProvider,ids:existing};
+    providerReservedMicros:byProvider,requestCounts:counts,ids:existing};
 }
 
 export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),campaignId}={}){
@@ -123,6 +125,7 @@ export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),c
         perProvider:Object.fromEntries(providers.map(p=>[p,{
           capUsd:microsToDollars(s.capsMicros[p]),
           reservedUsd:microsToDollars(s.providerReservedMicros[p]),
+          requestCount:s.requestCounts[p],
         }]))};
     };
     return {reserve,close,status};
