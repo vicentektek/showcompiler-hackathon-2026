@@ -43,6 +43,11 @@ function install(){
  const showLabel=make('small','rq14-show-id');
  const nowTitle=make('strong','rq14-now-title');
  const nowSub=make('span','rq14-now-sub');
+ const waveform=make('canvas','rq14-live-waveform');
+ waveform.id='rq14LiveWaveform';waveform.width=960;waveform.height=110;
+ waveform.hidden=true;
+ waveform.setAttribute('role','img');
+ waveform.setAttribute('aria-label','Original source waveform, not a live level meter');
  const progress=make('div','rq14-progress-track');
  progress.setAttribute('role','progressbar');progress.setAttribute('aria-valuemin','0');
  progress.setAttribute('aria-valuemax','100');progress.setAttribute('aria-label','Cue playback progress');
@@ -57,7 +62,7 @@ function install(){
  const rehearsalState=make('output','rq14-rehearsal-status');
  rehearsalState.setAttribute('role','status');
  rehearsal.append(rehearsalHeading,rehearsalCue,rehearsalState);
- monitor.append(monHeading,showLabel,nowTitle,nowSub,progress,clock,previous,next,rehearsal);
+ monitor.append(monHeading,showLabel,nowTitle,nowSub,waveform,progress,clock,previous,next,rehearsal);
  stageBody.append(monitor);
  const events=make('section','rq14-events');
  events.id='rq14Events';
@@ -121,6 +126,32 @@ function install(){
     current?.stopping?tr('FADE EN PROGRESO','FADING'):
     current?.durationSeconds===null&&current?tr('BUCLE ACTIVO','LOOP ACTIVE'):
     current?tr('REPRODUCIENDO','PLAYING'):tr('TRANSPORTE DETENIDO','TRANSPORT STOPPED');
+  // Only draw genuine cached PCM peaks for a currently running audio cue.
+  // This is not an output meter, device-routing readout or fake waveform.
+  const peaks=state.activeWaveform?.peaks;
+  const hasWave=!!current&&Array.isArray(peaks)&&peaks.length>0;
+  waveform.hidden=!hasWave||mode!=='operation';
+  if(hasWave&&mode==='operation'){
+   const ctx=waveform.getContext('2d');
+   if(ctx){
+    const w=waveform.width,h=waveform.height,center=h/2;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#0d1e29';ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='#364f65';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,center);ctx.lineTo(w,center);ctx.stroke();
+    ctx.strokeStyle='#55a8db';ctx.lineWidth=Math.max(1,w/peaks.length-1);
+    ctx.beginPath();
+    for(let n=0;n<peaks.length;n++){
+     const x=n/(peaks.length-1)*w,amplitude=Math.max(0,Math.min(1,peaks[n]))*center*.87;
+     ctx.moveTo(x,center-amplitude);ctx.lineTo(x,center+amplitude);
+    }
+    ctx.stroke();
+    const durationMs=state.activeWaveform.durationMs;
+    const position=Number.isFinite(durationMs)&&durationMs>0&&Number.isFinite(current.elapsedSeconds)
+      ?((current.elapsedSeconds*1000)%durationMs)/durationMs:0;
+    ctx.fillStyle='#e2b568';ctx.fillRect(position*w-1,0,2,h);
+   }
+  }
   const percent=current?.progress;
   progress.setAttribute('aria-valuetext',percent===null&&current?tr('Bucle sin duración','Indefinite loop'):
     Number.isFinite(percent)?Math.round(percent*100)+'%':tr('Sin reproducción','Not playing'));
