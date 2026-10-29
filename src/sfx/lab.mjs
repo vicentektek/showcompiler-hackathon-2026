@@ -33,6 +33,7 @@ const state = {
   inSeconds:0, outSeconds:0, fadeInSeconds:0, fadeOutSeconds:0, dragStart:null, settings:null,
   onImportReviewed:null,
   onReservePreview:null, onPreviewReleased:null, previewReserved:false, previewEpoch:0,
+  libraryAssetId:null, onCommitLibraryReview:null,
 };
 const $ = id => document.getElementById(id);
 const text = (id,value) => { const element=$(id); if(element)element.textContent=value; };
@@ -128,10 +129,15 @@ function updateControls(){
   $('exportBtn').disabled=state.working||!canUseAcceptedSource();
   $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
   $('importCueBtn').disabled=$('importLibraryBtn').disabled;
+  const fromLibrary=state.fileOrigin==='library'&&typeof state.libraryAssetId==='string'&&!!state.audio;
+  const create=$('rq10CreateLibraryCue');
+  if(create)create.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
+  const assign=$('rq10AssignLibraryCue');
+  if(assign)assign.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
 }
 function clearReviewedAudio(){
   stopSoundLabAudition();
-  state.audio=null;state.sourceBytes=null;state.fileOrigin=null;state.peaks=null;
+  state.audio=null;state.sourceBytes=null;state.fileOrigin=null;state.libraryAssetId=null;state.peaks=null;
   state.inSeconds=0;state.outSeconds=0;state.fadeInSeconds=0;state.fadeOutSeconds=0;
   text('audioName','Ningún WAV cargado');
   text('waveDuration','00:00.000');
@@ -262,13 +268,15 @@ async function ensureContext(){
   if(state.context.state==='suspended')await state.context.resume();
   return state.context;
 }
-async function loadAudio(bytes,name,origin='local'){
-  if(!(bytes instanceof ArrayBuffer)||bytes.byteLength<44||bytes.byteLength>8_000_000)throw new Error('WAV file exceeds the 8 MB offline audition limit');
+async function loadAudio(bytes,name,origin='local',libraryAssetId=null){
+  if(!(bytes instanceof ArrayBuffer)||bytes.byteLength<1||bytes.byteLength>20_000_000)
+    throw new Error('Audio must be 1–20 MB and decodable by Chromium.');
   stopSoundLabAudition();
   const context=await ensureContext();
   const decoded=await context.decodeAudioData(bytes.slice(0));
   if(![1,2].includes(decoded.numberOfChannels)||decoded.duration<=0||decoded.duration>600)throw new Error('Unsupported audio layout or duration');
   state.audio=decoded;state.sourceBytes=bytes.slice(0);state.fileOrigin=origin;
+  state.libraryAssetId=origin==='library'?libraryAssetId:null;
   $('sfxWaveEmpty')?.setAttribute('hidden','');
   $('waveCanvas')?.classList.add('sfx-has-audio');
   state.loadedRemoteRequestId=origin==='remote'?state.job?.requestId:null;
@@ -279,6 +287,17 @@ async function loadAudio(bytes,name,origin='local'){
   text('waveDuration',formatTime(decoded.duration));
   $('inPoint').max=String(decoded.duration);$('outPoint').max=String(decoded.duration);
   updateTrim(0,decoded.duration);updateControls();
+}
+/** Open an already registered original from the persistent left library.
+ * Playback is NOT triggered and the original remains unchanged.
+ */
+export async function openLibraryAudioSource(file,assetId){
+  if(!file||typeof file.arrayBuffer!=='function'||typeof assetId!=='string')
+    throw new TypeError('Choose a registered original sound');
+  if(file.size<=0||file.size>20_000_000)
+    throw new RangeError('Source audio must be at most 20 MB');
+  await loadAudio(await file.arrayBuffer(),file.name,'library',assetId);
+  inform('Original seleccionado. Edita IN/OUT y fades; los cambios son no destructivos. Puedes crear un cue o asignarlo a uno existente.');
 }
 function currentJobId(){
   const id=$('requestId').value.trim();
@@ -541,6 +560,32 @@ function bindEvents(){
     });
     inform(result?.message??'Accepted source imported to the local library. Assign it to a cue manually.');
   }));
+  // These buttons are contributed by the unified workspace. Unlike AI
+  // acceptance, local sources are already registered; no additional upload.
+  const reviewedRegion=()=>Object.freeze({
+    inSeconds:state.inSeconds,outSeconds:state.outSeconds,
+    fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds,
+  });
+  $('rq10CreateLibraryCue')?.addEventListener('click',()=>void action(async()=>{
+    if(state.fileOrigin!=='library'||!state.libraryAssetId||!state.audio)
+      throw new Error('Selecciona un archivo de la biblioteca');
+    if(!confirm('Create a NEW cue from this source and the visible IN/OUT/fades? GO remains manual.'))return;
+    const result=await state.onCommitLibraryReview({
+      assetId:state.libraryAssetId,reviewedRegion:reviewedRegion(),targetCueId:null,
+    });
+    inform(result?.message??'Cue created from library source');
+  }));
+  $('rq10AssignLibraryCue')?.addEventListener('click',()=>void action(async()=>{
+    if(state.fileOrigin!=='library'||!state.libraryAssetId||!state.audio)
+      throw new Error('Selecciona un archivo de la biblioteca');
+    const targetCueId=$('rq10TargetCue')?.value??'';
+    if(!targetCueId)throw new Error('Elige el cue de destino.');
+    if(!confirm('Replace/assign the primary sound for the selected cue? Existing cue IN/OUT/fades will be updated. No GO.'))return;
+    const result=await state.onCommitLibraryReview({
+      assetId:state.libraryAssetId,reviewedRegion:reviewedRegion(),targetCueId,
+    });
+    inform(result?.message??'Source and edits assigned to existing cue');
+  }));
   $('importCueBtn').addEventListener('click',()=>void action(async()=>{
     if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accept and review a generated take first');
     if(!confirm('Import verified WAV AND create one manual cue? GO stays manual.'))return;
@@ -594,11 +639,12 @@ async function checkConnection(){
   })();
   try{await connectionCheck;}finally{connectionCheck=null;}
 }
-export async function initializeSoundLab({onImportReviewed,onReservePreview,onPreviewReleased}={}){
+export async function initializeSoundLab({onImportReviewed,onReservePreview,onPreviewReleased,onCommitLibraryReview}={}){
   if(!requiredDom())throw new Error('Sound Lab workspace is unavailable');
   if(typeof onImportReviewed==='function')state.onImportReviewed=onImportReviewed;
   if(typeof onReservePreview==='function')state.onReservePreview=onReservePreview;
   if(typeof onPreviewReleased==='function')state.onPreviewReleased=onPreviewReleased;
+  if(typeof onCommitLibraryReview==='function')state.onCommitLibraryReview=onCommitLibraryReview;
   if(!state.initialized){
     state.initialized=true;bindEvents();bindScriptCompiler();
     try{$('requestId').value=localStorage.getItem('runq-sfx-last-id-v1')??'';}catch{}
