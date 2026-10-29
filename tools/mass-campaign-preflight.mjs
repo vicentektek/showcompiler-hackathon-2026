@@ -119,7 +119,7 @@ export function assessReadiness(campaign,gold,{keysPresent={}}={}){
   if(campaign.holdoutReady!==true)fail('HOLDOUT_NOT_READY','Holdout not independently locked and reviewed');
   if(campaign.globalBudget.authorizationStatus!=='APPROVED' ||
      !safeNum(campaign.globalBudget.authorizedCapUsd)){
-    fail('BUDGET_NOT_APPROVED','Exact dollar authorization missing; draft manifest never authorizes spend');
+    fail('LOCAL_BUDGET_CHECK_REQUIRED','Git-tracked draft cannot carry user approval. Verify the separate operator-approved local ledger with eval:budget:status.');
   }
   if(campaign.globalBudget.centralSharedLedgerReady!==true){
     fail('CENTRAL_LEDGER_MISSING','Meta ledger currently per checkout; Baseten has no shared monetary ledger');
