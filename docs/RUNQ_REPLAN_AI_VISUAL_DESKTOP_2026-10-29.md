@@ -1,5 +1,10 @@
 # RUNQ — Cambio de prioridades: QA de IA, diseño aprobado y ejecutable Windows
 
+> **Actualización P0 29 octubre — RUNQ Audio recuperado y simplificado:** La generación Modal ya fue probada por el operador, y la evaluación subjetiva revela mejor calidad con prompts ingleses. PRs #113–#117 forman una pila **todavía sin fusionar** de sonido → historial seguro → flujo simple → inglés de interfaz → traducción/optimización Meta con revisión previa. La traducción mediante Meta no autoriza generación Modal: son solicitudes distintas. Ver [documentación funcional](SFX_ENGLISH_PROMPT_IMPLEMENTATION_2026-10-29.md).
+>
+> **Codex 30 octubre:** ejecutar [paquete acotado](CODEX_AI_QA_TOMORROW_2026-10-30.md) y `npm run qa:ai:tomorrow:offline` para pruebas offline y resumen automático; la CI ya hace las suites grandes. **No** ejecutar tests pagados ni dejar agentes con acceso libre a la API. La autorización de lotes reales de IA requiere aprobación separada.
+
+
 **Decisión de producto:** 29-10-2026 · **Sustituye el orden de ejecución** de `RUNQ_HACKATHON_EXECUTION_PLAN_2026-10-29.md` en caso de conflicto.
 **Solicitado por el operador:** no capturar ni editar todavía el vídeo porque el aspecto actual no cumple los mockups. Priorizar pruebas REALES de IA, fidelidad visual y app Windows.
 **Base funcional:** PR #111 / rama `integration/runq-demo-2026-10-30`. No alterar motor estable, proyecto, secretos ni el comportamiento AutoGO/STOP ALL.
@@ -89,3 +94,17 @@ Fecha local CET; entrega oficial del proyecto **04-11-2026 21:00 ET = 05-11-2026
 - Visual: screenshots reales Studio/Audio/Guion/Ensayo/Directo comparadas con PNG aprobados, tres perfiles densidad cuando exista tiempo, scroll y teclado seguros en 1920x1080/1366x768.
 - Windows: .exe real portable solo si reproduce show y no falla permisos/voz/recursos; no anunciar «nativo» ni ASIO.
 - Vídeo: esperar a aprobación visual, pero reservar una jornada antes de entregar; no imágenes falsas de RUNQ y verificar límite oficial de duración.
+
+## Revisión de prioridades tras la prueba real de sonido (29 oct, noche)
+
+**P0 — Fiabilidad funcional para demo (30 oct):** validar manualmente en Windows 1 prompt español → borrador inglés revisado → sonido generado REAL por Modal → escuchar → Usar sonido → crear cue; con recuperación de intento fallido. Pasa de 3 a 10 intentos diarios solo como máximo técnico; presupuesto USD original no cambia. Testear EN/ES interfaz y texto, sin opciones de QA en la vista habitual.
+
+**P0 — Calidad de IA (30 oct):** entregar a Codex matriz estable, fixtures y guion de trabajo; CI offline automatizada. Real Meta cue/agent/chat y evaluación de calidad de prompts cuando el operador autorice solicitudes y máximo USD; NO 600 llamadas pagadas. Voice/autopilot con micrófono: prueba manual específica en Ensayo, no modo Directo.
+
+**P0/P1 — Diseño aprobado (30–31 oct):** usar los cinco mockups como fuente de verdad; no continuar añadiendo opciones a Audio. Rehacer shell profesional Studio/Audio/Guion/Ensayo/Directo manteniendo motor. Inglés por defecto, español totalmente disponible, tamaños 1920/1366 y menor resolución.
+
+**P1 — Windows exe en paralelo (30–31 oct):** spike Electron aislado; entregable portable solo después de comprobar voz, permisos, import/export, cierre del servidor y STOP ALL. No comprometer RC1 si falla el empaquetado.
+
+**P1 — Entrega del concurso (1–4 nov):** integrar PRs probados en rama de demo estable, fijar build, elaborar instrucciones y vídeo SOLO tras aceptación visual. Hito interno de envío: 4 nov 18:00 CET.
+
+**Gate de mañana:** revisar CI y una prueba REAL con usuario; Codex termina el día con informe corto de fallos priorizados y pruebas nuevas, NO con otra refactorización a ciegas. Si todo lo offline está verde, Codex prepara exclusivamente el plan de lotes reales y espera autorización.
