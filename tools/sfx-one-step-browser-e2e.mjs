@@ -76,7 +76,23 @@ try{
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
   await page.locator('[data-workspace-nav="audio"]').click();
   await page.locator('[data-rq10-sound-tab="generate"]').click();
-  await page.waitForFunction(()=>document.querySelector('#engineBadge')?.textContent==='Generador configurado');
+  await page.waitForFunction(()=>/^(Generator ready|Generador configurado)$/.test(document.querySelector('#engineBadge')?.textContent||''));
+  // A clean install is English-first. Switching languages must update the
+  // generator's actual content, not only the global navigation.
+  assert.equal(await page.locator('#uiLocaleSelect').inputValue(),'en');
+  assert.equal(await page.locator('#generatorHeading').textContent(),'Create sound');
+  assert.equal(await page.locator('#engineBadge').textContent(),'Generator ready');
+  for(const selector of ['#sfxAdvanced','#sfxScriptDetails','.sfx-technical-jobs','.sfx-extra-import']){
+    assert.equal(await page.locator(selector).isVisible(),false,
+      'QA/technical settings must not appear in the ordinary Sound Lab');
+  }
+  assert.equal(await page.locator('#sfxReconnectBtn').isVisible(),false);
+  await page.locator('#uiLocaleSelect').selectOption('es');
+  assert.equal(await page.locator('#generatorHeading').textContent(),'Crear sonido');
+  assert.equal(await page.locator('#engineBadge').textContent(),'Generador configurado');
+  await page.locator('#uiLocaleSelect').selectOption('en');
+  assert.equal(await page.locator('#generatorHeading').textContent(),'Create sound');
+
   // No-cost compiler suggestions do not send to Meta or Modal.
   await page.locator('#soundPrompt').fill('Portazo fuerte');
   await page.locator('.sfx-assistant-options').evaluate(el=>el.open=true);
@@ -98,7 +114,7 @@ try{
     await page.locator('#duration').fill('2');
     page.once('dialog',dialog=>dialog.accept());
     await page.locator('#generateBtn').click();
-    await page.waitForFunction(()=>document.querySelector('#jobState')?.textContent?.includes('Preparando'));
+    await page.waitForFunction(()=>/^(Preparing your sound|Preparando tu sonido)/.test(document.querySelector('#jobState')?.textContent||''));
     assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true);
     assert.equal(await page.locator('#generateBtn').isDisabled(),true,
       'An unresolved prior job must block another SFX generation');

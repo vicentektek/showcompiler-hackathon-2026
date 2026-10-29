@@ -1,3 +1,4 @@
+.sfx-lab details[hidden], .sfx-lab button[hidden], .sfx-lab [hidden] { display:none!important; }
 .sfx-lab {
   --sfx-panel:#171c22;
   --sfx-panel-raised:#1b222a;
