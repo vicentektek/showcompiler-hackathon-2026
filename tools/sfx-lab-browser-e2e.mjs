@@ -56,7 +56,16 @@ try{
     return route.continue();
   });
   await page.goto('http://127.0.0.1:'+port+'/',{waitUntil:'domcontentloaded'});
-  await page.locator('[data-workspace-nav="soundlab"]').click();
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'audio');
+  assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1,
+    'Library remains present as the permanent left column');
+  assert.equal(await page.locator('[data-workspace-nav="soundlab"]').isVisible(),false,
+    'Sound Lab is no longer a duplicate navigation route');
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  assert.equal(await page.locator('.rq10-integrated-lab').isVisible(),true);
+  assert.equal(await page.locator('.rq5-audio-library').isVisible(),true);
+  assert.equal(await page.locator('.rq5-audio-editor').isVisible(),false);
   await page.waitForTimeout(900);
   console.log('SFX_BROWSER_DIAGNOSTIC',JSON.stringify({
     badge:await page.locator('#engineBadge').textContent(),
@@ -91,8 +100,19 @@ try{
   await page.locator('#playBtn').click();
   assert.equal(await page.evaluate(()=>window.__labStarted),1);
   assert.equal(await page.locator('#stopBtn').isEnabled(),true);
-  await page.locator('#stopBtn').click();
-  assert.equal(await page.evaluate(()=>window.__labStopped),1);
+  // STOP ALL must stop Sound Lab, unlike the old isolated AudioContext.
+  await page.locator('#stopAllBtn').click();
+  assert.equal(await page.evaluate(()=>window.__labStopped),1,
+    'Global STOP ALL must stop SFX preview');
+  assert.equal(await page.locator('#stopBtn').isDisabled(),true);
+  await page.locator('#playBtn').click();
+  assert.equal(await page.evaluate(()=>window.__labStarted),2);
+  await page.locator('[data-rq10-sound-tab="library"]').click();
+  assert.equal(await page.evaluate(()=>window.__labStopped),2,
+    'Switching to library must cancel SFX preview');
+  assert.equal(await page.locator('.rq5-audio-editor').isVisible(),true);
+  assert.equal(await page.locator('.rq10-integrated-lab').isVisible(),false);
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
   // Export is guarded by accepted remote review, so the local test sound
   // remains audition-only rather than impersonating a generated take.
   assert.equal(await page.locator('#exportBtn').isDisabled(),true);
@@ -102,7 +122,7 @@ try{
     await mkdir('artifacts/runq-ui',{recursive:true});
     await page.screenshot({path:'artifacts/runq-ui/sfx-lab-offline.png',fullPage:true});
   }
-  console.log('SFX Lab Chrome smoke PASS — offline demo waveform, preview, STOP, guarded export, zero provider requests.');
+  console.log('SFX Lab V10 smoke PASS — unified library, mode toggle, STOP ALL, SFX preview cancellation, no provider calls.');
 }finally{
   if(browser)await browser.close();
   await new Promise(resolve=>server.close(resolve));
