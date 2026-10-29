@@ -786,7 +786,7 @@ function renderCueList({ resetScroll = false } = {}) {
     const dragHandle=node('span','rq9-cue-grip','⠿');
     dragHandle.title=uiLocale==='es'?'Arrastrar para reordenar (solo edición)':'Drag to reorder (editing only)';
     dragHandle.setAttribute('aria-hidden','true');
-    dragHandle.draggable=activeWorkspace==='cues';
+    dragHandle.draggable=true; // dragstart still rejects any workspace other than Cues
     dragHandle.addEventListener('dragstart',event=>{
       if(activeWorkspace!=='cues'){event.preventDefault();return;}
       draggingCueId=cue.id;
