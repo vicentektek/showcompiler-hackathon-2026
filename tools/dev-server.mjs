@@ -71,6 +71,7 @@ const allowed = new Map([
   ['/src/ui/runq-library-transport-v11.mjs', ['src/ui/runq-library-transport-v11.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-sound-library-v12.css', ['src/ui/runq-sound-library-v12.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-sound-library-v12.mjs', ['src/ui/runq-sound-library-v12.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-workstation-v14.mjs', ['src/ui/runq-workstation-v14.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/cueConversation.mjs', ['src/core/cueConversation.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/voice-follow.css', ['src/ui/voice-follow.css', 'text/css; charset=utf-8']],
   ['/src/core/reviewedSfxCue.mjs', ['src/core/reviewedSfxCue.mjs', 'text/javascript; charset=utf-8']],
