@@ -4,12 +4,13 @@
  * Does NOT call Meta, listen to microphone, arm rehearsal, or execute cues.
  * Spoken-pie detection is scored separately from transcription text.
  */
-const MAX_CHARS=10000;
-const MAX_WORDS=1500;
+const MAX_CHARS=2048;
+const MAX_EDIT_TOKENS=2048;
+const MAX_WORDS=512;
 
 export function normalizeSpeechText(value,{stripDiacritics=false}={}){
   if(typeof value!=='string'||value.length>MAX_CHARS)throw new TypeError('INVALID_TRANSCRIPT_TEXT');
-  let text=value.normalize('NFC').toLocaleLowerCase('und')
+  let text=value.normalize('NFC').toLowerCase()
     .replace(/[\p{P}\p{S}]+/gu,' ')
     .replace(/\s+/gu,' ').trim();
   if(stripDiacritics)text=text.normalize('NFD').replace(/\p{M}+/gu,'').normalize('NFC');
@@ -17,7 +18,7 @@ export function normalizeSpeechText(value,{stripDiacritics=false}={}){
 }
 
 export function editDistance(a,b){
-  if(!Array.isArray(a)||!Array.isArray(b)||a.length>MAX_WORDS||b.length>MAX_WORDS){
+  if(!Array.isArray(a)||!Array.isArray(b)||a.length>MAX_EDIT_TOKENS||b.length>MAX_EDIT_TOKENS){
     throw new TypeError('INVALID_TOKEN_SEQUENCE');
   }
   const old=new Uint32Array(b.length+1);
