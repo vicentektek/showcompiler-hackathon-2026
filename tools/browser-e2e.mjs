@@ -77,7 +77,7 @@ try {
   assert.equal(await page.locator('html.rq8').count(),1);
   assert.equal(await page.locator('#rq8Identity').count(),1);
   const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
-  assert.equal(studioColor,'rgb(16, 24, 33)','V9 Studio must remain dark, not daylight');
+  assert.equal(studioColor,'rgb(14, 25, 36)','V13 technical workstation must remain dark, not daylight');
   assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
     'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.
