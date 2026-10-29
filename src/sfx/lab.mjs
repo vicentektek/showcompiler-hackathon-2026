@@ -2,6 +2,7 @@ import { compileSoundProposals, applyProposalEdits, recompileProposal } from '..
 import { waveformPeaks, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
 import {inspectSfxHistory,explainSfxError,labelSfxHistory} from './jobRecovery.mjs';
 import {suggestEnglishSfxPrompt} from './freeTextPrompt.mjs';
+import {localizeSfxMarkup,sfxLocalizedText,localeCopy} from './sfxLocale.mjs';
 
 const api = '/api/sfx';
 const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT']);
@@ -38,7 +39,8 @@ const state = {
   libraryAssetId:null, onCommitLibraryReview:null, history:null, originalPrompt:null,
 };
 const $ = id => document.getElementById(id);
-const text = (id,value) => { const element=$(id); if(element)element.textContent=value; };
+const text = (id,value) => { const element=$(id); if(element)element.textContent=sfxLocalizedText(sfxUiLocale(),value); };
+const copy=(en,es)=>localeCopy(sfxUiLocale(),en,es);
 
 function requiredDom() {
   return Boolean($('generateForm') && $('waveCanvas') && $('importLibraryBtn'));
@@ -46,7 +48,7 @@ function requiredDom() {
 function inform(message,error=false) {
   const element=$('feedback');
   if(!element)return;
-  element.textContent=message;
+  element.textContent=sfxLocalizedText(sfxUiLocale(),message);
   element.classList.toggle('error',error);
 }
 function money(value) {
@@ -199,7 +201,7 @@ function updateControls(){
   const assign=$('rq10AssignLibraryCue');
   if(assign)assign.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
 }
-function sfxUiLocale(){return $('uiLocaleSelect')?.value==='en'?'en':'es';}
+function sfxUiLocale(){return $('uiLocaleSelect')?.value==='es'?'es':'en';}
 function renderSfxHistory(){
   const select=$('sfxHistorySelect'),summary=$('sfxHistorySummary');
   if(!select||!summary)return;
@@ -363,7 +365,7 @@ function updateFades(fadeIn,fadeOut){
  drawWave();
 }
 function updateSfxEditorLocale(){
- const es=$('uiLocaleSelect')?.value==='es';
+ const es=sfxUiLocale()==='es';
  text('sfxDragLabel',es?'Acción al arrastrar':'Waveform gesture');
  const modes=$('sfxDragMode').options;
  modes[0].textContent=es?'Seleccionar IN/OUT':'Select IN/OUT';
@@ -374,6 +376,7 @@ function updateSfxEditorLocale(){
  text('importLibraryBtn',es?'Usar sonido':'Use sound');
  text('importCueBtn',es?'Guardar y crear cue':'Save and create cue');
  updateFades(state.fadeInSeconds,state.fadeOutSeconds);
+ localizeSfxMarkup(document.querySelector('.sfx-lab'),sfxUiLocale());
  updateControls();
 }
 function updateTrim(inSeconds,outSeconds){
@@ -828,21 +831,21 @@ function connectionProblem(settings){
 }
 async function checkConnection(){
   if(connectionCheck)return connectionCheck;
-  text('engineBadge','Comprobando…');
+  text('engineBadge','Checking…');
   connectionCheck=(async()=>{
     try{
       const settings=await(await request('/status')).json();
       state.settings=settings;
       state.enabled=settings.enabled===true;
       showCost(settings);
-      text('engineBadge',state.enabled?'Generador configurado':'Generador no disponible');
+      text('engineBadge',state.enabled?'Generator ready':'Generator unavailable');
       $('engineBadge')?.classList.toggle('active',state.enabled);
       inform(state.enabled
         ? 'El servidor tiene la configuración necesaria. Puedes autorizar una solicitud; la conexión real se comprobará al enviarla.'
         : connectionProblem(settings),!state.enabled);
     }catch(error){
       state.enabled=false;state.settings=null;showCost(null);
-      text('engineBadge','Sin conexión al servidor');
+      text('engineBadge','No connection to local server');
       $('engineBadge')?.classList.remove('active');
       inform('No se pudo consultar el generador local: '+(error?.message??'error de red'),true);
     }finally{updateControls();}
