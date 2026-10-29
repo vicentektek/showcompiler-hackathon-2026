@@ -365,3 +365,291 @@
  grid-column:2!important;grid-row:auto!important;
  min-height:30px!important;
 }
+
+
+/* V13 Canonical technical-workstation rules. These live in the existing dark
+   theme file, not an extra versioned stylesheet. CSS does not remove any
+   functional controls. The safety-critical Live and Autopilot layouts remain
+   separate and retain large GO / STOP ALL targets. */
+.rq8.rq13{
+ --rq13-paper:#0e1924;--rq13-pane:#152432;--rq13-header:#223547;
+ --rq13-line:#3a5266;--rq13-ink:#e9f2f8;--rq13-mute:#a3b9ca;
+ --rq13-focus:#8cbde0;
+ font-family:system-ui,"Segoe UI",Arial,sans-serif;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) main{
+ background:var(--rq13-paper)!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro{
+ min-height:33px!important;max-height:45px!important;
+ padding:4px 8px!important;margin:0 0 4px!important;
+ background:transparent!important;border:0!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro h1{
+ font-size:13px!important;font-weight:730!important;letter-spacing:0!important;
+ line-height:1.3!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro p{
+ font-size:10px!important;line-height:1.2!important;margin:0!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) #statusMessage{
+ min-height:23px!important;max-height:42px!important;
+ padding:4px 9px!important;margin:0 0 5px!important;
+ font-size:10px!important;border-radius:2px!important;
+ white-space:nowrap;text-overflow:ellipsis;overflow:hidden!important;
+}
+.rq8.rq13 .rq7-workbench{
+ min-height:41px!important;max-height:48px!important;
+ padding:4px 10px!important;margin-bottom:5px!important;
+ gap:9px!important;border-radius:3px!important;
+ background:var(--rq13-pane)!important;
+ box-shadow:none!important;
+}
+.rq8.rq13 .rq7-mode-button{
+ min-height:29px!important;padding:4px 11px!important;
+ font-size:10px!important;border-radius:2px!important;
+}
+.rq8.rq13 .rq8-ribbon-heading{
+ padding-left:9px!important;gap:0!important;
+ border-color:var(--rq13-line)!important;
+}
+.rq8.rq13 .rq8-ribbon-heading strong{
+ font-size:12px!important;font-weight:700!important;letter-spacing:.005em!important;
+}
+.rq8.rq13 .rq8-ribbon-heading span{
+ font-size:10px!important;
+}
+.rq8.rq13 .rq7-ribbon-status{
+ font-size:10px!important;
+}
+.rq8.rq13 .workspace-nav{
+ background:#172534!important;
+}
+.rq8.rq13 .workspace-tab{
+ min-height:35px!important;font-size:11px!important;
+ border-radius:2px!important;padding:6px 9px!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .layout>.panel{
+ border-radius:3px!important;background:var(--rq13-pane)!important;
+ padding:9px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .layout>.panel{
+ padding:0!important;
+}
+.rq8.rq13 .panel-head{
+ padding:5px 8px!important;min-height:33px!important;
+ border-bottom:1px solid var(--rq13-line)!important;
+}
+.rq8.rq13 .panel-head h2{
+ font-size:13px!important;font-weight:720!important;
+ letter-spacing:0!important;
+}
+.rq8.rq13 .rq5-pane-heading,
+.rq8.rq13 .rq5-inspector-heading,
+.rq8.rq13 .rq13-ai-inspector-title{
+ border-bottom:1px solid var(--rq13-line)!important;
+ background:var(--rq13-header)!important;
+ color:#d5e3ed!important;
+ font:700 10px/1.45 ui-monospace,Consolas,monospace!important;
+ letter-spacing:.05em!important;
+ padding:7px 10px!important;
+}
+.rq8.rq13 .btn:not(#operatorGoBtn):not(#operatorPanicBtn):not(#stopAllBtn){
+ border-radius:3px!important;
+ box-shadow:none!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .setup-grid{
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .setup-grid>div{
+ min-height:50px!important;padding:8px 10px!important;
+ background:#1a2b3a!important;border:1px solid #3f5669!important;
+ display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:8px;border-radius:2px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .setup-grid strong{
+ font:600 12px ui-monospace,Consolas,monospace!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .runq-keymap{
+ background:#172737!important;border:1px solid #40596d!important;
+ border-radius:3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="home"] .home-tile{
+ min-height:110px!important;background:#1c2c3a!important;
+ border:1px solid #3e576a!important;border-radius:3px!important;
+ box-shadow:none!important;padding:13px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="home"] .home-tile.featured{
+ background:#233b3e!important;border-color:#5b9a97!important;
+}
+.rq8.rq13 .shell[data-active-workspace="home"] .home-tile:hover{
+ border-color:#8ebcd7!important;
+}
+/* Script navigation: the script text is always the largest stable pane. */
+.rq8.rq13 .shell[data-active-workspace="script"] .layout>.panel.rq5-script-workspace{
+ min-height:calc(100dvh - 164px)!important;
+ max-height:calc(100dvh - 136px)!important;
+ grid-template-columns:minmax(165px,220px) minmax(0,1fr)!important;
+ gap:5px 9px!important;padding:7px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .rq5-script-scenes{
+ background:#152637!important;border:1px solid #3b5163!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .rq5-scene-link{
+ min-height:33px!important;padding:5px 8px!important;
+ border-radius:2px!important;font-size:11px!important;
+ background:#213547!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] #scriptPreview{
+ background:#0d1a28!important;border:1px solid #44596c!important;
+ min-height:220px!important;max-height:none!important;
+ height:100%!important;overflow:auto!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .script-line{
+ font-family:Consolas,ui-monospace,monospace!important;
+ font-size:12px!important;line-height:1.55!important;
+ padding:4px 8px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .line-ref{
+ font:700 10px Consolas,ui-monospace,monospace!important;
+}
+/* Cue list & inspector: compact, with explicit row Play/NEXT left.
+   GO/STOP remain dedicated global controls, never hidden. */
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-workspace-body{
+ grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr)!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item{
+ min-height:41px!important;border-radius:0!important;
+ border-top:0!important;border-bottom:1px solid #314658!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-row-select{
+ min-height:39px!important;padding:3px 8px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq9-row-actions{
+ min-height:39px!important;padding:4px 3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-row-title{
+ font-size:12px!important;line-height:1.3!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-row-meta{
+ font-size:10px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-inspector-frame{
+ background:#172736!important;
+}
+/* AI workbench: review queue and an independent tools inspector, not
+   three competing cards. All original form IDs/actions still exist. */
+.rq8.rq13 .shell[data-active-workspace="ai"] .layout>.panel.rq5-ai-workspace{
+ min-height:calc(100dvh - 160px)!important;
+ max-height:calc(100dvh - 133px)!important;
+ padding:5px!important;overflow:hidden!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid.rq13-ai-workstation{
+ display:grid!important;flex:1 1 auto!important;
+ grid-template-columns:minmax(0,1.5fr) minmax(305px,.94fr)!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ min-height:0!important;overflow:hidden!important;
+ gap:7px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq5-ai-review{
+ min-width:0;min-height:0!important;grid-column:1!important;
+ grid-row:1!important;
+ overflow:hidden!important;background:#14212f!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq13-ai-inspector{
+ min-width:0;min-height:0!important;grid-column:2!important;
+ grid-row:1!important;overflow-y:auto!important;
+ overscroll-behavior:contain;background:#152536;
+ border:1px solid #3f586c;border-radius:3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] #proposalList{
+ flex:1 1 auto!important;min-height:140px!important;
+ overflow-y:auto!important;background:#0f1e2b!important;
+ padding:4px!important;gap:3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] #proposalList .item{
+ min-height:42px!important;padding:7px 9px!important;
+ border:1px solid #334d5f!important;
+ border-left:3px solid #7eb6df!important;
+ border-radius:2px!important;background:#1b2d3c!important;
+}
+.rq8.rq13 .rq13-ai-inspector-title{
+ min-height:34px!important;
+}
+.rq8.rq13 .rq13-ai-disclosure{
+ border-bottom:1px solid #40596b;
+ margin:0!important;padding:0!important;
+ background:#192b3a;
+}
+.rq8.rq13 .rq13-ai-disclosure>summary{
+ min-height:38px;padding:10px 11px;
+ color:#e1edf7;background:#203548;font-size:11px;font-weight:700;
+ cursor:pointer;list-style:disclosure-closed;
+}
+.rq8.rq13 .rq13-ai-disclosure[open]>summary{
+ background:#30485b;border-bottom:1px solid #405c71;
+}
+.rq8.rq13 .rq13-ai-disclosure>summary:hover{
+ background:#3b5265;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine,
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-manual{
+ display:flex!important;flex-direction:column!important;
+ min-height:0!important;max-height:none!important;
+ border:0!important;background:transparent!important;
+ overflow:visible!important;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine .meta-panel{
+ overflow:visible!important;min-height:0!important;
+ background:#192b3a!important;padding:9px!important;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine .meta-panel p,
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine .meta-panel label{
+ font-size:10px!important;line-height:1.35!important;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-manual #proposalForm{
+ padding:10px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-workspace>.help{
+ font-size:10px!important;line-height:1.25!important;
+ max-height:36px!important;overflow:hidden!important;
+}
+/* Technical work must remain usable at 900×600 (internal scroll panes).
+   Live/Rehearsal transport is never compacted below original safety sizes. */
+@media(max-width:970px){
+ .rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid.rq13-ai-workstation{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(180px,.9fr) minmax(215px,1.1fr)!important;
+  overflow:auto!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq5-ai-review{
+  grid-column:1!important;grid-row:1!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq13-ai-inspector{
+  grid-column:1!important;grid-row:2!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-workspace-body{
+  grid-template-columns:minmax(0,1fr) minmax(250px,.8fr)!important;
+ }
+}
+@media(max-width:760px){
+ .rq8.rq13 .shell[data-active-workspace="script"] .layout>.panel.rq5-script-workspace{
+  display:flex!important;flex-direction:column!important;
+  min-height:0!important;max-height:none!important;overflow:auto!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="script"] .rq5-script-scenes{
+  flex:0 0 170px!important;overflow:auto!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="script"] #scriptPreview{
+  flex:1 1 300px!important;min-height:240px!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-workspace-body{
+  display:flex!important;flex-direction:column!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-sequence-frame{
+  min-height:190px!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-inspector-frame{
+  min-height:210px!important;max-height:60dvh!important;
+ }
+}
