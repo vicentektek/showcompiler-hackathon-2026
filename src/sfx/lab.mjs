@@ -745,10 +745,9 @@ function bindEvents(){
   }));
   async function commitReviewedSfx(createCue=false){
     if(!canCommitCurrentSfx())throw new Error('Escucha la toma generada antes de guardarla.');
-    const message=createCue
-      ? 'Aceptar esta toma, guardarla en la biblioteca y crear UN cue editable? GO seguirá siendo manual.'
-      : 'Aceptar esta toma y guardarla en la biblioteca del proyecto? No se creará ni ejecutará ningún cue.';
-    if(!confirm(message))return; // No review or import before user confirmation.
+    // "Usar sonido" is itself the operator's explicit acceptance/import action;
+    // asking again was redundant. Additional cue creation still confirms.
+    if(createCue && !confirm('Guardar el sonido y crear UN cue editable? GO seguirá siendo manual.'))return;
     if(state.job.status==='READY_FOR_REVIEW'){
       const accepted=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{
         method:'POST',data:{decision:'ACCEPT'},
