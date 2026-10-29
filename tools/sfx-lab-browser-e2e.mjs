@@ -116,6 +116,37 @@ try{
   // Export is guarded by accepted remote review, so the local test sound
   // remains audition-only rather than impersonating a generated take.
   assert.equal(await page.locator('#exportBtn').isDisabled(),true);
+  // RunQ V10: original library media can enter the SAME reviewed waveform,
+  // then produce a NEW cue or replace an existing single-track cue. Neither
+  // operation sends a GO or changes source bytes.
+  await page.locator('[data-workspace-nav="home"]').click();
+  await page.locator('#homeDemoBtn').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('#assetList [data-sound-edit]').count(),3);
+  const beforeReviewStarts=await page.evaluate(()=>window.__labStarted);
+  await page.locator('#assetList [data-sound-edit]').first().click();
+  await page.locator('#rq10CreateLibraryCue').waitFor({state:'visible'});
+  assert.equal(await page.locator('#rq10CreateLibraryCue').isEnabled(),true);
+  assert.equal(await page.locator('[data-rq10-sound-tab="generate"]').getAttribute('aria-selected'),'true');
+  await page.locator('#inPoint').fill('0.05');
+  await page.locator('#inPoint').dispatchEvent('change');
+  page.once('dialog',d=>d.accept());
+  await page.locator('#rq10CreateLibraryCue').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
+    'Creating a cue from the audio editor must never trigger playback');
+  assert.ok((await page.locator('#rq10TargetCue option').count())>=5,
+    'All cue targets must be available from the unified audio desk');
+  await page.locator('#rq10TargetCue').selectOption('cue-1');
+  page.once('dialog',d=>d.accept());
+  await page.locator('#rq10AssignLibraryCue').click();
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
+    'Assigning sound and trims cannot execute a GO');
+  await page.locator('[data-workspace-nav="cues"]').click();
+  await page.locator('#cueList [data-cue-select]').first().click();
+  assert.equal(await page.locator('#cuePlaybackForm [name="startAtMs"]').inputValue(),'50',
+    'Library-to-cue review settings must be persisted as milliseconds');
   assert.equal(billableCalls,0);
   assert.deepEqual(errors,[]);
   if(process.env.RUNQ_CAPTURE_UI==='1'){
