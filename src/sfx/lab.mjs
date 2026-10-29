@@ -241,7 +241,7 @@ async function loadSfxHistoryJob(id){
   viewJob(job); // Never remote polling, submit or autoplay.
   if($('sfxHistorySelect'))$('sfxHistorySelect').value=id;
   renderSfxHistory();
-  inform('Toma recuperada del registro local. Comprobar resultado consulta Modal solo si el trabajo sigue activo.');
+  inform(copy('Previous sound restored. Checking its result contacts Modal only if still running.','Toma recuperada del registro local. Comprobar resultado consulta Modal solo si el trabajo sigue activo.'));
 }
 function clearReviewedAudio(){
   stopSoundLabAudition();
@@ -281,12 +281,12 @@ function viewJob(job){
   ].filter(Boolean).join('\n') : 'No remote call is made when a saved record is opened.';
   text('jobTechnicalDetails',detail);
   text('jobDetails',job ? (
-    STATUS_WITH_AUDIO.has(job.status)?'Escúchalo y pulsa «Usar sonido» para guardarlo. Si no te convence, puedes probar otra versión.':
-    ['QUEUED','RUNNING'].includes(job.status)?'Tu solicitud sigue en curso. Pulsa «Ver resultado» para comprobar si ha terminado.':
-    job.status==='SUBMISSION_UNKNOWN'?'No repitas la generación: comprueba la solicitud pendiente en las opciones técnicas.':
-    job.status==='REJECTED'?'Descartado. Puedes generar otro sonido cuando haya presupuesto y pruebas disponibles.':
-    'Puedes crear otro sonido cuando el generador esté disponible.'
-  ) : 'Describe un sonido y pulsa «Generar sonido».');
+    STATUS_WITH_AUDIO.has(job.status)?copy('Listen, then select “Use sound” to save it. Or try another version.','Escúchalo y pulsa «Usar sonido» para guardarlo. Si no te convence, puedes probar otra versión.'):
+    ['QUEUED','RUNNING'].includes(job.status)?copy('The request is still running. Select “View result” to check for completion.','Tu solicitud sigue en curso. Pulsa «Ver resultado» para comprobar si ha terminado.'):
+    job.status==='SUBMISSION_UNKNOWN'?copy('Do not resubmit. Inspect the pending request in diagnostics.','No repitas la generación: comprueba la solicitud pendiente en las opciones técnicas.'):
+    job.status==='REJECTED'?copy('Discarded. You can generate another sound when your budget allows.','Descartado. Puedes generar otro sonido cuando haya presupuesto y pruebas disponibles.'):
+    copy('Create another sound when the generator is available.','Puedes crear otro sonido cuando el generador esté disponible.')
+  ) : copy('Describe a sound and select “Generate sound”.','Describe un sonido y pulsa «Generar sonido».'));
   if(job){
     $('requestId').value=job.requestId;
     try{localStorage.setItem('runq-sfx-last-id-v1',job.requestId);}catch{}
@@ -624,7 +624,7 @@ function bindEvents(){
     if(STATUS_WITH_AUDIO.has(job.status)){
       const result=await request('/jobs/'+encodeURIComponent(job.requestId)+'/audio');
       await loadAudio(await result.arrayBuffer(),'Generado · '+job.requestId+'.wav','remote');
-      inform('WAV cargado. Pulsa Play para escucharlo antes de aceptarlo.');
+      inform(copy('Sound loaded. Select Play to audition it before saving.','WAV cargado. Pulsa Play para escucharlo antes de aceptarlo.'));
     }else{
       inform('Estado: '+(STATUS_LABEL[job.status]??job.status)+'. Vuelve a comprobar cuando quieras.');
     }
@@ -817,7 +817,7 @@ function bindEvents(){
 let connectionCheck=null;
 function connectionProblem(settings){
   const checks=settings?.configurationChecks;
-  if(!checks)return 'El proveedor no está listo. Comprueba la configuración del servidor.';
+  if(!checks)return copy('The generator is not ready. Check the server setup.','El proveedor no está listo. Comprueba la configuración del servidor.');
   const messages={
     pilotEnabled:'El piloto está desactivado',
     endpointConfigured:'Falta la dirección del proveedor',
@@ -827,7 +827,8 @@ function connectionProblem(settings){
     modelRevisionValid:'Falta una revisión válida del modelo',
   };
   const missing=Object.entries(messages).filter(([key])=>checks[key]===false).map(([,label])=>label);
-  return missing.length?missing.join(' · '):'El proveedor no está listo. Comprueba su configuración.';
+  return missing.length?(sfxUiLocale()==='es'?missing.join(' · '):'Generator setup incomplete. Run npm run sfx:doctor locally.'):
+    copy('Generator setup incomplete.','El proveedor no está listo. Comprueba su configuración.');
 }
 async function checkConnection(){
   if(connectionCheck)return connectionCheck;
@@ -841,13 +842,13 @@ async function checkConnection(){
       text('engineBadge',state.enabled?'Generator ready':'Generator unavailable');
       $('engineBadge')?.classList.toggle('active',state.enabled);
       inform(state.enabled
-        ? 'El servidor tiene la configuración necesaria. Puedes autorizar una solicitud; la conexión real se comprobará al enviarla.'
+        ? copy('The generator is configured. Provider connectivity is checked when you authorize a request.','El servidor tiene la configuración necesaria. Puedes autorizar una solicitud; la conexión real se comprobará al enviarla.')
         : connectionProblem(settings),!state.enabled);
     }catch(error){
       state.enabled=false;state.settings=null;showCost(null);
       text('engineBadge','No connection to local server');
       $('engineBadge')?.classList.remove('active');
-      inform('No se pudo consultar el generador local: '+(error?.message??'error de red'),true);
+      inform(copy('Could not check local generator: ','No se pudo consultar el generador local: ')+(error?.message??'network error'),true);
     }finally{updateControls();}
   })();
   try{await connectionCheck;}finally{connectionCheck=null;}
