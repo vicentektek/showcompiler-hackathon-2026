@@ -1,0 +1,196 @@
+{
+  "schema": "runq-video-demo-manifest/v1",
+  "status": "PLANNED_NOT_GENERATED_OR_VERIFIED",
+  "script": "fixtures/demo/runq-the-last-go-en.txt",
+  "scriptLineCount": 31,
+  "title": "The Last GO",
+  "provenance": "Original authored script; manually mapped cues; existing offline generated WAV effects; no model inference represented here",
+  "scriptLanguage": "en",
+  "narration": "docs/video/demo-pack/NARRATION_EN_V2.md",
+  "voicedNarrationScenes": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S09",
+    "S10",
+    "S11"
+  ],
+  "silentNarrationScenes": [
+    "S08"
+  ],
+  "cuePlan": [
+    {
+      "cue": "Q01",
+      "label": "The breathing theatre",
+      "sourceLine": "L7",
+      "speechLine": "L6",
+      "speaker": "James",
+      "trigger": "Listen carefully. The theatre is holding its breath.",
+      "asset": "01_atmosphere.wav",
+      "audioOrigin": "src/core/demoShow.mjs:atmosphere",
+      "expectedSeconds": 7
+    },
+    {
+      "cue": "Q02",
+      "label": "The single bell",
+      "sourceLine": "L15",
+      "speechLine": "L14",
+      "speaker": "Maya",
+      "trigger": "When the clock strikes once, open the envelope.",
+      "asset": "02_clock_bell.wav",
+      "audioOrigin": "src/core/demoShow.mjs:bell",
+      "expectedSeconds": 2.8
+    },
+    {
+      "cue": "Q03",
+      "label": "The final decision",
+      "sourceLine": "L24",
+      "speechLine": "L23",
+      "speaker": "Ella",
+      "trigger": "When the red light comes on, we make our choice.",
+      "asset": "03_finale.wav",
+      "audioOrigin": "src/core/demoShow.mjs:transition",
+      "expectedSeconds": 5.5
+    }
+  ],
+  "takes": [
+    {
+      "file": "01_linear_en.wav",
+      "sequence": [
+        "L6",
+        "L14",
+        "L23"
+      ],
+      "expected": [
+        "Q01",
+        "Q02",
+        "Q03"
+      ],
+      "guard": "AutoGO explicitly armed"
+    },
+    {
+      "file": "02_jump_en.wav",
+      "sequence": [
+        "L6",
+        "L23"
+      ],
+      "expected": [
+        "Q01",
+        "Q03"
+      ],
+      "forbidden": [
+        "Q02"
+      ],
+      "guard": "AutoGO explicitly armed"
+    },
+    {
+      "file": "03_rewind_en.wav",
+      "sequence": [
+        "L23",
+        "L6"
+      ],
+      "expected": [
+        "Q03",
+        "Q01"
+      ],
+      "forbidden": [
+        "Q02"
+      ],
+      "guard": "AutoGO explicitly armed"
+    },
+    {
+      "file": "04_repeat_en.wav",
+      "sequence": [
+        "L14",
+        "SILENCE_3.5S_OR_MORE",
+        "L14_NEW_FINAL_TURN"
+      ],
+      "expected": [
+        "Q02",
+        "Q02"
+      ],
+      "guard": "AutoGO explicitly armed; min 2500ms between GO events"
+    },
+    {
+      "file": "05_disarmed_en.wav",
+      "sequence": [
+        "L6",
+        "L14"
+      ],
+      "expected": [],
+      "forbidden": [
+        "Q01",
+        "Q02",
+        "Q03"
+      ],
+      "guard": "AutoGO disabled"
+    },
+    {
+      "file": "06_negative_en.wav",
+      "sequence": [
+        "negative_clock",
+        "negative_light",
+        "go",
+        "next",
+        "stop"
+      ],
+      "expected": [],
+      "forbidden": [
+        "Q01",
+        "Q02",
+        "Q03"
+      ],
+      "guard": "AutoGO enabled, negative text only"
+    },
+    {
+      "file": "07_director_en.wav",
+      "sequence": [
+        "director_restart",
+        "L6",
+        "director_skip",
+        "L23"
+      ],
+      "expected": [
+        "Q01",
+        "Q03"
+      ],
+      "forbidden": [
+        "Q02"
+      ],
+      "guard": "Director voice is not transport command"
+    },
+    {
+      "file": "08_full_scene_en.wav",
+      "sequence": [
+        "L5-L30 dialogue only"
+      ],
+      "expected": [
+        "Q01",
+        "Q02",
+        "Q03"
+      ],
+      "guard": "Requires real ASR; optional longer rehearsal"
+    }
+  ],
+  "productionGates": [
+    "rights_checked",
+    "source_txt_lines_verified",
+    "tts_generated_and_accepted",
+    "en_show_zip_export_reimport_verified",
+    "input_channel_excludes_runq_output",
+    "actual_asr_measured",
+    "real_auto_go_armed_evidence",
+    "user_visual_approval",
+    "official_video_limits_checked"
+  ],
+  "assumptions": [
+    "Cue numbering Q01-Q03 is a proposed video plan, not observed RUNQ numbering",
+    "WAV assets exist in original offline generator but the English ZIP is NOT built",
+    "Speech recognition, skip, rewind and repeat are subject to live acceptance",
+    "No money can be spent without a separate operator authorization"
+  ]
+}
