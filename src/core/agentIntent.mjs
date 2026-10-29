@@ -47,7 +47,11 @@ export function interpretLocalAgentRequest(project,prompt,{assetAvailable=()=>nu
   if(changes)return reply('PLAN','Edit cue '+cue.number+' · '+cue.label+'.',
    [{op:'UPDATE_CUE',cueId:cue.id,changes}]);
   if(/(?:mejora|sonido|better|improve|sound|audio)/i.test(text))
-   return reply('ANSWER','Cue '+cue.number+' · '+cue.label+': select it and use Sound Lab to audition or generate an alternative. Original media will not be overwritten. Audio generation remains a separate approved action.');
+   return {...reply('SOUND_ADVICE','Cue '+cue.number+' · '+cue.label+': prepare a new sound alternative in Sound Lab. Review and audition it before replacing the original.'),
+    sound:{cueId:cue.id,lineId:cue.sourceLineIds[0]??null,
+     prompt:'Alternative theatrical sound for cue: '+cue.label+'. '+
+      'More natural acoustic detail, cinematic depth and smooth transitions; '+
+      'preserve spoken-dialogue intelligibility. Review the result before use.'}};
   if(/^(?:describe|explica|what|qu[eé]|cu[aá]l|show|dime)\b/i.test(text)){
    const context=buildAgentContext(project,{cueIds:[cue.id],maxScriptLines:20,
       focusLineId:cue.sourceLineIds[0]??null,assetAvailable});
