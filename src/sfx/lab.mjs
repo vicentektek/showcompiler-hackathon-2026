@@ -850,7 +850,7 @@ export async function initializeSoundLab({onImportReviewed,onReservePreview,onPr
     catch{inform('No se pudo leer el historial local. El servidor sigue protegiendo los límites de generación.',true);}
   }
   // Reopen the last LOCAL journal record, without remote polling or payment.
-  if(!state.job && $('requestId').value.trim()){
+  if((!workspace||workspace==='audio') && !state.job && $('requestId').value.trim()){
     try{
       const result=await request('/jobs/'+encodeURIComponent(currentJobId()));
       viewJob(await result.json());
