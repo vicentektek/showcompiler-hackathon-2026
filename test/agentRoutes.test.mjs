@@ -65,3 +65,26 @@ test('model request fails closed if credentials are unavailable',async()=>{
    assert.equal(called,0);
   });
 });
+
+test('model may not target cues absent from consented context',async()=>{
+ const rogue={...proposal,operations:[{...proposal.operations[0],cueId:'cue-999'}]};
+ await withServer({getAgentKey:()=> 'test-key',agentFetch:async()=>reply(rogue)},
+  async root=>{
+   const response=await fetch(root+'/api/agent/interpret',params(root));
+   assert.equal(response.status,502);
+   assert.equal((await response.json()).error,'AGENT_INFERENCE_FAILED');
+  });
+});
+test('model may not fabricate voice triggers without evidence from the original script',async()=>{
+ const invalid={...proposal,operations:[{
+  op:'UPDATE_CUE',cueId:'cue-2',afterCueId:null,targetCueId:null,
+  position:null,label:null,
+  edits:[{field:'trigger',numeric:null,text:'Invented words not in any script dialogue',boolean:null}]
+ }]};
+ await withServer({getAgentKey:()=> 'test-key',agentFetch:async()=>reply(invalid)},
+  async root=>{
+   const response=await fetch(root+'/api/agent/interpret',params(root));
+   assert.equal(response.status,502);
+   assert.equal((await response.json()).error,'AGENT_INFERENCE_FAILED');
+  });
+});
