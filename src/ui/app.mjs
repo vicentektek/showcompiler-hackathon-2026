@@ -997,6 +997,7 @@ function render() {
   for (const asset of show.assets) {
     const state = t(player.hasAsset(asset.id) ? 'status.loaded' : 'status.missingAsset');
     const row = node('div', 'asset-list-row');
+    row.dataset.audioLoaded=String(player.hasAsset(asset.id));
     const label = node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state);
     const audition = node('button', 'btn subtle small', t('audio.audition'));
     audition.type = 'button';
