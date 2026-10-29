@@ -79,7 +79,7 @@ function mountUnifiedSound(){
     if(mode==='generate'&&next==='library')
       document.dispatchEvent(new Event('runq:sound-stop-preview'));
     mode=next;
-    audio.dataset.rq10SoundView=next;
+    grid.dataset.rq10SoundView=next; // CSS targets direct sibling editor panes
     for(const [tab,name] of [[library,'library'],[generate,'generate']]){
       const selected=name===next;
       tab.setAttribute('aria-selected',String(selected));
