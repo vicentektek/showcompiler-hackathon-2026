@@ -14,6 +14,7 @@ const make=(tag,cls='',text='')=>{
  return el;
 };
 let proposed=null,working=false,history=[],lastPrompt='';
+let selectedBatch=null;
 function state(){
  let result=null;
  document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{result=value;}}}));
@@ -36,11 +37,42 @@ function addMessage(role,text){
  }
  box.scrollTop=box.scrollHeight;
 }
-function showPlan(plan){
+function showPlan(plan,baseProject=null,keepSelection=false){
+ if(baseProject&&plan){
+  selectedBatch={project:baseProject,operations:plan.operations,
+   enabled:plan.operations.map(()=>true)};
+ }else if(!keepSelection)selectedBatch=null;
  proposed=plan;
- const panel=$('rqAgentProposal'),list=$('rqAgentDiff');
- panel.hidden=!plan;
- list.replaceChildren();
+ const panel=$('rqAgentProposal'),list=$('rqAgentDiff'),selector=$('rqAgentOps');
+ panel.hidden=!plan&&!selectedBatch;
+ list.replaceChildren();selector.replaceChildren();
+ if(selectedBatch){
+  selectedBatch.operations.forEach((operation,index)=>{
+   const li=make('li','rq-agent-op');
+   const label=make('label','');
+   const box=make('input','');box.type='checkbox';box.checked=selectedBatch.enabled[index];
+   box.setAttribute('aria-label',lang('Incluir operación ','Include operation ')+(index+1));
+   const cueId=operation.cueId??operation.afterCueId;
+   const cue=selectedBatch.project.cues.find(c=>c.id===cueId);
+   const summary=operation.op.replaceAll('_',' ').toLocaleLowerCase()+
+    (cue?' · '+cue.number+' '+cue.label:operation.label?' · '+operation.label:'');
+   label.append(box,make('span','',summary));
+   box.addEventListener('change',()=>{
+    const old=selectedBatch.enabled[index];selectedBatch.enabled[index]=box.checked;
+    const picked=selectedBatch.operations.filter((_,i)=>selectedBatch.enabled[i]);
+    if(!picked.length){showPlan(null,null,true);return;}
+    try{showPlan(prepareAgentPlan(selectedBatch.project,picked),null,true);}
+    catch(error){
+     selectedBatch.enabled[index]=old;
+     showPlan(proposed,null,true);
+     notify(lang('Esta selección depende de otras operaciones: ',
+       'This selection depends on other operations: ')+String(error.code??error.message),true);
+    }
+   });
+   li.append(label);selector.append(li);
+  });
+ }
+ $('rqAgentApply').disabled=!plan;
  if(!plan)return;
  const items=plan.changes.slice(0,75);
  for(const change of items){
@@ -55,8 +87,9 @@ function showPlan(plan){
   }
   list.append(item);
  }
- $('rqAgentApply').disabled=false;
- if(plan.changes.length>75)list.append(make('li','',lang('Hay más cambios; lote demasiado extenso para vista completa.','More changes; batch exceeds preview capacity.')));
+ if(plan.changes.length>75)list.append(make('li','',lang(
+  'Hay más cambios; lote demasiado extenso para vista completa.',
+  'More changes; batch exceeds preview capacity.')));
 }
 function short(value){
  if(value===null||value===undefined)return '—';
@@ -69,7 +102,8 @@ function sync(){
  const blocked=['rehearsal','operation'].includes(s.workspace);
  button.hidden=blocked;
  if(blocked)close();
- if(proposed&&JSON.stringify(s.project)!==proposed.baseSnapshot){
+ if((proposed&&JSON.stringify(s.project)!==proposed.baseSnapshot)||
+    (selectedBatch&&JSON.stringify(s.project)!==JSON.stringify(selectedBatch.project))){
   showPlan(null);notify(lang('El proyecto cambió. La propuesta anterior se ha descartado.',
    'The show changed. The previous plan was discarded.'),true);
  }
@@ -158,7 +192,7 @@ async function sendRequest(forceAI=false,custom=null){
   }
   if(reply.status==='PLAN'){
    const plan=prepareAgentPlan(s.project,reply.operations);
-   showPlan(plan);
+   showPlan(plan,s.project);
    notify(lang('Propuesta preparada: revisa los cambios antes de aplicar.',
     'Plan ready: review all changes before applying.'));
   }else{
@@ -220,13 +254,14 @@ function mount(){
  const messages=make('div','rq-agent-messages');messages.id='rqAgentMessages';
  const proposals=make('section','rq-agent-proposal');proposals.id='rqAgentProposal';proposals.hidden=true;
  proposals.append(make('strong','',lang('Cambios propuestos · Sin aplicar','Proposed changes · Not applied')));
+ const ops=make('ol','rq-agent-ops');ops.id='rqAgentOps';
  const diff=make('ol','rq-agent-diff');diff.id='rqAgentDiff';
  const approve=make('button','btn accent small',lang('Aplicar lote','Apply batch'));
  approve.id='rqAgentApply';approve.type='button';
  const discard=make('button','btn subtle small',lang('Descartar','Discard'));
  discard.type='button';
  const proposedActions=make('div','rq-agent-actions');proposedActions.append(approve,discard);
- proposals.append(diff,proposedActions);
+ proposals.append(ops,diff,proposedActions);
  const composer=make('section','rq-agent-compose');
  const label=make('label','',lang('¿Qué quieres hacer en este espectáculo?','What would you like to change in this show?'));
  label.htmlFor='rqAgentPrompt';
