@@ -79,6 +79,21 @@ Esos comandos SÍ pueden facturar. Ejecutar por separado, comprobar cada informe
 - Ctrl+C no garantiza cancelar una generación Modal ya enviada. Si hay bloqueo .lock, inspeccionar procesos y conciliación antes de intervenir.
 - No conectar GO automático a PA ni salida de hardware durante pruebas desatendidas.
 
+
+## IMPORTANTE: npm puede consumir los flags del piloto
+
+En al menos una instalación de npm/PowerShell, el comando `npm run eval:pilot -- --provider ...` ejecutó en realidad `node tools/runq-paid-pilot.mjs meta 1 hotel-door`, **sin los nombres de opciones ni los flags de autorización**. El parser falla antes de lanzar el piloto; no significa fallo de Meta. **No repetirlo sin confirmar las reservas.**
+
+Primero, `npm run eval:budget:status`: verificar `reservedUsd=0`, `requestCount=0` para Meta. Revisar también `artifacts/pilot-*/pilot-result.json` y el panel Meta si hubiera reservas. Para evitar el parser de npm, invocar el CLI **directamente con Node**:
+
+    node .\tools\runq-paid-pilot.mjs --provider meta --requests 1 --case hotel-door
+
+La orden anterior solo planifica, NO gasta créditos. Con saldo y dashboard comprobados, ejecutar la misma orden con `--live --ack-paid --dashboard-verified` solo una vez:
+
+    node .\tools\runq-paid-pilot.mjs --provider meta --requests 1 --case hotel-door --live --ack-paid --dashboard-verified
+
+Si el proceso se detiene tras reservar, NO reintentar: conciliar el registro y el consumo real antes de cualquier nueva solicitud.
+
 ## 7. Calendario
 
 Prioridad para el vídeo: obtener un rough cut el 31 de octubre y reservar del 1 al 3 de noviembre para capturas reales, correcciones y cierre. No ejecutar las 380 peticiones si desplazan vídeo o fiabilidad de demo.
