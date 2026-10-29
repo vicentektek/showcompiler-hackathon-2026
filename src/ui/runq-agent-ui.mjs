@@ -101,12 +101,19 @@ function sync(){
  if(!s||!button)return;
  const blocked=['rehearsal','operation'].includes(s.workspace);
  button.hidden=blocked;
+ const undoControl=$('rqAgentUndo');
+ if(undoControl)undoControl.disabled=!s.undoAvailable||!s.canApply;
  if(blocked)close();
  if((proposed&&JSON.stringify(s.project)!==proposed.baseSnapshot)||
     (selectedBatch&&JSON.stringify(s.project)!==JSON.stringify(selectedBatch.project))){
   showPlan(null);notify(lang('El proyecto cambió. La propuesta anterior se ha descartado.',
    'The show changed. The previous plan was discarded.'),true);
  }
+}
+function positionDrawer(){
+ const drawer=$('rqAgentDrawer');if(!drawer)return;
+ const barBottom=document.querySelector('.topbar')?.getBoundingClientRect().bottom??70;
+ drawer.style.top=Math.max(55,Math.min(window.innerHeight-160,barBottom+10))+'px';
 }
 function close(){
  $('rqAgentDrawer').hidden=true;
@@ -116,6 +123,7 @@ function open(){
  const s=state();
  if(!s||['rehearsal','operation'].includes(s.workspace))return;
  $('rqAgentDrawer').hidden=false;
+ positionDrawer();
  $('rqAgentToggle').setAttribute('aria-expanded','true');
  $('rqAgentPrompt').focus();
 }
@@ -295,6 +303,9 @@ function mount(){
  composer.append(label,input,examples,consentLabel,actions,status);
  panel.append(head,messages,proposals,composer);
  document.body.append(panel);
+ window.addEventListener('resize',positionDrawer);
+ window.addEventListener('scroll',()=>{if(!panel.hidden)positionDrawer();},{passive:true});
+ panel.addEventListener('keydown',event=>{if(event.key==='Escape')close();});
  addMessage('assistant',lang(
   'Puedo consultar el show, proponer cambios en varios cues, revisar errores y sugerir pies de voz con referencias del guion. Revisa y aprueba cada lote.',
   'I can inspect the show, propose multi-cue edits, audit issues and suggest script-grounded spoken triggers. Review and approve each batch.'));
