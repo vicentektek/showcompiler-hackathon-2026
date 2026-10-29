@@ -273,6 +273,20 @@ test('$2 budget guard refuses a request before any model call when reserve excee
   assert.equal(report.haltReason,'BUDGET_ESTIMATE_REACHED');
 });
 
+test('rejected global Meta reservation prevents any model call',async t=>{
+ let reservations=0,calls=0;
+ const report=await runMetaSeminarEval({
+  live:true,ackPaid:true,apiKey:'OFFLINE_TEST_KEY',caseId:'hotel-door',
+  maxRequests:1,budgetUsd:2,output:await tempOutput(t),
+  ledger:{reserve:async()=>{reservations++;return false;}},
+  modelCaller:async()=>{calls++;throw new Error('SHOULD_NOT_CALL');},
+ });
+ assert.equal(reservations,1);
+ assert.equal(calls,0);
+ assert.equal(report.submittedRequests,0);
+ assert.equal(report.haltReason,'GLOBAL_BUDGET_REACHED');
+});
+
 
 test('persistent Meta budget survives separate runs and rejects concurrent process',async t=>{
   const dir=await tempOutput(t);

@@ -15,7 +15,7 @@ test('default is offline, paid mode needs both switches, bounded requests',()=>{
   assert.throws(()=>parseBasetenEvalOptions(['--live']),/Invalid bounded/);
   assert.throws(()=>parseBasetenEvalOptions(['--live','--ack-paid','--max-requests','999']),/Invalid bounded/);
 });
-test('Baseten request uses exact hackathon model, same source window and no unsupported JSON schema flag',()=>{
+test('Baseten request uses the canonical model, same source window and no unsupported JSON schema flag',()=>{
   const r=makeBasetenTheatreRequest(prepared());
   assert.equal(r.model,BASETEN_MODEL);
   assert.equal(r.response_format,undefined);
@@ -83,4 +83,13 @@ test('offline request plans can never masquerade as a zero-quality paired model 
     {model:'muse-spark-1.3',realInferenceExecuted:false,cases:[dryCase]},
     {model:BASETEN_MODEL,realInferenceExecuted:false,cases:[dryCase]},corpus),
   /real completed inference/);
+});
+
+test('Baseten request removes Meta-only token parameter',()=>{
+  const r=makeBasetenTheatreRequest(prepared());
+  assert.equal(r.max_completion_tokens,undefined);
+  assert.equal(r.max_tokens,8192);
+  assert.equal(r.response_format,undefined);
+  assert.equal(r.reasoning_effort,undefined);
+  assert.equal(r.store,undefined);
 });

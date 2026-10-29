@@ -161,6 +161,7 @@ artifacts/seminar-qa/
 artifacts/seminar-live/
 artifacts/seminar-baseten/
 artifacts/seminar-compare/
+artifacts/pilot-*/
 
 # Local cumulative Meta lab spending ledger/lock; NEVER commit this to GitHub
 .runq-local/
