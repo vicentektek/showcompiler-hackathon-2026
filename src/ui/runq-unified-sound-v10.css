@@ -151,3 +151,24 @@
 .rq10 .rq5-audio-library .asset-list-row [data-sound-edit]:hover{
   background:#365b74!important;
 }
+
+.rq10 .rq10-library-search{
+  display:flex;align-items:center;gap:8px;
+  flex:none;background:#1d2d3c;
+  border-bottom:1px solid #405668;
+  padding:8px!important;margin:0!important;
+}
+.rq10 .rq10-library-search input{
+  flex:1;min-width:0!important;width:100%;
+  min-height:32px;border:1px solid #4b6378;border-radius:4px;
+  background:#0f1d2a;color:#e6f3fd;padding:5px 9px;
+  font-size:12px;
+}
+.rq10 .rq10-library-search input::placeholder{color:#99b2c5}
+.rq10 .rq10-library-search input:focus-visible{outline:2px solid #7bbce7;outline-offset:1px}
+.rq10 .rq10-library-search span{
+  white-space:nowrap;font:700 10px ui-monospace,monospace;color:#a9c3d4;
+}
+.rq10 .rq5-audio-library #assetList .asset-list-row[data-rq10-filtered="true"]{
+  display:none!important;
+}
