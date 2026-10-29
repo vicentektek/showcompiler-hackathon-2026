@@ -36,6 +36,11 @@ function mountSoundLibrary(){
   advanced.append(toggle,drawer);
   toolbar.append(advanced);
 
+  // The report MUST be detached BEFORE the batch import section is moved
+  // into a closed <details>. Otherwise import results become invisible although
+  // their text updates (a regression detected by the browser smoke test).
+  const report=byId('audioBatchReport');
+  if(report&&report.parentElement!==library)library.insertBefore(report,list);
   // Legacy manual media reference and format details remain available,
   // but cannot push the list below the fold. They live in a bounded popover.
   for(const selector of ['.subheading','#assetForm','.line-actions',
@@ -46,8 +51,6 @@ function mountSoundLibrary(){
   const guide=library.querySelector(':scope > p.caption');
   if(guide)drawer.append(guide);
 
-  const report=byId('audioBatchReport');
-  if(report)library.insertBefore(report,list);
   const heading=library.querySelector(':scope > .rq5-pane-heading');
   if(heading)heading.after(toolbar);
   else library.prepend(toolbar);
