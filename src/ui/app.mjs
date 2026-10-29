@@ -19,6 +19,7 @@ import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
 import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
+import { createShowEventLog } from '../core/showEventLog.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 
@@ -39,6 +40,8 @@ let metaConnection = { state: 'checking', model: '' };
 let show = createNewShow({ name: t('script.showNamePlaceholder') });
 let dirty = false;
 let projectGeneration = 0;
+const showEventLog=createShowEventLog({onChange:item=>document.dispatchEvent(new CustomEvent('runq:show-event',{detail:item}))});
+document.addEventListener('runq:show-event-read',e=>{if(typeof e.detail?.respond==='function')e.detail.respond(showEventLog.snapshot());});
 let metaAvailable = false;
 let metaInFlight = false;
 let metaActivity = null;
@@ -128,7 +131,13 @@ let lastGoCueId = null;
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
-let player = createBrowserAudioBackend({ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); } });
+let player = createBrowserAudioBackend({
+ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); },
+ onCueNaturalEnd:cueId=>{
+  const cue=show.cues.find(c=>c.id===cueId);
+  showEventLog.append('CUE_FINISHED',{cueId,label:cue?.label??'',source:'engine'});
+ },
+});
 let soundLabModulePromise = null;
 // V10 single show-controller preview lease. Sound Lab still has a temporary
 // Web Audio context, but cannot overlap GO or a library/cue audition. The
@@ -344,6 +353,7 @@ function refreshAudioControls() {
 
 function renderWorkspaceShell() {
   document.querySelector('.shell').dataset.activeWorkspace = activeWorkspace;
+  document.dispatchEvent(new CustomEvent('runq:show-state-changed'));
   for (const panel of document.querySelectorAll('[data-workspaces]')) {
     panel.hidden = !panel.dataset.workspaces.split(' ').includes(activeWorkspace);
   }
@@ -373,6 +383,8 @@ function setWorkspace(workspace) {
     stopSoundLabPreview();
     player.stopAudition(); // Prevent lingering library preview on entering Live.
   }
+  if(activeWorkspace==='rehearsal'&&workspace!=='rehearsal')
+    document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'workspace_exit'}}));
   activeWorkspace = workspace;
   renderWorkspaceShell();
   if(legacySoundLab)document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
@@ -2113,6 +2125,8 @@ function currentScriptLanguageHint() {
 
 function setNewShow(project, statusKey, values = {}) {
   projectGeneration += 1;
+  showEventLog.clear();
+  showEventLog.append('SHOW_OPENED',{label:project.name,source:'project'});
   scriptFocusLineId = null;
   scriptMatchIndex = 0;
   preflightVisible = false;
@@ -2134,6 +2148,44 @@ function setNewShow(project, statusKey, values = {}) {
   render();
   feedback(statusKey, values, 'success');
 }
+
+/** Read-only V14 presentation bridge. Views do not own GO or cue state. */
+document.addEventListener('runq:show-state-read',event=>{
+ const respond=event.detail?.respond;
+ if(typeof respond!=='function')return;
+ respond({
+  projectId:show.id,name:show.name,generation:projectGeneration,cueCount:show.cues.length,
+  cues:show.cues.map(c=>({id:c.id,number:c.number,label:c.label,
+   trigger:c.trigger??'',sourceLineIds:[...c.sourceLineIds]})),
+  preparedCueId:operatorQueue.preparedCueId,selectedCueId,
+  active:player.getActiveCues().map(item=>({...item})),
+  assets:show.assets.map(a=>({id:a.id,name:a.name,ready:player.hasAsset(a.id)})),
+  scriptText:show.scriptText,workspace:activeWorkspace,
+ });
+});
+document.addEventListener('runq:navigate-to-cue',event=>{
+ const id=event.detail?.cueId;
+ if(typeof id!=='string'||!show.cues.some(c=>c.id===id))return;
+ if(setWorkspace('cues'))selectCueForInspection(id);
+});
+document.addEventListener('runq:open-contextual-ia',event=>{
+ const detail=event.detail??{},lineId=detail.lineId;
+ if(lineId&&!/^L[1-9]\d*$/.test(lineId))return;
+ if(detail.mode==='sound'){
+  if(!setWorkspace('audio'))return;
+  const hint=typeof detail.prompt==='string'?detail.prompt.slice(0,800):'';
+  document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
+  const prompt=$('soundPrompt');if(prompt&&hint)prompt.value=hint;
+  if(lineId&&$('sourceLine'))$('sourceLine').value=lineId;
+  if($('confirmRequest'))$('confirmRequest').checked=false;
+  prompt?.focus();
+ }else{
+  if(!setWorkspace('ai'))return;
+  if(lineId&&Array.from($('lineSelect').options).some(o=>o.value===lineId))$('lineSelect').value=lineId;
+  const tools=document.querySelector('.rq13-ai-disclosure');if(tools)tools.open=true;
+  $('analyzeMetaBtn')?.focus(); // No request without user click and consent.
+ }
+});
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
 $('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScroll:true }); refreshAudioControls(); });
@@ -2227,12 +2279,17 @@ async function executeCueById(id,{advancePrepared=false}={}){
    await player.go(cue);
    if(generation!==projectGeneration)return false;
    lastGoCueId=id;
+   showEventLog.append('CUE_STARTED',{cueId:id,label:cue.label,
+      source:activeWorkspace==='rehearsal'&&$('rqLiveArm')?.getAttribute('aria-pressed')==='true'?'rehearsal':'operator'});
    if(advancePrepared&&operatorQueue.preparedCueId===id)
      operatorQueue=completePreparedCue(operatorQueue,show.cues,id);
    render();
    feedback('operator.goFeedback',{number:cue.number},'success');
    return true;
- }catch(error){showError(error);return false;}
+ }catch(error){
+   showEventLog.append('GO_REJECTED',{cueId:id,label:cue.label,source:activeWorkspace==='rehearsal'?'rehearsal':'operator',detail:String(error?.message??'Failed').slice(0,160)});
+   showError(error);return false;
+ }
  finally{goTransportPending=false;refreshAudioControls();}
 }
 function executePreparedGo(){
@@ -2301,12 +2358,15 @@ $('operatorSkipBtn').addEventListener('click', () => {
   if (!cue) return;
   try {
     operatorQueue = skipPreparedCue(operatorQueue, show.cues);
+    showEventLog.append('NEXT_SKIPPED',{cueId:cue.id,label:cue.label,source:'operator'});
     render();
     feedback('operator.skippedFeedback', { number: cue.number }, 'success');
   } catch (error) { showError(error); }
 });
 $('operatorBackBtn').addEventListener('click', () => {
   operatorQueue = previousOperatorCue(operatorQueue, show.cues);
+  const cue=show.cues.find(c=>c.id===operatorQueue.preparedCueId);
+  if(cue)showEventLog.append('NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator',detail:'previous'});
   render();
 });
 $('operatorResetBtn').addEventListener('click', () => {
@@ -2319,6 +2379,7 @@ $('operatorResetBtn').addEventListener('click', () => {
   }
   operatorQueue = startOperatorQueue(show.cues);
   lastGoCueId = null;
+  showEventLog.append('QUEUE_RESET',{source:'operator'});
   render();
   feedback('operator.resetFeedback', {}, 'success');
 });
