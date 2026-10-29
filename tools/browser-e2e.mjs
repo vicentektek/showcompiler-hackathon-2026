@@ -274,6 +274,12 @@ try {
     const debug={
       client:node.clientHeight,scroll:node.scrollHeight,top:node.scrollTop,
       rows:node.querySelectorAll('.asset-list-row').length,
+      activeWorkspace:document.querySelector('.shell')?.dataset.activeWorkspace,
+      search:document.querySelector('#rq10LibrarySearch')?.value,
+      rowState:[...node.querySelectorAll('.asset-list-row')].slice(0,4).map(row=>({
+        filter:row.dataset.rq10Filtered,display:getComputedStyle(row).display,
+        rect:row.getBoundingClientRect().toJSON(),html:row.outerHTML.slice(0,180),
+      })),
       ancestors:[],
     };
     for(let el=node,n=0;el&&n<6;el=el.parentElement,n++){
