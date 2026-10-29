@@ -88,8 +88,11 @@ try{
   await page.waitForFunction(()=>document.querySelector('#audioBatchStatus')?.textContent.includes('0 new'));
   assert.equal(await page.locator('#assetList [data-asset-audition]').count(),2);
 
+  await page.locator('#rq12AdvancedToggle').click();
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),'');
   await page.locator('#assetName').fill('scene.wav');
   await page.locator('#assetForm button[type="submit"]').click();
+  await page.keyboard.press('Escape');
   assert.equal(await page.locator('#assetList [data-asset-audition]').count(),3);
   const pack=zip([
     ['Act I/scene.wav','RIFF scene'],
