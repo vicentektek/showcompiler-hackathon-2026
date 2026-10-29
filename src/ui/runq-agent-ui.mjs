@@ -74,8 +74,9 @@ function showPlan(plan,baseProject=null,keepSelection=false){
  }
  $('rqAgentApply').disabled=!plan;
  if(!plan)return;
- const items=plan.changes.slice(0,75);
- for(const change of items){
+ // Every change in a proposed transaction must be reviewable, including
+ // renumbering and indirect automation changes on other cues.
+ for(const change of plan.changes){
   const item=make('li','rq-agent-diff-item');
   const summary=change.kind==='CREATED'?lang('Crear cue','Create cue')+' '+change.cueId:
    change.kind==='DELETED'?lang('Eliminar cue','Delete cue')+' '+change.cueId:
@@ -87,9 +88,9 @@ function showPlan(plan,baseProject=null,keepSelection=false){
   }
   list.append(item);
  }
- if(plan.changes.length>75)list.append(make('li','',lang(
-  'Hay más cambios; lote demasiado extenso para vista completa.',
-  'More changes; batch exceeds preview capacity.')));
+ if(plan.changes.length>75)list.prepend(make('li','rq-agent-diff-item',lang(
+  'Este lote afecta a '+plan.changes.length+' cues. Revisa toda la lista desplazándote antes de aplicar.',
+  'This batch affects '+plan.changes.length+' cues. Scroll through the entire preview before applying.')));
 }
 function short(value){
  if(value===null||value===undefined)return '—';
