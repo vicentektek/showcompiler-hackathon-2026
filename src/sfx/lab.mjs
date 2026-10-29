@@ -70,8 +70,8 @@ function showCost(settings) {
   const ready=policy.perRequest!==null&&policy.daily!==null;
   element.classList.toggle('ready',ready);
   element.textContent=ready
-    ? `Límite estimado por solicitud: ${money(policy.perRequest)}. Presupuesto diario: ${money(policy.daily)}. Son límites preventivos, no el importe facturado.`
-    : 'No hay una política de coste válida; la generación está bloqueada.';
+    ? copy(`Estimated cost cap: ${money(policy.perRequest)} per request. Daily budget: ${money(policy.daily)}. Provider charges may differ.`, `Límite estimado por solicitud: ${money(policy.perRequest)}. Presupuesto diario: ${money(policy.daily)}. Son límites preventivos, no el importe facturado.`)
+    : copy('Cost policy missing. Generation is disabled.','No hay una política de coste válida; la generación está bloqueada.');
   text('confirmRequestLabel',ready
     ? `Autorizo UNA generación con un límite estimado de ${money(policy.perRequest)}.`
     : 'Autorizo una única solicitud con el límite indicado.');
@@ -159,14 +159,14 @@ function updateControls(){
   $('generateBtn').disabled=!allowed;
   const variation=$('sfxAnotherVariationBtn');
   if(variation)variation.disabled=!allowed||!job||!STATUS_WITH_AUDIO.has(job.status);
-  $('generationHint').textContent=state.working?'Procesando la solicitud…':
-    !state.enabled?'No disponible: '+connectionProblem(state.settings):
-    !costReady?'Falta la política de coste del servidor.':
-    !promptReady?'Escribe un prompt y comprueba la duración.':
-    activeJob?.status==='SUBMISSION_UNKNOWN'?'No podemos confirmar el envío anterior. Abre «Mis otros sonidos» para revisarlo antes de generar.':
-    activeJob?.status==='CANCEL_REQUESTED'?'La cancelación anterior no está confirmada. Revisa «Mis otros sonidos».':
-    activeJob?('Hay una generación pendiente. '+(job?.requestId===activeJob.requestId?'Pulsa «Ver resultado».':'Abre «Mis otros sonidos».')):
-    'Listo para generar. Cada intento pide confirmación del coste.';
+  $('generationHint').textContent=state.working?copy('Processing…','Procesando la solicitud…'):
+    !state.enabled?copy('Unavailable: ','No disponible: ')+connectionProblem(state.settings):
+    !costReady?copy('Cost policy not configured.','Falta la política de coste del servidor.'):
+    !promptReady?copy('Describe a sound and check the duration.','Escribe un prompt y comprueba la duración.'):
+    activeJob?.status==='SUBMISSION_UNKNOWN'?copy('Previous submission unconfirmed. Open “Previous sounds” before generating.','No podemos confirmar el envío anterior. Abre «Mis otros sonidos» para revisarlo antes de generar.'):
+    activeJob?.status==='CANCEL_REQUESTED'?copy('Previous cancellation unconfirmed. Check “Previous sounds”.','La cancelación anterior no está confirmada. Revisa «Mis otros sonidos».'):
+    activeJob?copy('A generation is pending.','Hay una generación pendiente.')+' '+(job?.requestId===activeJob.requestId?copy('Select “View result”.','Pulsa «Ver resultado».'):copy('Open “Previous sounds”.','Abre «Mis otros sonidos».')):
+    copy('Ready to generate. Each request needs approval.','Listo para generar. Cada intento pide confirmación del coste.');
   const openHistory=$('sfxOpenHistoryBtn');
   if(openHistory)openHistory.disabled=state.working||!$('sfxHistorySelect')?.value;
   const reconnect=$('sfxReconnectBtn');
@@ -210,7 +210,7 @@ function renderSfxHistory(){
   select.replaceChildren();
   const placeholder=document.createElement('option');
   placeholder.value='';
-  placeholder.textContent=history?.jobs.length?'Seleccionar toma anterior…':'Sin tomas registradas';
+  placeholder.textContent=history?.jobs.length?copy('Select previous sound…','Seleccionar toma anterior…'):copy('No previous sounds','Sin tomas registradas');
   select.append(placeholder);
   for(const job of history?.jobs??[]){
     const option=document.createElement('option');
@@ -221,12 +221,12 @@ function renderSfxHistory(){
   if(history?.jobs.some(j=>j.requestId===selected))select.value=selected;
   else if(history?.active.length)select.value=history.active[0].requestId;
   $('sfxOpenHistoryBtn').disabled=!select.value||state.working;
-  if(!history){summary.textContent='Historial no disponible. La seguridad del servidor sigue activa.';return;}
+  if(!history){summary.textContent=copy('Previous sounds unavailable. Your cost limits remain protected.','Historial no disponible. La seguridad del servidor sigue activa.');return;}
   summary.textContent=[
-    history.startedToday+' solicitud(es) iniciadas hoy (UTC).',
-    history.active.length?history.active.length+' sin resolver: primero recuperar/actualizar.':'Sin trabajos activos.',
-    history.ready.length?history.ready.length+' toma(s) listas para recuperar y escuchar.':'',
-    history.truncated?'Historial truncado: los límites reales los decide el servidor.':'',
+    copy(`${history.startedToday} requests today (UTC).`,`${history.startedToday} solicitud(es) iniciadas hoy (UTC).`),
+    history.active.length?copy(`${history.active.length} pending; check them before generating.`,`${history.active.length} sin resolver: primero recuperar/actualizar.`):copy('No active jobs.','Sin trabajos activos.'),
+    history.ready.length?copy(`${history.ready.length} sounds ready to listen.`,`${history.ready.length} toma(s) listas para recuperar y escuchar.`):'',
+    history.truncated?copy('More jobs exist; cost rules are enforced by the server.','Historial truncado: los límites reales los decide el servidor.'):'',
   ].filter(Boolean).join(' ');
 }
 async function refreshSfxHistory(){
@@ -547,7 +547,7 @@ function bindEvents(){
         durationSeconds:Number($('duration').value),seed:Number($('seed').value),
         acknowledgedMaxCostUsd:policy.perRequest,
       };
-      if(!confirm(`¿Generar este sonido? Se hará UNA solicitud a Modal con una estimación máxima de ${money(policy.perRequest)}. El gasto real puede diferir. No se repetirá automáticamente.`))return;
+      if(!confirm(copy(`Generate this sound? ONE Modal request with estimated limit ${money(policy.perRequest)}. Actual charges may differ. No automatic retries.`,`¿Generar este sonido? Se hará UNA solicitud a Modal con una estimación máxima de ${money(policy.perRequest)}. El gasto real puede diferir. No se repetirá automáticamente.`)))return;
       let response;
       try{response=await request('/jobs',{method:'POST',data:requestData});}
       catch(error){
@@ -752,7 +752,7 @@ function bindEvents(){
     if(!canCommitCurrentSfx())throw new Error('Escucha la toma generada antes de guardarla.');
     // "Usar sonido" is itself the operator's explicit acceptance/import action;
     // asking again was redundant. Additional cue creation still confirms.
-    if(createCue && !confirm('Guardar el sonido y crear UN cue editable? GO seguirá siendo manual.'))return;
+    if(createCue && !confirm(copy('Save this sound and create ONE editable cue? GO stays manual.','¿Guardar el sonido y crear UN cue editable? GO seguirá siendo manual.')))return;
     if(state.job.status==='READY_FOR_REVIEW'){
       const accepted=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{
         method:'POST',data:{decision:'ACCEPT'},
