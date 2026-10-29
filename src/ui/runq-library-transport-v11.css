@@ -97,6 +97,27 @@
  flex:0 0 auto!important;padding:4px 6px!important;
  font-size:10px!important;min-height:29px!important;
 }
+.rq11 .rq5-audio-library .asset-list-row{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto auto!important;
+ grid-template-rows:16px 14px!important;
+ row-gap:2px!important;column-gap:5px!important;
+ min-height:43px!important;
+}
+.rq11 .rq5-audio-library .asset-list-row>.tag{
+ grid-column:1!important;grid-row:1!important;align-self:end!important;
+}
+.rq11 .rq5-audio-library .asset-list-row>.rq11-media-meta{
+ grid-column:1!important;grid-row:2!important;
+ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font-size:9px;color:#9db6c8;
+}
+.rq11 .rq5-audio-library .asset-list-row>[data-asset-audition]{
+ grid-column:2!important;grid-row:1 / span 2!important;
+}
+.rq11 .rq5-audio-library .asset-list-row>[data-sound-edit]{
+ grid-column:3!important;grid-row:1 / span 2!important;
+}
 .rq11 .rq5-audio-library .asset-list-row.rq11-source-selected{
  background:#30495e!important;border-color:#7eaac8!important;
  box-shadow:inset 3px 0 #81c1e8;
