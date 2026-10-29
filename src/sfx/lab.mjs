@@ -116,17 +116,26 @@ export function nextSfxVariationSeed(input){
   return Number.isSafeInteger(seed)&&seed>=0&&seed<=2147483647
     ? (seed+1)%2147483648 : 42;
 }
-export function assessSfxPrompt(prompt,duration){
+export function assessSfxPrompt(prompt,duration,locale='es'){
   const value=String(prompt??'').trim();
-  if(!value)return 'Describe qué suena, qué ocurre y cómo se escucha. El modelo SFX trabaja mejor con descripciones en inglés.';
+  const t=(spanish,english)=>locale==='en'?english:spanish;
+  if(!value)return t(
+    'Describe qué suena, qué ocurre y cómo se escucha. El modelo SFX trabaja mejor con descripciones en inglés.',
+    'Describe the source, action and recording character. Small-SFX works best with English descriptions.');
   if(/[áéíóúñ¿¡]/i.test(value) || /\b(?:puerta|campana|lluvia|pasos|sonido|ruido|golpe|madera|escenario)\b/i.test(value))
-    return 'Este modelo fue entrenado principalmente en inglés. Reescribe la descripción en inglés antes de generar; no se traduce automáticamente.';
-  if(value.length<45)return 'Para más precisión, describe fuente, acción, material, distancia del micrófono y acústica.';
+    return t('Este modelo fue entrenado principalmente en inglés. Reescribe la descripción en inglés antes de generar; no se traduce automáticamente.',
+      'Small-SFX was trained mainly on English. Rewrite your description in English; no automatic translation occurs.');
+  if(value.length<45)return t(
+    'Para más precisión, describe fuente, acción, material, distancia del micrófono y acústica.',
+    'For precision, describe the source, action, material, microphone distance and room character.');
   if(/\b(?:then|followed by|afterwards|after that)\b/i.test(value))
-    return 'Este prompt contiene varios momentos. Para efectos concretos, prueba separar cada acción en una toma.';
+    return t('Este prompt contiene varios momentos. Para efectos concretos, prueba separar cada acción en una toma.',
+      'This prompt describes multiple events. For precise effects, split each action into a separate take.');
   if(Number(duration)>=8 && /\b(?:single|one|short|hit|slams?|strikes?|snap|clap|chime)\b/i.test(value))
-    return 'Para un golpe aislado, prueba 2–4 segundos; una duración excesiva puede añadir ruido o eventos.';
-  return 'Prueba otra semilla si el efecto no convence. Cambiar la semilla NO envía otra solicitud ni acepta gastos.';
+    return t('Para un golpe aislado, prueba 2–4 segundos; una duración excesiva puede añadir ruido o eventos.',
+      'For an isolated impact, try 2–4 seconds; longer durations may add unwanted sounds.');
+  return t('Prueba otra semilla si el efecto no convence. Cambiar la semilla NO envía otra solicitud ni acepta gastos.',
+    'Try another seed if the take is poor. Changing the seed does NOT generate audio or authorize spending.');
 }
 function updateControls(){
   if(!requiredDom())return;
@@ -165,7 +174,7 @@ function updateControls(){
   const commitReady=canCommitCurrentSfx()&&!state.working;
   $('importLibraryBtn').disabled=!commitReady;
   $('importCueBtn').disabled=!commitReady;
-  text('sfxPromptQualityHint',assessSfxPrompt($('soundPrompt').value,Number($('duration').value)));
+  text('sfxPromptQualityHint',assessSfxPrompt($('soundPrompt').value,Number($('duration').value),$('uiLocaleSelect')?.value));
   const fromLibrary=state.fileOrigin==='library'&&typeof state.libraryAssetId==='string'&&!!state.audio;
   const libraryActions=$('rq10LibraryEditActions');
   if(libraryActions)libraryActions.hidden=!fromLibrary;
@@ -288,9 +297,12 @@ function updateSfxEditorLocale(){
  modes[0].textContent=es?'Seleccionar IN/OUT':'Select IN/OUT';
  modes[1].textContent=es?'Mover fundido de entrada':'Move fade-in edge';
  modes[2].textContent=es?'Mover fundido de salida':'Move fade-out edge';
+ text('acceptBtn',es?'Solo aceptar (sin importar)':'Accept only (without importing)');
+ text('sfxAnotherVariationBtn',es?'Otra variación (sin generar)':'Another variation (no generation)');
  text('importLibraryBtn',es?'Guardar en biblioteca':'Save to library');
  text('importCueBtn',es?'Guardar y crear cue':'Save & create cue');
  updateFades(state.fadeInSeconds,state.fadeOutSeconds);
+ updateControls();
 }
 function updateTrim(inSeconds,outSeconds){
   if(!state.audio)return;
