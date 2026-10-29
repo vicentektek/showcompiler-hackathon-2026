@@ -8,7 +8,7 @@
 const copy = {
   en: {
     sequence:"SHOW SEQUENCE", cue:"CUE", detail:"NAME / SOURCE", state:"STATUS",
-    density:"Density", compact:"Compact", standard:"Comfort",
+    density:"Density", compact:"Compact", standard:"Normal", comfortable:"Comfortable",
     audio:"Audio library", script:"Script", ready:"Media ready",
     assets:"Assets", output:"Output", shared:"System output",
     libraryTitle:"Media workspace", libraryNote:"Original media remains local. Audition uses the same system output as GO; it is not a private monitor bus.",
@@ -21,7 +21,7 @@ const copy = {
   },
   es: {
     sequence:"SECUENCIA DEL SHOW",cue:"CUE",detail:"NOMBRE / ORIGEN",state:"ESTADO",
-    density:"Densidad",compact:"Compacto",standard:"Cómodo",
+    density:"Densidad",compact:"Compacto",standard:"Normal",comfortable:"Cómodo",
     audio:"Biblioteca de audio",script:"Guion",ready:"Medios disponibles",
     assets:"Recursos",output:"Salida",shared:"Salida del sistema",
     libraryTitle:"Espacio de recursos",libraryNote:"Los archivos originales permanecen en el equipo. La escucha usa la misma salida que GO; no es un bus privado de monitores.",
@@ -44,8 +44,10 @@ const elt = (tag, cls, text) => {
 };
 const goto = name => document.querySelector('[data-workspace-nav="'+name+'"]')?.click();
 let density='compact';
-try { density=localStorage.getItem('runq.ui.cueDensity.v1')==='standard'?'standard':'compact'; }
-catch {}
+try {
+ const stored=localStorage.getItem('runq.ui.cueDensity.v1');
+ density=['compact','standard','comfortable'].includes(stored)?stored:'compact';
+}catch {}
 function routeButton(label,workspace){
   const button=elt('button','btn subtle small runq-inline-navigation',label);
   button.type='button';
@@ -70,14 +72,14 @@ function createEditorEnhancements(){
   densityLabel.append(densityCaption);
   const select=elt('select','runq-density-select');
   select.id='runqCueDensity';select.setAttribute('aria-label',t('density'));
-  for(const value of ['compact','standard']){
+  for(const value of ['compact','standard','comfortable']){
     const option=elt('option','',t(value));option.value=value;option.dataset.rqText=value;
     select.append(option);
   }
   select.value=density;
   document.querySelector('.shell')?.setAttribute('data-cue-density',density);
   select.addEventListener('change',()=>{
-    density=select.value==='standard'?'standard':'compact';
+    density=['compact','standard','comfortable'].includes(select.value)?select.value:'compact';
     document.querySelector('.shell')?.setAttribute('data-cue-density',density);
     try {localStorage.setItem('runq.ui.cueDensity.v1',density);}catch{}
   });
