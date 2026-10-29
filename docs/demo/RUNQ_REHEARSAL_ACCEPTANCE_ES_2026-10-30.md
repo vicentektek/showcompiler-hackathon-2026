@@ -14,6 +14,16 @@
 
 Los nombres de audio coinciden con el **espectáculo de demostración** generado por `npm run demo:package`; la coincidencia de nombres NO significa que este TXT esté ya incluido en ese ZIP ni que las referencias se asignen automáticamente.
 
+## Paquete ZIP automático (mismo guion + WAV sintéticos originales)
+
+En la rama RC1 ya hay un generador offline de espectáculo español completo:
+
+```powershell
+npm run demo:rehearsal
+```
+
+Crea `demo/RUNQ_ENSAYO_ES.showcompiler.zip` con guion original, 3 WAV, 3 cues aprobados de origen **MANUAL_MOCK** y los tres pies hablados definidos. Abrir con **Abrir espectáculo ZIP**, no con importar TXT. La construcción no llama a Meta, Modal ni Baseten; no constituye una evaluación de la precisión del reconocimiento de voz. Si se regeneran archivos, conservar el ZIP anterior si contiene trabajo del operador.
+
 ## Preparación manual del show (operador)
 
 1. Abrir una copia de RC1 en Windows; volumen de sistema y salida inicial bajos.
