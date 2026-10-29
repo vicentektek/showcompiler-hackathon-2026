@@ -518,6 +518,30 @@ const DYNAMIC_PAIRS=[
   ['Generator configured','Generador configurado'],
 ];
 for(const [en,es] of [["Uncertain submission — do not retry automatically","Envío incierto — no reintentar automáticamente"],["Cancellation requested","Cancelación solicitada"],["No WAV loaded","Ningún WAV cargado"],["No sound to review yet","Todavía no hay una toma para revisar"],["Stop active cues or the current preview before auditioning.","Detén los cues activos o la preescucha antes de escuchar un sonido."],["Listen to the generated sound before saving.","Escucha la toma generada antes de guardarla."],["The take has not been accepted or imported.","La toma no está aceptada; no se ha importado."],["Choose a library audio file.","Selecciona un archivo de la biblioteca"],["The pilot is disabled","El piloto está desactivado"],["Provider endpoint missing","Falta la dirección del proveedor"],["Cost policy missing","Falta una política de coste válida"],["Valid model revision missing","Falta una revisión válida del modelo"],["Check your description; the local compiler could not interpret it.","Revisa la acotación: "],["No explicit sound detected","No se detectaron sonidos explícitos"],["Music requires a compatible provider; it cannot be sent to the SFX pilot.","Música requiere un proveedor compatible; no se transfiere al piloto SFX"],["Prepared for generation. Nothing has been submitted.","Transferido al formulario. No se ha enviado ninguna solicitud."],["No reliable offline translation is available for this description. Keep the original or write the English version. No credits were used.","No hay una traducción fiable mediante reglas locales para esta descripción. Conserva el original o prepara un prompt en inglés; no se han gastado créditos."],["Original text restored. No provider request was made.","Texto original restaurado. No se ha llamado a ningún proveedor."],["Local history refreshed. No provider was contacted.","Historial local actualizado. No se consultó al proveedor."],["No sound to review yet","Todavía no hay una toma para revisar"],["Invalid sound ID","ID de toma inválido"],["A sound is pending","Hay una generación pendiente."],["No sound is ready for review","No hay un sonido listo para revisar"],["Audio audition cancelled by STOP ALL.","Preescucha cancelada por PARAR TODO."],["Saved the sound to the library.","WAV guardado en la biblioteca."],["Sound saved and cue created.","WAV guardado y cue creado."],["Source assigned to selected cue.","Source and edits assigned to existing cue"],["Audio import is complete.","The audio has been imported."],["Preparing the request…","Procesando la solicitud…"],["No valid cost policy; generation is blocked.","No hay una política de coste válida; la generación está bloqueada."],["New request consent required","Autorizo una única solicitud con el límite indicado."]] ){lookup.set(en,{en,es});lookup.set(es,{en,es});}
+for(const [en,es] of [
+  ["Submission sent once. Check status manually; uncertain requests are not retried.","Submitted once. Refresh is manual; RunQ will not retry an uncertain request."],
+  ["Request sent once. Check its status manually; RUNQ never retries automatically.","Solicitud enviada una vez. Comprueba su estado; RUNQ no reintenta automáticamente."],
+  ["Generator is configured. Provider access is verified when a request is sent.","El servidor tiene la configuración necesaria. Puedes autorizar una solicitud; la conexión real se comprobará al enviarla."],
+  ["Sound loaded. Select Play to audition before accepting.","WAV cargado. Pulsa Play para escucharlo antes de aceptarlo."],
+  ["Generated WAV loaded. Listen before accepting.","Verified generated WAV loaded. Listen before accepting."],
+  ["Take accepted. The original can be imported into the library.","Take accepted. The verified original can now be imported; no cue was changed."],
+  ["Take rejected. No audio or cue was added.","Take rejected. No asset or cue was created."],
+  ["Playing preview through the default audio output.","Previewing the reviewed region through the default audio output."],
+  ["Preview stopped.","Preescucha detenida."],
+  ["Preview stopped.","Preview stopped."],
+  ["Loaded the saved local record. No provider was contacted.","Loaded the persistent local record. No provider call was made."],
+  ["Remote status checked once. Nothing was played.","Remote status checked once. No sound was played."],
+  ["Cancellation requested. Check final status manually.","Cancellation requested; verify the final state manually."],
+  ["The audio was selected. Edit IN/OUT or fades non-destructively, or assign it to a cue.","Original seleccionado. Edita IN/OUT y fades; los cambios son no destructivos. Puedes crear un cue o asignarlo a uno existente."],
+  ["Could not load previous sounds. Spending limits remain enforced by the server.","No se pudo leer el historial local. El servidor sigue protegiendo los límites de generación."],
+  ["Select one of the test examples.","Choose one of the three prepared acceptance cases."],
+  ["Test example prepared locally. No provider request has been sent.","Acceptance case loaded locally. No request has been sent."],
+  ["Script suggestion restored.","Propuesta restaurada"],
+  ["New version prepared. Nothing has been sent yet.","Otra variación preparada. No se ha enviado ninguna solicitud."],
+  ["Local test sound loaded. It cannot be imported as AI-generated audio.","Synthetic test sound loaded locally. It cannot be imported as an AI result."],
+  ["Local WAV loaded. It was not uploaded and cannot impersonate generated audio.","Local WAV loaded. It was not uploaded and cannot masquerade as a generated result."],
+  ["Verified original WAV downloaded; trim settings did not change the source.","Original verified PCM16 WAV downloaded. The reviewed IN/OUT did not alter it."],
+]){lookup.set(en,{en,es});lookup.set(es,{en,es});}
 for(const [en,es] of DYNAMIC_PAIRS){lookup.set(en,{en,es});lookup.set(es,{en,es});}
 export function sfxLocalizedText(locale,message){
  const pair=typeof message==='string'?lookup.get(message.trim()):null;
