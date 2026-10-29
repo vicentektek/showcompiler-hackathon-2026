@@ -289,6 +289,13 @@ try {
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
   assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
   assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1);
+  // V13 MediaBay workbench: one media list, actual file inspector and bottom
+  // original waveform (never a second playback/preview instance).
+  assert.equal(await page.locator('#rq13SoundInspector').isVisible(),true);
+  assert.equal(await page.locator('#rq13WaveDock').isVisible(),true);
+  assert.equal(await page.locator('#rq13SoundAttributes [data-rq13-value="name"]').count(),1);
+  assert.equal(await page.locator('#rq13WaveDock #rq5WaveCanvas').count(),1);
+  assert.equal(await page.locator('.rq13-ai-workstation').count(),1);
   // A real audition transport remains visible in both Library and Sound Lab.
   assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
   assert.equal(await page.locator('#rq11PlayLibrary').isVisible(),true);
@@ -304,8 +311,12 @@ try {
   // Selecting a row changes the read-only source, without audition or GO.
   await page.locator('#assetList .asset-list-row').nth(1).locator('.tag').click();
   assert.equal(await page.locator('#rq5AudioSource').inputValue(),'asset-2');
+  assert.match(await page.locator('#rq13SoundAttributes [data-rq13-value="name"]').innerText(),/asset|\.wav/i);
+  assert.equal(await page.locator('#rq13EditSource').isVisible(),true);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
   await page.locator('[data-rq10-sound-tab="generate"]').click();
+  assert.equal(await page.locator('#rq13WaveDock').isVisible(),false);
+  assert.equal(await page.locator('#rq13SoundInspector').isVisible(),false);
   assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
   assert.equal(await page.locator('#playBtn').isVisible(),true);
   assert.equal(await page.locator('#stopBtn').isVisible(),true);
