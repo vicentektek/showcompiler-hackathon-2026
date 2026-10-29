@@ -24,7 +24,7 @@ const WORD_COUNTS={un:1,una:1,uno:1,one:1,dos:2,two:2,tres:3,three:3,cuatro:4,fo
  cinco:5,five:5,seis:6,six:6,siete:7,seven:7,ocho:8,eight:8,nueve:9,nine:9,
  diez:10,ten:10};
 function numberOfCues(text){
- const match=/\b(\d{1,3}|un|una|uno|one|dos|two|tres|three|cuatro|four|cinco|five|seis|six|siete|seven|ocho|eight|nueve|nine|diez|ten)\s+(?:cues?|se[nñ]ales?|pistas?)\b/i.exec(text);
+ const match=/\b(\d{1,3}|un|una|uno|one|dos|two|tres|three|cuatro|four|cinco|five|seis|six|siete|seven|ocho|eight|nueve|nine|diez|ten)\s+(?:(?:vac[ií]os?|empty|blank|nuevos?|new)\s+)?(?:cues?|se[nñ]ales?|pistas?)\b/i.exec(text);
  if(!match)return null;
  return /^\d+$/.test(match[1])?Number(match[1]):WORD_COUNTS[match[1].toLowerCase()];
 }
