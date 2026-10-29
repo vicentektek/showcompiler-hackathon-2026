@@ -97,18 +97,19 @@ function assertSafe(project,reply){
 }
 function caseCheck(id,category,rand){
  const show=sampleProject(id);
+ const variant=Math.floor(id/categories.length);
  const old=JSON.stringify(show);
  let prompt='',history=[],expected=null;
  if(category==='direct-edit'){
   const target=2+Math.floor(rand()*3);
-  prompt=(['elimina el cue ','borra el cue ','delete cue ','remove cue '][id%4])+target;
+  prompt=(['elimina el cue ','borra el cue ','delete cue ','remove cue '][variant%4])+target;
   expected={kind:'DELETE_CUE',id:show.cues[target-1].id};
  }else if(category==='creative-closing'){
-  const pick=addTemplates[id%addTemplates.length];
+  const pick=addTemplates[variant%addTemplates.length];
   prompt=pick.prompt;expected={kind:'CREATE_CUE',count:pick.count,empty:pick.empty};
  }else if(category==='conversation'){
-  const english=id%3===0;
-  const explicit=id%5===0;
+  const english=variant%3===0;
+  const explicit=variant%5===0;
   history=[
    {role:'user',text:english?
     'add some cues at the end to finish the show':
@@ -116,11 +117,11 @@ function caseCheck(id,category,rand){
    {role:'assistant',text:english?'Which cues should I add?':'¿Qué elementos quieres añadir?'}
   ];
   prompt=explicit?(english?'make it four cues instead':'mejor cuatro cues en vez de tres'):
-   (english?dialog.english[id%dialog.english.length]:
-    dialog.spanish[id%dialog.spanish.length]);
+   (english?dialog.english[variant%dialog.english.length]:
+    dialog.spanish[variant%dialog.spanish.length]);
   expected={kind:'CREATE_CUE',count:explicit?4:3,empty:false};
  }else if(category==='negative-and-bounds'){
-  const scenario=id%5;
+  const scenario=variant%5;
   if(scenario===0)prompt='No añadas 3 cues al final';
   if(scenario===1)prompt='añade 45 cues al final';
   if(scenario===2)prompt='los que te parezcan más apropiados';
@@ -129,14 +130,14 @@ function caseCheck(id,category,rand){
   expected={kind:'NO_PLAN'};
  }else if(category==='reorder-and-undo'){
   const from=2+Math.floor(rand()*3),to=1;
-  const before=id%2===0;
+  const before=variant%2===0;
   prompt=before?('Mueve el cue '+from+' antes del '+to):
    ('Move cue '+from+' after cue '+to);
   expected={kind:'REORDER_CUE',id:show.cues[from-1].id};
  }else{
-  prompt=id%3===0?'Pon pies de voz coherentes a todos los cues':
-   id%3===1?'Audit the show':'Revisa el show';
-  expected={kind:id%3===0?'UPDATE_CUE':'AUDIT'};
+  prompt=variant%3===0?'Pon pies de voz coherentes a todos los cues':
+   variant%3===1?'Audit the show':'Revisa el show';
+  expected={kind:variant%3===0?'UPDATE_CUE':'AUDIT'};
  }
  const result=resolveAgentDialogue(show,prompt,{history});
  const applied=assertSafe(show,result);
