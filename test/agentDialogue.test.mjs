@@ -57,3 +57,11 @@ test('context from old project can be ignored by supplying empty conversation',(
  const p=show();
  assert.notEqual(resolveAgentDialogue(p,'you decide',{history:[]}).status,'PLAN');
 });
+
+test('English count before adjective is not replaced by a default of three',()=>{
+ const project=show();
+ const result=resolveAgentDialogue(project,'Add 2 empty cues at the end');
+ assert.equal(result.status,'PLAN');
+ assert.equal(result.operations.length,2);
+ assert.deepEqual(result.operations.map(x=>x.label),['Pending cue 1','Pending cue 2']);
+});
