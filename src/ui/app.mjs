@@ -1149,6 +1149,10 @@ function refreshPreviewStudio() {
 async function listenToCue(cueId,{trackId=null,fromMs=null}={}) {
   const cue=show.cues.find(c=>c.id===cueId);
   if(!cue || audioInFlight || bundleInFlight) return;
+  if(soundLabPreviewReserved){
+    showError(new Error('Detén la preescucha del laboratorio antes de escuchar este cue.'));
+    return;
+  }
   if(!auditionAcknowledged) {
     if(!window.confirm(t('audio.auditionConfirm'))) return;
     auditionAcknowledged=true;
