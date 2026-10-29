@@ -77,6 +77,22 @@ try{
   await page.locator('[data-workspace-nav="audio"]').click();
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   await page.waitForFunction(()=>/^(Generator ready|Generador configurado)$/.test(document.querySelector('#engineBadge')?.textContent||''));
+  // A clean install is English-first. Switching languages must update the
+  // generator's actual content, not only the global navigation.
+  assert.equal(await page.locator('#uiLocaleSelect').inputValue(),'en');
+  assert.equal(await page.locator('#generatorHeading').textContent(),'Create sound');
+  assert.equal(await page.locator('#engineBadge').textContent(),'Generator ready');
+  for(const selector of ['#sfxAdvanced','#sfxScriptDetails','.sfx-technical-jobs','.sfx-extra-import']){
+    assert.equal(await page.locator(selector).isVisible(),false,
+      'QA/technical settings must not appear in the ordinary Sound Lab');
+  }
+  assert.equal(await page.locator('#sfxReconnectBtn').isVisible(),false);
+  await page.locator('#uiLocaleSelect').selectOption('es');
+  assert.equal(await page.locator('#generatorHeading').textContent(),'Crear sonido');
+  assert.equal(await page.locator('#engineBadge').textContent(),'Generador configurado');
+  await page.locator('#uiLocaleSelect').selectOption('en');
+  assert.equal(await page.locator('#generatorHeading').textContent(),'Create sound');
+
   // No-cost compiler suggestions do not send to Meta or Modal.
   await page.locator('#soundPrompt').fill('Portazo fuerte');
   await page.locator('.sfx-assistant-options').evaluate(el=>el.open=true);
