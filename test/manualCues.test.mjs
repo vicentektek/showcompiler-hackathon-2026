@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal} from '../src/core/workspace.mjs';
-import {insertManualCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue} from '../src/core/manualCues.mjs';
+import {insertManualCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue} from '../src/core/manualCues.mjs';
 import {serializeShowProject,deserializeShowProject} from '../src/core/projectPersistence.mjs';
 
 test('new show allows manual cues without script, proposals or Meta permission',()=>{
@@ -58,4 +58,23 @@ test('duplicate copies operator cue without creating synthetic AI approval; move
   assert.deepEqual(deserializeShowProject(serializeShowProject(show)),show);
   assert.deepEqual(moveOperatorCue(show,first.cueId,-1),show);
   assert.throws(()=>moveOperatorCue(show,first.cueId,5),/move direction/);
+});
+
+
+test('drag reorder moves cue before/after target without changing IDs or settings',()=>{
+  let show=createNewShow({id:'drag-reorder'});
+  const one=insertManualCue(show,{label:'First'});show=one.project;
+  const two=insertManualCue(show,{label:'Second'});show=two.project;
+  const three=insertManualCue(show,{label:'Third'});show=three.project;
+  const before=show.cues.map(c=>({id:c.id,label:c.label,actions:c.actions}));
+  show=reorderOperatorCue(show,one.cueId,three.cueId,'after');
+  assert.deepEqual(show.cues.map(c=>c.label),['Second','Third','First']);
+  assert.deepEqual(show.cues.map(c=>c.number),[1,2,3]);
+  assert.deepEqual(show.cues.map(c=>({id:c.id,label:c.label,actions:c.actions})),
+    [before[1],before[2],before[0]]);
+  show=reorderOperatorCue(show,one.cueId,two.cueId,'before');
+  assert.deepEqual(show.cues.map(c=>c.label),['First','Second','Third']);
+  assert.deepEqual(reorderOperatorCue(show,one.cueId,one.cueId),show);
+  assert.throws(()=>reorderOperatorCue(show,'bad',two.cueId),/not found/);
+  assert.throws(()=>reorderOperatorCue(show,one.cueId,two.cueId,'middle'),/position/);
 });
