@@ -120,14 +120,23 @@ function ensureShellStructure() {
 function mountShellAreas() {
   if (!shell) return;
 
-  // Create inspector + bottom if missing.
-  if (!$('rqInspector')) {
-    const inspector = document.createElement('aside');
-    inspector.id = 'rqInspector';
-    inspector.className = 'rq-inspector';
-    inspector.innerHTML = '<div class="rq-inspector-body"></div><div class="rq-inspector-foot"></div>';
-    shell.append(inspector);
+  // Reuse the existing cue inspector (#cueInspector) as the shell inspector.
+  const existingInspector = $('cueInspector');
+  if (existingInspector && !existingInspector.classList.contains('rq-inspector')) {
+    existingInspector.classList.add('rq-inspector');
+    // Wrap body/foot if not present.
+    if (!existingInspector.querySelector('.rq-inspector-body')) {
+      const body = document.createElement('div');
+      body.className = 'rq-inspector-body';
+      while (existingInspector.firstChild) body.append(existingInspector.firstChild);
+      existingInspector.append(body);
+    }
+    const foot = document.createElement('div');
+    foot.className = 'rq-inspector-foot';
+    existingInspector.append(foot);
   }
+
+  // Create bottom editor if missing.
   if (!$('rqBottom')) {
     const bottom = document.createElement('div');
     bottom.id = 'rqBottom';
@@ -140,7 +149,7 @@ function mountShellAreas() {
   const topbar = $('topbar');
   const nav = $('workspaceNav');
   const main = $('main');
-  const inspector = $('rqInspector');
+  const inspector = $('rqInspector') || $('cueInspector');
   const bottom = $('rqBottom');
 
   if (topbar) topbar.classList.add('rq-topbar-area');
@@ -148,6 +157,16 @@ function mountShellAreas() {
   if (main) main.classList.add('rq-main-area');
   if (inspector) inspector.classList.add('rq-inspector-area');
   if (bottom) bottom.classList.add('rq-bottom-area');
+}
+
+/* ── Observe workspace changes and sync shell context classes ── */
+function observeWorkspace() {
+  if (!shell) return;
+  const observer = new MutationObserver(() => {
+    const ws = shell.dataset.activeWorkspace || 'home';
+    setShellWorkspace(ws);
+  });
+  observer.observe(shell, { attributes: true, attributeFilter: ['data-active-workspace'] });
 }
 
 /* ── Workspace switching ── */
@@ -191,6 +210,7 @@ function wireNav() {
 function init() {
   ensureShellStructure();
   mountShellAreas();
+  observeWorkspace();
   wireNav();
   // Apply stored density.
   const stored = localStorage.getItem('runq.ui.cueDensity.v1');
@@ -208,7 +228,7 @@ if (document.readyState === 'loading') {
   init();
 }
 
-export { setShellWorkspace, mountShellAreas };
+export { setShellWorkspace, mountShellAreas, observeWorkspace };
     opt.textContent = key === 'compact' ? 'Compacto' : key === 'standard' ? 'Normal' : 'Cómodo';
     density.append(opt);
   });
