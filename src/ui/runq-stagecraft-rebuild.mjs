@@ -434,6 +434,7 @@ function createAI(){
   if(!panel||!form||!meta||!list||panel.dataset.rq5Ai)return;
   panel.dataset.rq5Ai='true';panel.classList.add('rq5-ai-workspace');
   const grid=el('div','rq5-ai-grid');
+  grid.classList.add('rq13-ai-workstation');
   const manual=el('section','rq5-ai-manual');
   const engine=el('section','rq5-ai-engine');
   const proposals=el('section','rq5-ai-review');
@@ -441,7 +442,24 @@ function createAI(){
   const head2=el('div','rq5-pane-heading');head2.append(label('workspace'));
   const head3=el('div','rq5-pane-heading');head3.append(label('selected'),linkButton('editor','cues'));
   manual.append(head1,form);engine.append(head2,meta);proposals.append(head3,list);
-  grid.append(manual,engine,proposals);
+  // AI proposal review is the primary result surface. Existing full forms
+  // retain their original listeners/IDs and are grouped in an auxiliary
+  // inspector; configurable disclosure never deletes an action.
+  const inspector=el('aside','rq13-ai-inspector');
+  const caption=el('div','rq13-ai-inspector-title');
+  caption.textContent=tr('workspace');
+  const modelTools=el('details','rq13-ai-disclosure');
+  modelTools.open=true;
+  const modelSummary=el('summary','');
+  modelSummary.textContent=tr('controls');
+  modelTools.append(modelSummary,engine);
+  const manualTools=el('details','rq13-ai-disclosure');
+  manualTools.open=false;
+  const manualSummary=el('summary','');
+  manualSummary.textContent=tr('manual')??'MANUAL';
+  manualTools.append(manualSummary,manual);
+  inspector.append(caption,modelTools,manualTools);
+  grid.append(proposals,inspector);
   panel.append(grid);
   const heading=panel.querySelector('.subheading');
   if(heading&&heading!==head1&&heading!==head2&&heading!==head3)heading.classList.add('rq5-ai-original-heading');
