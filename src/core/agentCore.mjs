@@ -125,7 +125,11 @@ function diffCues(before,after){
   if(!a)return [{kind:'CREATED',cueId:id,after:{number:b.number,label:b.label}}];
   if(!b)return [{kind:'DELETED',cueId:id,before:{number:a.number,label:a.label}}];
   const changes=[];
-  for(const key of ['number','label','trigger','notes','playback']){
+  // The operator must see ALL changed persisted fields, including indirect
+  // automation edits when deleting a target cue. A partial preview is unsafe.
+  for(const key of ['number','label','trigger','notes','playback',
+   'sourceLineIds','actions','automation','stopFadeOverrides','audioTracks',
+   'entryPolicy','sourceProposalId','origin']){
    if(JSON.stringify(a[key]??null)!==JSON.stringify(b[key]??null))
     changes.push({field:key,from:a[key]??null,to:b[key]??null});
   }
