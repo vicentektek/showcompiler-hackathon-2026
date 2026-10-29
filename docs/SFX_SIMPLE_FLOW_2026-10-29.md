@@ -7,7 +7,7 @@
 1. **Describe** one sound (Spanish or English).
 2. **Generate sound**; a single confirmation states the configured estimate and that real billing may differ. It is a one-shot operator authorization, **no automatic retries or silent model calls**. The former separate checkbox is hidden/inert; permission is conferred only after the user accepts this exact confirmation.
 3. **View result** and **Listen** in the same Sound Lab.
-4. **Use sound** — accept and import into the current project's library with one confirmation. Never GO. Alternatively, **Try another version** — changes the seed and opens the same one-shot cost confirmation. Previous WAV remains in the persistent journal, not lost by creating another take.
+4. **Use sound** — the explicit click accepts and imports the reviewed WAV into the project's library, with NO redundant confirmation dialog (the additional Save & create cue action retains confirmation). Never GO. Alternatively, **Try another version** — changes the seed and opens the same one-shot cost confirmation. Previous WAV remains in the persistent journal, not lost by creating another take.
 
 Advanced/optional features remain under HTML `details`: prompt assistance, source-line, seed and examples, original WAV/local test, alternate Save & create cue, numeric IN/OUT/fades and technical journal controls. **My other sounds** is the plain-language recovery portal, collapsed by default. No technical IDs are required for the normal path.
 
