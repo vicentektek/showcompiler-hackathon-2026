@@ -484,9 +484,43 @@ const lookup=new Map();
 for(const [en,es] of PAIRS){
   lookup.set(en,{en,es}); lookup.set(es,{en,es});
 }
-const manual={
-  "Connected":{en:"Generator ready",es:"Generador configurado"},
-};
+const DYNAMIC_PAIRS=[
+  ['Generator ready','Generador configurado'],
+  ['Generator unavailable','Generador no disponible'],
+  ['No connection to local server','Sin conexión al servidor'],
+  ['Preparing your sound…','Preparando tu sonido…'],
+  ['Generating sound…','Generando sonido…'],
+  ['Sound generated','Sonido generado'],
+  ['Sound ready to use','Sonido listo para usar'],
+  ['Saved to library','Guardado en biblioteca'],
+  ['Unable to generate','No se pudo generar'],
+  ['No sound yet','Todavía no hay ningún sonido'],
+  ['Check previous request','Comprobar solicitud pendiente'],
+  ['Discarded','Descartado'],
+  ['Cancelled','Cancelada'],
+  ['Waiting for GPU or generating','Esperando GPU o generando'],
+  ['Ready to listen','Lista para escuchar'],
+  ['Generate a sound by entering a description.','Describe un sonido y pulsa «Generar sonido».'],
+  ['Listen, then select “Use sound” to save it. Or try another version.','Escúchalo y pulsa «Usar sonido» para guardarlo. Si no te convence, puedes probar otra versión.'],
+  ['The request is still running. Select “View result” to check for completion.','Tu solicitud sigue en curso. Pulsa «Ver resultado» para comprobar si ha terminado.'],
+  ['Do not resubmit: inspect the pending request in developer diagnostics.','No repitas la generación: comprueba la solicitud pendiente en las opciones técnicas.'],
+  ['Discarded. You can generate another sound when your budget allows.','Descartado. Puedes generar otro sonido cuando haya presupuesto y pruebas disponibles.'],
+  ['Create another sound when the generator is available.','Puedes crear otro sonido cuando el generador esté disponible.'],
+  ['Submit one request to Modal with an estimated limit of','Se hará UNA solicitud a Modal con una estimación máxima de'],
+  ['Saved the original audio to your library.','WAV guardado en la biblioteca.'],
+  ['Saved the audio and created a cue.','WAV guardado y cue creado.'],
+  ['View result','Ver resultado'],
+  ['Use sound','Usar sonido'],
+  ['Try another version','Probar otra versión'],
+  ['Save and create cue','Guardar y crear cue'],
+  ['Accept only (without importing)','Solo aceptar (sin importar)'],
+  ['Generator configured','Generador configurado'],
+];
+for(const [en,es] of DYNAMIC_PAIRS){lookup.set(en,{en,es});lookup.set(es,{en,es});}
+export function sfxLocalizedText(locale,message){
+ const pair=typeof message==='string'?lookup.get(message.trim()):null;
+ return pair?pair[locale==='es'?'es':'en']:message;
+}
 export function localeCopy(locale,en,es){return locale==='es'?es:en;}
 /** Only text nodes and safe attributes; never innerHTML, values or project data. */
 export function localizeSfxMarkup(root,locale){
@@ -498,7 +532,7 @@ export function localizeSfxMarkup(root,locale){
   while(walker.nextNode())nodes.push(walker.currentNode);
   for(const node of nodes){
     const parent=node.parentElement;
-    if(!parent||['SCRIPT','STYLE','TEXTAREA','OPTION'].includes(parent.tagName)&&parent.tagName==='TEXTAREA')continue;
+    if(!parent||['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName))continue;
     const original=node.nodeValue??'';
     const trim=original.trim();
     const pair=lookup.get(trim);
