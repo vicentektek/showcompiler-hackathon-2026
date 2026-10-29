@@ -123,6 +123,24 @@ const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 let player = createBrowserAudioBackend({ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); } });
 let soundLabModulePromise = null;
+// V10 single show-controller preview lease. Sound Lab still has a temporary
+// Web Audio context, but cannot overlap GO or a library/cue audition. The
+// authoritative STOP ALL synchronously invalidates its pending/active preview.
+let soundLabPreviewReserved = false;
+let stopSoundLabPreview = () => {};
+function reserveSoundLabPreview(){
+  const status=player.getStatus();
+  if(activeWorkspace!=='audio'||goTransportPending||audioInFlight||bundleInFlight||
+     status.activeCueCount||status.pendingGoCount||status.auditionActive||
+     status.auditionPending||soundLabPreviewReserved)return false;
+  soundLabPreviewReserved=true;
+  refreshAudioControls();
+  return true;
+}
+function releaseSoundLabPreview(){
+  soundLabPreviewReserved=false;
+  refreshAudioControls();
+}
 // ON AIR is a transport *snapshot*, not a new independent cue player.
 // Reuse existing stopCue and Web Audio clock; rows survive 250ms clock refreshes.
 let runningCuesTicker=null;
@@ -216,7 +234,7 @@ function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
   const { activeCueCount: active, pendingGoCount: pending, auditionActive, auditionPending } = player.getStatus();
-  const auditioning = auditionActive || auditionPending;
+  const auditioning = auditionActive || auditionPending || soundLabPreviewReserved;
   status.textContent = auditioning
     ? t('audio.auditionStatus')
     : active || pending
@@ -337,12 +355,14 @@ function setWorkspace(workspace) {
     inspectorPendingChanges = false;
     renderCueInspector(); // Discard local form changes, not stored show data.
   }
-  if (activeWorkspace === 'soundlab' && workspace !== 'soundlab' && soundLabModulePromise) {
-    void soundLabModulePromise.then(module => module.stopSoundLabAudition()).catch(() => {});
-  }
+  // Legacy deep links and old navigation enter the new unified audio desk.
+  const legacySoundLab=workspace==='soundlab';
+  if(legacySoundLab)workspace='audio';
+  if (activeWorkspace === 'audio' && workspace !== 'audio') stopSoundLabPreview();
   activeWorkspace = workspace;
   renderWorkspaceShell();
-  if (workspace === 'soundlab') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
+  if(legacySoundLab)document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
+  if (workspace === 'audio') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
   return true;
 }
 
@@ -983,6 +1003,7 @@ function render() {
         auditionAcknowledged = true;
       }
       try {
+        if(soundLabPreviewReserved)throw new Error('Detén la escucha de Sound Lab antes de preescuchar otro archivo.');
         await player.auditionAsset(asset.id);
         feedback('audio.auditionStarted', { name: asset.name }, 'success');
       } catch (error) { showError(error); }
@@ -2067,6 +2088,7 @@ function setNewShow(project, statusKey, values = {}) {
   operatorQueue = startOperatorQueue(project.cues);
   lastGoCueId = null;
   $('scriptSearchInput').value = '';
+  stopSoundLabPreview();
   player.reset();
   originalAudioFiles.clear();
   show = project;
@@ -2082,7 +2104,7 @@ $('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScrol
 function editCueSequence(fn,{preserveQueue=false}={}) {
   if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) return;
   const status = player.getStatus();
-  if (audioInFlight || status.activeCueCount || status.pendingGoCount || status.auditionActive || status.auditionPending) {
+  if (audioInFlight || soundLabPreviewReserved || status.activeCueCount || status.pendingGoCount || status.auditionActive || status.auditionPending) {
     feedback('cueEditor.stopBeforeEdit', {}, 'error');
     return;
   }
@@ -2149,7 +2171,7 @@ $('checkPreflightBtn').addEventListener('click', () => {
 // Both use the same audio engine, cue entry policies and completion logic.
 let goTransportPending=false;
 async function executeCueById(id,{advancePrepared=false}={}){
- if(!id||goTransportPending||audioInFlight||bundleInFlight)return false;
+ if(!id||goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved)return false;
  const generation=projectGeneration;
  const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
  if(!cue||cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
@@ -2192,7 +2214,7 @@ $('operatorGoBtn').addEventListener('click',()=>{
 document.addEventListener('runq:rehearsal-auto-arm-audio',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
- if(activeWorkspace!=='rehearsal'||document.hidden||bundleInFlight||audioInFlight){
+ if(activeWorkspace!=='rehearsal'||document.hidden||bundleInFlight||audioInFlight||soundLabPreviewReserved){
    respond({ok:false,reason:'REHEARSAL_NOT_READY'});return;
  }
  // Must be called synchronously from the operator's ARM gesture to unlock
@@ -2206,7 +2228,7 @@ document.addEventListener('runq:rehearsal-auto-go',event=>{
  if(activeWorkspace!=='rehearsal'||document.hidden||
    document.body?.dataset.runqVoiceCapture!=='live'||
    $('rqLiveArm')?.getAttribute('aria-pressed')!=='true'||
-   typeof cueId!=='string'||goTransportPending||audioInFlight||bundleInFlight){
+   typeof cueId!=='string'||goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved){
    report({ok:false,reason:'NOT_ARMED_OR_BUSY'});return;
  }
  const cue=show.cues.find(c=>c.id===cueId);
@@ -2635,6 +2657,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
 
 function emergencyStopAllAudio() {
   document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'stop_all'}}));
+  stopSoundLabPreview();
   player.stopAll();
   feedback('status.panic', {}, 'success');
 }
@@ -2665,7 +2688,7 @@ function reportAudioImport(headline,items=[]){
 async function importAudioLibraryBatch(selected,{zip=false}={}){
   if(audioInFlight||bundleInFlight)return;
   const busy=player.getStatus();
-  if(busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending){
+  if(soundLabPreviewReserved||busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending){
     reportAudioImport(t('audioBatch.busy'));return;
   }
   if(!selected.length)return;
@@ -2790,7 +2813,7 @@ async function importSingleAudioFile(file, {
       }
     }
     const transport = player.getStatus();
-    if (transport.activeCueCount || transport.pendingGoCount || transport.auditionActive || transport.auditionPending) throw uiError('errors.audioWhilePlaying');
+    if (soundLabPreviewReserved || transport.activeCueCount || transport.pendingGoCount || transport.auditionActive || transport.auditionPending) throw uiError('errors.audioWhilePlaying');
     // Reusing an already-decoded file reference changes playback for every
     // cue sharing that asset ID. Require explicit confirmation before doing so.
     const shared = before.cues.some(cue => cue.id !== cueId &&
@@ -2870,12 +2893,18 @@ async function ensureSoundLabInitialized() {
     });
   }
   const module = await soundLabModulePromise;
-  await module.initializeSoundLab({ onImportReviewed: importReviewedGeneratedSfx });
+  stopSoundLabPreview=module.stopSoundLabAudition;
+  await module.initializeSoundLab({
+    onImportReviewed:importReviewedGeneratedSfx,
+    onReservePreview:reserveSoundLabPreview,
+    onPreviewReleased:releaseSoundLabPreview,
+  });
 }
 
 $('uiLocaleSelect').value = uiLocale;
 const requestedWorkspace = new URLSearchParams(window.location.search).get('workspace');
-if (availableWorkspaces.includes(requestedWorkspace)) activeWorkspace = requestedWorkspace;
+if (availableWorkspaces.includes(requestedWorkspace))
+  activeWorkspace = requestedWorkspace==='soundlab'?'audio':requestedWorkspace;
 translateDocument(document, uiLocale);
 resetScriptLanguageHint();
 render();
