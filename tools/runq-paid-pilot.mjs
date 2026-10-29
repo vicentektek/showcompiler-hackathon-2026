@@ -33,7 +33,7 @@ const allowedModes=new Set(['literal','balanced','expressive']);
 const casePattern=/^[a-z][a-z0-9-]{1,60}$/;
 
 export function parsePaidPilotOptions(args=[]){
- const options={live:false,ackPaid:false,provider:null,requests:1,mode:'literal',caseId:null};
+ const options={live:false,ackPaid:false,provider:null,requests:1,mode:'literal',caseId:null,dashboardVerified:false};
  const seen=new Set();
  for(let i=0;i<args.length;i++){
   const flag=args[i];
@@ -41,6 +41,7 @@ export function parsePaidPilotOptions(args=[]){
   seen.add(flag);
   if(flag==='--live'){options.live=true;continue;}
   if(flag==='--ack-paid'){options.ackPaid=true;continue;}
+  if(flag==='--dashboard-verified'){options.dashboardVerified=true;continue;}
   if(!['--provider','--requests','--mode','--case'].includes(flag)||!args[i+1]||args[i+1].startsWith('--')){
    throw new TypeError('INVALID_PILOT_FLAG');
   }
@@ -63,6 +64,9 @@ export function parsePaidPilotOptions(args=[]){
  }
  if(options.live!==options.ackPaid){
   throw new TypeError('PAID_PILOT_REQUIRES_BOTH_FLAGS');
+ }
+ if(options.live&&!options.dashboardVerified){
+  throw new TypeError('PAID_PILOT_REQUIRES_DASHBOARD_BILLING_CHECK');
  }
  return options;
 }
@@ -113,7 +117,9 @@ function safeOutput(runId){
 }
 
 export async function runPaidPilot(options,{fetchImpl=globalThis.fetch}={}){
- if(!options.live||!options.ackPaid)throw new Error('EXPLICIT_LIVE_ACK_REQUIRED');
+ if(!options.live||!options.ackPaid||!options.dashboardVerified){
+  throw new Error('EXPLICIT_LIVE_ACK_AND_DASHBOARD_CHECK_REQUIRED');
+ }
  const manifest=JSON.parse(await readFile(campaignPath,'utf8'));
  validateMassCampaign(manifest);
  const originalSha=commitIdentity();
@@ -201,6 +207,7 @@ export async function runPaidPilot(options,{fetchImpl=globalThis.fetch}={}){
     live:true,ackPaid:true,maxCalls:options.requests,budgetUsd:1,
     timeoutSeconds:90,
    },{fetchImpl:guardedFetch});
+   await writeFile(join(logFolder,'modal-sfx-report.json'),JSON.stringify(providerReport,null,2)+'\n',{flag:'wx'});
   }
   record.finishedAt=new Date().toISOString();
   record.actualProviderSubmissions=submitted;
@@ -233,7 +240,7 @@ export async function main(args=[]){
  const opts=parsePaidPilotOptions(args);
  if(!opts.live){
   console.log('PILOT_PLAN_ONLY: '+opts.provider+' '+opts.requests+' requests. No API calls, no charges.');
-  console.log('To run, require both --live and --ack-paid plus local approved budget file.');
+  console.log('To run, require --live --ack-paid --dashboard-verified and local approved budget file.');
   return;
  }
  const result=await runPaidPilot(opts);
