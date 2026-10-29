@@ -6,7 +6,11 @@ test('provider configuration documents only server-side placeholder names',async
   const env=await readFile('.env.example','utf8');
   assert.match(env,/^MODEL_API_KEY=\s*$/m);
   assert.match(env,/^BASETEN_API_KEY=\s*$/m);
-  assert.doesNotMatch(env,/Bearer|https:\/\/|sk-|secret/i);
+  // Placeholder names may contain SECRET; credential values must remain EMPTY.
+  const assignments=env.split(/\r?\n/).filter(line=>/^[A-Z][A-Z0-9_]*=/.test(line));
+  assert.ok(assignments.includes('MODAL_PROXY_TOKEN_SECRET='));
+  assert.ok(assignments.every(line=>/^[A-Z][A-Z0-9_]*=\s*$/.test(line)));
+  assert.doesNotMatch(assignments.join('\n'),/Bearer|https:\/\/|sk-/i);
 });
 
 test('provider reports stay local and default package commands remain offline',async()=>{
