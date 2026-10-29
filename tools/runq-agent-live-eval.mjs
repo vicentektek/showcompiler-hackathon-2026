@@ -237,7 +237,11 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
      status=response.status;
      const reply=await response.json();
      if(status===200)result=judge(scenario,reply);
-     else result.reason=typeof reply.error==='string'?reply.error.slice(0,60):'HTTP_ERROR';
+     else{
+      result.reason=typeof reply.error==='string'?reply.error.slice(0,60):'HTTP_ERROR';
+      if(result.reason==='AI_PROVIDER_UNAVAILABLE'&&[401,403,429].includes(reply.status))
+       result.reason='UPSTREAM_AUTH_OR_RATE_'+reply.status;
+     }
     }catch(error){result.reason=(error.name??'NETWORK_ERROR').slice(0,60);}
     const latencyMs=Math.round(performance.now()-start);
     const row={id:scenario.id,category:scenario.kind,provider,
@@ -246,8 +250,9 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
     rows.push(row);
     process.stdout.write(provider+' '+scenario.id+' '+scenario.kind+' '+result.reason+
      ' '+latencyMs+'ms\n');
-    if([401,403,429].includes(status)||[502,503].includes(status)&&
-      ['MODEL_API_KEY_NOT_CONFIGURED'].includes(result.reason)){
+    if([401,403,429].includes(status)||
+       result.reason.startsWith('UPSTREAM_AUTH_OR_RATE_')||
+       result.reason==='MODEL_API_KEY_NOT_CONFIGURED'){
      stopReason='PROVIDER_AUTH_OR_RATE_BLOCK';break outer;
     }
    }
