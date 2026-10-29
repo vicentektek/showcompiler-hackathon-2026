@@ -139,6 +139,17 @@ let player = createBrowserAudioBackend({
  },
 });
 let soundLabModulePromise = null;
+let previousAutoArmed=false;
+document.addEventListener('DOMContentLoaded',()=>{
+ const arm=document.getElementById('rqLiveArm');
+ if(!arm)return;
+ new MutationObserver(()=>{
+  const now=arm.getAttribute('aria-pressed')==='true';
+  if(now===previousAutoArmed)return;
+  previousAutoArmed=now;
+  showEventLog.append(now?'AUTO_ARMED':'AUTO_DISARMED',{source:'rehearsal'});
+ }).observe(arm,{attributes:true,attributeFilter:['aria-pressed']});
+});
 // V10 single show-controller preview lease. Sound Lab still has a temporary
 // Web Audio context, but cannot overlap GO or a library/cue audition. The
 // authoritative STOP ALL synchronously invalidates its pending/active preview.
@@ -902,6 +913,7 @@ function renderCueList({ resetScroll = false } = {}) {
     prepare.disabled=operatorQueue.preparedCueId===cue.id;
     prepare.addEventListener('click',()=>{
       operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
+      showEventLog.append('NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator'});
       render();
       feedback('operator.preparedFeedback',{number:cue.number},'success');
     });
@@ -956,10 +968,11 @@ function renderCueList({ resetScroll = false } = {}) {
       button.addEventListener('click', async () => {
         try {
           if (action === 'stop') {
-            player.stopCue(cue.id);
+            if(player.stopCue(cue.id))showEventLog.append('CUE_STOPPED',{cueId:cue.id,label:cue.label,source:'operator'});
             feedback('status.audioStopped', { number: cue.number }, 'success');
           } else {
-            player.stopCue(cue.id, cue.playback?.fadeOutMs || 1500);
+            if(player.stopCue(cue.id, cue.playback?.fadeOutMs || 1500))
+              showEventLog.append('CUE_FADE',{cueId:cue.id,label:cue.label,source:'operator'});
             feedback('status.audioFaded', { number: cue.number }, 'success');
           }
         } catch (error) { showError(error, resolveErrorKey(error) === 'errors.generic' ? 'errors.invalidAudio' : undefined); }
@@ -1944,6 +1957,7 @@ function renderCueInspector() {
     prepare.disabled=cue.id===operatorQueue.preparedCueId;
     prepare.addEventListener('click',()=>{
       operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
+      showEventLog.append('NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator'});
       render();
       feedback('operator.preparedFeedback',{number:cue.number},'success');
     });
@@ -2756,6 +2770,7 @@ function emergencyStopAllAudio() {
   document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'stop_all'}}));
   stopSoundLabPreview();
   player.stopAll();
+  showEventLog.append('STOP_ALL',{source:'operator'});
   feedback('status.panic', {}, 'success');
 }
 $('stopAllBtn').addEventListener('click', emergencyStopAllAudio);
