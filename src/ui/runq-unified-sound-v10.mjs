@@ -17,12 +17,85 @@ function mountUnifiedSound(){
   const navAudio=document.querySelector('[data-workspace-nav="audio"]');
   const navLab=document.querySelector('[data-workspace-nav="soundlab"]');
   if(!shell||!audio||!lab||!grid||!lib||!editor||!navAudio||!navLab||audio.dataset.rq10Unified)return;
-  document.documentElement.classList.add('rq10');
+  document.documentElement.classList.add('rq10','rq13');
   audio.dataset.rq10Unified='true';
   lab.removeAttribute('data-workspaces');
   lab.hidden=false; // Parent Audio workspace owns visibility from now on.
   lab.classList.add('rq10-integrated-lab');
   grid.append(lab);
+  const assetList=$('assetList'); // Original list is needed by inspector before mount finishes.
+  // V13: MediaBay-style permanent file browser + attribute inspector with a
+  // separate bottom preview dock. Move the SINGLE existing waveform editor;
+  // never duplicate source selection, transport, original media or handlers.
+  const inspector=document.createElement('aside');
+  inspector.id='rq13SoundInspector';
+  inspector.className='rq13-media-inspector';
+  inspector.setAttribute('aria-label','Selected sound attributes');
+  const inspectorHeader=document.createElement('div');
+  inspectorHeader.className='rq13-inspector-heading';
+  const inspectorTitle=document.createElement('strong');
+  inspectorHeader.append(inspectorTitle);
+  const inspectorBody=document.createElement('dl');
+  inspectorBody.id='rq13SoundAttributes';
+  const rows=new Map();
+  for(const key of ['name','state','size','uses','duration','channels']){
+    const dt=document.createElement('dt'),dd=document.createElement('dd');
+    dt.dataset.rq13Key=key;dd.dataset.rq13Value=key;
+    inspectorBody.append(dt,dd);rows.set(key,{dt,dd});
+  }
+  const inspectorActions=document.createElement('div');
+  inspectorActions.className='rq13-inspector-actions';
+  const openEditor=document.createElement('button');
+  openEditor.type='button';
+  openEditor.id='rq13EditSource';
+  openEditor.className='btn subtle small';
+  openEditor.disabled=true;
+  inspectorActions.append(openEditor);
+  inspector.append(inspectorHeader,inspectorBody,inspectorActions);
+  grid.append(inspector);
+  const dock=document.createElement('section');
+  dock.className='rq13-wave-dock';
+  dock.id='rq13WaveDock';
+  const dockHeading=document.createElement('strong');
+  dockHeading.className='rq13-wave-heading';
+  dockHeading.id='rq13WaveTitle';
+  dock.append(dockHeading,editor);
+  grid.after(dock);
+  function inspectSound(){
+    const id=$('rq5AudioSource')?.value;
+    const audition=[...assetList.querySelectorAll('[data-asset-audition]')]
+      .find(button=>button.dataset.assetAudition===id);
+    const row=audition?.closest('.asset-list-row');
+    const text=row?.querySelector('.tag')?.textContent?.trim()??'';
+    const name=row?.querySelector('.tag')?.title??'';
+    const meta=row?.querySelector('.rq11-media-meta')?.textContent?.trim()??'';
+    let peaks=null;
+    document.dispatchEvent(new CustomEvent('runq:request-audio-peaks',{
+      detail:{assetId:id,respond:value=>{peaks=value;}}
+    }));
+    const value={
+      name:name||copy('Ningún archivo seleccionado','No file selected'),
+      state:row?.dataset.audioLoaded==='true'?copy('CARGADO','READY'):copy('No cargado','Not loaded'),
+      size:meta.split(' · ')[0]||'—',
+      uses:meta.split(' · ')[1]||'—',
+      duration:Number.isFinite(peaks?.durationMs)?(peaks.durationMs/1000).toFixed(2)+' s':'—',
+      channels:Number.isInteger(peaks?.channels)?String(peaks.channels):'—'
+    };
+    for(const [key,entry] of rows)entry.dd.textContent=value[key];
+    inspector.title=text;
+    openEditor.disabled=!row?.querySelector('[data-sound-edit]')||
+      !!row.querySelector('[data-sound-edit]')?.disabled;
+    inspector.dataset.mediaState=row?.dataset.audioLoaded==='true'?'ready':'missing';
+  }
+  openEditor.addEventListener('click',()=>{
+    const id=$('rq5AudioSource')?.value;
+    const button=[...assetList.querySelectorAll('[data-sound-edit]')]
+      .find(b=>b.dataset.soundEdit===id);
+    if(button&&!button.disabled)button.click();
+  });
+  $('rq5AudioSource')?.addEventListener('change',inspectSound);
+  new MutationObserver(()=>queueMicrotask(inspectSound))
+    .observe(assetList,{childList:true,subtree:false});
   const header=document.createElement('div');
   header.className='rq10-sound-heading';
   const title=document.createElement('div');
@@ -49,7 +122,6 @@ function mountUnifiedSound(){
 
   // Real library search: filters existing media rows without changing
   // project state, original bytes, cue numbering or transport/GO.
-  const assetList=$('assetList');
   const searchBar=document.createElement('div');
   searchBar.className='rq10-library-search';
   const search=document.createElement('input');
@@ -107,7 +179,10 @@ function mountUnifiedSound(){
     if(mode==='generate'&&next==='library')
       document.dispatchEvent(new Event('runq:sound-stop-preview'));
     mode=next;
-    grid.dataset.rq10SoundView=next; // CSS targets direct sibling editor panes
+    grid.dataset.rq10SoundView=next; // CSS targets the original Sound Lab.
+    audio.dataset.rq13SoundView=next;
+    dock.hidden=next==='generate'; // Bottom source preview is library-only.
+    if(next==='library')queueMicrotask(inspectSound);
     for(const [tab,name] of [[library,'library'],[generate,'generate']]){
       const selected=name===next;
       tab.setAttribute('aria-selected',String(selected));
@@ -119,7 +194,18 @@ function mountUnifiedSound(){
     }
   }
   function translate(){
-    h.textContent=copy('SONIDO · BIBLIOTECA Y CREACIÓN','SOUND · LIBRARY & CREATION');
+    h.textContent=copy('SONIDO · EXPLORADOR DE MEDIOS','SOUND · MEDIA EXPLORER');
+    inspectorTitle.textContent=copy('PROPIEDADES DEL ARCHIVO','FILE ATTRIBUTES');
+    dockHeading.textContent=copy('PREESCUCHA · ONDA DEL ORIGINAL','SOURCE PREVIEW · WAVEFORM');
+    openEditor.textContent=copy('Abrir en editor','Open in editor');
+    openEditor.title=copy('Editar audio y asignar a cue sin reproducirlo',
+      'Edit sound and assign it to a cue without playback');
+    const labels={
+      name:copy('Nombre','Name'),state:copy('Estado','Status'),
+      size:copy('Tamaño','File size'),uses:copy('Uso en cues','Cue usage'),
+      duration:copy('Duración','Duration'),channels:copy('Canales','Channels'),
+    };
+    for(const [key,entry] of rows)entry.dt.textContent=labels[key];
     sub.textContent=copy('Selecciona archivos, comprueba la onda y prepara audio para tus cues',
       'Choose source files, inspect waveforms and prepare audio for your cues');
     library.textContent=copy('Biblioteca y onda','Library & waveform');
@@ -144,6 +230,7 @@ function mountUnifiedSound(){
     if(targetLabel?.firstChild?.nodeType===Node.TEXT_NODE)
       targetLabel.firstChild.nodeValue=copy('Cue existente ','Existing cue ');
     refreshCueTargets();
+    inspectSound();
   }
   library.addEventListener('click',()=>setMode('library'));
   generate.addEventListener('click',()=>setMode('generate'));

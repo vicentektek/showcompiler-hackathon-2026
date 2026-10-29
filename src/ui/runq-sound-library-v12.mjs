@@ -36,6 +36,11 @@ function mountSoundLibrary(){
   advanced.append(toggle,drawer);
   toolbar.append(advanced);
 
+  // The report MUST be detached BEFORE the batch import section is moved
+  // into a closed <details>. Otherwise import results become invisible although
+  // their text updates (a regression detected by the browser smoke test).
+  const report=byId('audioBatchReport');
+  if(report&&report.parentElement!==library)library.insertBefore(report,list);
   // Legacy manual media reference and format details remain available,
   // but cannot push the list below the fold. They live in a bounded popover.
   for(const selector of ['.subheading','#assetForm','.line-actions',
@@ -46,12 +51,18 @@ function mountSoundLibrary(){
   const guide=library.querySelector(':scope > p.caption');
   if(guide)drawer.append(guide);
 
-  const report=byId('audioBatchReport');
-  if(report)library.insertBefore(report,list);
   const heading=library.querySelector(':scope > .rq5-pane-heading');
   if(heading)heading.after(toolbar);
   else library.prepend(toolbar);
 
+  // Compact professional columns: the file list is the main work area,
+  // not a collection of cards. Same original row actions underneath.
+  const columns=document.createElement('div');
+  columns.className='rq13-media-columns';
+  const nameCol=document.createElement('span'),playCol=document.createElement('span'),
+    editCol=document.createElement('span');
+  columns.append(nameCol,playCol,editCol);
+  list.before(columns);
   const status=document.createElement('div');
   status.id='rq12LibraryCount';
   status.className='rq12-library-counter';
@@ -126,6 +137,9 @@ function mountSoundLibrary(){
       'Import library from an archive');
     byId('rq10LibrarySearch')?.setAttribute('aria-label',t('Buscar archivo','Search file'));
     if(headingTitle)headingTitle.textContent=t('ARCHIVOS DE SONIDO','SOUND FILES');
+    nameCol.textContent=t('NOMBRE / TAMAÑO / USOS','NAME / SIZE / USES');
+    playCol.textContent=t('OÍR','PLAY');
+    editCol.textContent=t('EDITAR','EDIT');
     refreshRows();
   }
   byId('uiLocaleSelect')?.addEventListener('change',()=>queueMicrotask(translate));

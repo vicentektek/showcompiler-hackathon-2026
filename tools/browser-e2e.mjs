@@ -77,7 +77,7 @@ try {
   assert.equal(await page.locator('html.rq8').count(),1);
   assert.equal(await page.locator('#rq8Identity').count(),1);
   const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
-  assert.equal(studioColor,'rgb(16, 24, 33)','V9 Studio must remain dark, not daylight');
+  assert.equal(studioColor,'rgb(14, 25, 36)','V13 technical workstation must remain dark, not daylight');
   assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
     'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.
@@ -271,11 +271,32 @@ try {
     const canScroll=node.scrollHeight>node.clientHeight+100;
     node.scrollTop=node.scrollHeight;
     const moved=node.scrollTop>0;
+    const debug={
+      client:node.clientHeight,scroll:node.scrollHeight,top:node.scrollTop,
+      rows:node.querySelectorAll('.asset-list-row').length,
+      activeWorkspace:document.querySelector('.shell')?.dataset.activeWorkspace,
+      search:document.querySelector('#rq10LibrarySearch')?.value,
+      rowState:[...node.querySelectorAll('.asset-list-row')].slice(0,4).map(row=>({
+        filter:row.dataset.rq10Filtered,display:getComputedStyle(row).display,
+        rect:row.getBoundingClientRect().toJSON(),html:row.outerHTML.slice(0,180),
+      })),
+      ancestors:[],
+    };
+    for(let el=node,n=0;el&&n<6;el=el.parentElement,n++){
+      const st=getComputedStyle(el),box=el.getBoundingClientRect();
+      debug.ancestors.push({
+        cls:el.className,id:el.id,
+        display:st.display,flex:st.flex,overflow:st.overflowY,
+        height:st.height,minHeight:st.minHeight,maxHeight:st.maxHeight,
+        rectH:box.height,client:el.clientHeight,scroll:el.scrollHeight,
+      });
+    }
     extra.forEach(item=>item.remove());
     node.scrollTop=0;
-    return {canScroll,moved};
+    return {canScroll,moved,debug};
   });
-  assert.equal(scrollCheck.canScroll,true,'Library requires an independent scrollable file list');
+  assert.equal(scrollCheck.canScroll,true,
+    'Library requires an independent scrollable file list '+JSON.stringify(scrollCheck.debug));
   assert.equal(scrollCheck.moved,true,'Source list scroll position must actually move');
   assert.equal(await page.locator('#assetList .asset-list-row').count(),3);
   assert.equal(await page.locator('#rq10LibrarySearch').isVisible(),true);
@@ -289,6 +310,13 @@ try {
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
   assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
   assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1);
+  // V13 MediaBay workbench: one media list, actual file inspector and bottom
+  // original waveform (never a second playback/preview instance).
+  assert.equal(await page.locator('#rq13SoundInspector').isVisible(),true);
+  assert.equal(await page.locator('#rq13WaveDock').isVisible(),true);
+  assert.equal(await page.locator('#rq13SoundAttributes [data-rq13-value="name"]').count(),1);
+  assert.equal(await page.locator('#rq13WaveDock #rq5WaveCanvas').count(),1);
+  assert.equal(await page.locator('.rq13-ai-workstation').count(),1);
   // A real audition transport remains visible in both Library and Sound Lab.
   assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
   assert.equal(await page.locator('#rq11PlayLibrary').isVisible(),true);
@@ -304,8 +332,12 @@ try {
   // Selecting a row changes the read-only source, without audition or GO.
   await page.locator('#assetList .asset-list-row').nth(1).locator('.tag').click();
   assert.equal(await page.locator('#rq5AudioSource').inputValue(),'asset-2');
+  assert.match(await page.locator('#rq13SoundAttributes [data-rq13-value="name"]').innerText(),/asset|\.wav/i);
+  assert.equal(await page.locator('#rq13EditSource').isVisible(),true);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
   await page.locator('[data-rq10-sound-tab="generate"]').click();
+  assert.equal(await page.locator('#rq13WaveDock').isVisible(),false);
+  assert.equal(await page.locator('#rq13SoundInspector').isVisible(),false);
   assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
   assert.equal(await page.locator('#playBtn').isVisible(),true);
   assert.equal(await page.locator('#stopBtn').isVisible(),true);
