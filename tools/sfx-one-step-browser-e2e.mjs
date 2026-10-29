@@ -98,9 +98,17 @@ try{
   const assetsBefore=await page.locator('#assetList .asset-list-row').count();
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#importLibraryBtn').click();
+  await page.waitForTimeout(300);
+  console.log('SFX_ONE_STEP_DIAGNOSTIC',JSON.stringify({
+    feedback:await page.locator('#feedback').textContent(),
+    jobState:await page.locator('#jobState').textContent(),
+    assetsBefore,assetsAfter:await page.locator('#assetList .asset-list-row').count(),
+    importedDisabled:await page.locator('#importLibraryBtn').isDisabled(),
+    starts:calls.start,downloads:calls.download,pageErrors,
+  }));
   await page.waitForFunction(count=>
     document.querySelectorAll('#assetList .asset-list-row').length===count,
-    assetsBefore+1);
+    assetsBefore+1,{timeout:3000});
   assert.equal(await page.locator('#cuesCount').textContent(),'3');
   assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true,
     'Saved remote WAV switches to library identity and cannot import twice');
