@@ -79,20 +79,26 @@ try{
   await page.waitForFunction(()=>document.querySelector('#engineBadge')?.textContent==='Generador configurado');
   // No-cost compiler suggestions do not send to Meta or Modal.
   await page.locator('#soundPrompt').fill('Portazo fuerte');
+  await page.locator('.sfx-assistant-options').evaluate(el=>el.open=true);
   await page.locator('#sfxSuggestEnglishBtn').click();
   assert.match(await page.locator('#soundPrompt').inputValue(),/door/i);
   await page.locator('#sfxRestoreOriginalPromptBtn').click();
   assert.equal(await page.locator('#soundPrompt').inputValue(),'Portazo fuerte');
 
 
+  assert.equal(await page.locator('.sfx-older-takes').evaluate(el=>el.open),false);
+  assert.equal(await page.locator('.sfx-sound-edits').evaluate(el=>el.open),false);
+  assert.equal(await page.locator('#confirmRequest').isVisible(),false);
+  assert.equal(await page.locator('#importLibraryBtn').textContent(),'Usar sonido');
+  assert.equal(await page.locator('#sfxAnotherVariationBtn').textContent(),'Probar otra versión');
+
   async function generate(){
     await page.locator('#soundPrompt').fill(
       'A single large bronze bell strike recorded close, with a clear attack and natural decay.');
     await page.locator('#duration').fill('2');
-    await page.locator('#confirmRequest').check();
     page.once('dialog',dialog=>dialog.accept());
     await page.locator('#generateBtn').click();
-    await page.waitForFunction(()=>document.querySelector('#jobState')?.textContent?.includes('cola'));
+    await page.waitForFunction(()=>document.querySelector('#jobState')?.textContent?.includes('Preparando'));
     assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true);
     assert.equal(await page.locator('#generateBtn').isDisabled(),true,
       'An unresolved prior job must block another SFX generation');
@@ -107,12 +113,18 @@ try{
   }
   await generate();
   const firstRequestId=await page.locator('#requestId').inputValue();
-  await generate(); // Before accepting the first take: it MUST remain recoverable.
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#sfxAnotherVariationBtn').click();
+  await page.waitForFunction(id=>document.querySelector('#requestId')?.value!==id,firstRequestId);
+  // Another take is possible without accepting/importing the first.
+  await page.locator('#sfxCheckResultBtn').click();
+  await page.locator('#playBtn').click();
   const secondRequestId=await page.locator('#requestId').inputValue();
   assert.notEqual(firstRequestId,secondRequestId);
   assert.equal(calls.start,2);
 
   // Restore the unaccepted first take, load and genuinely audition it again.
+  await page.locator('.sfx-older-takes').evaluate(el=>el.open=true);
   await page.locator('#sfxHistorySelect').selectOption(firstRequestId);
   await page.locator('#sfxOpenHistoryBtn').click();
   await page.waitForFunction(id=>document.querySelector('#requestId')?.value===id,firstRequestId);
@@ -148,6 +160,7 @@ try{
   await page.locator('#sfxCheckResultBtn').click();
   await page.locator('#playBtn').click();
   page.once('dialog',dialog=>dialog.accept());
+  await page.locator('.sfx-save-extra').evaluate(el=>el.open=true);
   await page.locator('#importCueBtn').click();
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
   assert.equal(calls.start,2);
