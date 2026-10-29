@@ -617,6 +617,14 @@ function bindEvents(){
       reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,
         fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
     });
+    // The exact reviewed original is now registered in THIS show. Switch
+    // to the library source identity so a double-click cannot import twice.
+    // Operators can still use the local 'create/assign cue' actions afterwards.
+    if(typeof result?.assetId==='string' && result.assetId.length){
+      state.fileOrigin='library';
+      state.libraryAssetId=result.assetId;
+      updateControls();
+    }
     inform(result?.message??(createCue?'WAV guardado y cue creado.':'WAV guardado en la biblioteca.'));
   }
   $('importLibraryBtn').addEventListener('click',()=>void action(()=>commitReviewedSfx(false)));
