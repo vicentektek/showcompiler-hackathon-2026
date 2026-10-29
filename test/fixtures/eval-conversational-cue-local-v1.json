@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "source": "HAND_AUTHORED_SYNTHETIC_COMMANDS_NOT_META_OUTPUT",
+  "description": "Offline exact-output tests for the implemented local RunQ cue-chat parser. These fixtures are not a benchmark for the model.",
+  "cases": [
+    {
+      "id": "es-gain",
+      "language": "es",
+      "input": "Baja el volumen a -6 dB",
+      "lastField": null,
+      "expected": {
+        "gainDb": -6
+      }
+    },
+    {
+      "id": "en-gain",
+      "language": "en",
+      "input": "Set the gain to -12 dB",
+      "lastField": null,
+      "expected": {
+        "gainDb": -12
+      }
+    },
+    {
+      "id": "es-fade-in",
+      "language": "es",
+      "input": "Fundido de entrada de 1,5 segundos",
+      "lastField": null,
+      "expected": {
+        "fadeInMs": 1500
+      }
+    },
+    {
+      "id": "en-fade-out",
+      "language": "en",
+      "input": "Fade out for 2 seconds",
+      "lastField": null,
+      "expected": {
+        "fadeOutMs": 2000
+      }
+    },
+    {
+      "id": "es-delay",
+      "language": "es",
+      "input": "Retardo de 3 segundos",
+      "lastField": null,
+      "expected": {
+        "startDelayMs": 3000
+      }
+    },
+    {
+      "id": "en-delay",
+      "language": "en",
+      "input": "Delay 500 ms",
+      "lastField": null,
+      "expected": {
+        "startDelayMs": 500
+      }
+    },
+    {
+      "id": "es-loop-on",
+      "language": "es",
+      "input": "En bucle",
+      "lastField": null,
+      "expected": {
+        "loop": true
+      }
+    },
+    {
+      "id": "es-loop-off",
+      "language": "es",
+      "input": "Desactivar el bucle",
+      "lastField": null,
+      "expected": {
+        "loop": false
+      }
+    },
+    {
+      "id": "en-loop-on",
+      "language": "en",
+      "input": "Enable loop",
+      "lastField": null,
+      "expected": {
+        "loop": true
+      }
+    },
+    {
+      "id": "en-loop-off",
+      "language": "en",
+      "input": "Disable loop",
+      "lastField": null,
+      "expected": {
+        "loop": false
+      }
+    },
+    {
+      "id": "es-correction",
+      "language": "es",
+      "input": "Mejor cuatro segundos",
+      "lastField": "fadeInMs",
+      "expected": {
+        "fadeInMs": 4000
+      }
+    },
+    {
+      "id": "en-correction",
+      "language": "en",
+      "input": "Actually 2 seconds",
+      "lastField": "fadeOutMs",
+      "expected": {
+        "fadeOutMs": 2000
+      }
+    },
+    {
+      "id": "es-vague",
+      "language": "es",
+      "input": "Sube un poco el volumen",
+      "lastField": null,
+      "expected": null
+    },
+    {
+      "id": "en-unsafe-go",
+      "language": "en",
+      "input": "GO now and fire everything",
+      "lastField": null,
+      "expected": null
+    },
+    {
+      "id": "es-unsafe-routing",
+      "language": "es",
+      "input": "Cambia la salida de audio a la tarjeta externa",
+      "lastField": null,
+      "expected": null
+    },
+    {
+      "id": "en-incomplete",
+      "language": "en",
+      "input": "Make the fade sound smoother",
+      "lastField": null,
+      "expected": null
+    },
+    {
+      "id": "es-trigger-not-understood",
+      "language": "es",
+      "input": "Ejecuta el siguiente cue",
+      "lastField": null,
+      "expected": null
+    }
+  ]
+}
