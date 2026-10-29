@@ -53,6 +53,26 @@ function mountUnifiedSound(){
   grid.before(caption);
 
   let mode=new URLSearchParams(location.search).get('workspace')==='soundlab'?'generate':'library';
+  function refreshCueTargets(){
+    const target=$('rq10TargetCue');
+    if(!target)return;
+    let cues=[];
+    document.dispatchEvent(new CustomEvent('runq:sound-list-cues',{
+      detail:{respond:items=>{cues=Array.isArray(items)?items:[];}}
+    }));
+    const previous=target.value;
+    target.replaceChildren();
+    const placeholder=document.createElement('option');
+    placeholder.value='';
+    placeholder.textContent=copy('Seleccionar cue…','Select cue…');
+    target.append(placeholder);
+    for(const cue of cues){
+      const option=document.createElement('option');
+      option.value=cue.id;option.textContent=cue.number+' · '+cue.label;
+      target.append(option);
+    }
+    if(cues.some(c=>c.id===previous))target.value=previous;
+  }
   function setMode(next){
     if(next!=='library'&&next!=='generate')return;
     // Switch only the right editor; original project library stays visible.
@@ -65,7 +85,10 @@ function mountUnifiedSound(){
       tab.setAttribute('aria-selected',String(selected));
       tab.tabIndex=selected?0:-1;
     }
-    if(next==='generate')document.dispatchEvent(new CustomEvent('runq:sound-lab-visible'));
+    if(next==='generate'){
+      refreshCueTargets();
+      document.dispatchEvent(new CustomEvent('runq:sound-lab-visible'));
+    }
   }
   function translate(){
     h.textContent=copy('SONIDO · BIBLIOTECA Y CREACIÓN','SOUND · LIBRARY & CREATION');
@@ -81,6 +104,16 @@ function mountUnifiedSound(){
     navAudio.setAttribute('aria-label',copy('Sonido','Sound'));
     navLab.setAttribute('aria-hidden','true');
     navLab.tabIndex=-1;
+    const actionsTitle=$('rq10LibraryActionsTitle');
+    if(actionsTitle)actionsTitle.textContent=copy('Aplicar a cue','Apply to cue');
+    const create=$('rq10CreateLibraryCue');
+    if(create)create.textContent=copy('Crear cue con este audio','Create cue from this audio');
+    const assign=$('rq10AssignLibraryCue');
+    if(assign)assign.textContent=copy('Asignar y aplicar ajustes','Assign and apply edits');
+    const targetLabel=document.querySelector('.rq10-target-label');
+    if(targetLabel?.firstChild?.nodeType===Node.TEXT_NODE)
+      targetLabel.firstChild.nodeValue=copy('Cue existente ','Existing cue ');
+    refreshCueTargets();
   }
   library.addEventListener('click',()=>setMode('library'));
   generate.addEventListener('click',()=>setMode('generate'));
@@ -92,6 +125,9 @@ function mountUnifiedSound(){
     (next==='library'?library:generate).focus();
   });
   document.addEventListener('runq:sound-mode',event=>setMode(event.detail?.mode));
+  const cueList=$('cueList');
+  if(cueList)new MutationObserver(()=>queueMicrotask(refreshCueTargets))
+    .observe(cueList,{childList:true});
   $('uiLocaleSelect')?.addEventListener('change',()=>queueMicrotask(translate));
   const observer=new MutationObserver(()=>{
     if(navAudio.textContent!==copy('Sonido','Sound'))translate();
