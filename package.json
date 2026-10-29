@@ -13,6 +13,7 @@
     "demo:package": "node tools/build-demo-package.mjs",
     "demo:rehearsal": "node tools/build-rehearsal-demo.mjs",
     "sfx:doctor": "node tools/runq-sfx-doctor.mjs",
+    "sfx:jobs": "node tools/runq-sfx-jobs.mjs",
     "qa:cues": "node tools/cue-qa-report.mjs",
     "qa:codex": "npm run check:syntax && npm test && npm run qa:cues && npm run qa:seminar && node tools/codex-qa-summary.mjs",
     "qa:seminar": "node tools/seminar-offline-eval.mjs",
