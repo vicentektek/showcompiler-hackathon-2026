@@ -2663,8 +2663,11 @@ function emergencyStopAllAudio() {
 }
 $('stopAllBtn').addEventListener('click', emergencyStopAllAudio);
 $('operatorPanicBtn').addEventListener('click', emergencyStopAllAudio);
+document.addEventListener('runq:sound-stop-preview',()=>stopSoundLabPreview());
 $('stopAuditionBtn').addEventListener('click', () => {
-  if (player.stopAudition()) feedback('audio.auditionStopped', {}, 'success');
+  const hadLabPreview=soundLabPreviewReserved;
+  stopSoundLabPreview();
+  if (player.stopAudition()||hadLabPreview)feedback('audio.auditionStopped', {}, 'success');
 });
 
 /** Batch intake only modifies the library. No cues are linked or executed. */
