@@ -84,3 +84,12 @@ test('offline request plans can never masquerade as a zero-quality paired model 
     {model:BASETEN_MODEL,realInferenceExecuted:false,cases:[dryCase]},corpus),
   /real completed inference/);
 });
+
+test('Baseten request removes Meta-only token parameter',()=>{
+  const r=makeBasetenTheatreRequest(prepared());
+  assert.equal(r.max_completion_tokens,undefined);
+  assert.equal(r.max_tokens,8192);
+  assert.equal(r.response_format,undefined);
+  assert.equal(r.reasoning_effort,undefined);
+  assert.equal(r.store,undefined);
+});

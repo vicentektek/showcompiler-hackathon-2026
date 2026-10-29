@@ -43,7 +43,7 @@ export function parseBasetenEvalOptions(argv=[]){
 
 /** Baseten Muse Spark Open does not support constrained JSON response_format. */
 export function makeBasetenTheatreRequest(prepared){
-  const {response_format,reasoning_effort,store,...base}=prepared.request;
+  const {response_format,reasoning_effort,store,max_completion_tokens,...base}=prepared.request;
   const schema=response_format.json_schema.schema;
   const system=base.messages[0].content+
     '\nReturn ONLY a complete JSON object with a proposals array, no markdown or commentary. '+
