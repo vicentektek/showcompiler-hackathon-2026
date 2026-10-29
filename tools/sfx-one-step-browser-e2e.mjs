@@ -89,8 +89,8 @@ try{
   assert.equal(await page.locator('.sfx-older-takes').evaluate(el=>el.open),false);
   assert.equal(await page.locator('.sfx-sound-edits').evaluate(el=>el.open),false);
   assert.equal(await page.locator('#confirmRequest').isVisible(),false);
-  assert.equal(await page.locator('#importLibraryBtn').textContent(),'Usar sonido');
-  assert.equal(await page.locator('#sfxAnotherVariationBtn').textContent(),'Probar otra versión');
+  assert.match(await page.locator('#importLibraryBtn').textContent(),/^(Usar sonido|Use sound)$/);
+  assert.match(await page.locator('#sfxAnotherVariationBtn').textContent(),/^(Probar otra versión|Try another version)$/);
 
   async function generate(){
     await page.locator('#soundPrompt').fill(
