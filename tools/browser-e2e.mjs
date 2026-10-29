@@ -458,6 +458,10 @@ try {
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(() => window.__testAudioStarts >= 1);
+  assert.equal(await page.locator('#rq14LiveWaveform').isVisible(),true,
+    'Stage waveform must reflect loaded REAL cached audio peaks after confirmed GO');
+  assert.match(await page.locator('#rq14StageCurrent .rq14-now-title').innerText(),/001|Intro/i);
+  assert.match(await page.locator('#rq14EventsList').innerText(),/GO confirmed|GO confirmado/);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
   assert.match(await page.locator('#operatorEffectSummary').innerText(), /STOP \/ FADE: 1/);
@@ -648,6 +652,20 @@ try {
   assert.equal(await page.locator('#runqAudioOverview .runq-audio-introduction strong').innerText(),'Espacio de recursos');
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.setViewportSize({ width: 1093, height: 614 });
+  const stageBounds=await page.evaluate(()=>{
+    const rect=id=>document.getElementById(id).getBoundingClientRect();
+    return {
+      go:rect('operatorGoBtn').toJSON(),
+      stop:rect('operatorPanicBtn').toJSON(),
+      stack:rect('cueList').toJSON(),
+      current:rect('rq14StageCurrent').toJSON(),
+      viewport:{width:innerWidth,height:innerHeight},
+    };
+  });
+  assert.ok(stageBounds.go.width>=60&&stageBounds.stop.width>=60,
+    'Stage GO/STOP ALL need usable input targets '+JSON.stringify(stageBounds));
+  assert.ok(stageBounds.stack.width>=210&&stageBounds.current.width>=210,
+    'Cue stack and actual-status monitor must both be reachable '+JSON.stringify(stageBounds));
   await capture('04-operation-1093.png');
   // A manual-only show needs neither source script nor an AI analysis request.
   await page.locator('[data-workspace-nav="home"]').click();
