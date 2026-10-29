@@ -840,7 +840,7 @@ function renderCueList({ resetScroll = false } = {}) {
       const sourceId=draggingCueId;
       draggingCueId=null;
       const after=event.clientY>=card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;
-      editCueSequence(()=>({project:reorderOperatorCue(show,sourceId,cue.id,after?'after':'before'),cueId:sourceId}));
+      editCueSequence(()=>({project:reorderOperatorCue(show,sourceId,cue.id,after?'after':'before'),cueId:sourceId}),{preserveQueue:true});
     });
     const sourceActions = node('div', 'item-actions cue-edit-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
@@ -2060,7 +2060,7 @@ function setNewShow(project, statusKey, values = {}) {
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
 $('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScroll:true }); refreshAudioControls(); });
-function editCueSequence(fn) {
+function editCueSequence(fn,{preserveQueue=false}={}) {
   if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) return;
   const status = player.getStatus();
   if (audioInFlight || status.activeCueCount || status.pendingGoCount || status.auditionActive || status.auditionPending) {
@@ -2071,8 +2071,13 @@ function editCueSequence(fn) {
     const result = fn();
     show = result.project ?? result;
     selectedCueId = result.cueId ?? (show.cues.some(c => c.id === selectedCueId) ? selectedCueId : show.cues[0]?.id ?? null);
-    operatorQueue = startOperatorQueue(show.cues);
-    lastGoCueId = null;
+    // Drag reorder changes sequence order, not the operator's prepared cue.
+    // Structural add/delete/duplicate still use the established reset policy.
+    if(!preserveQueue || (operatorQueue.preparedCueId &&
+      !show.cues.some(c=>c.id===operatorQueue.preparedCueId))){
+      operatorQueue = startOperatorQueue(show.cues);
+      lastGoCueId = null;
+    }
     inspectorPendingChanges = false;
     editingCueId = null;
     $('cueSearchInput').value = '';
