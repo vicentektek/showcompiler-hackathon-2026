@@ -879,6 +879,46 @@
       "fixture": "TO_AUTHOR",
       "metric": "clear proof of Meta integration and differentiation",
       "videoShot": null
+    },
+    {
+      "id": "VIDEO-011",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "opening dramatic title is illustrative not a fake UI",
+      "videoShot": "S01"
+    },
+    {
+      "id": "VIDEO-012",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "script and problems use licensed/original content",
+      "videoShot": "S02"
+    },
+    {
+      "id": "VIDEO-013",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "rehearsal transition shows real product state",
+      "videoShot": "S07"
+    },
+    {
+      "id": "VIDEO-014",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "montage claims match proven real capabilities",
+      "videoShot": "S10"
     }
   ]
 }
