@@ -57,6 +57,12 @@ let selectedLibrarySource = null; // {assetId,file,generation}; never trust stal
  * synthesizes a waveform and never initiates playback or provider traffic.
  * The request/reply stays entirely in this browser document.
  */
+document.addEventListener('runq:request-audio-peaks',event=>{
+  const respond=event.detail?.respond,assetId=event.detail?.assetId;
+  if(typeof respond!=='function'||typeof assetId!=='string')return;
+  respond(show.assets.some(item=>item.id===assetId)&&player.hasAsset(assetId)
+    ?player.getWaveform(assetId):null);
+});
 document.addEventListener('runq:request-audio-source', event => {
   const { assetId, respond } = event.detail ?? {};
   if (typeof respond !== 'function' || typeof assetId !== 'string') return;
@@ -363,7 +369,10 @@ function setWorkspace(workspace) {
   // Legacy deep links and old navigation enter the new unified audio desk.
   const legacySoundLab=workspace==='soundlab';
   if(legacySoundLab)workspace='audio';
-  if (activeWorkspace === 'audio' && workspace !== 'audio') stopSoundLabPreview();
+  if (activeWorkspace === 'audio' && workspace !== 'audio') {
+    stopSoundLabPreview();
+    player.stopAudition(); // Prevent lingering library preview on entering Live.
+  }
   activeWorkspace = workspace;
   renderWorkspaceShell();
   if(legacySoundLab)document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
