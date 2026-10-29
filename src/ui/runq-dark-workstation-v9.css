@@ -826,6 +826,9 @@
 }
 /* Rehearsal already has a real full script and microphone dock.
    The second panel is compact and read-only to avoid duplicating commands. */
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq5-inspector-frame{
+ display:none!important; /* Stage is supervised execution, not cue editing. */
+}
 .rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq5-show-workspace .cue-workspace-body{
  grid-template-columns:minmax(0,1fr)!important;
  grid-template-rows:minmax(150px,1fr) minmax(110px,auto)!important;
