@@ -96,9 +96,15 @@ try{
   await tryClick('#homeDemoBtn');
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3',null,{timeout:10000});
   // Regression: opening ANY workspace must not throw before event handlers bind.
-  for(const workspace of ['script','ai','cues','audio','soundlab','setup','rehearsal','operation','home']){
+  for(const workspace of ['script','ai','cues','audio','setup','rehearsal','operation','home']){
     await tryClick('[data-workspace-nav="'+workspace+'"]');
     assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),workspace,'Cannot open '+workspace);
+    if(workspace==='audio'){
+      await tryClick('[data-rq10-sound-tab="generate"]');
+      assert.equal(await page.locator('#waveCanvas').isVisible(),true,
+        'The integrated Sound Lab remains accessible inside Sonido');
+      await tryClick('[data-rq10-sound-tab="library"]');
+    }
   }
   const fatal=scriptErrors.filter(error=>!error.includes('Content Security Policy directive')&&!error.includes('/favicon.ico')&&!error.includes('Failed to load resource: the server responded with a status of 404'));
   console.log('BROWSER_DIAGNOSTICS',JSON.stringify(scriptErrors));

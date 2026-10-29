@@ -215,6 +215,14 @@ try {
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
   assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
   assert.equal(await page.locator('#runqAudioOverview').count(), 1);
+  assert.equal(await page.locator('#rq10LibrarySearch').isVisible(),true);
+  await page.locator('#rq10LibrarySearch').fill('asset-1');
+  assert.equal(await page.locator('#assetList .asset-list-row:visible').count(),1);
+  assert.equal(await page.locator('#rq10LibrarySearchCount').textContent(),'1 / 3');
+  await page.locator('#rq10LibrarySearch').fill('');
+  assert.equal(await page.locator('#assetList .asset-list-row:visible').count(),3);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,
+    'Audio library filtering may never play any sound');
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
   assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
   assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1);

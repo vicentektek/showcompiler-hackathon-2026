@@ -61,7 +61,7 @@ function mountV8(){
     script:['Guion','Script','Texto original y referencias','Original text and line references'],
     ai:['Propuestas IA','AI suggestions','Revisión antes de incorporar','Review before applying'],
     cues:['Editor de cues','Cue editor','Secuencia, sonido y propiedades','Sequence, audio and properties'],
-    audio:['Biblioteca de audio','Audio library','Archivos y preescucha','Files and audition'],
+    audio:['Sonido','Sound','Biblioteca, editor y generación integrados','Integrated library, editor and generator'],
     soundlab:['Laboratorio de sonido','Sound lab','Generación y edición','Generate and edit'],
     setup:['Comprobación','Preflight','Estado del espectáculo','Show readiness'],
     rehearsal:['Ensayo','Rehearsal','Guion y ejecución supervisada','Script and supervised playback'],

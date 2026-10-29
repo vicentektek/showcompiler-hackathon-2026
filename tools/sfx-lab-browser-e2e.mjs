@@ -56,7 +56,16 @@ try{
     return route.continue();
   });
   await page.goto('http://127.0.0.1:'+port+'/',{waitUntil:'domcontentloaded'});
-  await page.locator('[data-workspace-nav="soundlab"]').click();
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'audio');
+  assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1,
+    'Library remains present as the permanent left column');
+  assert.equal(await page.locator('[data-workspace-nav="soundlab"]').isVisible(),false,
+    'Sound Lab is no longer a duplicate navigation route');
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  assert.equal(await page.locator('.rq10-integrated-lab').isVisible(),true);
+  assert.equal(await page.locator('.rq5-audio-library').isVisible(),true);
+  assert.equal(await page.locator('.rq5-audio-editor').isVisible(),false);
   await page.waitForTimeout(900);
   console.log('SFX_BROWSER_DIAGNOSTIC',JSON.stringify({
     badge:await page.locator('#engineBadge').textContent(),
@@ -91,18 +100,68 @@ try{
   await page.locator('#playBtn').click();
   assert.equal(await page.evaluate(()=>window.__labStarted),1);
   assert.equal(await page.locator('#stopBtn').isEnabled(),true);
-  await page.locator('#stopBtn').click();
-  assert.equal(await page.evaluate(()=>window.__labStopped),1);
+  // STOP ALL must stop Sound Lab, unlike the old isolated AudioContext.
+  await page.locator('#stopAllBtn').click();
+  assert.equal(await page.evaluate(()=>window.__labStopped),1,
+    'Global STOP ALL must stop SFX preview');
+  assert.equal(await page.locator('#stopBtn').isDisabled(),true);
+  await page.locator('#playBtn').click();
+  assert.equal(await page.evaluate(()=>window.__labStarted),2);
+  await page.locator('[data-rq10-sound-tab="library"]').click();
+  assert.equal(await page.evaluate(()=>window.__labStopped),2,
+    'Switching to library must cancel SFX preview');
+  assert.equal(await page.locator('.rq5-audio-editor').isVisible(),true);
+  assert.equal(await page.locator('.rq10-integrated-lab').isVisible(),false);
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
   // Export is guarded by accepted remote review, so the local test sound
   // remains audition-only rather than impersonating a generated take.
   assert.equal(await page.locator('#exportBtn').isDisabled(),true);
+  // RunQ V10: original library media can enter the SAME reviewed waveform,
+  // then produce a NEW cue or replace an existing single-track cue. Neither
+  // operation sends a GO or changes source bytes.
+  await page.locator('[data-workspace-nav="home"]').click();
+  await page.locator('#homeDemoBtn').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('#assetList [data-sound-edit]').count(),3);
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  await page.locator('#demoAudioBtn').click();
+  await page.locator('#playBtn').click();
+  assert.equal(await page.locator('#operatorGoBtn').isDisabled(),true,
+    'Prepared GO must be blocked throughout Sound Lab preview');
+  await page.locator('#stopAllBtn').click();
+  assert.equal(await page.locator('#operatorGoBtn').isEnabled(),true,
+    'STOP ALL releases the preview lease so prepared GO can run');
+  const beforeReviewStarts=await page.evaluate(()=>window.__labStarted);
+  await page.locator('#assetList [data-sound-edit]').first().click();
+  await page.locator('#rq10CreateLibraryCue').waitFor({state:'visible'});
+  assert.equal(await page.locator('#rq10CreateLibraryCue').isEnabled(),true);
+  assert.equal(await page.locator('[data-rq10-sound-tab="generate"]').getAttribute('aria-selected'),'true');
+  await page.locator('#inPoint').fill('0.05');
+  await page.locator('#inPoint').dispatchEvent('change');
+  page.once('dialog',d=>d.accept());
+  await page.locator('#rq10CreateLibraryCue').click();
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
+    'Creating a cue from the audio editor must never trigger playback');
+  assert.ok((await page.locator('#rq10TargetCue option').count())>=5,
+    'All cue targets must be available from the unified audio desk');
+  await page.locator('#rq10TargetCue').selectOption('cue-1');
+  page.once('dialog',d=>d.accept());
+  await page.locator('#rq10AssignLibraryCue').click();
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
+    'Assigning sound and trims cannot execute a GO');
+  await page.locator('[data-workspace-nav="cues"]').click();
+  await page.locator('#cueList [data-cue-select]').first().click();
+  assert.equal(await page.locator('#cuePlaybackForm [name="startAtMs"]').inputValue(),'50',
+    'Library-to-cue review settings must be persisted as milliseconds');
   assert.equal(billableCalls,0);
   assert.deepEqual(errors,[]);
   if(process.env.RUNQ_CAPTURE_UI==='1'){
     await mkdir('artifacts/runq-ui',{recursive:true});
     await page.screenshot({path:'artifacts/runq-ui/sfx-lab-offline.png',fullPage:true});
   }
-  console.log('SFX Lab Chrome smoke PASS — offline demo waveform, preview, STOP, guarded export, zero provider requests.');
+  console.log('SFX Lab V10 smoke PASS — unified library, mode toggle, STOP ALL, SFX preview cancellation, no provider calls.');
 }finally{
   if(browser)await browser.close();
   await new Promise(resolve=>server.close(resolve));

@@ -50,6 +50,7 @@ let pendingAudioCueId = null;
 let audioInFlight = false;
 let bundleInFlight = false;
 let originalAudioFiles = new Map();
+let selectedLibrarySource = null; // {assetId,file,generation}; never trust stale IDs across shows.
 /**
  * Read-only source bridge for the Stagecraft waveform view. It returns the
  * actual local File for a registered asset in the current project, never
@@ -123,6 +124,24 @@ const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 let player = createBrowserAudioBackend({ onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); } });
 let soundLabModulePromise = null;
+// V10 single show-controller preview lease. Sound Lab still has a temporary
+// Web Audio context, but cannot overlap GO or a library/cue audition. The
+// authoritative STOP ALL synchronously invalidates its pending/active preview.
+let soundLabPreviewReserved = false;
+let stopSoundLabPreview = () => {};
+function reserveSoundLabPreview(){
+  const status=player.getStatus();
+  if(activeWorkspace!=='audio'||goTransportPending||audioInFlight||bundleInFlight||
+     status.activeCueCount||status.pendingGoCount||status.auditionActive||
+     status.auditionPending||soundLabPreviewReserved)return false;
+  soundLabPreviewReserved=true;
+  refreshAudioControls();
+  return true;
+}
+function releaseSoundLabPreview(){
+  soundLabPreviewReserved=false;
+  refreshAudioControls();
+}
 // ON AIR is a transport *snapshot*, not a new independent cue player.
 // Reuse existing stopCue and Web Audio clock; rows survive 250ms clock refreshes.
 let runningCuesTicker=null;
@@ -216,7 +235,7 @@ function refreshAudioControls() {
   const status = $('transportStatus');
   if (!status) return;
   const { activeCueCount: active, pendingGoCount: pending, auditionActive, auditionPending } = player.getStatus();
-  const auditioning = auditionActive || auditionPending;
+  const auditioning = auditionActive || auditionPending || soundLabPreviewReserved;
   status.textContent = auditioning
     ? t('audio.auditionStatus')
     : active || pending
@@ -233,6 +252,10 @@ function refreshAudioControls() {
   $('saveBundleBtn').disabled = bundleInFlight || audioInFlight;
   for (const button of document.querySelectorAll('[data-asset-audition]')) {
     button.disabled = !player.hasAsset(button.dataset.assetAudition) || audioInFlight || auditioning || active > 0 || pending > 0;
+  }
+  for (const button of document.querySelectorAll('[data-sound-edit]')) {
+    button.disabled = !player.hasAsset(button.dataset.soundEdit) || audioInFlight ||
+      bundleInFlight || auditioning || active > 0 || pending > 0;
   }
   for (const button of document.querySelectorAll('[data-cue-audio-pick]')) {
     button.disabled = audioInFlight || auditioning;
@@ -337,12 +360,14 @@ function setWorkspace(workspace) {
     inspectorPendingChanges = false;
     renderCueInspector(); // Discard local form changes, not stored show data.
   }
-  if (activeWorkspace === 'soundlab' && workspace !== 'soundlab' && soundLabModulePromise) {
-    void soundLabModulePromise.then(module => module.stopSoundLabAudition()).catch(() => {});
-  }
+  // Legacy deep links and old navigation enter the new unified audio desk.
+  const legacySoundLab=workspace==='soundlab';
+  if(legacySoundLab)workspace='audio';
+  if (activeWorkspace === 'audio' && workspace !== 'audio') stopSoundLabPreview();
   activeWorkspace = workspace;
   renderWorkspaceShell();
-  if (workspace === 'soundlab') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
+  if(legacySoundLab)document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
+  if (workspace === 'audio') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
   return true;
 }
 
@@ -972,6 +997,7 @@ function render() {
   for (const asset of show.assets) {
     const state = t(player.hasAsset(asset.id) ? 'status.loaded' : 'status.missingAsset');
     const row = node('div', 'asset-list-row');
+    row.dataset.audioLoaded=String(player.hasAsset(asset.id));
     const label = node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state);
     const audition = node('button', 'btn subtle small', t('audio.audition'));
     audition.type = 'button';
@@ -983,11 +1009,18 @@ function render() {
         auditionAcknowledged = true;
       }
       try {
+        if(soundLabPreviewReserved)throw new Error('Detén la escucha de Sound Lab antes de preescuchar otro archivo.');
         await player.auditionAsset(asset.id);
         feedback('audio.auditionStarted', { name: asset.name }, 'success');
       } catch (error) { showError(error); }
     });
-    row.append(label, audition);
+    const edit=node('button','btn subtle small',uiLocale==='es'?'Editar':'Edit');
+    edit.type='button';edit.dataset.soundEdit=asset.id;
+    edit.title=uiLocale==='es'?'Abrir original en el editor sin reproducirlo':
+      'Open original in the waveform editor without playback';
+    edit.disabled=!player.hasAsset(asset.id);
+    edit.addEventListener('click',()=>void openRegisteredAudioForEditing(asset.id));
+    row.append(label,audition,edit);
     list.append(row);
   }
 
@@ -1117,6 +1150,10 @@ function refreshPreviewStudio() {
 async function listenToCue(cueId,{trackId=null,fromMs=null}={}) {
   const cue=show.cues.find(c=>c.id===cueId);
   if(!cue || audioInFlight || bundleInFlight) return;
+  if(soundLabPreviewReserved){
+    showError(new Error('Detén la preescucha del laboratorio antes de escuchar este cue.'));
+    return;
+  }
   if(!auditionAcknowledged) {
     if(!window.confirm(t('audio.auditionConfirm'))) return;
     auditionAcknowledged=true;
@@ -2067,8 +2104,10 @@ function setNewShow(project, statusKey, values = {}) {
   operatorQueue = startOperatorQueue(project.cues);
   lastGoCueId = null;
   $('scriptSearchInput').value = '';
+  stopSoundLabPreview();
   player.reset();
   originalAudioFiles.clear();
+  selectedLibrarySource=null;
   show = project;
   resetMetaAnalysis();
   dirty = true;
@@ -2082,7 +2121,7 @@ $('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScrol
 function editCueSequence(fn,{preserveQueue=false}={}) {
   if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) return;
   const status = player.getStatus();
-  if (audioInFlight || status.activeCueCount || status.pendingGoCount || status.auditionActive || status.auditionPending) {
+  if (audioInFlight || soundLabPreviewReserved || status.activeCueCount || status.pendingGoCount || status.auditionActive || status.auditionPending) {
     feedback('cueEditor.stopBeforeEdit', {}, 'error');
     return;
   }
@@ -2149,7 +2188,7 @@ $('checkPreflightBtn').addEventListener('click', () => {
 // Both use the same audio engine, cue entry policies and completion logic.
 let goTransportPending=false;
 async function executeCueById(id,{advancePrepared=false}={}){
- if(!id||goTransportPending||audioInFlight||bundleInFlight)return false;
+ if(!id||goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved)return false;
  const generation=projectGeneration;
  const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
  if(!cue||cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
@@ -2192,7 +2231,7 @@ $('operatorGoBtn').addEventListener('click',()=>{
 document.addEventListener('runq:rehearsal-auto-arm-audio',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
- if(activeWorkspace!=='rehearsal'||document.hidden||bundleInFlight||audioInFlight){
+ if(activeWorkspace!=='rehearsal'||document.hidden||bundleInFlight||audioInFlight||soundLabPreviewReserved){
    respond({ok:false,reason:'REHEARSAL_NOT_READY'});return;
  }
  // Must be called synchronously from the operator's ARM gesture to unlock
@@ -2206,7 +2245,7 @@ document.addEventListener('runq:rehearsal-auto-go',event=>{
  if(activeWorkspace!=='rehearsal'||document.hidden||
    document.body?.dataset.runqVoiceCapture!=='live'||
    $('rqLiveArm')?.getAttribute('aria-pressed')!=='true'||
-   typeof cueId!=='string'||goTransportPending||audioInFlight||bundleInFlight){
+   typeof cueId!=='string'||goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved){
    report({ok:false,reason:'NOT_ARMED_OR_BUSY'});return;
  }
  const cue=show.cues.find(c=>c.id===cueId);
@@ -2635,13 +2674,17 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
 
 function emergencyStopAllAudio() {
   document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'stop_all'}}));
+  stopSoundLabPreview();
   player.stopAll();
   feedback('status.panic', {}, 'success');
 }
 $('stopAllBtn').addEventListener('click', emergencyStopAllAudio);
 $('operatorPanicBtn').addEventListener('click', emergencyStopAllAudio);
+document.addEventListener('runq:sound-stop-preview',()=>stopSoundLabPreview());
 $('stopAuditionBtn').addEventListener('click', () => {
-  if (player.stopAudition()) feedback('audio.auditionStopped', {}, 'success');
+  const hadLabPreview=soundLabPreviewReserved;
+  stopSoundLabPreview();
+  if (player.stopAudition()||hadLabPreview)feedback('audio.auditionStopped', {}, 'success');
 });
 
 /** Batch intake only modifies the library. No cues are linked or executed. */
@@ -2665,7 +2708,7 @@ function reportAudioImport(headline,items=[]){
 async function importAudioLibraryBatch(selected,{zip=false}={}){
   if(audioInFlight||bundleInFlight)return;
   const busy=player.getStatus();
-  if(busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending){
+  if(soundLabPreviewReserved||busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending){
     reportAudioImport(t('audioBatch.busy'));return;
   }
   if(!selected.length)return;
@@ -2790,7 +2833,7 @@ async function importSingleAudioFile(file, {
       }
     }
     const transport = player.getStatus();
-    if (transport.activeCueCount || transport.pendingGoCount || transport.auditionActive || transport.auditionPending) throw uiError('errors.audioWhilePlaying');
+    if (soundLabPreviewReserved || transport.activeCueCount || transport.pendingGoCount || transport.auditionActive || transport.auditionPending) throw uiError('errors.audioWhilePlaying');
     // Reusing an already-decoded file reference changes playback for every
     // cue sharing that asset ID. Require explicit confirmation before doing so.
     const shared = before.cues.some(cue => cue.id !== cueId &&
@@ -2850,6 +2893,93 @@ async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,createC
     message:'Generated WAV imported to library. No cue was changed.'};
 }
 
+/** Opens an existing local source for graphical review WITHOUT creating a copy
+ * or issuing a GO. All subsequent commits revalidate file identity and show
+ * generation, so loading another project cannot misassign a stale source.
+ */
+async function openRegisteredAudioForEditing(assetId){
+  const file=originalAudioFiles.get(assetId);
+  if(!show.assets.some(asset=>asset.id===assetId)||!file){
+    showError(new Error('El archivo original no está cargado. Reimporta el sonido o abre el ZIP completo.'));
+    return;
+  }
+  const busy=player.getStatus();
+  if(soundLabPreviewReserved||audioInFlight||bundleInFlight||goTransportPending||
+    busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending){
+    showError(new Error('Detén el transporte y las preescuchas antes de abrir un audio para editar.'));
+    return;
+  }
+  const generation=projectGeneration;
+  try{
+    await ensureSoundLabInitialized();
+    if(generation!==projectGeneration)throw new Error('El espectáculo ha cambiado durante la carga del audio.');
+    const module=await soundLabModulePromise;
+    await module.openLibraryAudioSource(file,assetId);
+    if(generation!==projectGeneration||originalAudioFiles.get(assetId)!==file)
+      throw new Error('El audio original cambió durante la carga; selección cancelada.');
+    selectedLibrarySource={assetId,file,generation};
+    setWorkspace('audio');
+    document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
+  }catch(error){showError(error);}
+}
+document.addEventListener('runq:sound-list-cues',event=>{
+  if(typeof event.detail?.respond!=='function')return;
+  event.detail.respond(show.cues.filter(c=>c.status==='DRAFT'&&
+    c.actions.length===1&&['PLAY','PLAN_AUDIO'].includes(c.actions[0].type))
+    .map(c=>({id:c.id,number:c.number,label:c.label})));
+});
+async function commitReviewedLibraryAudio({assetId,reviewedRegion,targetCueId=null}={}){
+  const chosen=selectedLibrarySource;
+  if(!chosen||chosen.assetId!==assetId||chosen.generation!==projectGeneration||
+    !show.assets.some(a=>a.id===assetId)||originalAudioFiles.get(assetId)!==chosen.file)
+    throw new Error('El archivo revisado ya no pertenece al espectáculo activo.');
+  const busy=player.getStatus();
+  if(goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved||
+    busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending)
+    throw new Error('Detén el transporte antes de modificar la secuencia.');
+  if(!reviewedRegion||!Number.isFinite(reviewedRegion.inSeconds)||
+     !Number.isFinite(reviewedRegion.outSeconds)||
+     !Number.isFinite(reviewedRegion.fadeInSeconds)||
+     !Number.isFinite(reviewedRegion.fadeOutSeconds))
+    throw new TypeError('Invalid audio review region');
+  const startAtMs=Math.round(reviewedRegion.inSeconds*1000);
+  const endAtMs=Math.round(reviewedRegion.outSeconds*1000);
+  const fadeInMs=Math.round(reviewedRegion.fadeInSeconds*1000);
+  const fadeOutMs=Math.round(reviewedRegion.fadeOutSeconds*1000);
+  if(startAtMs<0||endAtMs<=startAtMs||fadeInMs<0||fadeOutMs<0||
+     fadeInMs+fadeOutMs>endAtMs-startAtMs)
+    throw new RangeError('Recorte o fades fuera de los límites del sonido');
+  const duration=player.getWaveform(assetId)?.durationMs;
+  if(Number.isFinite(duration)&&endAtMs>duration+1)
+    throw new RangeError('OUT supera la duración del archivo');
+  let result=show,cueId=targetCueId;
+  if(targetCueId){
+    const cue=show.cues.find(c=>c.id===targetCueId);
+    if(!cue||cue.status!=='DRAFT'||cue.actions.length!==1)
+      throw new TypeError('El cue destino debe admitir un único audio principal');
+    result=cue.actions[0].type==='PLAN_AUDIO'
+      ?assignAudioToCue(result,targetCueId,assetId)
+      :replaceCueAudioAsset(result,targetCueId,assetId);
+  }else{
+    const label=show.assets.find(a=>a.id===assetId)?.name??'Audio';
+    const inserted=insertManualCue(result,{label});
+    result=assignAudioToCue(inserted.project,inserted.cueId,assetId);
+    cueId=inserted.cueId;
+  }
+  result=updateCuePlayback(result,cueId,{
+    startAtMs,endAtMs,fadeInMs,fadeOutMs,
+  });
+  const wasEmpty=show.cues.length===0;
+  show=result;
+  if(wasEmpty&&show.cues.length&&!operatorQueue.preparedCueId)
+    operatorQueue=startOperatorQueue(show.cues);
+  selectedCueId=cueId;
+  dirty=true;
+  render();
+  return {assetId,cueId,message:targetCueId
+    ?'Audio de biblioteca asignado al cue con recorte y fades, sin ejecutar GO.'
+    :'Cue creado desde el original con recorte y fades, sin ejecutar GO.'};
+}
 function reportSoundLabBootstrapError(error) {
   // A missing ES module used to leave an apparently interactive Sound Lab
   // with all controls inert. Make the loading failure visible in that workspace.
@@ -2870,12 +3000,19 @@ async function ensureSoundLabInitialized() {
     });
   }
   const module = await soundLabModulePromise;
-  await module.initializeSoundLab({ onImportReviewed: importReviewedGeneratedSfx });
+  stopSoundLabPreview=module.stopSoundLabAudition;
+  await module.initializeSoundLab({
+    onImportReviewed:importReviewedGeneratedSfx,
+    onReservePreview:reserveSoundLabPreview,
+    onPreviewReleased:releaseSoundLabPreview,
+    onCommitLibraryReview:commitReviewedLibraryAudio,
+  });
 }
 
 $('uiLocaleSelect').value = uiLocale;
 const requestedWorkspace = new URLSearchParams(window.location.search).get('workspace');
-if (availableWorkspaces.includes(requestedWorkspace)) activeWorkspace = requestedWorkspace;
+if (availableWorkspaces.includes(requestedWorkspace))
+  activeWorkspace = requestedWorkspace==='soundlab'?'audio':requestedWorkspace;
 translateDocument(document, uiLocale);
 resetScriptLanguageHint();
 render();

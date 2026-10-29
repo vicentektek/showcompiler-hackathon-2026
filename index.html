@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/src/ui/runq-workbench-v7.css">
   <link rel="stylesheet" href="/src/ui/runq-studio-stage-v8.css">
   <link rel="stylesheet" href="/src/ui/runq-dark-workstation-v9.css">
+  <link rel="stylesheet" href="/src/ui/runq-unified-sound-v10.css">
   <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
   <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
   <script type="module" src="/src/ui/voice-live-ui.mjs"></script>
@@ -33,6 +34,7 @@
   <script src="/src/ui/runq-workbench-v7.mjs" type="module"></script>
   <script src="/src/ui/runq-studio-stage-v8.mjs" type="module"></script>
   <script src="/src/ui/runq-cue-toolbar-v9.mjs" type="module"></script>
+  <script src="/src/ui/runq-unified-sound-v10.mjs" type="module"></script>
 </head>
 <body>
   <div class="shell" data-active-workspace="home">
@@ -402,6 +404,18 @@
               <div class="sfx-transport"><button class="btn primary" id="playBtn" type="button" disabled>▶ Preview selection</button><button class="btn" id="stopBtn" type="button" disabled>■ Stop</button><label class="sfx-level">Monitor level <input id="monitorLevel" type="range" min="0" max="50" value="15" aria-label="Audition volume"></label></div>
               <div class="sfx-notice sfx-muted">Preview uses the computer's default output, not an isolated PFL bus. Start at low volume. GO, NEXT and the running show are untouched.</div>
               <div class="sfx-export"><div><h3>Commit the accepted source</h3><p>The original verified WAV is preserved. IN/OUT remain review metadata and can become non-destructive cue settings after manual assignment.</p></div><div class="sfx-buttons"><button class="btn" id="exportBtn" type="button" disabled>Download original WAV</button><button class="btn primary-secondary" id="importLibraryBtn" type="button" disabled>Import accepted WAV to library</button><button class="btn accent" id="importCueBtn" type="button" disabled>Import + create cue</button></div></div>
+              <section class="rq10-local-actions" id="rq10LibraryEditActions" aria-labelledby="rq10LibraryActionsTitle">
+                <div><strong id="rq10LibraryActionsTitle">Aplicar edición a un cue</strong>
+                  <p>Solo para originales ya importados. Los ajustes IN/OUT y fades se guardan en el cue; el archivo original nunca se altera.</p>
+                </div>
+                <div class="rq10-local-buttons">
+                  <button id="rq10CreateLibraryCue" type="button" class="btn accent" disabled>Crear cue con este audio</button>
+                  <label for="rq10TargetCue" class="rq10-target-label">Cue existente
+                    <select id="rq10TargetCue"><option value="">Seleccionar destino…</option></select>
+                  </label>
+                  <button id="rq10AssignLibraryCue" type="button" class="btn subtle" disabled>Asignar y aplicar ajustes</button>
+                </div>
+              </section>
               <div role="status" aria-live="polite" class="sfx-feedback" id="feedback">Sound Lab is idle. No provider request has been made.</div>
             </section>
           </div>
