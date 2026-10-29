@@ -17,7 +17,7 @@ function mountUnifiedSound(){
   const navAudio=document.querySelector('[data-workspace-nav="audio"]');
   const navLab=document.querySelector('[data-workspace-nav="soundlab"]');
   if(!shell||!audio||!lab||!grid||!lib||!editor||!navAudio||!navLab||audio.dataset.rq10Unified)return;
-  document.documentElement.classList.add('rq10');
+  document.documentElement.classList.add('rq10','rq13');
   audio.dataset.rq10Unified='true';
   lab.removeAttribute('data-workspaces');
   lab.hidden=false; // Parent Audio workspace owns visibility from now on.
