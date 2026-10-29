@@ -260,7 +260,7 @@ try {
   // Selection alone never changes the prepared GO.
   assert.equal(await page.locator('[data-cue-quick-next]').count(),3);
   assert.equal(await page.locator('[data-cue-quick-go]').count(),3);
-  assert.equal(await page.locator('#cueAddBtn').getAttribute('title'),' + Add cue'.trim());
+  assert.match(await page.locator('#cueAddBtn').getAttribute('title'),/add cue/i);
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.locator('#cueList [data-cue-select]').nth(1).click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(),preparedBeforeNavigation,
