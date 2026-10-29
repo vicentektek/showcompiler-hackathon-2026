@@ -137,7 +137,7 @@ try{
   assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true,
     'Saved remote WAV switches to library identity and cannot import twice');
   assert.equal(calls.start,2);
-  assert.equal(calls.download,3);
+  assert.equal(calls.download,2, 'Restoring a WAV uses the local journal, not the remote provider');
   assert.equal(await page.evaluate(()=>window.__auditionStarts),3);
 
   // Restore second take from history: no new paid request or lost WAV.
@@ -151,7 +151,7 @@ try{
   await page.locator('#importCueBtn').click();
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
   assert.equal(calls.start,2);
-  assert.equal(calls.download,4);
+  assert.equal(calls.download,2, 'Both resumed samples reuse stored local WAVs');
   assert.equal(await page.evaluate(()=>window.__auditionStarts),4);
   assert.deepEqual(pageErrors,[]);
   console.log('SFX_ONE_STEP_BROWSER_PASS: 2 fake generated WAVs, 2 auditions, 1 library save, 1 cue save, 0 provider network calls.');
