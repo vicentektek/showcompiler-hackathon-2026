@@ -1,7 +1,7 @@
 # RunQ — Protocolo operativo de campañas masivas (Meta / Baseten / Modal / Voz)
 **v1 · 29 octubre 2026 · Hackathon Meta AI Developer 2026**
 
-**ESTADO: PREPARACIÓN SIN GASTOS AUTORIZADOS POR IMPORTE.** Este documento no puede lanzar API ni hacer que Codex ejecute pagos. Contrato de campaña: fixtures/qa/mass-campaign-manifest-v1.json. Preflight: tools/mass-campaign-preflight.mjs (sin red). Las métricas anteriores de V8 no certifican V9.
+**ESTADO: PRESUPUESTO DE USD 30 APROBADO EN CONVERSACIÓN; SIN SOLICITUDES PAGADAS EJECUTADAS.** Este documento no puede lanzar API ni hacer que Codex ejecute pagos. Contrato de campaña: fixtures/qa/mass-campaign-manifest-v1.json. Preflight: tools/mass-campaign-preflight.mjs (sin red). Las métricas anteriores de V8 no certifican V9.
 
 ## 1. Para qué vamos a gastar créditos
 
@@ -139,3 +139,12 @@ Baseten cloud pricing: https://www.baseten.co/pricing/
 Modal GPU billing/idle: https://modal.com/pricing
 
 **Este protocolo y su reserva propuesta no son factura ni pruebas ejecutadas.**
+## 13. Piloto autorizado: implementación operativa separada
+
+El usuario aprobó el 29/10/2026 el reparto exacto de **30 USD** (12 Meta / 8 Baseten / 8 Modal / 2 voz). El manifiesto versionado permanece deliberadamente en estado DRAFT: nunca se usa como autorización remota o local por sí solo. El operador crea una única autorización en su propio PC con `npm run eval:budget:init` y comprueba el estado con `npm run eval:budget:status`. Esto no consume créditos.
+
+**Nuevo ejecutor piloto (NO campaña completa):** `npm run eval:pilot -- --provider meta --requests 1 --case hotel-door --live --ack-paid --dashboard-verified` (Baseten puede sustituirse por `--provider baseten`; Modal por `--provider modal` sin `--case`). Esos comandos **sí envían solicitudes reales** cuando las claves, el estado del proveedor, el presupuesto local y la comprobación del panel permiten hacerlo. El flag `--dashboard-verified` exige que el operador haya revisado facturación, saldo y límites reales; nunca sustituye los controles del proveedor.
+
+La fase piloto limita acumulativamente 8 peticiones Meta, 5 Baseten y 2 Modal. Los 100 ensayos de voz siguen bloqueados hasta contar con corpus de grabaciones y ejecutor pagado instrumentado. Los módulos de seguridad guardan reservas fuera de Git, ejecutan una sola llamada por vez, bloquean presupuestos/casos duplicados y mantienen las reservas en caso de resultado incierto. Modal usa un journal por usuario compartido entre copias nuevas del laboratorio; los scripts antiguos independientes NO quedan protegidos de forma retroactiva.
+
+**Guía exacta Windows:** `docs/RUNQ_PAID_PILOT_OPERATOR_RUNBOOK_2026-10-29.md`. No utilizar todavía los comandos de campaña masiva ni fusionar esta PR sin revisar el CI y el primer piloto real.
