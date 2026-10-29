@@ -57,6 +57,12 @@ let selectedLibrarySource = null; // {assetId,file,generation}; never trust stal
  * synthesizes a waveform and never initiates playback or provider traffic.
  * The request/reply stays entirely in this browser document.
  */
+document.addEventListener('runq:request-audio-peaks',event=>{
+  const respond=event.detail?.respond,assetId=event.detail?.assetId;
+  if(typeof respond!=='function'||typeof assetId!=='string')return;
+  respond(show.assets.some(item=>item.id===assetId)&&player.hasAsset(assetId)
+    ?player.getWaveform(assetId):null);
+});
 document.addEventListener('runq:request-audio-source', event => {
   const { assetId, respond } = event.detail ?? {};
   if (typeof respond !== 'function' || typeof assetId !== 'string') return;
@@ -363,7 +369,10 @@ function setWorkspace(workspace) {
   // Legacy deep links and old navigation enter the new unified audio desk.
   const legacySoundLab=workspace==='soundlab';
   if(legacySoundLab)workspace='audio';
-  if (activeWorkspace === 'audio' && workspace !== 'audio') stopSoundLabPreview();
+  if (activeWorkspace === 'audio' && workspace !== 'audio') {
+    stopSoundLabPreview();
+    player.stopAudition(); // Prevent lingering library preview on entering Live.
+  }
   activeWorkspace = workspace;
   renderWorkspaceShell();
   if(legacySoundLab)document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
@@ -999,6 +1008,16 @@ function render() {
     const row = node('div', 'asset-list-row');
     row.dataset.audioLoaded=String(player.hasAsset(asset.id));
     const label = node('span', 'tag', asset.id + ' · ' + asset.name + ' · ' + state);
+    label.title=asset.name;
+    const original=originalAudioFiles.get(asset.id);
+    const fileSize=original&&Number.isFinite(original.size)
+      ?(original.size>=1_000_000?(original.size/1_000_000).toFixed(1)+' MB':
+        Math.round(original.size/1000)+' kB'):'—';
+    const used=show.cues.filter(cue=>
+      cue.actions.some(action=>action.type==='PLAY'&&action.assetId===asset.id)||
+      (cue.audioTracks??[]).some(track=>track.assetId===asset.id)).length;
+    const meta=node('span','rq11-media-meta',
+      fileSize+' · '+(uiLocale==='es'?'Cues: ':'Cues: ')+used);
     const audition = node('button', 'btn subtle small', t('audio.audition'));
     audition.type = 'button';
     audition.dataset.assetAudition = asset.id;
@@ -1020,7 +1039,7 @@ function render() {
       'Open original in the waveform editor without playback';
     edit.disabled=!player.hasAsset(asset.id);
     edit.addEventListener('click',()=>void openRegisteredAudioForEditing(asset.id));
-    row.append(label,audition,edit);
+    row.append(label,meta,audition,edit);
     list.append(row);
   }
 
