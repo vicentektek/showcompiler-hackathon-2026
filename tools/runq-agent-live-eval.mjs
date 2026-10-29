@@ -273,6 +273,7 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   ', stop '+stopReason+'; report '+folder+'/'+run+'.md');
  return report;
 }
+export {opts as parseAgentLiveOptions,getScenario as getAgentLiveScenario,judge as judgeAgentLiveReply};
 const invoked=process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href;
 if(invoked){
  try{
