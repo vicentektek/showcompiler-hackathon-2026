@@ -132,7 +132,6 @@ try{
   await page.locator('#sfxCheckResultBtn').click();
   await page.locator('#playBtn').click();
   const assetsBefore=await page.locator('#assetList .asset-list-row').count();
-  page.once('dialog',dialog=>dialog.accept());
   await page.locator('#importLibraryBtn').click();
   await page.waitForTimeout(300);
   console.log('SFX_ONE_STEP_DIAGNOSTIC',JSON.stringify({
