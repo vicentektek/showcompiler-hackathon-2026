@@ -841,8 +841,14 @@ export async function initializeSoundLab({onImportReviewed,onReservePreview,onPr
   // Recheck on every workspace entry. A previous offline check must not
   // permanently disable generation after the user fixes local configuration.
   await checkConnection();
-  try{await refreshSfxHistory();}
-  catch{inform('No se pudo leer el historial local. El servidor sigue protegiendo los límites de generación.',true);}
+  // App initialization is eager even when the operator is in Rehearsal or
+  // Stage. Read the job journal ONLY when Audio is actually visible: an
+  // unrelated workflow must not fetch project-private SFX history at startup.
+  const workspace=document.querySelector('.shell')?.dataset.activeWorkspace;
+  if(!workspace||workspace==='audio'){
+    try{await refreshSfxHistory();}
+    catch{inform('No se pudo leer el historial local. El servidor sigue protegiendo los límites de generación.',true);}
+  }
   // Reopen the last LOCAL journal record, without remote polling or payment.
   if(!state.job && $('requestId').value.trim()){
     try{
