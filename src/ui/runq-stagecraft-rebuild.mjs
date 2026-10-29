@@ -6,7 +6,6 @@
  * Audio waveform reflects real locally decoded PCM; it is READ ONLY until the
  * region model has transport and persistence coverage.
  */
-import { buildWaveformPeaks } from '../core/waveformPeaks.mjs';
 
 const get = id => document.getElementById(id);
 const el = (tag, className, label) => {
@@ -310,31 +309,31 @@ async function selectSource(assetId){
   const file=requestAssetSource(assetId);
   waveformUi.sourceFile=file;
   if(!file||typeof file.arrayBuffer!=='function')return;
-  waveformUi.status.textContent='Decoding local PCM…';
-  let context=null;
-  try{
-    const raw=await file.arrayBuffer();
-    if(token!==waveformRequest)return;
-    context=new (window.AudioContext||window.webkitAudioContext)();
-    const audio=await context.decodeAudioData(raw);
-    if(token!==waveformRequest)return;
-    // Ensure several PCM frames per bucket. One frame per bucket gives
-    // min === max and an invisible zero-height vertical stroke.
-    const bucketCount=Math.min(1600,Math.max(1,Math.floor(audio.length/4)));
-    const peaks=buildWaveformPeaks(audio,{bucketCount});
-    if(token!==waveformRequest)return;
-    waveformUi.peaks=peaks;
-    waveformUi.sourceLabel=file.name||assetId;
-    waveformUi.channelCount.textContent=String(peaks.channels.length);
-    waveformUi.durationValue.textContent=(peaks.durationMs/1000).toFixed(3)+' s';
-    drawWave();updateWaveformStatus();
-  }catch(error){
-    if(token!==waveformRequest)return;
-    waveformUi.error='Cannot decode this local source: '+String(error.message||error);
-    updateWaveformStatus();drawWave();
-  }finally{
-    if(context)await context.close().catch(()=>{});
+  // Reuse the main audio engine's already-decoded, cached peak summary.
+  // Never allocate another complete compressed file/PCM buffer just to draw
+  // a library thumbnail. Peaks are an aggregate envelope of all channels,
+  // not separate channel measurements and never a loudness meter.
+  let summary=null;
+  document.dispatchEvent(new CustomEvent('runq:request-audio-peaks',{
+    detail:{assetId,respond:value=>{summary=value;}}
+  }));
+  if(token!==waveformRequest)return;
+  if(!summary||!Array.isArray(summary.peaks)||!summary.peaks.length){
+    waveformUi.error=tr('fileMissing');
+    updateWaveformStatus();
+    return;
   }
+  const upper=Float32Array.from(summary.peaks,value=>Math.max(0,Math.min(1,Number(value)||0)));
+  const lower=Float32Array.from(upper,value=>-value);
+  waveformUi.peaks={
+    channels:[{min:lower,max:upper}],
+    bucketCount:upper.length,
+    durationMs:summary.durationMs,
+  };
+  waveformUi.sourceLabel=(file.name||assetId)+' · '+(lang()==='es'?'envolvente combinada':'combined envelope');
+  waveformUi.channelCount.textContent=String(summary.channels);
+  waveformUi.durationValue.textContent=(summary.durationMs/1000).toFixed(3)+' s';
+  drawWave();updateWaveformStatus();
 }
 function drawWave(){
   const state=waveformUi;if(!state)return;
