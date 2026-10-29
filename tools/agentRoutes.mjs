@@ -8,7 +8,7 @@ import {normalizeSpeech} from '../src/core/voiceFollow.mjs';
 import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
 const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
-const MAX_BODY=20000,MAX_RESPONSE=24000;
+const MAX_BODY=24500,MAX_RESPONSE=24000;
 const send=(res,h,status,data)=>{res.writeHead(status,{...h,'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));};
 const isObj=x=>x&&typeof x==='object'&&!Array.isArray(x);
 const schema={
@@ -114,7 +114,7 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
     chunks.push(chunk);
    }
    const input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
-   if(!isObj(input)||Object.keys(input).some(k=>!['prompt','language','context','provider'].includes(k))||
+   if(!isObj(input)||Object.keys(input).some(k=>!['prompt','language','context','provider','conversation'].includes(k))||
       typeof input.prompt!=='string'||input.prompt.trim().length<3||input.prompt.length>1600||
       !['es','en'].includes(input.language)||
       !['meta','baseten',undefined].includes(input.provider)||!isObj(input.context)||
@@ -122,6 +122,13 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
       !Array.isArray(input.context.lines)||input.context.cues.length>80||
       input.context.lines.length>120||
       JSON.stringify(input.context).length>15000)throw new TypeError('INVALID_INPUT');
+   const conversation=input.conversation??[];
+   if(!Array.isArray(conversation)||conversation.length>8||
+      conversation.some(turn=>!isObj(turn)||
+       Object.keys(turn).some(key=>!['role','text'].includes(key))||
+       !['user','assistant'].includes(turn.role)||
+       typeof turn.text!=='string'||turn.text.length>400))
+    throw new TypeError('INVALID_INPUT');
    const provider=input.provider==='baseten'?'baseten':'meta';
    const key=provider==='baseten'?getBasetenKey():getKey();
    if(typeof key!=='string'||!key.trim()){
@@ -137,7 +144,13 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
       'Valid plan operations: UPDATE_CUE, DELETE_CUE, CREATE_CUE, REORDER_CUE. No file deletion, audio generation,',
       'payment, hardware manipulation or project-wide destructive changes are permitted.',
       'Never pretend to have generated or listened to audio. Offer Sound Lab suggestions in a textual ANSWER.',
-      'If a request is ambiguous or the context is truncated, CLARIFY with no operations.',
+      'For reversible creative tasks propose a concrete plan; do not over-ask for details.',
+      'For follow-ups such as "you decide" use the conversation context to determine which pending task is meant.',
+      'When asked to close a show, suggest up to three appropriate MANUAL cues with creative labels.',
+      'Manual CREATE_CUE placeholders need no asset or script reference. Clearly say that audio remains unconfigured.',
+      'Never claim invented cues are in the source script, and never invent or assign a file or voice trigger.',
+      'CLARIFY only when the intended action or target cannot be inferred safely from the conversation.',
+      'If context is truncated and essential evidence is missing, CLARIFY with no operations.',
       'For PLAN, return a complete operations array; all other statuses must have operations [].',
       'For UPDATE_CUE, use editable field names and exactly one non-null numeric/text/boolean per edit.',
       'Use milliseconds for time fields, gainDb in [-60,0], source trigger as dialogue of 3+ distinct words.',
@@ -145,7 +158,8 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
       'All operation properties are required by the schema; unused fields must be null and edits empty.',
       'Any changes must remain pending operator approval; this is interpretation only.',
      ].join(' ')},
-     {role:'user',content:JSON.stringify({instruction:input.prompt,language:input.language,context:input.context})},
+     {role:'user',content:JSON.stringify({instruction:input.prompt,language:input.language,
+       conversation:conversation.map(turn=>({role:turn.role,text:turn.text})),context:input.context})},
     ],
     response_format:{type:'json_schema',json_schema:{name:'runq_agent_plan_v1',strict:true,schema}},
     reasoning_effort:'low',max_completion_tokens:2200,stream:false,store:false
