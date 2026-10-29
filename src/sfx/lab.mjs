@@ -1,5 +1,7 @@
 import { compileSoundProposals, applyProposalEdits, recompileProposal } from '../core/soundPromptCompiler.mjs';
 import { waveformPeaks, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
+import {inspectSfxHistory,explainSfxError,labelSfxHistory} from './jobRecovery.mjs';
+import {suggestEnglishSfxPrompt} from './freeTextPrompt.mjs';
 
 const api = '/api/sfx';
 const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT']);
@@ -33,7 +35,7 @@ const state = {
   inSeconds:0, outSeconds:0, fadeInSeconds:0, fadeOutSeconds:0, dragStart:null, settings:null,
   onImportReviewed:null,
   onReservePreview:null, onPreviewReleased:null, previewReserved:false, previewEpoch:0,
-  libraryAssetId:null, onCommitLibraryReview:null,
+  libraryAssetId:null, onCommitLibraryReview:null, history:null, originalPrompt:null,
 };
 const $ = id => document.getElementById(id);
 const text = (id,value) => { const element=$(id); if(element)element.textContent=value; };
@@ -80,9 +82,14 @@ async function request(path,{method='GET',data}={}) {
   }
   const response=await fetch(api+path,options);
   if(!response.ok){
-    let code='HTTP '+response.status;
-    try{code=(await response.json()).code??code;}catch{}
-    throw new Error(code);
+    let errorBody=null;
+    try{errorBody=await response.json();}catch{}
+    const code=typeof errorBody?.code==='string'?errorBody.code:'HTTP '+response.status;
+    const error=new Error(code);
+    error.code=code;
+    if(typeof errorBody?.requestId==='string'&&/^req-[A-Za-z0-9-]{8,90}$/.test(errorBody.requestId))
+      error.requestId=errorBody.requestId;
+    throw error;
   }
   return response;
 }
@@ -143,12 +150,15 @@ function updateControls(){
   const policy=costPolicy();
   const costReady=policy.perRequest!==null&&policy.daily!==null;
   const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity();
-  const allowed=state.enabled&&!state.working&&costReady&&promptReady&&$('confirmRequest').checked;
+  const activeJob=state.history?.active?.[0]??null;
+  const allowed=state.enabled&&!state.working&&costReady&&promptReady&&
+    !activeJob&&$('confirmRequest').checked;
   $('generateBtn').disabled=!allowed;
   $('generationHint').textContent=state.working?'Procesando la solicitud…':
     !state.enabled?'No disponible: '+connectionProblem(state.settings):
     !costReady?'Falta la política de coste del servidor.':
     !promptReady?'Escribe un prompt y comprueba la duración.':
+    activeJob?'Trabajo pendiente '+activeJob.requestId+': recupera y comprueba su estado antes de generar otra toma.':
     !$('confirmRequest').checked?'Marca la autorización de una única generación.':
     'Listo: puedes generar una toma.';
   const reconnect=$('sfxReconnectBtn');
@@ -182,6 +192,48 @@ function updateControls(){
   if(create)create.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
   const assign=$('rq10AssignLibraryCue');
   if(assign)assign.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
+}
+function sfxUiLocale(){return $('uiLocaleSelect')?.value==='en'?'en':'es';}
+function renderSfxHistory(){
+  const select=$('sfxHistorySelect'),summary=$('sfxHistorySummary');
+  if(!select||!summary)return;
+  const history=state.history;
+  const selected=select.value;
+  select.replaceChildren();
+  const placeholder=document.createElement('option');
+  placeholder.value='';
+  placeholder.textContent=history?.jobs.length?'Seleccionar toma anterior…':'Sin tomas registradas';
+  select.append(placeholder);
+  for(const job of history?.jobs??[]){
+    const option=document.createElement('option');
+    option.value=job.requestId;
+    option.textContent=labelSfxHistory(job,sfxUiLocale());
+    select.append(option);
+  }
+  if(history?.jobs.some(j=>j.requestId===selected))select.value=selected;
+  else if(history?.active.length)select.value=history.active[0].requestId;
+  $('sfxOpenHistoryBtn').disabled=!select.value||state.working;
+  if(!history){summary.textContent='Historial no disponible. La seguridad del servidor sigue activa.';return;}
+  summary.textContent=[
+    history.startedToday+' solicitud(es) iniciadas hoy (UTC).',
+    history.active.length?history.active.length+' sin resolver: primero recuperar/actualizar.':'Sin trabajos activos.',
+    history.ready.length?history.ready.length+' toma(s) listas para recuperar y escuchar.':'',
+    history.truncated?'Historial truncado: los límites reales los decide el servidor.':'',
+  ].filter(Boolean).join(' ');
+}
+async function refreshSfxHistory(){
+  const response=await request('/jobs');
+  state.history=inspectSfxHistory(await response.json());
+  renderSfxHistory();updateControls();
+  return state.history;
+}
+async function loadSfxHistoryJob(id){
+  if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(id))throw new Error('ID de toma inválido');
+  const job=await(await request('/jobs/'+encodeURIComponent(id))).json();
+  viewJob(job); // Never remote polling, submit or autoplay.
+  if($('sfxHistorySelect'))$('sfxHistorySelect').value=id;
+  renderSfxHistory();
+  inform('Toma recuperada del registro local. Comprobar resultado consulta Modal solo si el trabajo sigue activo.');
 }
 function clearReviewedAudio(){
   stopSoundLabAudition();
