@@ -72,12 +72,12 @@ try {
     }
   });
   await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
-  // V8 composition contract: daylight Studio vs blackout Stage and a
+  // V9 composition contract: dark Studio vs blackout Stage and a
   // subordinate voice dock. These are visual layout checks, not fake playback.
   assert.equal(await page.locator('html.rq8').count(),1);
   assert.equal(await page.locator('#rq8Identity').count(),1);
   const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
-  assert.equal(studioColor,'rgb(232, 238, 244)','Studio should use a daylight editorial surface');
+  assert.equal(studioColor,'rgb(16, 24, 33)','V9 Studio must remain dark, not daylight');
   assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
     'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.
@@ -256,14 +256,16 @@ try {
   assert.match(await page.locator('#statusMessage').innerText(), /Track settings saved/);
   assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
   const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
-  // Restored Stagecraft editor action: explicit Set next is visible only for
-  // the selected cue. Merely clicking/inspecting does NOT reposition NEXT.
-  assert.equal(await page.getByRole('button',{name:'Set next',exact:true}).count(),1);
+  // V9 Set NEXT is always available as a left-row icon.
+  // Selection alone never changes the prepared GO.
+  assert.equal(await page.locator('[data-cue-quick-next]').count(),3);
+  assert.equal(await page.locator('[data-cue-quick-go]').count(),3);
+  assert.equal(await page.locator('#cueAddBtn').getAttribute('title'),' + Add cue'.trim());
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.locator('#cueList [data-cue-select]').nth(1).click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(),preparedBeforeNavigation,
     'Inspection in Live must not prepare NEXT');
-  await page.locator('#cueList .cue-item.cue-selected .cue-operation-actions button').first().click();
+  await page.locator('#cueList .cue-item.cue-selected [data-cue-quick-next]').click();
   assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
   await page.locator('#operatorBackBtn').click();
@@ -379,6 +381,18 @@ try {
   await page.locator('[data-rq7-action="return"]').click();
   assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
     'Return to NEXT is viewport navigation only');
+
+  // Explicit direct row ▶ GO fires its own cue through the real engine but
+  // MUST NOT change NEXT. The normal transport must still play cue 1 later.
+  const directStartsBefore=await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('#cueList [data-cue-quick-go]').nth(2).click();
+  await page.waitForFunction(n=>window.__testAudioStarts>n,directStartsBefore);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Direct Play on cue 3 must not advance or replace NEXT cue 1');
+  assert.equal(await page.locator('#runqActiveCuesList [data-running-cue]').count(),1);
+  await page.locator('#operatorPanicBtn').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Emergency STOP after direct Play preserves NEXT');
 
   const queuedStop = page.locator('[data-cue-action="stop"]').first();
   assert.equal((await queuedStop.isDisabled()), true);
@@ -500,6 +514,15 @@ try {
   assert.equal(await page.locator('#cueList .cue-item').count(),3);
   await page.locator('#cueMoveUpBtn').click();
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual);
+  // Reorder by a dedicated drag handle; no cue may play as a side effect.
+  const beforeDrag=await page.locator('#cueList [data-cue-select]').evaluateAll(nodes=>nodes.map(n=>n.dataset.cueSelect));
+  await page.locator('#cueList .rq9-cue-grip').first().dragTo(page.locator('#cueList .cue-item').last(),{
+    targetPosition:{x:100,y:38}
+  });
+  const afterDrag=await page.locator('#cueList [data-cue-select]').evaluateAll(nodes=>nodes.map(n=>n.dataset.cueSelect));
+  assert.notDeepEqual(afterDrag,beforeDrag,'Drag handle must reorder actual cue identities');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual,
+    'Reordering must not trigger playback');
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#cueDeleteBtn').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),2);
