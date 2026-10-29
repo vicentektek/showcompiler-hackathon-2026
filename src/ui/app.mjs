@@ -816,7 +816,7 @@ function renderCueList({ resetScroll = false } = {}) {
     prepare.title=uiLocale==='es'?'Set NEXT · no reproduce audio':'Set NEXT · does not play audio';
     prepare.disabled=operatorQueue.preparedCueId===cue.id;
     prepare.addEventListener('click',()=>{
-      operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cue.id);
+      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
       render();
       feedback('operator.preparedFeedback',{number:cue.number},'success');
     });
@@ -1856,7 +1856,7 @@ function renderCueInspector() {
     prepare.type='button';
     prepare.disabled=cue.id===operatorQueue.preparedCueId;
     prepare.addEventListener('click',()=>{
-      operatorQueue=prepareOperatorCue(operatorQueue,show.cues,cue.id);
+      operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
       render();
       feedback('operator.preparedFeedback',{number:cue.number},'success');
     });
