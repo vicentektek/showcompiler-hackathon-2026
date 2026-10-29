@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { makeMetaRoute } from './metaRoutes.mjs';
 import { makeBasetenRoute } from './basetenRoutes.mjs';
 import { makeSfxRoute } from './sfxRoutes.mjs';
+import { makeSfxPromptRoute } from './sfxPromptRoutes.mjs';
 import { makeVoiceTranscribeRoute } from './voiceTranscribeRoutes.mjs';
 import { makeVoiceLiveRoute } from './voiceLiveRoutes.mjs';
 import { makeCueConversationRoute } from './cueConversationRoutes.mjs';
@@ -145,6 +146,7 @@ export function createAppServer(options = {}) {
     modelClient: options.basetenClient,
     getKey: options.getBasetenKey,
   });
+  const sfxPromptRoute = makeSfxPromptRoute({getKey:options.getSfxPromptKey,fetchImpl:options.sfxPromptFetch});
   const sfxRoute = makeSfxRoute(options);
   const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
   const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
@@ -163,6 +165,8 @@ export function createAppServer(options = {}) {
     catch { response.writeHead(400, headers); response.end(); return; }
     if (await metaRoute(request, response, pathname, headers)) return;
     if (await basetenRoute(request, response, pathname, headers)) return;
+    // Explicit Meta text-only SFX assistant must precede the broad /api/sfx/* Modal router.
+    if (await sfxPromptRoute(request, response, pathname, headers)) return;
     if (await sfxRoute(request, response, pathname, headers)) return;
     if (await voiceRoute(request, response, pathname, headers)) return;
     if (await voiceLiveRoute(request, response, pathname, headers)) return;
