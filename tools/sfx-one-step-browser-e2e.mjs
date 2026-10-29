@@ -77,6 +77,13 @@ try{
   await page.locator('[data-workspace-nav="audio"]').click();
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   await page.waitForFunction(()=>document.querySelector('#engineBadge')?.textContent==='Generador configurado');
+  // No-cost compiler suggestions do not send to Meta or Modal.
+  await page.locator('#soundPrompt').fill('Portazo fuerte');
+  await page.locator('#sfxSuggestEnglishBtn').click();
+  assert.match(await page.locator('#soundPrompt').inputValue(),/door/i);
+  await page.locator('#sfxRestoreOriginalPromptBtn').click();
+  assert.equal(await page.locator('#soundPrompt').inputValue(),'Portazo fuerte');
+
 
   async function generate(){
     await page.locator('#soundPrompt').fill(
@@ -87,6 +94,10 @@ try{
     await page.locator('#generateBtn').click();
     await page.waitForFunction(()=>document.querySelector('#jobState')?.textContent?.includes('cola'));
     assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true);
+    assert.equal(await page.locator('#generateBtn').isDisabled(),true,
+      'An unresolved prior job must block another SFX generation');
+    assert.ok((await page.locator('#sfxHistorySelect option').count())>=2,
+      'Prior request must be recoverable from the local journal');
     await page.locator('#sfxCheckResultBtn').click();
     await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent?.includes('Generado'));
     assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true,
@@ -95,6 +106,19 @@ try{
     assert.equal(await page.locator('#importLibraryBtn').isEnabled(),true);
   }
   await generate();
+  const firstRequestId=await page.locator('#requestId').inputValue();
+  await generate(); // Before accepting the first take: it MUST remain recoverable.
+  const secondRequestId=await page.locator('#requestId').inputValue();
+  assert.notEqual(firstRequestId,secondRequestId);
+  assert.equal(calls.start,2);
+
+  // Restore the unaccepted first take, load and genuinely audition it again.
+  await page.locator('#sfxHistorySelect').selectOption(firstRequestId);
+  await page.locator('#sfxOpenHistoryBtn').click();
+  await page.waitForFunction(id=>document.querySelector('#requestId')?.value===id,firstRequestId);
+  await page.locator('#sfxOpenHistoryBtn').waitFor({state:'visible'});
+  await page.locator('#sfxCheckResultBtn').click();
+  await page.locator('#playBtn').click();
   const assetsBefore=await page.locator('#assetList .asset-list-row').count();
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#importLibraryBtn').click();
@@ -112,19 +136,23 @@ try{
   assert.equal(await page.locator('#cuesCount').textContent(),'3');
   assert.equal(await page.locator('#importLibraryBtn').isDisabled(),true,
     'Saved remote WAV switches to library identity and cannot import twice');
-  assert.equal(calls.start,1);
-  assert.equal(calls.download,1);
-  assert.equal(await page.evaluate(()=>window.__auditionStarts),1);
+  assert.equal(calls.start,2);
+  assert.equal(calls.download,2, 'Restoring a WAV uses the local journal, not the remote provider');
+  assert.equal(await page.evaluate(()=>window.__auditionStarts),3);
 
-  // Second fake request demonstrates the other deliberately chosen outcome:
-  // accept + import + create one editable, manually triggered cue.
-  await generate();
+  // Restore second take from history: no new paid request or lost WAV.
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  await page.locator('#sfxHistorySelect').selectOption(secondRequestId);
+  await page.locator('#sfxOpenHistoryBtn').click();
+  await page.waitForFunction(id=>document.querySelector('#requestId')?.value===id,secondRequestId);
+  await page.locator('#sfxCheckResultBtn').click();
+  await page.locator('#playBtn').click();
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#importCueBtn').click();
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
   assert.equal(calls.start,2);
-  assert.equal(calls.download,2);
-  assert.equal(await page.evaluate(()=>window.__auditionStarts),2);
+  assert.equal(calls.download,2, 'Both resumed samples reuse stored local WAVs');
+  assert.equal(await page.evaluate(()=>window.__auditionStarts),4);
   assert.deepEqual(pageErrors,[]);
   console.log('SFX_ONE_STEP_BROWSER_PASS: 2 fake generated WAVs, 2 auditions, 1 library save, 1 cue save, 0 provider network calls.');
 } finally {
