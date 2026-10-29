@@ -21,6 +21,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {acquireGlobalSpendLedger,globalLedgerDefaultPath} from '../src/qa/globalSpendLedger.mjs';
 import {createAppServer} from './dev-server.mjs';
 import {createSfxJobStore} from '../src/core/sfxJobStore.mjs';
+import {createGuardedBasetenCaller,createGuardedModalLocalFetch} from '../src/qa/pilotReservationGuards.mjs';
 import {validateMassCampaign} from './mass-campaign-preflight.mjs';
 import {runMetaSeminarEval} from './metaSeminarEval.mjs';
 import {
@@ -164,47 +165,16 @@ export async function runPaidPilot(options,{fetchImpl=globalThis.fetch}={}){
     ledger:guardedLedger,output:reportPath,fetchImpl,
    });
   } else if(provider==='baseten'){
-   const guardedCaller=async({prepared,apiKey,fetchImpl:innerFetch})=>{
-    const estimated=estimateBasetenReserve(prepared);
-    const accepted=await reserve(estimated,'baseten');
-    if(!accepted){
-     const error=new Error('Paid global budget or pilot quota refused.');
-     error.safeReason='GLOBAL_PILOT_BUDGET_REACHED';
-     throw error;
-    }
-    return callBasetenTheatre({prepared,apiKey,fetchImpl:innerFetch});
-   };
+   const guardedCaller=createGuardedBasetenCaller({
+    reserve,estimate:estimateBasetenReserve,call:callBasetenTheatre,
+   });
    providerReport=await runBasetenSeminarEval({
     live:true,ackPaid:true,mode:options.mode,caseId:options.caseId,
     maxRequests:options.requests,apiKey:process.env.BASETEN_API_KEY,
     caller:guardedCaller,output:reportPath,fetchImpl,
    });
   } else {
-   let remoteUnitCost=null;
-   const guardedFetch=async(url,opts={})=>{
-    const u=new URL(url);
-    if(u.protocol!=='http:'||u.hostname!=='127.0.0.1'){
-     throw new Error('SFX_PILOT_LOCAL_ONLY');
-    }
-    const method=opts.method??'GET';
-    if(method==='GET'&&u.pathname==='/api/sfx/status'){
-     const response=await fetchImpl(url,opts);
-     if(response.ok){
-      const config=await response.clone().json();
-      const n=config.estimatedMaxCostUsdPerRequest;
-      if(typeof n!=='number'||!Number.isFinite(n)||n<=0||n>1){
-       throw new Error('MODAL_UNIT_RESERVATION_UNSAFE');
-      }
-      remoteUnitCost=n;
-     }
-     return response;
-    }
-    if(method==='POST'&&u.pathname==='/api/sfx/jobs'){
-     if(remoteUnitCost===null)throw new Error('MODAL_COST_STATUS_NOT_VALIDATED');
-     if(!await reserve(remoteUnitCost,'modal'))throw new Error('GLOBAL_PILOT_BUDGET_REACHED');
-    }
-    return fetchImpl(url,opts);
-   };
+   const guardedFetch=createGuardedModalLocalFetch({reserve,fetchImpl});
    providerReport=await runSfxLatencyLab({
     live:true,ackPaid:true,maxCalls:options.requests,budgetUsd:1,
     timeoutSeconds:90,
