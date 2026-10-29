@@ -4,6 +4,7 @@
  * The browser MUST stage and approve every returned operation separately.
  */
 import {validateAgentOperations} from '../src/core/agentCore.mjs';
+import {normalizeSpeech} from '../src/core/voiceFollow.mjs';
 const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
 const MAX_BODY=20000,MAX_RESPONSE=24000;
@@ -64,6 +65,30 @@ function decode(raw){
   throw new TypeError('BAD_OPERATION');
  });
  return {status:'PLAN',message:output.message,operations:validateAgentOperations(operations)};
+}
+function enforceModelScope(plan,context){
+ const cueMap=new Map(context.cues.map(c=>[c.id,c]));
+ const lines=new Map(context.lines.map(l=>[l.id,l.text]));
+ for(const op of plan.operations){
+  if(op.cueId&&!cueMap.has(op.cueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
+  if(op.targetCueId&&!cueMap.has(op.targetCueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
+  if(op.afterCueId&&!cueMap.has(op.afterCueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
+  if(op.op==='UPDATE_CUE'&&typeof op.changes.trigger==='string'){
+   const cue=cueMap.get(op.cueId);
+   const normalized=normalizeSpeech(op.changes.trigger);
+   const tokens=normalized.split(' ').filter(Boolean);
+   if(tokens.length<3)throw new TypeError('MODEL_TRIGGER_TOO_SHORT');
+   const anchor=Math.min(...(cue.sourceLineIds??[]).map(x=>Number(/^L([1-9]\d*)$/.exec(x)?.[1])||Infinity));
+   const matching=[...lines].some(([lineId,text])=>{
+    const number=Number(/^L([1-9]\d*)$/.exec(lineId)?.[1])||0;
+    if(!Number.isFinite(anchor)||number<anchor-12||number>=anchor)return false;
+    const dialogue=/^[^:：]{1,48}[:：]\s*(.+)$/.exec(text)?.[1];
+    return dialogue&&normalizeSpeech(dialogue).includes(normalized);
+   });
+   if(!matching)throw new TypeError('MODEL_TRIGGER_HAS_NO_SCRIPT_EVIDENCE');
+  }
+ }
+ return plan;
 }
 export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,fetchImpl=fetch,model=MODEL}={}){
  let busy=false;
@@ -128,7 +153,8 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,fetchImpl=f
    if(!response.ok){send(res,headers,502,{error:'AI_PROVIDER_UNAVAILABLE',status:response.status});return true;}
    const value=await response.text();
    if(value.length>MAX_RESPONSE)throw new TypeError('REPLY_TOO_LARGE');
-   send(res,headers,200,{...decode(JSON.parse(value)),provider:'META_MUSE_SPARK'});
+   const checked=enforceModelScope(decode(JSON.parse(value)),input.context);
+   send(res,headers,200,{...checked,provider:'META_MUSE_SPARK'});
   }catch(error){
    const invalid=error instanceof SyntaxError||error instanceof RangeError||error.message==='INVALID_INPUT';
    send(res,headers,invalid?400:502,{error:invalid?'INVALID_AGENT_INPUT':'AGENT_INFERENCE_FAILED'});
