@@ -145,7 +145,8 @@ export function createAppServer(options = {}) {
   const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
   const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
   const cueConversationRoute = makeCueConversationRoute({getKey:options.getCueChatKey,fetchImpl:options.cueChatFetch});
-  const agentRoute = makeAgentRoute({getKey:options.getAgentKey,fetchImpl:options.agentFetch});
+  const agentRoute = makeAgentRoute({getKey:options.getAgentKey,
+    getBasetenKey:options.getBasetenAgentKey,fetchImpl:options.agentFetch});
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',

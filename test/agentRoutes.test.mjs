@@ -88,3 +88,27 @@ test('model may not fabricate voice triggers without evidence from the original 
    assert.equal((await response.json()).error,'AGENT_INFERENCE_FAILED');
   });
 });
+
+test('Baseten fallback uses independent server-side key and never requests unsupported JSON mode',async()=>{
+ let called=0;
+ await withServer({
+  getAgentKey:()=>'',getBasetenAgentKey:()=> 'baseten-test-secret',
+  agentFetch:async(url,request)=>{
+   called++;
+   assert.equal(url,'https://inference.baseten.co/v1/chat/completions');
+   const body=JSON.parse(request.body);
+   assert.equal(body.model,'meta-models/muse-spark-open-1026');
+   assert.equal(Object.hasOwn(body,'response_format'),false);
+   assert.equal(request.headers.Authorization,'Bearer baseten-test-secret');
+   return reply(proposal);
+  }
+ },async root=>{
+  const input=params(root);input.body=JSON.stringify({
+   ...JSON.parse(input.body),provider:'baseten'
+  });
+  const response=await fetch(root+'/api/agent/interpret',input);
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).provider,'BASETEN_MUSE_SPARK_OPEN');
+  assert.equal(called,1);
+ });
+});

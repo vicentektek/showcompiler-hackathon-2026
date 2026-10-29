@@ -8,7 +8,7 @@ Base: feat/runq-v14-studio-stage-functional-workspaces-2026-10-29, HEAD inicial 
 - Consultas locales ES/EN: resumen, auditoría básica, información de cues, eliminación por número, reordenación, creación, ajustes sencillos y propuestas de pies.
 - Propuestas conservadoras de pies hablados desde diálogo anterior vinculado al cue, con rechazo de frases duplicadas o demasiado cortas, sin inventar líneas de guion.
 - Propuestas de mejora de sonido mediante **traspaso revisable a Sound Lab**, sin generar o sustituir un archivo automáticamente.
-- Consulta opt-in a Meta Muse Spark: un único POST desde el servidor local, límites de tamaño, origen local, consentimiento independiente, sin reintentos ni secretos en el navegador.
+- Consulta opt-in a Meta Muse Spark o Baseten Muse Spark Open: un único POST desde el servidor local, límites de tamaño, origen local, consentimiento independiente, sin reintentos ni secretos en el navegador. Baseten se valida con JSON estricto localmente porque no admite el mismo modo estructurado.
 - Respuesta estructurada restringida a cuatro operaciones: UPDATE_CUE / DELETE_CUE / CREATE_CUE / REORDER_CUE, o ANSWER/CLARIFY.
 - Verificación de que los IDs propuestos existen en el contexto enviado; los nuevos pies propuestos por modelo deben poder localizarse en diálogo original cercano al cue.
 - Vista previa de cambios antes de aprobación; selección individual de operaciones, con regeneración de la vista previa y validador de dependencias.
@@ -38,7 +38,7 @@ Base: feat/runq-v14-studio-stage-functional-workspaces-2026-10-29, HEAD inicial 
 3. En Studio pulsar RUNQ AI.
 4. Probar «elimina el cue 2», «mueve el cue 3 antes del 1», «pon pies de voz coherentes a todos los cues» o «revisa el show».
 5. Inspeccionar el diff, desmarcar operaciones no deseadas y pulsar Aplicar lote; deshacer si procede.
-6. Para preguntas complejas, marcar consentimiento y elegir Consultar Meta. Una casilla marcada no envía solicitudes por sí sola.
+6. Para preguntas complejas, seleccionar Meta o Baseten, marcar consentimiento y elegir Consultar IA. Una casilla marcada no envía solicitudes por sí sola.
 7. Para «mejora el sonido del cue 3», abrir la alternativa precargada en Sound Lab, escuchar y aprobar manualmente el resultado.
 
 ## Límites y próximos pasos
@@ -48,7 +48,7 @@ Base: feat/runq-v14-studio-stage-functional-workspaces-2026-10-29, HEAD inicial 
 - El intérprete local cubre comandos concretos; solicitudes abiertas requieren proveedor y pueden fallar si falta clave o cuota.
 - Contexto remoto: máximo 80 cues y 120 líneas, con máximo 15 k caracteres de contexto. Proyectos grandes necesitan paginación/selección explícita y validación posterior.
 - Pie hablado automático solo si hay referencias L# y diálogo anterior apropiado. El algoritmo abstiene cuando no dispone de evidencia suficiente.
-- No se ha demostrado calidad de inferencia real de Meta ni precisión de pies en actores reales. Validar manualmente con regiduría y micrófonos.
+- No se ha demostrado calidad de inferencia real de Meta/Baseten ni precisión de pies en actores reales. Validar manualmente con regiduría y micrófonos.
 - No se certifica latencia, compatibilidad Windows hardware ni uso profesional en directo.
 
 ## Riesgos de integración

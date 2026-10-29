@@ -143,7 +143,7 @@ async function sendRequest(forceAI=false,custom=null){
  working=true;lastPrompt=instruction;showPlan(null);
  $('rqAgentSubmit').disabled=true;$('rqAgentAskAI').disabled=true;
  addMessage('user',instruction);
- notify(forceAI?lang('Consultando Meta (una solicitud)...','Consulting Meta (one request)...'):
+ notify(forceAI?lang('Consultando proveedor de IA (una solicitud)...','Consulting AI provider (one request)...'):
   lang('Analizando proyecto localmente...','Analyzing local project...'));
  try{
   let reply;
@@ -157,7 +157,8 @@ async function sendRequest(forceAI=false,custom=null){
    }
    const response=await fetch('/api/agent/interpret',{method:'POST',headers:{
     'Content-Type':'application/json','X-Runq-Agent-Consent':'yes'
-   },body:JSON.stringify({prompt:instruction,language:s.language,context})});
+   },body:JSON.stringify({prompt:instruction,language:s.language,context,
+     provider:$('rqAgentProvider')?.value??'meta'})});
    const result=await response.json();
    if(!response.ok)throw new Error(result.error??'AGENT_PROVIDER_UNAVAILABLE');
    reply=result;
@@ -286,14 +287,21 @@ function mount(){
   const b=make('button','btn subtle small',text);b.type='button';
   b.addEventListener('click',()=>{input.value=cmd;void sendRequest(false,cmd);});examples.append(b);
  }
+ const providerLabel=make('label','rq-agent-provider');
+ providerLabel.append(make('span','',lang('Proveedor para consulta opcional','Provider for optional request')));
+ const providerSelect=make('select','');providerSelect.id='rqAgentProvider';
+ for(const [id,title] of [['meta','Meta Muse Spark'],['baseten','Baseten · Muse Spark Open']]){
+  const option=make('option','',title);option.value=id;providerSelect.append(option);
+ }
+ providerLabel.append(providerSelect);
  const consentLabel=make('label','rq-agent-consent');
  const consent=make('input','');consent.type='checkbox';consent.id='rqAgentConsent';
- consentLabel.append(consent,make('span','',lang('Autorizo una consulta a Meta con el contexto visible del proyecto (posible coste).',
-  'I authorize one Meta request with bounded project context (may incur cost).')));
+ consentLabel.append(consent,make('span','',lang('Autorizo una consulta externa al proveedor seleccionado con contexto acotado del proyecto (puede tener coste).',
+  'I authorize one external request to the selected provider with bounded project context (may incur cost).')));
  const actions=make('div','rq-agent-actions');
  const local=make('button','btn accent small',lang('Proponer localmente','Plan locally'));
  local.id='rqAgentSubmit';local.type='button';
- const cloud=make('button','btn subtle small',lang('Consultar Meta · 1 solicitud','Ask Meta · 1 request'));
+ const cloud=make('button','btn subtle small',lang('Consultar IA · 1 solicitud','Ask AI · 1 request'));
  cloud.id='rqAgentAskAI';cloud.type='button';
  const undoButton=make('button','btn subtle small',lang('Deshacer lote','Undo batch'));
  undoButton.id='rqAgentUndo';undoButton.type='button';
@@ -301,7 +309,7 @@ function mount(){
  const status=make('output','rq-agent-status',
   lang('Sin modificaciones pendientes.','No pending modifications.'));
  status.id='rqAgentStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
- composer.append(label,input,examples,consentLabel,actions,status);
+ composer.append(label,input,examples,providerLabel,consentLabel,actions,status);
  panel.append(head,messages,proposals,composer);
  document.body.append(panel);
  window.addEventListener('resize',positionDrawer);
