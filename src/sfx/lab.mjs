@@ -42,6 +42,26 @@ const $ = id => document.getElementById(id);
 const text = (id,value) => { const element=$(id); if(element)element.textContent=sfxLocalizedText(sfxUiLocale(),value); };
 const copy=(en,es)=>localeCopy(sfxUiLocale(),en,es);
 
+function sfxQaEnabled(){
+  // QA-only local switch, never shown as an ordinary user preference.
+  // This does not change cost, consent, journal or transport rules.
+  return new URLSearchParams(window.location.search).get('sfxqa')==='1' &&
+    ['127.0.0.1','localhost'].includes(window.location.hostname);
+}
+function setSfxDiagnosticVisibility(){
+  const qa=sfxQaEnabled();
+  for(const selector of ['#sfxAdvanced','#sfxScriptDetails','.sfx-extra-import']){
+    const element=document.querySelector('.sfx-lab '+selector);
+    if(element)element.hidden=!qa;
+  }
+  const diagnostics=document.querySelector('.sfx-lab .sfx-technical-jobs');
+  if(diagnostics){
+    const needsRecovery=['SUBMISSION_UNKNOWN','CANCEL_REQUESTED'].includes(state.job?.status);
+    diagnostics.hidden=!qa&&!needsRecovery;
+  }
+  const reconnect=$('sfxReconnectBtn');
+  if(reconnect)reconnect.hidden=state.enabled&&!qa;
+}
 function requiredDom() {
   return Boolean($('generateForm') && $('waveCanvas') && $('importLibraryBtn'));
 }
@@ -148,6 +168,7 @@ export function assessSfxPrompt(prompt,duration,locale='es'){
 }
 function updateControls(){
   if(!requiredDom())return;
+  setSfxDiagnosticVisibility();
   const job=state.job;
   const policy=costPolicy();
   const costReady=policy.perRequest!==null&&policy.daily!==null;
