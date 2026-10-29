@@ -93,6 +93,41 @@ function canUseAcceptedSource(){
     state.job.requestId===state.loadedRemoteRequestId &&
     state.sourceBytes instanceof ArrayBuffer;
 }
+/**
+ * Only an actually auditioned, downloaded remote WAV can be committed to a
+ * show. Approval and import remain one explicit operator decision, never GO.
+ */
+export function canCommitReviewedSfx({status,requestId,loadedId,auditionedId,sourceOrigin,hasBytes,hasImporter}={}){
+  return ['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT'].includes(status) &&
+    typeof requestId==='string' && requestId.length>0 &&
+    requestId===loadedId && requestId===auditionedId &&
+    sourceOrigin==='remote' && hasBytes===true && hasImporter===true;
+}
+function canCommitCurrentSfx(){
+  return canCommitReviewedSfx({
+    status:state.job?.status,requestId:state.job?.requestId,
+    loadedId:state.loadedRemoteRequestId,auditionedId:state.auditionedRemoteRequestId,
+    sourceOrigin:state.fileOrigin,hasBytes:state.sourceBytes instanceof ArrayBuffer,
+    hasImporter:typeof state.onImportReviewed==='function',
+  });
+}
+export function nextSfxVariationSeed(input){
+  const seed=Number(input);
+  return Number.isSafeInteger(seed)&&seed>=0&&seed<=2147483647
+    ? (seed+1)%2147483648 : 42;
+}
+export function assessSfxPrompt(prompt,duration){
+  const value=String(prompt??'').trim();
+  if(!value)return 'Describe qué suena, qué ocurre y cómo se escucha. El modelo SFX trabaja mejor con descripciones en inglés.';
+  if(/[áéíóúñ¿¡]/i.test(value) || /\b(?:puerta|campana|lluvia|pasos|sonido|ruido|golpe|madera|escenario)\b/i.test(value))
+    return 'Este modelo fue entrenado principalmente en inglés. Reescribe la descripción en inglés antes de generar; no se traduce automáticamente.';
+  if(value.length<45)return 'Para más precisión, describe fuente, acción, material, distancia del micrófono y acústica.';
+  if(/\b(?:then|followed by|afterwards|after that)\b/i.test(value))
+    return 'Este prompt contiene varios momentos. Para efectos concretos, prueba separar cada acción en una toma.';
+  if(Number(duration)>=8 && /\b(?:single|one|short|hit|slams?|strikes?|snap|clap|chime)\b/i.test(value))
+    return 'Para un golpe aislado, prueba 2–4 segundos; una duración excesiva puede añadir ruido o eventos.';
+  return 'Prueba otra semilla si el efecto no convence. Cambiar la semilla NO envía otra solicitud ni acepta gastos.';
+}
 function updateControls(){
   if(!requiredDom())return;
   const job=state.job;
@@ -127,8 +162,10 @@ function updateControls(){
   $('sfxFadeIn').disabled=!state.audio;
   $('sfxFadeOut').disabled=!state.audio;
   $('exportBtn').disabled=state.working||!canUseAcceptedSource();
-  $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
-  $('importCueBtn').disabled=$('importLibraryBtn').disabled;
+  const commitReady=canCommitCurrentSfx()&&!state.working;
+  $('importLibraryBtn').disabled=!commitReady;
+  $('importCueBtn').disabled=!commitReady;
+  text('sfxPromptQualityHint',assessSfxPrompt($('soundPrompt').value,Number($('duration').value)));
   const fromLibrary=state.fileOrigin==='library'&&typeof state.libraryAssetId==='string'&&!!state.audio;
   const libraryActions=$('rq10LibraryEditActions');
   if(libraryActions)libraryActions.hidden=!fromLibrary;
@@ -251,7 +288,8 @@ function updateSfxEditorLocale(){
  modes[0].textContent=es?'Seleccionar IN/OUT':'Select IN/OUT';
  modes[1].textContent=es?'Mover fundido de entrada':'Move fade-in edge';
  modes[2].textContent=es?'Mover fundido de salida':'Move fade-out edge';
- text('importCueBtn',es?'Importar y crear cue':'Import + create cue');
+ text('importLibraryBtn',es?'Guardar en biblioteca':'Save to library');
+ text('importCueBtn',es?'Guardar y crear cue':'Save & create cue');
  updateFades(state.fadeInSeconds,state.fadeOutSeconds);
 }
 function updateTrim(inSeconds,outSeconds){
@@ -418,6 +456,13 @@ function bindEvents(){
     $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
   }
   $('loadPresetBtn').addEventListener('click',applyPreset);
+  $('sfxAnotherVariationBtn')?.addEventListener('click',()=>{
+    const next=nextSfxVariationSeed($('seed').value);
+    $('seed').value=String(next);
+    $('confirmRequest').checked=false;
+    updateControls();
+    inform('Nueva semilla '+next+' preparada. No se ha enviado ninguna solicitud; revisa y autoriza otro intento si lo deseas.');
+  });
   // One explicit check combines the two safe steps users previously had to
   // discover: refresh the remote status ONCE, then download WAV if ready.
   // It never triggers a new generation, never retries an uncertain submission
