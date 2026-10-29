@@ -148,6 +148,17 @@
  max-height:70px;overflow:auto;border-color:#587c81;
 }
 .rq12 .rq12-library>.audio-batch-report[hidden]{display:none!important}
+.rq12 .rq12-library>.audio-batch-report:not([hidden]){
+ display:block!important;visibility:visible!important;
+ background:#193b45!important;border-left:3px solid #69c9b8!important;
+ color:#def7ed!important;min-height:31px!important;
+}
+.rq12 .rq12-library>.audio-batch-report:not([hidden]) #audioBatchStatus{
+ display:block!important;visibility:visible!important;
+}
+.rq12 .rq12-library>.audio-batch-report:not([hidden]) #audioBatchDetails{
+ display:block!important;visibility:visible!important;
+}
 .rq12 .rq12-library .rq10-library-search{
  flex:none;min-height:40px!important;
  padding:5px 8px!important;margin:0!important;
