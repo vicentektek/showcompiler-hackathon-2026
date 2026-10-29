@@ -20,8 +20,10 @@
 | [`CUE_AND_VOICE_MATRIX.md`](CUE_AND_VOICE_MATRIX.md) | Pies de voz, líneas, audio, ensayos normales/no lineales, negativos y criterios de éxito |
 | [`VOICE_GENERATION_PROMPTS.md`](VOICE_GENERATION_PROMPTS.md) | Prompts listos para sintetizar personajes y locutor; tomas y especificaciones técnicas |
 | [`NARRATION_EN_V2.md`](NARRATION_EN_V2.md) | Texto de presentación en inglés por escena, alternativa honesta si falla Autopiloto |
+| [`NARRATION_ES_REFERENCE.md`](NARRATION_ES_REFERENCE.md) | Traducción española para revisar la locución, no destinada al vídeo final |
 | [`STORYBOARD_AND_CAPTURE.md`](STORYBOARD_AND_CAPTURE.md) | 11 planos, timecodes provisionales, overlays, captura limpia y montaje |
 | [`PRODUCTION_RUNBOOK.md`](PRODUCTION_RUNBOOK.md) | Preparación Windows, enrutado de audio, permisos, evidencia, métricas, control de calidad y exportación |
+| [`demo_manifest.json`](demo_manifest.json) | Matriz estructurada reutilizable por Codex: líneas, pies, cues, takes, gates y procedencia |
 
 ## Obra y razón de diseño
 
