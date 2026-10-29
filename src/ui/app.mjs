@@ -14,6 +14,7 @@ import { extractAudioArchive } from '../core/audioArchiveFormats.mjs';
 import { prepareReviewedSfxImport } from '../core/sfxImportCandidate.mjs';
 import { createCueFromReviewedAudio } from '../core/reviewedSfxCue.mjs';
 import {stageCueConversationChange} from '../core/cueConversation.mjs';
+import {prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '../core/agentCore.mjs';
 import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -2087,6 +2088,59 @@ document.addEventListener('runq:cue-chat-undo',event=>{
  }
  show=cueChatUndo.before;cueChatUndo=null;dirty=true;
  render();answer({ok:true});
+});
+
+/**
+ * RUNQ Agent bridge. Agent is forbidden from calling transport/queue commands.
+ * All proposals are revalidated against the current show at approval time.
+ */
+let runqAgentUndo=null;
+function safeAgentEditState(){
+ const status=player.getStatus();
+ return !['operation','rehearsal'].includes(activeWorkspace)&&
+  !audioInFlight&&!bundleInFlight&&!metaInFlight&&!goTransportPending&&
+  !soundLabPreviewReserved&&!inspectorPendingChanges&&
+  !status.activeCueCount&&!status.pendingGoCount&&
+  !status.auditionActive&&!status.auditionPending&&
+  $('rqLiveArm')?.getAttribute('aria-pressed')!=='true';
+}
+document.addEventListener('runq:agent-read',event=>{
+ const respond=event.detail?.respond;
+ if(typeof respond!=='function')return;
+ respond({project:show,selectedCueId,workspace:activeWorkspace,
+  language:uiLocale,canApply:safeAgentEditState(),
+  undoAvailable:Boolean(runqAgentUndo&&JSON.stringify(show)===runqAgentUndo.afterSnapshot),
+  assets:show.assets.map(a=>({id:a.id,ready:player.hasAsset(a.id)}))});
+});
+document.addEventListener('runq:agent-apply',event=>{
+ const respond=event.detail?.respond,plan=event.detail?.plan;
+ const answer=result=>{if(typeof respond==='function')respond(result);};
+ if(!safeAgentEditState()){answer({ok:false,error:'EDIT_BLOCKED_BY_SHOW_STATE'});return;}
+ try{
+  const result=commitAgentPlan(show,plan,{editable:true});
+  show=result.project;
+  if(result.structural){
+   operatorQueue=startOperatorQueue(show.cues);lastGoCueId=null;
+  }
+  selectedCueId=show.cues.some(c=>c.id===selectedCueId)?selectedCueId:show.cues[0]?.id??null;
+  runqAgentUndo=result.undo;cueChatUndo=null;dirty=true;
+  editingCueId=null;inspectorPendingChanges=false;
+  render();answer({ok:true,changes:result.changes,structural:result.structural});
+ }catch(error){
+  answer({ok:false,error:String(error.code??error.message).slice(0,100)});
+ }
+});
+document.addEventListener('runq:agent-undo',event=>{
+ const respond=event.detail?.respond;
+ const answer=result=>{if(typeof respond==='function')respond(result);};
+ if(!safeAgentEditState()){answer({ok:false,error:'EDIT_BLOCKED_BY_SHOW_STATE'});return;}
+ try{
+  const previous=undoAgentPlan(show,runqAgentUndo,{editable:true});
+  show=previous;runqAgentUndo=null;cueChatUndo=null;dirty=true;
+  operatorQueue=startOperatorQueue(show.cues);lastGoCueId=null;
+  selectedCueId=show.cues.some(c=>c.id===selectedCueId)?selectedCueId:show.cues[0]?.id??null;
+  editingCueId=null;render();answer({ok:true});
+ }catch(error){answer({ok:false,error:String(error.code??error.message).slice(0,100)});}
 });
 
 function userAllowsReplacement() {
