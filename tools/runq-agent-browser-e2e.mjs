@@ -49,6 +49,9 @@ try{
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentApply').waitFor({state:'visible'});
  assert.equal(await page.locator('#rqAgentDiff li').count(),2);
+ await page.locator('#rqAgentOps input').first().uncheck();
+ assert.equal(await page.locator('#rqAgentDiff li').count(),1,
+  'Selective approval previews only the checked operation');
  const read=()=>page.evaluate(()=>{
   let snapshot;
   document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{snapshot=value;}}}));
@@ -60,9 +63,10 @@ try{
  await page.locator('#rqAgentApply').click();
  await page.waitForFunction(()=>{
   let state;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:s=>{state=s;}}}));
-  return state?.project.cues.every(c=>(c.trigger??'').length>10);
+  return !state?.project.cues[0]?.trigger && (state?.project.cues[1]?.trigger??'').length>10;
  });
- assert.ok((await read()).cues.every(c=>c.trigger.length>10));
+ assert.equal((await read()).cues[0].trigger,'');
+ assert.ok((await read()).cues[1].trigger.length>10);
  await page.locator('#rqAgentUndo').click();
  assert.deepEqual((await read()).cues.map(c=>c.trigger),['','']);
  await page.locator('[data-workspace-nav="rehearsal"]').click();
