@@ -786,18 +786,57 @@ function renderCueList({ resetScroll = false } = {}) {
     const dragHandle=node('span','rq9-cue-grip','⠿');
     dragHandle.title=uiLocale==='es'?'Arrastrar para reordenar (solo edición)':'Drag to reorder (editing only)';
     dragHandle.setAttribute('aria-hidden','true');
-    dragHandle.draggable=true; // dragstart still rejects any workspace other than Cues
-    dragHandle.addEventListener('dragstart',event=>{
-      if(activeWorkspace!=='cues'){event.preventDefault();return;}
-      draggingCueId=cue.id;
-      event.dataTransfer.effectAllowed='move';
-      event.dataTransfer.setData('text/plain',cue.id);
-      card.classList.add('rq9-dragging');
-    });
-    dragHandle.addEventListener('dragend',()=>{
-      draggingCueId=null;
+    // Pointer-based drag works consistently in Chrome and Electron, including
+    // touch screens. It never activates the row's GO/NEXT/selection controls.
+    dragHandle.tabIndex=0;
+    dragHandle.setAttribute('role','button');
+    dragHandle.setAttribute('aria-label',
+      (uiLocale==='es'?'Reordenar cue ':'Reorder cue ')+cue.number+
+      (uiLocale==='es'?' · flechas arriba/abajo':' · arrow up/down'));
+    let pointerStart=null;
+    let dragTarget=null;
+    const clearDragMarkers=()=>{
       cueList.querySelectorAll('.rq9-drop-before,.rq9-drop-after,.rq9-dragging')
         .forEach(row=>row.classList.remove('rq9-drop-before','rq9-drop-after','rq9-dragging'));
+    };
+    dragHandle.addEventListener('pointerdown',event=>{
+      if(activeWorkspace!=='cues'||event.button!==0)return;
+      pointerStart={id:event.pointerId,x:event.clientX,y:event.clientY};
+      dragTarget=null;
+      dragHandle.setPointerCapture(event.pointerId);
+    });
+    dragHandle.addEventListener('pointermove',event=>{
+      if(!pointerStart||event.pointerId!==pointerStart.id||activeWorkspace!=='cues')return;
+      if(!draggingCueId&&Math.hypot(event.clientX-pointerStart.x,event.clientY-pointerStart.y)<6)return;
+      draggingCueId=cue.id;
+      card.classList.add('rq9-dragging');
+      const row=document.elementFromPoint(event.clientX,event.clientY)?.closest('.cue-item');
+      clearDragMarkers();
+      card.classList.add('rq9-dragging');
+      if(!row||!cueList.contains(row)||row===card){dragTarget=null;return;}
+      const targetId=row.querySelector('[data-cue-select]')?.dataset.cueSelect;
+      if(!targetId){dragTarget=null;return;}
+      const after=event.clientY>=row.getBoundingClientRect().top+row.getBoundingClientRect().height/2;
+      row.classList.add(after?'rq9-drop-after':'rq9-drop-before');
+      dragTarget={targetId,position:after?'after':'before'};
+    });
+    dragHandle.addEventListener('pointerup',event=>{
+      if(!pointerStart||event.pointerId!==pointerStart.id)return;
+      const sourceId=draggingCueId,drop=dragTarget;
+      pointerStart=null;dragTarget=null;draggingCueId=null;clearDragMarkers();
+      if(dragHandle.hasPointerCapture(event.pointerId))dragHandle.releasePointerCapture(event.pointerId);
+      if(activeWorkspace==='cues'&&sourceId&&drop&&sourceId!==drop.targetId)
+        editCueSequence(()=>({project:reorderOperatorCue(show,sourceId,drop.targetId,drop.position),cueId:sourceId}),{preserveQueue:true});
+    });
+    dragHandle.addEventListener('pointercancel',()=>{
+      pointerStart=null;dragTarget=null;draggingCueId=null;clearDragMarkers();
+    });
+    dragHandle.addEventListener('keydown',event=>{
+      if(activeWorkspace!=='cues'||event.altKey||event.ctrlKey||event.metaKey||
+        !['ArrowUp','ArrowDown'].includes(event.key))return;
+      event.preventDefault();
+      const direction=event.key==='ArrowUp'?-1:1;
+      editCueSequence(()=>({project:moveOperatorCue(show,cue.id,direction),cueId:cue.id}),{preserveQueue:true});
     });
     const play=node('button','rq9-cue-play','▶');
     play.type='button';
@@ -822,26 +861,6 @@ function renderCueList({ resetScroll = false } = {}) {
     });
     quick.append(dragHandle,play,prepare);
     card.append(quick,select);
-    card.addEventListener('dragover',event=>{
-      if(activeWorkspace!=='cues'||!draggingCueId||draggingCueId===cue.id)return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect='move';
-      const after=event.clientY>=card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;
-      card.classList.toggle('rq9-drop-after',after);
-      card.classList.toggle('rq9-drop-before',!after);
-    });
-    card.addEventListener('dragleave',event=>{
-      if(!card.contains(event.relatedTarget))
-        card.classList.remove('rq9-drop-before','rq9-drop-after');
-    });
-    card.addEventListener('drop',event=>{
-      if(activeWorkspace!=='cues'||!draggingCueId||draggingCueId===cue.id)return;
-      event.preventDefault();
-      const sourceId=draggingCueId;
-      draggingCueId=null;
-      const after=event.clientY>=card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;
-      editCueSequence(()=>({project:reorderOperatorCue(show,sourceId,cue.id,after?'after':'before'),cueId:sourceId}),{preserveQueue:true});
-    });
     const sourceActions = node('div', 'item-actions cue-edit-actions');
     sourceActions.append(sourceButton(cue.sourceLineIds[0]));
     card.append(sourceActions);
