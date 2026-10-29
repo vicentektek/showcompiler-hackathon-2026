@@ -76,7 +76,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
   await page.locator('[data-workspace-nav="audio"]').click();
   await page.locator('[data-rq10-sound-tab="generate"]').click();
-  await page.waitForFunction(()=>document.querySelector('#engineBadge')?.textContent==='Generador configurado');
+  await page.waitForFunction(()=>/^(Generator ready|Generador configurado)$/.test(document.querySelector('#engineBadge')?.textContent||''));
   // No-cost compiler suggestions do not send to Meta or Modal.
   await page.locator('#soundPrompt').fill('Portazo fuerte');
   await page.locator('.sfx-assistant-options').evaluate(el=>el.open=true);
