@@ -161,7 +161,9 @@ function updateControls(){
     !state.enabled?'No disponible: '+connectionProblem(state.settings):
     !costReady?'Falta la política de coste del servidor.':
     !promptReady?'Escribe un prompt y comprueba la duración.':
-    activeJob?'Hay un sonido generándose. Pulsa «Ver resultado» antes de pedir otro.':
+    activeJob?.status==='SUBMISSION_UNKNOWN'?'No podemos confirmar el envío anterior. Abre «Mis otros sonidos» para revisarlo antes de generar.':
+    activeJob?.status==='CANCEL_REQUESTED'?'La cancelación anterior no está confirmada. Revisa «Mis otros sonidos».':
+    activeJob?('Hay una generación pendiente. '+(job?.requestId===activeJob.requestId?'Pulsa «Ver resultado».':'Abre «Mis otros sonidos».')):
     'Listo para generar. Cada intento pide confirmación del coste.';
   const openHistory=$('sfxOpenHistoryBtn');
   if(openHistory)openHistory.disabled=state.working||!$('sfxHistorySelect')?.value;
