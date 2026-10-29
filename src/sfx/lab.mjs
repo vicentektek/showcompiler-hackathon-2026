@@ -161,6 +161,8 @@ function updateControls(){
     activeJob?'Trabajo pendiente '+activeJob.requestId+': recupera y comprueba su estado antes de generar otra toma.':
     !$('confirmRequest').checked?'Marca la autorización de una única generación.':
     'Listo: puedes generar una toma.';
+  const openHistory=$('sfxOpenHistoryBtn');
+  if(openHistory)openHistory.disabled=state.working||!$('sfxHistorySelect')?.value;
   const reconnect=$('sfxReconnectBtn');
   if(reconnect) reconnect.disabled=state.working;
   const reviewButton=$('sfxCheckResultBtn');
@@ -411,7 +413,14 @@ function currentJobId(){
 async function action(operation){
   if(state.working)return;
   busy(true);
-  try{await operation();}catch(error){inform('Action failed: '+(error?.message||'unknown error'),true);}
+  try{await operation();}
+  catch(error){
+    if(typeof error?.code==='string'&&error.code.startsWith('SFX_')){
+      try{await refreshSfxHistory();}catch{/* Existing journal still protects reservations. */}
+      inform(explainSfxError(error.code,sfxUiLocale())+
+        (error.requestId?' Registro: '+error.requestId:''),true);
+    }else inform('Action failed: '+(error?.message||'unknown error'),true);
+  }
   finally{busy(false);}
 }
 function applyPreset(){
@@ -500,6 +509,14 @@ function bindEvents(){
     void action(async()=>{
       const policy=costPolicy();
       if(!state.enabled||!$('confirmRequest').checked||policy.perRequest===null)throw new Error('Generator is disabled, unpriced or not confirmed');
+      // Read-only journal check before creating a new paid request.
+      const history=await refreshSfxHistory();
+      if(history.active.length){
+        await loadSfxHistoryJob(history.active[0].requestId);
+        const error=new Error('Unresolved prior generation');
+        error.code='SFX_ACTIVE_LIMIT';
+        throw error;
+      }
       const source=$('sourceLine').value.trim();
       const requestData={
         requestId:'req-'+crypto.randomUUID(),authorizationId:'auth-'+crypto.randomUUID(),confirmed:true,
@@ -508,8 +525,17 @@ function bindEvents(){
         acknowledgedMaxCostUsd:policy.perRequest,
       };
       if(!confirm(`Submit ONE external generation request with a configured maximum estimate of ${money(policy.perRequest)}? No automatic retries.`))return;
-      const response=await request('/jobs',{method:'POST',data:requestData});
+      let response;
+      try{response=await request('/jobs',{method:'POST',data:requestData});}
+      catch(error){
+        if(error?.code==='SFX_SUBMISSION_UNKNOWN'&&error.requestId){
+          // The reservation exists; reopen it locally instead of losing ID.
+          try{await loadSfxHistoryJob(error.requestId);}catch{}
+        }
+        throw error;
+      }
       viewJob(await response.json());$('confirmRequest').checked=false;
+      await refreshSfxHistory();
       inform('Submitted once. Refresh is manual; RunQ will not retry an uncertain request.');
     });
   });
@@ -520,6 +546,37 @@ function bindEvents(){
     $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
   }
   $('loadPresetBtn').addEventListener('click',applyPreset);
+  $('sfxSuggestEnglishBtn')?.addEventListener('click',()=>{
+    const suggestion=suggestEnglishSfxPrompt($('soundPrompt').value,$('sourceLine').value.trim());
+    if(!suggestion){
+      text('sfxPromptSuggestionStatus','No hay una traducción fiable mediante reglas locales para esta descripción. Conserva el original o prepara un prompt en inglés; no se han gastado créditos.');
+      return;
+    }
+    state.originalPrompt=$('soundPrompt').value;
+    $('soundPrompt').value=suggestion.prompt;
+    $('soundKind').value=suggestion.kind;
+    $('sfxRestoreOriginalPromptBtn').disabled=false;
+    $('confirmRequest').checked=false;
+    updateControls();
+    text('sfxPromptSuggestionStatus','Sugerencia inglesa LOCAL, no traducción universal. Revisa que el efecto y la acción sigan siendo correctos antes de autorizar Modal. Confianza estimada: '+suggestion.confidence.toFixed(2)+'.');
+  });
+  $('sfxRestoreOriginalPromptBtn')?.addEventListener('click',()=>{
+    if(state.originalPrompt===null)return;
+    $('soundPrompt').value=state.originalPrompt;
+    state.originalPrompt=null;
+    $('sfxRestoreOriginalPromptBtn').disabled=true;
+    $('confirmRequest').checked=false;
+    updateControls();
+    text('sfxPromptSuggestionStatus','Texto original restaurado. No se ha llamado a ningún proveedor.');
+  });
+  $('sfxHistorySelect')?.addEventListener('change',updateControls);
+  $('sfxRefreshHistoryBtn')?.addEventListener('click',()=>void action(async()=>{
+    await refreshSfxHistory();
+    inform('Historial local actualizado. No se consultó al proveedor.');
+  }));
+  $('sfxOpenHistoryBtn')?.addEventListener('click',()=>void action(async()=>{
+    await loadSfxHistoryJob($('sfxHistorySelect').value);
+  }));
   $('sfxAnotherVariationBtn')?.addEventListener('click',()=>{
     const next=nextSfxVariationSeed($('seed').value);
     $('seed').value=String(next);
@@ -538,6 +595,7 @@ function bindEvents(){
       const result=await request('/jobs/'+encodeURIComponent(job.requestId)+'/refresh',{method:'POST',data:{}});
       job=await result.json();
       viewJob(job);
+      await refreshSfxHistory();
     }
     if(STATUS_WITH_AUDIO.has(job.status)){
       const result=await request('/jobs/'+encodeURIComponent(job.requestId)+'/audio');
@@ -553,12 +611,14 @@ function bindEvents(){
   }));
   $('refreshBtn').addEventListener('click',()=>void action(async()=>{
     const response=await request('/jobs/'+encodeURIComponent(currentJobId())+'/refresh',{method:'POST',data:{}});
-    viewJob(await response.json());inform('Remote status checked once. No sound was played.');
+    viewJob(await response.json());await refreshSfxHistory();
+    inform('Remote status checked once. No sound was played.');
   }));
   $('cancelBtn').addEventListener('click',()=>void action(async()=>{
     if(!confirm('Request cancellation? Charges may already have occurred and cancellation is not guaranteed.'))return;
     const response=await request('/jobs/'+encodeURIComponent(currentJobId())+'/cancel',{method:'POST',data:{}});
-    viewJob(await response.json());inform('Cancellation requested; verify the final state manually.');
+    viewJob(await response.json());await refreshSfxHistory();
+    inform('Cancellation requested; verify the final state manually.');
   }));
   $('loadGeneratedBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.job||!STATUS_WITH_AUDIO.has(state.job.status))throw new Error('Generated WAV is not ready');
@@ -570,13 +630,15 @@ function bindEvents(){
     if(!state.job||state.job.status!=='READY_FOR_REVIEW'||state.auditionedRemoteRequestId!==state.job.requestId)throw new Error('Listen to this generated take before accepting it');
     if(!confirm('Accept this listened take for local download and library import?'))return;
     const response=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{method:'POST',data:{decision:'ACCEPT'}});
-    viewJob(await response.json());inform('Take accepted. The verified original can now be imported; no cue was changed.');
+    viewJob(await response.json());await refreshSfxHistory();
+    inform('Take accepted. The verified original can now be imported; no cue was changed.');
   }));
   $('rejectBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.job||state.job.status!=='READY_FOR_REVIEW')throw new Error('Take is not available for review');
     if(!confirm('Reject this generated take? It will not be importable.'))return;
     const response=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{method:'POST',data:{decision:'REJECT'}});
-    viewJob(await response.json());inform('Take rejected. No asset or cue was created.');
+    viewJob(await response.json());await refreshSfxHistory();
+    inform('Take rejected. No asset or cue was created.');
   }));
   $('demoAudioBtn').addEventListener('click',()=>void action(async()=>{
     const bytes=makeOfflineImpactDemoWav();await loadAudio(bytes.buffer,'Offline synthesized impact · NOT AI','local');
@@ -673,6 +735,7 @@ function bindEvents(){
         method:'POST',data:{decision:'ACCEPT'},
       });
       viewJob(await accepted.json());
+      await refreshSfxHistory();
     }
     if(!canUseAcceptedSource())throw new Error('La toma no está aceptada; no se ha importado.');
     // Release the single audio-preview lease before the existing library
@@ -778,6 +841,8 @@ export async function initializeSoundLab({onImportReviewed,onReservePreview,onPr
   // Recheck on every workspace entry. A previous offline check must not
   // permanently disable generation after the user fixes local configuration.
   await checkConnection();
+  try{await refreshSfxHistory();}
+  catch{inform('No se pudo leer el historial local. El servidor sigue protegiendo los límites de generación.',true);}
   // Reopen the last LOCAL journal record, without remote polling or payment.
   if(!state.job && $('requestId').value.trim()){
     try{
