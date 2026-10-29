@@ -47,6 +47,34 @@ function mountUnifiedSound(){
   header.append(title,tabs);
   grid.before(header);
 
+  // Real library search: filters existing media rows without changing
+  // project state, original bytes, cue numbering or transport/GO.
+  const assetList=$('assetList');
+  const searchBar=document.createElement('div');
+  searchBar.className='rq10-library-search';
+  const search=document.createElement('input');
+  search.type='search';search.id='rq10LibrarySearch';
+  search.autocomplete='off';
+  search.setAttribute('aria-label','Search library audio');
+  const searchCount=document.createElement('span');
+  searchCount.id='rq10LibrarySearchCount';
+  searchCount.setAttribute('role','status');
+  searchCount.setAttribute('aria-live','polite');
+  searchBar.append(search,searchCount);
+  assetList.before(searchBar);
+  function filterAssets(){
+    const query=search.value.trim().toLocaleLowerCase();
+    const rows=[...assetList.querySelectorAll('.asset-list-row')];
+    let visible=0;
+    for(const row of rows){
+      const matches=!query||row.querySelector('.tag')?.textContent.toLocaleLowerCase().includes(query);
+      row.dataset.rq10Filtered=String(!matches);
+      if(matches)visible++;
+    }
+    searchCount.textContent=visible+' / '+rows.length;
+  }
+  search.addEventListener('input',filterAssets);
+  new MutationObserver(()=>queueMicrotask(filterAssets)).observe(assetList,{childList:true});
   const caption=document.createElement('p');
   caption.className='rq10-output-warning';
   caption.setAttribute('role','note');
@@ -102,6 +130,8 @@ function mountUnifiedSound(){
     );
     navAudio.textContent=copy('Sonido','Sound');
     navAudio.setAttribute('aria-label',copy('Sonido','Sound'));
+    search.placeholder=copy('Buscar archivos de audio…','Search audio files…');
+    search.setAttribute('aria-label',copy('Buscar en la biblioteca','Search the sound library'));
     navLab.setAttribute('aria-hidden','true');
     navLab.tabIndex=-1;
     const actionsTitle=$('rq10LibraryActionsTitle');
@@ -134,6 +164,7 @@ function mountUnifiedSound(){
   });
   observer.observe(navAudio,{childList:true,subtree:true});
   translate();
+  filterAssets();
   setMode(mode);
 }
 if(document.readyState==='loading')
