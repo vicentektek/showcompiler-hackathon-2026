@@ -25,7 +25,8 @@
     "eval:report": "node tools/eval-commands.mjs report",
     "eval:video": "node tools/eval-commands.mjs video",
     "eval:cli:test": "node --test test/eval-commands.test.mjs",
-    "eval:video:smoke": "node tools/video-layout-smoke.mjs"
+    "eval:video:smoke": "node tools/video-layout-smoke.mjs",
+    "eval:video:audit": "node tools/video-evidence-audit.mjs"
   },
   "engines": {
     "node": ">=20"
