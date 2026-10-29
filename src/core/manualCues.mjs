@@ -62,3 +62,23 @@ export function moveOperatorCue(project,cueId,direction) {
   [cues[at],cues[next]]=[cues[next],cues[at]];
   return normalizeShowProject({...show,cues:renumber(cues)});
 }
+
+
+/**
+ * Move one cue directly before or after another cue, preserving identity,
+ * source evidence and all cue settings. No-op on self-drop. This is editing
+ * only; caller must refuse while any audio or asynchronous GO is active.
+ */
+export function reorderOperatorCue(project, cueId, targetCueId, position='before') {
+  const show=normalizeShowProject(project);
+  if(position!=='before'&&position!=='after')throw new TypeError('Invalid drop position');
+  const sourceIndex=show.cues.findIndex(c=>c.id===cueId);
+  const targetIndex=show.cues.findIndex(c=>c.id===targetCueId);
+  if(sourceIndex<0||targetIndex<0)throw new TypeError('Cue not found');
+  if(cueId===targetCueId)return show;
+  const cues=[...show.cues];
+  const [moved]=cues.splice(sourceIndex,1);
+  const destination=cues.findIndex(c=>c.id===targetCueId)+(position==='after'?1:0);
+  cues.splice(destination,0,moved);
+  return normalizeShowProject({...show,cues:renumber(cues)});
+}

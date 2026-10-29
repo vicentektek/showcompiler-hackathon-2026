@@ -217,10 +217,10 @@ function mountWorkbench(){
     prepareButton.type='button';
     prepareButton.disabled=cue.id===prepared();
     prepareButton.addEventListener('click',()=>{
-      // Original per-row PREPARE button, never the GO transport.
+      // Explicit V9 Set NEXT action, never direct Play, STOP or GO.
       const card=[...list.querySelectorAll('.cue-item')].find(row=>
         row.querySelector('[data-cue-select]')?.dataset.cueSelect===cue.id);
-      card?.querySelector('.cue-operation-actions button')?.click();
+      card?.querySelector('[data-cue-quick-next]')?.click();
     });
     infoBody.append(prepareButton);
     infoBody.append(el('p','rq7-info-note',t(
