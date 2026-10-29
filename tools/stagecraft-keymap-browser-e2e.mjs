@@ -70,7 +70,10 @@ try{
   await rows.first().click();
   const selected=page.locator('#cueList .cue-item.cue-selected');
   assert.equal(await selected.locator('.cue-operation-actions').isVisible(),true);
-  assert.equal(await selected.locator('.cue-operation-actions button').count(),3);
+  assert.equal(await selected.locator('.cue-operation-actions button').count(),2,
+    'STOP and FADE remain, while NEXT is the dedicated left-row icon');
+  assert.equal(await selected.locator('[data-cue-quick-next]').count(),1);
+  assert.equal(await selected.locator('[data-cue-quick-go]').count(),1);
   assert.equal(await page.locator('#cuePlaybackForm').count(),1);
   // Regression 2: selected source-file actions must survive A -> B -> A.
   await page.waitForFunction(()=>document.querySelectorAll('.rq5-selected-tools .cue-edit-actions button').length>0);
