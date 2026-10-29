@@ -2167,12 +2167,16 @@ function setNewShow(project, statusKey, values = {}) {
 document.addEventListener('runq:show-state-read',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
+ const running=player.getActiveCues();
+ const activeCue=show.cues.find(c=>c.id===running[0]?.cueId);
+ const assetId=activeCue?.actions.find(a=>a.type==='PLAY')?.assetId;
+ const activeWaveform=assetId&&player.hasAsset(assetId)?player.getWaveform(assetId):null;
  respond({
   projectId:show.id,name:show.name,generation:projectGeneration,cueCount:show.cues.length,
   cues:show.cues.map(c=>({id:c.id,number:c.number,label:c.label,
    trigger:c.trigger??'',sourceLineIds:[...c.sourceLineIds]})),
   preparedCueId:operatorQueue.preparedCueId,selectedCueId,
-  active:player.getActiveCues().map(item=>({...item})),
+  active:running.map(item=>({...item})),activeWaveform,
   assets:show.assets.map(a=>({id:a.id,name:a.name,ready:player.hasAsset(a.id)})),
   scriptText:show.scriptText,workspace:activeWorkspace,
  });
