@@ -6,6 +6,9 @@ export function likelySpanishSfxPrompt(input){
   const s=String(input??'').toLowerCase().trim();
   if(!s||s.length>1000)return false;
   if(/[ñáéíóú¿¡]/.test(s))return true;
+  // Short sound captions often contain no preposition or accents.
+  if(/\b(?:portazo|lluvia|pasos|campana|viento|trueno|crujido|chirrido|aplausos|sirena|explosion|explosión|fuego)\b/.test(s) &&
+     /\b(?:fuerte|intensa|lentos|grave|continua|continuo|lejano|lejana|aislado|aislada|viejo|vieja|madera|metálico|metalico)\b/.test(s))return true;
   return /\b(?:una|unas|unos|ruido|sonido|puerta|pasos|cierra|abre|campana|lluvia|golpe|cruje|chirría|metalica|metálica|ventana|viento|fuerte|trueno|teatro|pasillo)\b/.test(s) &&
     /\b(?:de|del|que|con|sin|se|un|una|en|el|la|los|las|por|muy)\b/.test(s);
 }
