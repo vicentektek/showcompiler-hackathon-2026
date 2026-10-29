@@ -15,7 +15,7 @@ const NAMES=Object.freeze({
      'Farewell ambience','Last echo','Exit transition'],
 });
 const STOP=/\b(?:no|nunca|jam[aá]s|never|don't|do not|without|sin)\s+(?:a[nñ]ad|agreg|cre|insert|add|create|append)/i;
-const ADD=/\b(?:a[nñ]ad(?:e|as|ir|a)|agrega(?:r|s)?|crea(?:r|s)?|incluye|inserta|pon(?:er)?|add|append|create|insert)\b/i;
+const ADD=/(?:\b(?:a[nñ]ad(?:e|as|ir|a)(?:lo|los|la|las)?|a[nñ][áa]de(?:lo|los|la|las)?|agrega(?:r|s)?|crea(?:r|s)?|incluye|inserta|pon(?:er)?|add|append|create|insert)\b)/i;
 const CUES=/\b(?:cues?|se[nñ]ales?|pistas?)\b/i;
 const END=/\b(?:final|finalizar|rematar|cierre|terminar|despedida|ending|end|closing|finish|outro)\b/i;
 const VAGUE=/\b(?:algunos|algunas|unos|unas|several|some|few|varios|varias)\b/i;
@@ -38,6 +38,9 @@ export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=(
  if(typeof prompt!=='string'||!prompt.trim()||prompt.length>1600)
   throw new TypeError('INVALID_AGENT_PROMPT');
  const request=prompt.trim(),prior=boundedHistory(history);
+ // Voice triggers are a separate guarded tool, never new empty closing cues.
+ if(/(?:pies\s+(?:de\s+)?voz|spoken\s+triggers?|voice\s+triggers?)/i.test(request))
+  return interpretLocalAgentRequest(show,request,{assetAvailable});
  const locale=/\b(?:add|create|append|insert|end|closing|whatever|appropriate)\b/i.test(request)?'en':'es';
  const spanish=locale==='es';
  const previous=prior.filter(x=>x.role==='user').slice(-3).reverse()
