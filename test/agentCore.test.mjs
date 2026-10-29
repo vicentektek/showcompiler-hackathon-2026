@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNewShow,addAudioReference} from '../src/core/workspace.mjs';
+import {createNewShow,addAudioReference,assignAudioToCue} from '../src/core/workspace.mjs';
 import {insertManualCue} from '../src/core/manualCues.mjs';
 import {normalizeShowProject} from '../src/core/projectPersistence.mjs';
 import {buildAgentContext,resolveAgentCue,auditAgentProject,validateAgentOperations,
@@ -67,7 +67,9 @@ test('propose voice triggers from real dialogue, skip absent source and conflict
  assert.equal(ambiguous.skipped.some(x=>x.reason==='AMBIGUOUS_TRIGGER'),true);
 });
 test('atomic edit/delete/reorder, source and media preserved, undo works',()=>{
- const p=fixture(),id=p.cues[0].id;
+ let p=fixture();
+ const id=p.cues[0].id;
+ p=assignAudioToCue(p,id,p.assets[0].id);
  const ops=[
   {op:'UPDATE_CUE',cueId:id,changes:{gainDb:-9,fadeInMs:1000}},
   {op:'DELETE_CUE',cueId:p.cues[1].id},
