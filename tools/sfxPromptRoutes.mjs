@@ -3,6 +3,7 @@
  * Never calls Modal, authorizes SFX generation, writes a show, or executes GO.
  * Browser only receives validated English suggestions; operator must apply.
  */
+import {likelySpanishSfxPrompt} from '../src/sfx/englishDraft.mjs';
 const API='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
 const MAX_BODY=3500;
@@ -35,7 +36,7 @@ export function validateSfxPromptSuggestion(value){
   const englishPrompt=value.englishPrompt.trim();
   if(value.status==='READY'&&
     (englishPrompt.length<12||/[\r\n]/.test(englishPrompt)||
-      /[áéíóúñ¿¡]/i.test(englishPrompt)||/[<>]/.test(englishPrompt))){
+      /[áéíóúñ¿¡]/i.test(englishPrompt)||likelySpanishSfxPrompt(englishPrompt)||/[<>]/.test(englishPrompt))){
     throw new TypeError('INVALID_ENGLISH_PROMPT');
   }
   if(value.status==='CLARIFY'&&englishPrompt)throw new TypeError('UNEXPECTED_PROMPT');
