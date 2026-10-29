@@ -79,6 +79,17 @@ try{
   ]);
   await page.waitForFunction(()=>document.querySelector('#audioBatchStatus')?.textContent.includes('2 new'));
   assert.equal(await page.locator('#assetList [data-asset-audition]').count(),2);
+  console.log('V12_BATCH_REPORT_DIAGNOSTIC',JSON.stringify(await page.locator('#audioBatchStatus').evaluate(el=>{
+    const ancestor=[];let node=el;
+    while(node&&ancestor.length<9){
+      const style=getComputedStyle(node);
+      ancestor.push({tag:node.tagName,id:node.id,cls:node.className,
+        hidden:node.hidden,display:style.display,visibility:style.visibility,
+        rect:node.getBoundingClientRect().toJSON()});
+      node=node.parentElement;
+    }
+    return {text:el.textContent,inner:el.innerText,ancestor};
+  })));
   assert.match(await page.locator('#audioBatchStatus').innerText(),/1 skipped/);
   assert.ok((await page.locator('#audioBatchDetails').innerText()).includes('broken.wav'));
   assert.equal(await page.locator('#cuesCount').innerText(),'0');
@@ -88,8 +99,11 @@ try{
   await page.waitForFunction(()=>document.querySelector('#audioBatchStatus')?.textContent.includes('0 new'));
   assert.equal(await page.locator('#assetList [data-asset-audition]').count(),2);
 
+  await page.locator('#rq12AdvancedToggle').click();
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),'');
   await page.locator('#assetName').fill('scene.wav');
   await page.locator('#assetForm button[type="submit"]').click();
+  await page.keyboard.press('Escape');
   assert.equal(await page.locator('#assetList [data-asset-audition]').count(),3);
   const pack=zip([
     ['Act I/scene.wav','RIFF scene'],
