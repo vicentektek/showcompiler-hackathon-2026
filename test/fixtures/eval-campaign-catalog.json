@@ -1,0 +1,954 @@
+{
+  "schemaVersion": 1,
+  "created": "2026-10-29",
+  "state": "PLANNING_NOT_TEST_RESULTS",
+  "goldStatus": "provisional_requires_human_validation",
+  "rules": {
+    "paidExecution": "forbidden_in_this_runner",
+    "offlineExecution": "explicit_--execute-offline_only",
+    "automation": "existing means an implementation of some relevant checks exists; not necessarily full metric coverage",
+    "video": "video shot requires actual captured footage and human review"
+  },
+  "cases": [
+    {
+      "id": "CORE-001",
+      "area": "script",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "source text byte/line fidelity",
+      "videoShot": "S04"
+    },
+    {
+      "id": "CORE-002",
+      "area": "script",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "stable L# CRLF BOM blank lines",
+      "videoShot": "S04"
+    },
+    {
+      "id": "CORE-003",
+      "area": "script",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "long >120-line script complete window coverage",
+      "videoShot": "S04"
+    },
+    {
+      "id": "CORE-004",
+      "area": "script",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "ES/EN mixed actors and stage directions",
+      "videoShot": "S04"
+    },
+    {
+      "id": "CORE-005",
+      "area": "script",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "giant/invalid UTF-8 upload rejected safely",
+      "videoShot": null
+    },
+    {
+      "id": "CORE-006",
+      "area": "script",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "source navigation and no rewriting",
+      "videoShot": "S04"
+    },
+    {
+      "id": "AI-001",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "meta",
+      "automation": "existing",
+      "fixture": "fixtures/qa/seminar/corpus-v1.json",
+      "metric": "precision recall F1 paired validated-gold only",
+      "videoShot": "S04"
+    },
+    {
+      "id": "AI-002",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "meta",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "false sound from dialogue negative",
+      "videoShot": null
+    },
+    {
+      "id": "AI-003",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "meta",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "hallucinated source L# rate",
+      "videoShot": null
+    },
+    {
+      "id": "AI-004",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "meta",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "STOP/SILENCE confused with PLAY rate",
+      "videoShot": null
+    },
+    {
+      "id": "AI-005",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "meta",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "continuing ambience deduplication",
+      "videoShot": null
+    },
+    {
+      "id": "AI-006",
+      "area": "script-ai",
+      "priority": "P1",
+      "provider": "meta",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "multilingual cue quality ES and EN",
+      "videoShot": null
+    },
+    {
+      "id": "AI-007",
+      "area": "script-ai",
+      "priority": "P1",
+      "provider": "meta",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "scene context and long script segmentation",
+      "videoShot": null
+    },
+    {
+      "id": "AI-008",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "baseten",
+      "automation": "existing",
+      "fixture": "fixtures/qa/seminar/corpus-v1.json",
+      "metric": "precision recall F1 paired with Meta on identical gold",
+      "videoShot": "S04"
+    },
+    {
+      "id": "AI-009",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "baseten",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "empty/malformed/truncated JSON separate from low-quality output",
+      "videoShot": null
+    },
+    {
+      "id": "AI-010",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "baseten",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "source hallucinations and invalid asset IDs",
+      "videoShot": null
+    },
+    {
+      "id": "AI-011",
+      "area": "script-ai",
+      "priority": "P1",
+      "provider": "baseten",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "Spanish/English paired cases and latency",
+      "videoShot": null
+    },
+    {
+      "id": "AI-012",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "approval remains pending, never auto GO",
+      "videoShot": "S05"
+    },
+    {
+      "id": "AI-013",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "accepted draft and rejected suggestion behavior",
+      "videoShot": "S05"
+    },
+    {
+      "id": "AI-014",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "provider key never leaves local server",
+      "videoShot": null
+    },
+    {
+      "id": "AI-015",
+      "area": "script-ai",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "AI prompt injection cannot change transport or settings",
+      "videoShot": null
+    },
+    {
+      "id": "AI-016",
+      "area": "script-ai",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "human consensus disagreement review gold versioning",
+      "videoShot": null
+    },
+    {
+      "id": "SFX-001",
+      "area": "sfx",
+      "priority": "P0",
+      "provider": "modal",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "text-to-SFX generation perceptual score by human rubric",
+      "videoShot": "S06"
+    },
+    {
+      "id": "SFX-002",
+      "area": "sfx",
+      "priority": "P0",
+      "provider": "modal",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "WAV hash duration sample-rate/channel and provenance",
+      "videoShot": null
+    },
+    {
+      "id": "SFX-003",
+      "area": "sfx",
+      "priority": "P0",
+      "provider": "modal",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "user rejection never creates cue",
+      "videoShot": null
+    },
+    {
+      "id": "SFX-004",
+      "area": "sfx",
+      "priority": "P0",
+      "provider": "modal",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "timeout uncertain state prevents double billing",
+      "videoShot": null
+    },
+    {
+      "id": "SFX-005",
+      "area": "sfx",
+      "priority": "P1",
+      "provider": "modal",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "cold/warm GPU latency p50 p95 and cost",
+      "videoShot": null
+    },
+    {
+      "id": "SFX-006",
+      "area": "sfx",
+      "priority": "P1",
+      "provider": "modal",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "ES and EN prompts equivalent quality",
+      "videoShot": null
+    },
+    {
+      "id": "SFX-007",
+      "area": "sfx",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/sfx-lab-browser-e2e.mjs",
+      "metric": "Sound Lab waveform preview stop PCM export",
+      "videoShot": "S06"
+    },
+    {
+      "id": "SFX-008",
+      "area": "sfx",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "sound proposal review and explicit import",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-001",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/stagecraft-audio-batch-e2e.mjs",
+      "metric": "batch files partial failures without mutation",
+      "videoShot": "S06"
+    },
+    {
+      "id": "LIB-002",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/stagecraft-audio-batch-e2e.mjs",
+      "metric": "deflated ZIP import including nested paths",
+      "videoShot": "S06"
+    },
+    {
+      "id": "LIB-003",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "RAR/7z signature validation and safe extraction",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-004",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "real large WAV streaming memory stress",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-005",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "multi-gigabyte files rejected/degraded gracefully",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-006",
+      "area": "audio-library",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "duplicate audio reuse vs intentional independent versions",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-007",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "drag/drop audio => new cues, preserve ordering and transport",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-008",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "drag file outside drop zone cannot trigger GO",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-009",
+      "area": "audio-library",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "audio metadata indexing and search in 500 assets",
+      "videoShot": null
+    },
+    {
+      "id": "LIB-010",
+      "area": "audio-library",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "archive traversal and decompression budget constraints",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-001",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/stagecraft-cue-safety-e2e.mjs",
+      "metric": "waveform IN OUT and staged trim",
+      "videoShot": "S06"
+    },
+    {
+      "id": "EDIT-002",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/stagecraft-cue-safety-e2e.mjs",
+      "metric": "fade and STOP_PREVIOUS without double GO",
+      "videoShot": "S09"
+    },
+    {
+      "id": "EDIT-003",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "loop finite/infinite exact natural completion",
+      "videoShot": "S06"
+    },
+    {
+      "id": "EDIT-004",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "multi-track independent gain and pan",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-005",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "conversational edit natural-language ES and EN",
+      "videoShot": "S06"
+    },
+    {
+      "id": "EDIT-006",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "conversational undo reject clarification and apply review",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-007",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "no wrong-target cue mutation across repeated instructions",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-008",
+      "area": "cue-editor",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "timeline transport scrub precise timecodes and loop points",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-009",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "preview does not alter operator queue or live GO",
+      "videoShot": null
+    },
+    {
+      "id": "OP-001",
+      "area": "operation",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/browser-e2e.mjs",
+      "metric": "manual GO and STOP ALL",
+      "videoShot": "S09"
+    },
+    {
+      "id": "OP-002",
+      "area": "operation",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/stagecraft-keymap-browser-e2e.mjs",
+      "metric": "Space GO once and keyboard focus isolation",
+      "videoShot": "S09"
+    },
+    {
+      "id": "OP-003",
+      "area": "operation",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "pending decode STOP ALL prevents late audio start",
+      "videoShot": null
+    },
+    {
+      "id": "OP-004",
+      "area": "operation",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "cue readiness and missing asset fails closed",
+      "videoShot": null
+    },
+    {
+      "id": "OP-005",
+      "area": "operation",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "single click selects next, double click never accidental GO",
+      "videoShot": null
+    },
+    {
+      "id": "OP-006",
+      "area": "operation",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "operator stable cue selection while filtering/searching",
+      "videoShot": null
+    },
+    {
+      "id": "OP-007",
+      "area": "operation",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "gain output safety after reopen and fade recovery",
+      "videoShot": null
+    },
+    {
+      "id": "VOICE-001",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/rehearsal-auto-browser-e2e.mjs",
+      "metric": "synthetic final ASR rehearsal GO guarded",
+      "videoShot": "S08"
+    },
+    {
+      "id": "VOICE-002",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/*.test.mjs",
+      "metric": "ES speech matching order, repeat, skip, rewind",
+      "videoShot": "S08"
+    },
+    {
+      "id": "VOICE-003",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "real mic input round trip latency p50 p95",
+      "videoShot": "S08"
+    },
+    {
+      "id": "VOICE-004",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "noise, overlapping actors and missed recognition false GO rate",
+      "videoShot": null
+    },
+    {
+      "id": "VOICE-005",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "repeated phrase doesn't double fire same turn",
+      "videoShot": "S08"
+    },
+    {
+      "id": "VOICE-006",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "stale/partial transcript never launches cues",
+      "videoShot": null
+    },
+    {
+      "id": "VOICE-007",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "disarm/STOP ALL/disconnect retains manual transport",
+      "videoShot": null
+    },
+    {
+      "id": "VOICE-008",
+      "area": "voice",
+      "priority": "P1",
+      "provider": "voice",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "Meta speech transcription ES CER/WER & latency",
+      "videoShot": null
+    },
+    {
+      "id": "VOICE-009",
+      "area": "voice",
+      "priority": "P1",
+      "provider": "voice",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "Meta speech transcription EN CER/WER & latency",
+      "videoShot": null
+    },
+    {
+      "id": "VOICE-010",
+      "area": "voice",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "manual edit spoken feet with ambiguous words",
+      "videoShot": null
+    },
+    {
+      "id": "VOICE-011",
+      "area": "voice",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "changing project invalidates armed recognizer",
+      "videoShot": null
+    },
+    {
+      "id": "PERSIST-001",
+      "area": "projects",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/browser-e2e.mjs",
+      "metric": "full portable archive export/reopen",
+      "videoShot": "S09"
+    },
+    {
+      "id": "PERSIST-002",
+      "area": "projects",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/browser-e2e.mjs",
+      "metric": "tampered archive rollback preserves state",
+      "videoShot": null
+    },
+    {
+      "id": "PERSIST-003",
+      "area": "projects",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "500 cue project serializes without losing positions",
+      "videoShot": null
+    },
+    {
+      "id": "PERSIST-004",
+      "area": "projects",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "cross-version V8 to V9 and previous JSON compatibility",
+      "videoShot": null
+    },
+    {
+      "id": "PERSIST-005",
+      "area": "projects",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "power loss simulated during export/import; no partial show",
+      "videoShot": null
+    },
+    {
+      "id": "UX-001",
+      "area": "ux",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "tools/browser-e2e.mjs",
+      "metric": "English Spanish locale does not rewrite script",
+      "videoShot": "S03"
+    },
+    {
+      "id": "UX-002",
+      "area": "ux",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "V9 1093x614 accessibility no hidden critical GO/STOP",
+      "videoShot": null
+    },
+    {
+      "id": "UX-003",
+      "area": "ux",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "responsive layout 1280x720 1920x1080 4K scaling",
+      "videoShot": null
+    },
+    {
+      "id": "UX-004",
+      "area": "ux",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "keyboard-only accessible critical transport and editor",
+      "videoShot": null
+    },
+    {
+      "id": "UX-005",
+      "area": "ux",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "cold-start load and library navigation timings",
+      "videoShot": null
+    },
+    {
+      "id": "VIDEO-001",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "frozen commit recorded and UI captures from same build",
+      "videoShot": "S03"
+    },
+    {
+      "id": "VIDEO-002",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "real approved AI output shown, or labeled illustrative",
+      "videoShot": "S04"
+    },
+    {
+      "id": "VIDEO-003",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "human approves draft; no AI direct audio GO",
+      "videoShot": "S05"
+    },
+    {
+      "id": "VIDEO-004",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "actual waveform and audible WAV source match",
+      "videoShot": "S06"
+    },
+    {
+      "id": "VIDEO-005",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "real microphone autopilot with explicit ARM or honest fallback",
+      "videoShot": "S08"
+    },
+    {
+      "id": "VIDEO-006",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "GO STOP STOP ALL audible on capture",
+      "videoShot": "S09"
+    },
+    {
+      "id": "VIDEO-007",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "1920x1080 30fps video and caption legibility",
+      "videoShot": "S11"
+    },
+    {
+      "id": "VIDEO-008",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "duration and submission format verified from rules",
+      "videoShot": null
+    },
+    {
+      "id": "VIDEO-009",
+      "area": "video",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "no exposed credentials or personal information in footage",
+      "videoShot": null
+    },
+    {
+      "id": "VIDEO-010",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "clear proof of Meta integration and differentiation",
+      "videoShot": null
+    },
+    {
+      "id": "VIDEO-011",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "opening dramatic title is illustrative not a fake UI",
+      "videoShot": "S01"
+    },
+    {
+      "id": "VIDEO-012",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "script and problems use licensed/original content",
+      "videoShot": "S02"
+    },
+    {
+      "id": "VIDEO-013",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "rehearsal transition shows real product state",
+      "videoShot": "S07"
+    },
+    {
+      "id": "VIDEO-014",
+      "area": "video",
+      "priority": "P1",
+      "provider": "offline",
+      "automation": "planned",
+      "fixture": "TO_AUTHOR",
+      "metric": "montage claims match proven real capabilities",
+      "videoShot": "S10"
+    },
+    {
+      "id": "EDIT-010",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/eval-conversational-cue.test.mjs",
+      "metric": "ES/EN local command parser exact gain, fade, loop and delay",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-011",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/eval-conversational-cue.test.mjs",
+      "metric": "Local cue-chat rejects GO, action injection and unsupported routing",
+      "videoShot": null
+    },
+    {
+      "id": "EDIT-012",
+      "area": "cue-editor",
+      "priority": "P0",
+      "provider": "offline",
+      "automation": "existing",
+      "fixture": "test/eval-conversational-cue.test.mjs",
+      "metric": "Ambiguous cue-chat messages require clarification, no patch",
+      "videoShot": null
+    }
+  ]
+}
