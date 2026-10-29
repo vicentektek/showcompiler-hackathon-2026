@@ -120,3 +120,34 @@
     grid-column:1!important;grid-row:2!important;min-height:320px!important;
   }
 }
+
+.rq10 .rq10-local-actions{
+  background:#182c3c!important;border:1px solid #48677e!important;
+  padding:12px!important;margin:10px 0!important;border-radius:4px;
+  display:grid;gap:9px;
+}
+.rq10 .rq10-local-actions[hidden]{display:none!important}
+.rq10 .rq10-local-actions strong{color:#e7f1fb;font-size:12px}
+.rq10 .rq10-local-actions p{
+  color:#b3c9d8;font-size:11px;margin:5px 0 0;
+}
+.rq10 .rq10-local-buttons{
+  display:flex;align-items:end;gap:8px;flex-wrap:wrap;
+}
+.rq10 .rq10-local-buttons label{
+  flex:1 1 220px;display:flex;flex-direction:column;gap:4px;
+  font-size:10px;color:#bfd1df;
+}
+.rq10 .rq10-local-buttons select{
+  width:100%;background:#152432;color:#e9f2fa;border:1px solid #4f6a80;
+}
+.rq10 .rq10-local-buttons button{
+  min-height:35px;min-width:134px;
+}
+.rq10 .rq5-audio-library .asset-list-row [data-sound-edit]{
+  background:#263f53!important;border-color:#53758d!important;
+  color:#e5f2fc!important;
+}
+.rq10 .rq5-audio-library .asset-list-row [data-sound-edit]:hover{
+  background:#365b74!important;
+}
