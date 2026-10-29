@@ -167,3 +167,7 @@ artifacts/seminar-compare/
 
 # Local systematic A/B Muse experiments and private typed traces.
 artifacts/systematic-eval/
+
+# Live agent provider benchmarking: costs, anonymized diagnostics and local budget only.
+artifacts/agent-eval/
+artifacts/agent-live-eval/

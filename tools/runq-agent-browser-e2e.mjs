@@ -4,6 +4,7 @@
  * Run after CI installs playwright-core; no audio hardware required.
  */
 import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright-core';
 import {createAppServer} from './dev-server.mjs';
 import {createNewShow} from '../src/core/workspace.mjs';
@@ -45,6 +46,12 @@ try{
  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='2');
  await page.locator('#rqAgentToggle').click();
  assert.equal(await page.locator('#rqAgentDrawer').isVisible(),true);
+ const surface=await page.locator('#rqAgentDrawer').evaluate(el=>getComputedStyle(el).backgroundColor);
+ assert.equal(surface,'rgb(25, 39, 52)','V15 dark agent surface must be applied');
+ if(process.env.RUNQ_CAPTURE_UI==='1'){
+  await mkdir('artifacts/runq-ui',{recursive:true});
+  await page.screenshot({path:'artifacts/runq-ui/runq-v15-agent-studio.png'});
+ }
  await page.locator('#rqAgentPrompt').fill('Pon pies de voz coherentes a todos los cues');
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentApply').waitFor({state:'visible'});
@@ -69,6 +76,14 @@ try{
  assert.ok((await read()).cues[1].trigger.length>10);
  await page.locator('#rqAgentUndo').click();
  assert.deepEqual((await read()).cues.map(c=>c.trigger),['','']);
+ await page.locator('#rqAgentPrompt').fill('Añade 3 cues vacíos al final');
+ await page.locator('#rqAgentSubmit').click();
+ await page.locator('#rqAgentApply').waitFor({state:'visible'});
+ assert.equal(await page.locator('#rqAgentOps input').count(),3,
+   'V15 natural-language empty cue creation should prepare three independently selectable operations');
+ assert.deepEqual((await read()).cues.map(c=>c.trigger),['',''],
+   'Creative cue preview may not modify show');
+ await page.locator('#rqAgentProposal').locator('button').last().click();
  await page.locator('[data-workspace-nav="rehearsal"]').click();
  assert.equal(await page.locator('#rqAgentToggle').isVisible(),false);
  assert.equal(await page.locator('#rqAgentDrawer').isVisible(),false);

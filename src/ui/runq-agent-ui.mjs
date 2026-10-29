@@ -3,7 +3,7 @@
  * Model consultations use explicit one-shot permission and are never retried.
  */
 import {buildAgentContext,prepareAgentPlan} from '../core/agentCore.mjs';
-import {interpretLocalAgentRequest} from '../core/agentIntent.mjs';
+import {resolveAgentDialogue,boundedAgentConversation} from '../core/agentDialogue.mjs';
 const $=id=>document.getElementById(id);
 const es=()=>$('uiLocaleSelect')?.value==='es';
 const lang=(esText,enText)=>es()?esText:enText;
@@ -14,6 +14,7 @@ const make=(tag,cls='',text='')=>{
  return el;
 };
 let proposed=null,working=false,history=[],lastPrompt='';
+let sessionProjectId=null;
 let selectedBatch=null;
 function state(){
  let result=null;
@@ -99,6 +100,14 @@ function short(value){
 function sync(){
  const s=state(),button=$('rqAgentToggle');
  if(!s||!button)return;
+ if(sessionProjectId!==s.project.id){
+  if(sessionProjectId!==null){
+   history=[];showPlan(null);
+   $('rqAgentMessages')?.replaceChildren();
+   addMessage('assistant',lang('Nuevo espectáculo: conversación reiniciada.','New show: conversation reset.'));
+  }
+  sessionProjectId=s.project.id;
+ }
  const blocked=['rehearsal','operation'].includes(s.workspace);
  button.hidden=blocked;
  const undoControl=$('rqAgentUndo');
@@ -139,6 +148,7 @@ async function sendRequest(forceAI=false,custom=null){
  if(forceAI&&!$('rqAgentConsent').checked){
   notify(lang('Autoriza explícitamente esta consulta a Meta.','Explicitly authorize this Meta request.'),true);return;
  }
+ const conversation=boundedAgentConversation(history);
  working=true;lastPrompt=instruction;showPlan(null);
  $('rqAgentSubmit').disabled=true;$('rqAgentAskAI').disabled=true;
  addMessage('user',instruction);
@@ -157,13 +167,13 @@ async function sendRequest(forceAI=false,custom=null){
    const response=await fetch('/api/agent/interpret',{method:'POST',headers:{
     'Content-Type':'application/json','X-Runq-Agent-Consent':'yes'
    },body:JSON.stringify({prompt:instruction,language:s.language,context,
-     provider:$('rqAgentProvider')?.value??'meta'})});
+     provider:$('rqAgentProvider')?.value??'meta',conversation})});
    const result=await response.json();
    if(!response.ok)throw new Error(result.error??'AGENT_PROVIDER_UNAVAILABLE');
    reply=result;
   }else{
-   reply=interpretLocalAgentRequest(s.project,instruction,{
-    assetAvailable:id=>assetReady(id,s)});
+   reply=resolveAgentDialogue(s.project,instruction,{
+    history:conversation,assetAvailable:id=>assetReady(id,s)});
   }
   // One-shot model permission, including error paths.
   const latest=state();
@@ -206,8 +216,8 @@ async function sendRequest(forceAI=false,custom=null){
     'Plan ready: review all changes before applying.'));
   }else{
    notify(reply.status==='NEEDS_AI'?
-    lang('Para solicitudes complejas utiliza Consultar Meta con consentimiento.',
-      'For complex tasks, use Consult Meta with consent.'):
+    lang('Para solicitudes complejas puedes consultar la IA con consentimiento.',
+      'For complex tasks, consult AI with consent.'):
     lang('Consulta finalizada. No se ha modificado el espectáculo.',
       'Completed. The show was not modified.'));
   }
@@ -281,6 +291,7 @@ function mount(){
  for(const [text,cmd] of [
   [lang('Revisar show','Audit show'),lang('Revisa el show','Audit the show')],
   [lang('Pies de voz','Voice triggers'),lang('Pon pies de voz coherentes a todos los cues','Assign spoken triggers to all cues')],
+  [lang('Preparar cierre','Prepare ending'),lang('Añade tres cues para rematar el show','Add three cues to finish the show')],
   [lang('Resumen','Summary'),lang('Resumen del proyecto','Show summary')]
  ]){
   const b=make('button','btn subtle small',text);b.type='button';

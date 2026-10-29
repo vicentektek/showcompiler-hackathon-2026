@@ -9,8 +9,10 @@ test('professional RunQ shell assets are wired to the browser and allowlisted', 
     read('index.html'), read('tools/dev-server.mjs'),
     read('src/ui/runq-theme.css'), read('src/ui/runq-menu.mjs'),
   ]);
-  assert.match(html, /<title>RunQ · Show Workspace \(Preview\)<\/title>/);
+  assert.match(html, /<title>(?:RunQ · Show Workspace \(Preview\)|RUNQ · Studio \/ Rehearsal \/ Stage)<\/title>/);
   assert.match(html, /href="\/src\/ui\/runq-theme\.css"/);
+  assert.match(html, /href="\/src\/ui\/runq-visual-freeze-v15\.css"/);
+  assert.match(server, /runq-visual-freeze-v15\.css/);
   assert.match(html, /src="\/src\/ui\/runq-menu\.mjs"/);
   assert.match(server, /'\/*src\/ui\/runq-theme\.css'/);
   assert.match(server, /'\/*src\/ui\/runq-menu\.mjs'/);

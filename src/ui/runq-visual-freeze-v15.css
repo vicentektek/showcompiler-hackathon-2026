@@ -1,0 +1,183 @@
+/*
+ * RUNQ V15 visual freeze — scoped, presentation-only.
+ * Design language: graphite editorial desk / cool blue Studio /
+ * amber Rehearsal / restrained teal Stage / dedicated emergency red.
+ * No hidden controls, new transport surfaces, layout reparenting or JS.
+ */
+.rq8.rq14{
+ --rq15-canvas:#101924;
+ --rq15-rail:#15212c;
+ --rq15-pane:#192734;
+ --rq15-surface:#203141;
+ --rq15-border:#3b5266;
+ --rq15-border-strong:#57728a;
+ --rq15-ink:#edf5fa;
+ --rq15-muted:#afc3d3;
+ --rq15-accent:#82b9ef;
+ --rq15-focus:#aad4ff;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"]{
+ --rq15-accent:#e4bc78;--rq15-focus:#f4d19c;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"]{
+ --rq15-accent:#73d6b1;--rq15-focus:#a6f0cf;
+}
+/* One density, one set of focus indicators throughout the running editor. */
+.rq8.rq14 .shell{
+ color:var(--rq15-ink)!important;
+ font-family:Segoe UI,Inter,system-ui,-apple-system,sans-serif!important;
+ font-variant-numeric:tabular-nums;
+}
+.rq8.rq14 .topbar{
+ border-bottom:1px solid var(--rq15-border)!important;
+ background:#131e2af5!important;
+ box-shadow:0 3px 18px #040b1480!important;
+}
+.rq8.rq14 .brand strong{color:#f3f8fb!important;letter-spacing:-.025em}
+.rq8.rq14 .project-identity strong{
+ color:#f1f6fa!important;letter-spacing:.01em;
+ max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.rq8.rq14 .workspace-nav{
+ background:var(--rq15-rail)!important;border-color:var(--rq15-border)!important;
+}
+.rq8.rq14 .workspace-tab{
+ transition:background-color .12s ease,border-color .12s ease;
+}
+.rq8.rq14 .workspace-tab[aria-pressed="true"]{
+ color:var(--rq15-accent)!important;
+ box-shadow:inset 3px 0 var(--rq15-accent)!important;
+ border-color:#4d6375!important;
+ background:#243544!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .workspace-tab[aria-pressed="true"]{
+ background:#1d3935!important;
+ border-color:#43735f!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .workspace-tab[aria-pressed="true"]{
+ background:#3a3126!important;
+ border-color:#7d6950!important;
+}
+.rq8.rq14 .rq7-workbench,
+.rq8.rq14 .rq5-sequence-frame,
+.rq8.rq14 .rq14-stage-monitor,
+.rq8.rq14 .rq5-audio-library,
+.rq8.rq14 .rq10-integrated-lab{
+ border-color:var(--rq15-border)!important;
+}
+.rq8.rq14 .rq7-workbench{
+ background:var(--rq15-pane)!important;
+ border-radius:6px!important;
+}
+.rq8.rq14 .rq7-mode-button{
+ border-radius:4px!important;
+}
+.rq8.rq14 .rq7-mode-button[aria-pressed="true"]{
+ color:var(--rq15-ink)!important;
+ border-color:var(--rq15-border-strong)!important;
+ background:var(--rq15-surface)!important;
+}
+.rq8.rq14 .shell:not([data-active-workspace="operation"]) .panel-head h2,
+.rq8.rq14 .shell:not([data-active-workspace="operation"]) .rq5-pane-heading{
+ letter-spacing:.005em;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"] .cue-item{
+ transition:background .1s ease,border-color .1s ease;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"] .cue-item:hover{
+ background:#213449!important;border-color:#58748a!important;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"] .cue-item.cue-selected{
+ background:#243d58!important;
+ border-left-color:var(--rq15-accent)!important;
+}
+.rq8.rq14 .shell[data-active-workspace="audio"] .rq12-library-toolbar,
+.rq8.rq14 .shell[data-active-workspace="audio"] .rq11-audition-transport{
+ border-color:var(--rq15-border)!important;
+}
+.rq8.rq14 :is(button,select,input,textarea,a):focus-visible{
+ outline:2px solid var(--rq15-focus)!important;
+ outline-offset:2px!important;
+}
+.rq8.rq14 button:disabled{cursor:not-allowed}
+.rq8.rq14 #stopAllBtn{
+ background:#642f38!important;color:#fff3f4!important;
+ border-color:#aa6973!important;
+ box-shadow:0 0 0 1px #341319 inset!important;
+ font-weight:850!important;
+}
+.rq8.rq14 #stopAllBtn:hover:not(:disabled){background:#7f3946!important}
+.rq8.rq14 .shell[data-active-workspace="operation"] :is(#operatorGoBtn,#operatorPanicBtn){
+ font-weight:800!important;
+}
+/* The agent is a secondary authoring rail. Preserve the top transport bar. */
+.rq8.rq14 #rqAgentToggle{
+ color:#dbeaff!important;background:#274764!important;
+ border:1px solid #5e89b1!important;font-weight:800!important;
+ border-radius:5px!important;min-width:68px;
+}
+.rq8.rq14 #rqAgentToggle[aria-expanded="true"]{
+ background:#386791!important;border-color:#9ac9f4!important;
+ box-shadow:inset 0 -2px #badbfb!important;
+}
+.rq-agent-drawer{
+ width:min(490px,calc(100vw - 20px))!important;
+ background:var(--rq15-pane,#192734)!important;
+ border:1px solid var(--rq15-border,#3b5266)!important;
+ border-radius:10px!important;
+ box-shadow:-20px 14px 46px #030a13bb!important;
+}
+.rq-agent-head{background:#243649!important;border-bottom-color:#47647b!important;padding:14px 16px!important}
+.rq-agent-title strong{font-size:14px!important;letter-spacing:.035em!important}
+.rq-agent-title small{font-size:11px!important;color:#c0d1de!important}
+.rq-agent-head .btn{min-width:28px;min-height:28px}
+.rq-agent-messages{background:#14212e!important;padding:14px!important;gap:11px!important}
+.rq-agent-message{
+ background:#243444!important;border-color:#425b73!important;
+ padding:11px 12px!important;line-height:1.45;
+}
+.rq-agent-message.user{background:#2c4b70!important;border-color:#5c82b1!important}
+.rq-agent-message p{font-size:13px!important;line-height:1.52!important;color:#ecf4fc!important}
+.rq-agent-message small{font-size:10px!important;letter-spacing:.055em;color:#b9cede!important}
+.rq-agent-proposal{
+ background:#1e3040!important;border-top-color:#64849d!important;
+ max-height:44%!important;padding:13px 14px!important;
+}
+.rq-agent-proposal>strong{font-size:13px!important;color:#d9eafa!important}
+.rq-agent-op{background:#273b4f!important;border-color:#4c6580!important}
+.rq-agent-op label{font-size:12px!important}
+.rq-agent-diff-item{background:#233547!important;border-color:#405c74!important}
+.rq-agent-compose{background:#213142!important;border-top-color:#526c84!important;gap:9px!important}
+.rq-agent-compose>label:first-child{font-size:12px!important;color:#e4eff8!important}
+#rqAgentPrompt{
+ background:#111e2c!important;border-color:#627f98!important;
+ color:#f2f7fc!important;font-size:13px!important;min-height:78px!important;
+}
+.rq-agent-examples .btn,.rq-agent-actions .btn{
+ border-radius:5px!important;min-height:30px!important;font-weight:700!important;
+}
+.rq-agent-actions #rqAgentApply,.rq-agent-actions #rqAgentSubmit{
+ background:#306c9e!important;border-color:#69a4d0!important;color:#f5faff!important;
+}
+.rq-agent-consent{font-size:11px!important;color:#c5d5e3!important}
+.rq-agent-status{font-size:12px!important;padding-top:4px;min-height:18px}
+.rq-agent-provider{font-size:12px!important}
+.rq-agent-provider select{background:#112134!important;border-color:#6885a2!important}
+.rq-agent-drawer :is(button,select,textarea,input):focus-visible{
+ outline:2px solid #c1e0ff!important;outline-offset:2px!important;
+}
+.rq8.rq14 :is(.rq12-library,.rq14-events-list,#cueList,.rq-agent-messages,.rq-agent-proposal){
+ scrollbar-color:#526e84 #162634;scrollbar-width:thin;
+}
+@media(max-width:1100px){
+ .rq-agent-drawer{width:min(440px,calc(100vw - 18px))!important}
+}
+@media(max-width:720px){
+ .rq-agent-drawer{width:calc(100vw - 10px)!important;right:5px!important;bottom:5px!important}
+ .rq-agent-messages{padding:9px!important}
+ .rq-agent-compose{padding:10px!important}
+ .rq8.rq14 .project-identity strong{max-width:200px}
+}
+@media(prefers-reduced-motion:reduce){
+ .rq8.rq14 .workspace-tab,.rq8.rq14 .cue-item{transition:none!important}
+}
