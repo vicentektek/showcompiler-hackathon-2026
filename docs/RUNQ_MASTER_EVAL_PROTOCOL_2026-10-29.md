@@ -4,7 +4,7 @@
 
 ## Principios
 
-El catálogo canónico está en test/fixtures/eval-campaign-catalog.json: **91 escenarios**. Los 91 son especificaciones, no tests superados. P0 es fallo de seguridad, pérdida de datos, ejecución accidental o evidencia crítica del vídeo; P1 cubre fidelidad/experiencia; P2 es mejora opcional. automation=existing significa que el repositorio tiene un test relacionado, NO que cubra todas las métricas. automation=planned y fixture=TO_AUTHOR son trabajo pendiente. Las etiquetas de evidencia futuras deben distinguir UNIT_SIMULATED, CHROME_FAKE_AUDIO, CHROME_REAL_WAV_SYNTHETIC_ASR, REAL_MIC, REAL_PROVIDER, REAL_OPERATOR y UNVERIFIED. Las 584/584 pruebas Node y los 4 smoke Chrome validados en logs locales pertenecen a V8, no certifican la rama V9.
+El catálogo canónico está en test/fixtures/eval-campaign-catalog.json: **94 escenarios**. Los 94 son especificaciones, no tests superados. P0 es fallo de seguridad, pérdida de datos, ejecución accidental o evidencia crítica del vídeo; P1 cubre fidelidad/experiencia; P2 es mejora opcional. automation=existing significa que el repositorio tiene un test relacionado, NO que cubra todas las métricas. automation=planned y fixture=TO_AUTHOR son trabajo pendiente. Las etiquetas de evidencia futuras deben distinguir UNIT_SIMULATED, CHROME_FAKE_AUDIO, CHROME_REAL_WAV_SYNTHETIC_ASR, REAL_MIC, REAL_PROVIDER, REAL_OPERATOR y UNVERIFIED. Las 584/584 pruebas Node y los 4 smoke Chrome validados en logs locales pertenecen a V8, no certifican la rama V9.
 
 ## Fases y seguridad
 
