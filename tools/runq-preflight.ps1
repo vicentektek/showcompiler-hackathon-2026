@@ -19,10 +19,19 @@ function Check($label, $passed, $detail='') {
 Write-Host "RUNQ Windows preflight (offline; no secrets, no provider calls)"
 Write-Host "Project: $root"
 try {
- $branch = (git branch --show-current 2>$null).Trim()
- $head = (git rev-parse --short HEAD 2>$null).Trim()
- Check 'Git checkout' ($LASTEXITCODE -eq 0 -and $head.Length -gt 0) "$branch @ $head"
- if($branch -ne 'integration/runq-demo-2026-10-30' -and
+ # Git worktree add <path> origin/<branch> intentionally creates a detached HEAD.
+ # In this state Git reports no branch name. Coerce to an empty string before Trim().
+ $branch = [string](& git branch --show-current 2>$null)
+ $branchOk = ($LASTEXITCODE -eq 0)
+ $branch = $branch.Trim()
+ $head = [string](& git rev-parse --short HEAD 2>$null)
+ $headOk = ($LASTEXITCODE -eq 0)
+ $head = $head.Trim()
+ $label = if($branch.Length -gt 0) { $branch } else { '(detached HEAD)' }
+ Check 'Git checkout' ($branchOk -and $headOk -and $head.Length -gt 0) "$label @ $head"
+ if($branch.Length -eq 0) {
+  Write-Host '[INFO] Detached HEAD is normal for a worktree created from origin/<branch>; tests and server may run.'
+ } elseif($branch -ne 'integration/runq-demo-2026-10-30' -and
     $branch -ne 'feat/runq-v15-agent-qa-visual-freeze-2026-10-29' -and
     $branch -ne 'fix/runq-v14-agent-audit-2026-10-29') {
   Write-Warning 'Checkout differs from the RC1 candidate / baseline. Do NOT switch branches with uncommitted changes.'
