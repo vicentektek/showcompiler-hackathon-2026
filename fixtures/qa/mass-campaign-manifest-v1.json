@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "runq-hackathon-v9-mass-eval-20261029",
+  "state": "DRAFT_NOT_AUTHORIZED",
+  "createdAt": "2026-10-29",
+  "intent": "Staged paid eval of production workflow using authentic provider requests. This file is NOT authorization and no tool may use it to send requests.",
+  "referenceBranch": "feat/runq-v9-dark-cue-workflow-2026-10-29",
+  "referenceSha": "3ee59a770db8275fde0309d026071a8ef461aeea",
+  "freezeBuildSha": null,
+  "requiresHumanReviewedGold": true,
+  "goldCorpus": "fixtures/qa/seminar/corpus-v1.json",
+  "holdoutReady": false,
+  "globalBudget": {
+    "currency": "USD",
+    "proposedCapUsd": 30,
+    "authorizedCapUsd": null,
+    "authorizationStatus": "PENDING",
+    "providerDashboardLimitsConfirmed": false,
+    "centralSharedLedgerReady": false,
+    "allCloneLockReady": false,
+    "neverAssumeProviderHardCap": true
+  },
+  "providers": {
+    "meta": {
+      "model": "muse-spark-1.3",
+      "mode": "standard_only",
+      "estimatedBudgetUsd": 12,
+      "targetRequests": 160,
+      "taskGroups": [
+        {
+          "task": "theatrical_cue_proposals",
+          "requests": 100
+        },
+        {
+          "task": "conversational_cue_edits",
+          "requests": 60
+        }
+      ],
+      "stages": [
+        {
+          "id": "pilot",
+          "requests": 8
+        },
+        {
+          "id": "calibration",
+          "requests": 32
+        },
+        {
+          "id": "bulk",
+          "requests": 120
+        }
+      ],
+      "existingScriptMaxPerRun": 20,
+      "existingBudgetLedgerPerCheckoutUsd": 2,
+      "currentRunnerReadyForMass": false
+    },
+    "baseten": {
+      "model": "Muse Spark Open (pinned in code)",
+      "estimatedBudgetUsd": 8,
+      "targetRequests": 100,
+      "taskGroups": [
+        {
+          "task": "theatrical_cue_proposals",
+          "requests": 100
+        }
+      ],
+      "stages": [
+        {
+          "id": "pilot",
+          "requests": 5
+        },
+        {
+          "id": "calibration",
+          "requests": 20
+        },
+        {
+          "id": "bulk",
+          "requests": 75
+        }
+      ],
+      "existingScriptMaxPerRun": 20,
+      "currentRunnerReadyForMass": false
+    },
+    "modal": {
+      "model": "stabilityai/stable-audio-3-small-sfx",
+      "estimatedBudgetUsd": 8,
+      "targetRequests": 20,
+      "taskGroups": [
+        {
+          "task": "audio_generation",
+          "requests": 20
+        }
+      ],
+      "stages": [
+        {
+          "id": "pilot",
+          "requests": 2
+        },
+        {
+          "id": "calibration",
+          "requests": 4
+        },
+        {
+          "id": "bulk",
+          "requests": 14
+        }
+      ],
+      "existingScriptMaxPerRun": 3,
+      "currentRunnerReadyForMass": false
+    },
+    "voice": {
+      "model": "muse-voice-transcribe-1.0",
+      "estimatedBudgetUsd": 2,
+      "targetRequests": 100,
+      "maxAudioSecondsTotal": 1800,
+      "taskGroups": [
+        {
+          "task": "speech_transcription_es_en",
+          "requests": 100
+        }
+      ],
+      "stages": [
+        {
+          "id": "pilot",
+          "requests": 10
+        },
+        {
+          "id": "calibration",
+          "requests": 20
+        },
+        {
+          "id": "bulk",
+          "requests": 70
+        }
+      ],
+      "existingScriptMaxPerRun": null,
+      "currentRunnerReadyForMass": false
+    }
+  },
+  "offlineSuite": {
+    "targetFullJourneyRepeats": 20,
+    "localConversationalCommandCases": 40,
+    "requireNoNetwork": true,
+    "requireOperatorStopAllTests": true
+  },
+  "preflightRequired": [
+    "FROZEN_BUILD_SHA",
+    "GOLD_REVIEWED_AND_HOLDOUT",
+    "AUTHORIZATION_AMOUNTS",
+    "PROVIDER_DASHBOARD",
+    "CENTRAL_LEDGER",
+    "CROSS_CLONE_LOCK",
+    "BUDGET_RESERVATION_BEFORE_EACH_CALL",
+    "NO_RETRY_UNCERTAIN",
+    "BACKEND_MODEL_PIN",
+    "NO_REAL_GO_ON_PAID_TEST",
+    "CAPTURE_VIDEOS_SEPARATELY"
+  ],
+  "stoppingRules": [
+    "any_unarmed_GO",
+    "any_missing_STOP_ALL",
+    "accepted_hallucinated_source",
+    "unintended_public_upload",
+    "unknown_billing_state",
+    "duplicate_paid_job",
+    "global_budget_reserved_exceeded",
+    "provider_authorization_failure",
+    "holdout_leak",
+    "two_consecutive_invalid_provider_responses",
+    "voice_false_GO"
+  ],
+  "evidenceStatus": "NO_PROVIDER_INFERENCES_OR_MEASUREMENTS_EXECUTED",
+  "notes": "Pricing examples are not billing promises. Stage counts include all requested calls, including failed or truncated responses; never auto-retry."
+}
