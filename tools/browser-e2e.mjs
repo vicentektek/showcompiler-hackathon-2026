@@ -516,11 +516,14 @@ try {
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual);
   // Reorder by a dedicated drag handle; no cue may play as a side effect.
   const beforeDrag=await page.locator('#cueList [data-cue-select]').evaluateAll(nodes=>nodes.map(n=>n.dataset.cueSelect));
+  const nextBeforeDrag=await page.locator('#cueList .cue-item.cue-prepared [data-cue-select]').getAttribute('data-cue-select');
   await page.locator('#cueList .rq9-cue-grip').first().dragTo(page.locator('#cueList .cue-item').last(),{
     targetPosition:{x:100,y:38}
   });
   const afterDrag=await page.locator('#cueList [data-cue-select]').evaluateAll(nodes=>nodes.map(n=>n.dataset.cueSelect));
   assert.notDeepEqual(afterDrag,beforeDrag,'Drag handle must reorder actual cue identities');
+  assert.equal(await page.locator('#cueList .cue-item.cue-prepared [data-cue-select]').getAttribute('data-cue-select'),
+    nextBeforeDrag,'Reordering must preserve NEXT by stable cue ID');
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual,
     'Reordering must not trigger playback');
   page.once('dialog',dialog=>dialog.accept());
