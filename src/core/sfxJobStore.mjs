@@ -196,7 +196,11 @@ function validateReconciliation(record) {
 
 export function createSfxJobStore({
   directory,
-  maxDailyStarts = 3,
+  // Repeated creative attempts are constrained first by the configured
+  // daily dollar budget AND mandatory approval of EACH request. The earlier
+  // 3/day pilot ceiling prevented normal sound design even with ample budget.
+  // Ten remains a separate hard daily start limit; no automatic retries.
+  maxDailyStarts = 10,
   clock = () => new Date(),
 } = {}) {
   if (typeof directory !== 'string' || !directory.trim() ||
