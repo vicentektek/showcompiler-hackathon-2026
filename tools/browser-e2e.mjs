@@ -215,6 +215,69 @@ try {
   assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
   assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
   assert.equal(await page.locator('#runqAudioOverview').count(), 1);
+  // V12: file list cannot be pushed below the fold by import forms on compact
+  // Windows desktops. Toolbar and STOP stay present at all screen sizes.
+  assert.equal(await page.locator('#rq12LibraryToolbar').isVisible(),true);
+  assert.equal(await page.locator('#importAudioBatchBtn').isVisible(),true);
+  assert.equal(await page.locator('#importAudioZipBtn').isVisible(),true);
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),null);
+  for(const viewport of [
+    {width:1740,height:864},
+    {width:1366,height:768},
+    {width:1100,height:640},
+    {width:900,height:600},
+  ]){
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(50);
+    const geometry=await page.evaluate(()=>{
+      const list=document.querySelector('#assetList');
+      const first=list.querySelector('.asset-list-row');
+      const pane=document.querySelector('.rq5-audio-library');
+      const rect=node=>node.getBoundingClientRect();
+      return {
+        viewport:innerHeight,client:list.clientHeight,scroll:list.scrollHeight,
+        listTop:rect(list).top,listBottom:rect(list).bottom,
+        firstTop:rect(first).top,firstBottom:rect(first).bottom,
+        paneTop:rect(pane).top,paneBottom:rect(pane).bottom
+      };
+    });
+    assert.ok(geometry.client>=100,
+      'The list needs at least 100px of its own scrollport: '+JSON.stringify(geometry));
+    assert.ok(geometry.firstBottom<=geometry.listBottom+2,
+      'First sound must be visible without scrolling: '+JSON.stringify(geometry));
+    assert.ok(geometry.firstTop<viewport.height,
+      'File rows must be on screen at '+viewport.width+'x'+viewport.height+': '+JSON.stringify(geometry));
+    assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
+  }
+  await page.setViewportSize({width:1366,height:768});
+  const listHeightBefore=await page.locator('#assetList').evaluate(node=>node.clientHeight);
+  await page.locator('#rq12AdvancedToggle').click();
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),'');
+  assert.equal(await page.locator('#loadAudioBtn').isVisible(),true);
+  const listHeightAfter=await page.locator('#assetList').evaluate(node=>node.clientHeight);
+  assert.equal(listHeightAfter,listHeightBefore,
+    'Opening legacy import options must never shrink the actual media list');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),null);
+  // Populate only the DOM with disposable rows: verify the real list scrolls
+  // internally without pushing its header or audition controls out of view.
+  const scrollCheck=await page.locator('#assetList').evaluate(node=>{
+    const sample=node.querySelector('.asset-list-row');
+    const extra=Array.from({length:40},(_,i)=>{
+      const clone=sample.cloneNode(true);
+      clone.dataset.syntheticRow=String(i);
+      node.append(clone);return clone;
+    });
+    const canScroll=node.scrollHeight>node.clientHeight+100;
+    node.scrollTop=node.scrollHeight;
+    const moved=node.scrollTop>0;
+    extra.forEach(item=>item.remove());
+    node.scrollTop=0;
+    return {canScroll,moved};
+  });
+  assert.equal(scrollCheck.canScroll,true,'Library requires an independent scrollable file list');
+  assert.equal(scrollCheck.moved,true,'Source list scroll position must actually move');
+  assert.equal(await page.locator('#assetList .asset-list-row').count(),3);
   assert.equal(await page.locator('#rq10LibrarySearch').isVisible(),true);
   await page.locator('#rq10LibrarySearch').fill('asset-1');
   assert.equal(await page.locator('#assetList .asset-list-row:visible').count(),1);
