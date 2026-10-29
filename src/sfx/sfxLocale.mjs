@@ -485,6 +485,7 @@ for(const [en,es] of PAIRS){
   lookup.set(en,{en,es}); lookup.set(es,{en,es});
 }
 const DYNAMIC_PAIRS=[
+  ['Troubleshooting','Resolución de problemas'],
   ['Generator ready','Generador configurado'],
   ['Generator unavailable','Generador no disponible'],
   ['No connection to local server','Sin conexión al servidor'],
