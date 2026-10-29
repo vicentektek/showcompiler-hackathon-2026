@@ -25,6 +25,8 @@ function params(base,{consent=true,body}={}){
 test('Spanish detection is conservative; English descriptions bypass extra Meta calls',()=>{
  assert.equal(likelySpanishSfxPrompt('Una puerta de hierro se cierra de golpe'),true);
  assert.equal(likelySpanishSfxPrompt('Pasos lentos en un pasillo'),true);
+ assert.equal(likelySpanishSfxPrompt('Portazo fuerte'),true);
+ assert.equal(likelySpanishSfxPrompt('Lluvia intensa'),true);
  assert.equal(likelySpanishSfxPrompt('A heavy iron door slams shut'),false);
  assert.equal(likelySpanishSfxPrompt('A single bronze bell rings for two seconds'),false);
 });
