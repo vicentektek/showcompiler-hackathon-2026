@@ -47,7 +47,9 @@ try{
   let billableCalls=0;
   await page.route('**/*',async route=>{
     const url=new URL(route.request().url());
-    if(url.pathname.startsWith('/api/sfx/jobs')){
+    // Read-only local journal GETs are not provider calls and are required
+    // for recovery. Block every POST that could submit, poll or cancel.
+    if(url.pathname.startsWith('/api/sfx/jobs')&&route.request().method()!=='GET'){
       billableCalls++;return route.abort();
     }
     if(url.hostname!=='127.0.0.1'||url.port!==String(port)){
