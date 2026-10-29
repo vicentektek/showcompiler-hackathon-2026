@@ -226,7 +226,27 @@ try {
   assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
   assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
   assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1);
+  // A real audition transport remains visible in both Library and Sound Lab.
+  assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
+  assert.equal(await page.locator('#rq11PlayLibrary').isVisible(),true);
+  assert.equal(await page.locator('#stopAuditionBtn').isVisible(),true);
+  assert.equal(await page.locator('#playBtn').isVisible(),false);
   assert.equal(await page.locator('#rq5WaveCanvas').count(),1);
+  const waveHeight=await page.locator('.rq5-wave-canvas').evaluate(node=>node.getBoundingClientRect().height);
+  assert.ok(waveHeight<=150,'A library thumbnail should not use a full editor-sized waveform');
+  await page.locator('#rq11ExpandWave').click();
+  const expandedHeight=await page.locator('.rq5-wave-canvas').evaluate(node=>node.getBoundingClientRect().height);
+  assert.ok(expandedHeight>waveHeight,'Waveform expansion must be opt-in');
+  await page.locator('#rq11ExpandWave').click();
+  // Selecting a row changes the read-only source, without audition or GO.
+  await page.locator('#assetList .asset-list-row').nth(1).locator('.tag').click();
+  assert.equal(await page.locator('#rq5AudioSource').inputValue(),'asset-2');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
+  assert.equal(await page.locator('#playBtn').isVisible(),true);
+  assert.equal(await page.locator('#stopBtn').isVisible(),true);
+  await page.locator('[data-rq10-sound-tab="library"]').click();
   await page.waitForFunction(()=>document.querySelector('#rq5WaveStatus')?.textContent?.includes('Decoded audio'));
   assert.equal(await page.locator('#rq5WaveChannels').innerText(),'1');
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,
