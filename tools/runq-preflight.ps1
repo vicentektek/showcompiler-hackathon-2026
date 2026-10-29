@@ -43,6 +43,10 @@ try {
  $npmVersion = (& npm --version 2>$null)
  Check 'npm available' ($LASTEXITCODE -eq 0) "$npmVersion"
 } catch { Check 'npm available' $false 'npm was not found' }
+$archiveDependency = Join-Path $root 'node_modules\\libarchive.js'
+if(-not (Test-Path -LiteralPath $archiveDependency)) {
+ Write-Warning 'Optional RAR/7z import engine missing. Run npm install before testing compressed audio imports.'
+} else { Check 'Local RAR/7z import dependency' $true }
 if($RunTests -and -not $failed) {
  Write-Host 'Running OFFLINE syntax and test suite. This does not call Meta, Baseten or Modal.'
  & npm run check:syntax
