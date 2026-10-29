@@ -1,5 +1,5 @@
 /**
- * Muse Spark Open 1026 on Baseten (hackathon partner), opt-in only.
+ * Muse Spark Open on Baseten (hackathon partner), opt-in only.
  * Baseten does NOT support JSON mode / structured outputs for this model:
  * request plain text, parse strictly, then revalidate against the source show.
  */
@@ -8,7 +8,9 @@ import { parseScript } from './script.mjs';
 import { normalizeScriptLanguageHint } from './scriptLanguage.mjs';
 
 export const BASETEN_PROVIDER = 'BASETEN_MUSE_SPARK_OPEN';
-export const BASETEN_MODEL = 'meta-models/muse-spark-open-1026';
+// Baseten retired the dated hackathon alias `meta-models/muse-spark-open-1026`.
+// Keep the provider's current canonical Model API identifier pinned here.
+export const BASETEN_MODEL = 'meta-models/muse-spark-open';
 export const BASETEN_URL = 'https://inference.baseten.co/v1/chat/completions';
 const MAX_SUGGESTIONS = 8;
 const MAX_BYTES = 100_000;

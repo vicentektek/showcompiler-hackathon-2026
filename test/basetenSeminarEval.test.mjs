@@ -15,7 +15,7 @@ test('default is offline, paid mode needs both switches, bounded requests',()=>{
   assert.throws(()=>parseBasetenEvalOptions(['--live']),/Invalid bounded/);
   assert.throws(()=>parseBasetenEvalOptions(['--live','--ack-paid','--max-requests','999']),/Invalid bounded/);
 });
-test('Baseten request uses exact hackathon model, same source window and no unsupported JSON schema flag',()=>{
+test('Baseten request uses the canonical model, same source window and no unsupported JSON schema flag',()=>{
   const r=makeBasetenTheatreRequest(prepared());
   assert.equal(r.model,BASETEN_MODEL);
   assert.equal(r.response_format,undefined);

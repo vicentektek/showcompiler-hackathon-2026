@@ -1,10 +1,10 @@
 # Muse Spark Open on Baseten — hackathon fallback (26 October 2026)
 
-Status: new optional implementation in a draft pull request. No live Baseten account calls have been made by the assistant. Automated tests use mocked provider responses.
+Status: optional implementation in a draft pull request. On 29 October 2026 one explicitly authorized live request reached Baseten and returned HTTP 404 with no usage for the retired dated model alias. The canonical-alias correction is validated offline; a successful live inference is still pending. Automated tests use mocked provider responses.
 
 ## Why this pathway exists
 
-The first-party $150 Meta Model API credits are still pending. The hackathon expressly accepts Meta open-weight models hosted by inference partners. Baseten is a launch partner for Muse Spark Open and the participant FAQ specifies the **hackathon model ID: meta-models/muse-spark-open-1026**.
+The first-party $150 Meta Model API credits are still pending. The hackathon expressly accepts Meta open-weight models hosted by inference partners. Baseten is a launch partner for Muse Spark Open. The participant FAQ originally specified the hackathon model ID `meta-models/muse-spark-open-1026`; on 29 October 2026 Baseten returned HTTP 404 for that retired alias and its official Model API page identified the canonical replacement as **`meta-models/muse-spark-open`**.
 
 This is still a **Meta model**, hosted and billed by a **different provider**. Baseten credits and Meta Model API credits are completely separate. Free Baseten starter credits may not equal the $100 hackathon partner grant. Check actual Billing balance/conditions.
 
@@ -67,12 +67,13 @@ To remove the key from that PowerShell process, stop Node with Ctrl+C and run:
 
 - Hackathon FAQ: https://discord.com/channels/1557169028080869426/1557169028626251802
 - Inference API: https://docs.baseten.co/reference/inference-api/chat-completions
+- Current Muse Spark Open model identifier: https://www.baseten.co/library/muse-spark-open/
 - JSON-mode support limitations: https://docs.baseten.co/inference/model-apis/overview
 - Meta Muse Spark Open: https://dev.meta.ai/docs/muse-spark-open
 - Baseten billing: https://app.baseten.co/settings/billing
 
 ## Acceptance still pending
 
-CI tests alone do not prove live Baseten API key validity, allocation of partner grant, that the exact hackathon model slug is enabled on this account, output quality, or audio playback on physical hardware. Never label this as an observed live inference until tested on the user's PC.
+CI tests and the observed 404 do not prove allocation of partner credits, successful inference with the canonical model, output quality, or audio playback on physical hardware. Never label the corrected adapter as a successful live inference until its bounded retest completes on the user's PC.
 
 The official first-party Meta Model API adapter remains available by selecting Meta Model API in the same dropdown, once its separate credits/key/billing are configured.

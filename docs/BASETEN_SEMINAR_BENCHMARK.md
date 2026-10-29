@@ -3,7 +3,7 @@
 This is a **laboratory-only** feature. It does not alter GO, STOP, cue transport, application UI, production Baseten provider, or the first-party Meta adapter.
 
 - Both providers use the same committed seminar cases, original lines, scene windows, theatrical 16-field proposal validation, and `stageCueQa` scoring dimensions.
-- Baseten hackathon endpoint is fixed to `meta-models/muse-spark-open-1026`. No other model IDs are accepted.
+- Baseten Model API is pinned to the current canonical identifier `meta-models/muse-spark-open`. The dated hackathon alias `meta-models/muse-spark-open-1026` was retired and returned HTTP 404 on 29 October 2026.
 - Baseten does not advertise the same strict JSON-schema response-format support, so the schema is placed in the prompt and **every complete result is locally validated**. An invalid or truncated response is a failed request, never an empty successful prediction.
 - No credentials, full provider replies or source scripts are exported in lab reports. Local reports may still contain sensitive metadata and belong outside version control.
 - The output budget is 8192 tokens because reasoning may exhaust smaller limits. No automatic retry, no parallel requests.
@@ -31,4 +31,4 @@ The comparison recalculates precision, recall, F1, invalid references, forbidden
 
 Sanitized request telemetry includes latency plus prompt, completion, reasoning and cached tokens when the provider returns them. Missing usage remains missing rather than being guessed. Baseten monetary cost remains unavailable until an authoritative price or dashboard charge is supplied.
 
-Your VS Code local environment is not accessible from this GitHub patch: no live Baseten/Meta calls have been executed by this PR. Avoid running Codex and OpenCode edits simultaneously in the same worktree.
+On 29 October 2026 an explicitly authorized Baseten request returned HTTP 404 with no usage for the retired dated alias; this is failure evidence, not a successful model-quality result. The canonical-alias correction still requires one bounded live validation. Avoid running Codex and OpenCode edits simultaneously in the same worktree.

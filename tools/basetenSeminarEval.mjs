@@ -41,7 +41,7 @@ export function parseBasetenEvalOptions(argv=[]){
   return o;
 }
 
-/** Baseten hackathon model does not support constrained JSON response_format. */
+/** Baseten Muse Spark Open does not support constrained JSON response_format. */
 export function makeBasetenTheatreRequest(prepared){
   const {response_format,reasoning_effort,store,...base}=prepared.request;
   const schema=response_format.json_schema.schema;
