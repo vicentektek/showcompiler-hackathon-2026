@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { makeMetaRoute } from './metaRoutes.mjs';
 import { makeBasetenRoute } from './basetenRoutes.mjs';
 import { makeSfxRoute } from './sfxRoutes.mjs';
+import { makeSfxPromptRoute } from './sfxPromptRoutes.mjs';
 import { makeVoiceTranscribeRoute } from './voiceTranscribeRoutes.mjs';
 import { makeVoiceLiveRoute } from './voiceLiveRoutes.mjs';
 import { makeCueConversationRoute } from './cueConversationRoutes.mjs';
@@ -51,6 +52,7 @@ const allowed = new Map([
   ['/src/sfx/jobRecovery.mjs', ['src/sfx/jobRecovery.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/freeTextPrompt.mjs', ['src/sfx/freeTextPrompt.mjs', 'text/javascript; charset=utf-8']],
   ['/src/sfx/sfxLocale.mjs', ['src/sfx/sfxLocale.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/sfx/englishDraft.mjs', ['src/sfx/englishDraft.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/soundPromptCompiler.mjs', ['src/core/soundPromptCompiler.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/sfxImportCandidate.mjs', ['src/core/sfxImportCandidate.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/dramaticStructure.mjs', ['src/core/dramaticStructure.mjs', 'text/javascript; charset=utf-8']],
@@ -146,6 +148,7 @@ export function createAppServer(options = {}) {
     modelClient: options.basetenClient,
     getKey: options.getBasetenKey,
   });
+  const sfxPromptRoute = makeSfxPromptRoute({getKey:options.getSfxPromptKey,fetchImpl:options.sfxPromptFetch});
   const sfxRoute = makeSfxRoute(options);
   const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
   const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
@@ -164,6 +167,7 @@ export function createAppServer(options = {}) {
     catch { response.writeHead(400, headers); response.end(); return; }
     if (await metaRoute(request, response, pathname, headers)) return;
     if (await basetenRoute(request, response, pathname, headers)) return;
+    if (await sfxPromptRoute(request, response, pathname, headers)) return;
     if (await sfxRoute(request, response, pathname, headers)) return;
     if (await voiceRoute(request, response, pathname, headers)) return;
     if (await voiceLiveRoute(request, response, pathname, headers)) return;

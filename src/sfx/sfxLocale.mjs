@@ -480,6 +480,7 @@ const PAIRS=[
     "El sonido se guarda en la biblioteca del proyecto."
   ]
 ];
+PAIRS.push(...[["Review English sound prompt","Revisar prompt de sonido en inglés"],["English sound description · review before generating","Descripción del sonido en inglés · revisar antes de generar"],["Review the translated description and press Generate sound again. No audio has been generated.","Revisa la traducción y pulsa Generar sonido de nuevo. Aún no se ha generado audio."],["Edit original description","Editar descripción original"]]);
 const lookup=new Map();
 for(const [en,es] of PAIRS){
   lookup.set(en,{en,es}); lookup.set(es,{en,es});

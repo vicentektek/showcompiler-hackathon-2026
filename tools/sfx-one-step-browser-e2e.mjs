@@ -28,7 +28,8 @@ function fakeWav() {
 const wav=fakeWav(),meta=inspectPcm16Wav(wav);
 const dir=await mkdtemp(join(tmpdir(),'runq-sfx-one-step-'));
 let browser,server;
-const calls={start:0,status:0,download:0,review:0};
+const calls={start:0,status:0,download:0,review:0,meta:0};
+const englishProposal='A single heavy iron door slams shut. Loud metallic impact and brief corridor reverberation.';
 const client={
   async start(){calls.start++;return {jobId:'fc-'+calls.start,status:'QUEUED'};},
   async status(id){calls.status++;return {jobId:id,status:'COMPLETED',wav:meta};},
@@ -41,6 +42,16 @@ try{
       dailyBudgetUsd:0.5,modelRevision:'a'.repeat(40)}),
     sfxStore:createSfxJobStore({directory:dir,maxDailyStarts:3}),
     sfxPilotClient:client,
+    getSfxPromptKey:()=> 'mock-meta-only-test-secret',
+    sfxPromptFetch:async(_url,args)=>{
+      calls.meta++;
+      assert.equal(args.headers.Authorization,'Bearer mock-meta-only-test-secret');
+      return {ok:true,text:async()=>JSON.stringify({choices:[{
+        finish_reason:'stop',message:{content:JSON.stringify({
+          status:'READY',englishPrompt:englishProposal,sourceLanguage:'es',notes:[],
+        })},
+      }]})};
+    },
   });
   await new Promise((ok,fail)=>{server.once('error',fail);server.listen(0,'127.0.0.1',ok);});
   const origin='http://127.0.0.1:'+server.address().port;
@@ -181,8 +192,30 @@ try{
   assert.equal(calls.start,2);
   assert.equal(calls.download,2, 'Both resumed samples reuse stored local WAVs');
   assert.equal(await page.evaluate(()=>window.__auditionStarts),4);
+  // Saving a sound can switch the Audio workspace to Library; explicitly
+  // return to Generate before exercising a fresh Spanish request.
+  await page.locator('[data-workspace-nav="audio"]').click();
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  // Spanish -> Meta text proposal MUST NOT submit any Modal sound yet.
+  await page.locator('#soundPrompt').fill('Una puerta de hierro se cierra de golpe en un pasillo');
+  await page.locator('#duration').fill('3');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#generateBtn').click();
+  await page.waitForFunction(()=>document.querySelector('#sfxEnglishReview')?.hidden===false);
+  assert.equal(calls.meta,1);
+  assert.equal(calls.start,2,'English proposal must not generate sound');
+  assert.equal(await page.locator('#soundPrompt').inputValue(),'Una puerta de hierro se cierra de golpe en un pasillo');
+  assert.equal(await page.locator('#sfxEnglishDraft').inputValue(),englishProposal);
+  await page.locator('#sfxEnglishDraft').fill(englishProposal+' Soft decay.');
+  page.once('dialog',dialog=>dialog.accept()); // Separately authorize Modal.
+  await page.locator('#generateBtn').click();
+  await page.waitForFunction(()=>document.querySelector('#jobState')?.textContent?.includes('Preparing'));
+  assert.equal(calls.meta,1,'Approved draft must not re-trigger Meta');
+  assert.equal(calls.start,3);
+  const requests=await(await fetch(origin+'/api/sfx/jobs')).json();
+  assert.equal(requests.jobs[0].prompt,englishProposal+' Soft decay.');
   assert.deepEqual(pageErrors,[]);
-  console.log('SFX_ONE_STEP_BROWSER_PASS: 2 fake generated WAVs, 2 auditions, 1 library save, 1 cue save, 0 provider network calls.');
+  console.log('SFX_ONE_STEP_BROWSER_PASS: 3 fake WAV jobs (1 translated ES); Meta text mock 1; 0 real providers and 0 GO.');
 } finally {
   await browser?.close();
   if(server)await new Promise(ok=>server.close(ok));

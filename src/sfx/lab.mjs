@@ -3,6 +3,7 @@ import { waveformPeaks, trimBounds, makeOfflineImpactDemoWav } from './waveform.
 import {inspectSfxHistory,explainSfxError,labelSfxHistory} from './jobRecovery.mjs';
 import {suggestEnglishSfxPrompt} from './freeTextPrompt.mjs';
 import {localizeSfxMarkup,sfxLocalizedText,localeCopy} from './sfxLocale.mjs';
+import {likelySpanishSfxPrompt,englishDraftMatches,stageEnglishDraft} from './englishDraft.mjs';
 
 const api = '/api/sfx';
 const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT']);
@@ -37,6 +38,7 @@ const state = {
   onImportReviewed:null,
   onReservePreview:null, onPreviewReleased:null, previewReserved:false, previewEpoch:0,
   libraryAssetId:null, onCommitLibraryReview:null, history:null, originalPrompt:null,
+  englishDraft:null,
 };
 const $ = id => document.getElementById(id);
 const text = (id,value) => { const element=$(id); if(element)element.textContent=sfxLocalizedText(sfxUiLocale(),value); };
@@ -61,6 +63,71 @@ function setSfxDiagnosticVisibility(){
   }
   const reconnect=$('sfxReconnectBtn');
   if(reconnect)reconnect.hidden=state.enabled&&!qa;
+}
+function englishDraftPanel(show,notes=''){
+  const panel=$('sfxEnglishReview');if(!panel)return;
+  panel.hidden=!show;
+  if(show&&notes)text('sfxEnglishDraftNote',notes);
+}
+function invalidateEnglishDraft(){
+  state.englishDraft=null;
+  englishDraftPanel(false);
+}
+async function prepareEnglishPromptIfNeeded(){
+  const original=$('soundPrompt').value.trim();
+  const kind=$('soundKind').value;
+  const durationSeconds=Number($('duration').value);
+  if(!likelySpanishSfxPrompt(original)){
+    invalidateEnglishDraft();
+    return original;
+  }
+  if(englishDraftMatches(state.englishDraft,{originalPrompt:original,kind,durationSeconds})){
+    const reviewed=$('sfxEnglishDraft').value.trim();
+    if(reviewed.length<12||reviewed.length>1000)throw new Error(copy(
+      'Review the English description (12–1000 characters) before generating.',
+      'Revisa la descripción inglesa (12–1000 caracteres) antes de generar.'));
+    return reviewed;
+  }
+  // A Meta text request may be billed separately. It must never trigger Modal
+  // or be inferred as consent for a sound generation.
+  if(!confirm(copy(
+    'Prepare a clearer English sound prompt with Meta AI? This is a separate text-model request that may incur charges. It will NOT generate audio. Continue?',
+    '¿Preparar con Meta IA una descripción del sonido en inglés? Es una solicitud independiente al modelo de texto que puede tener coste. NO generará audio. ¿Continuar?'
+  )))return null;
+  const response=await fetch('/api/sfx/prompt/suggest',{
+    method:'POST',cache:'no-store',headers:{
+      'Content-Type':'application/json','X-RunQ-Prompt-Consent':'yes',
+    },
+    body:JSON.stringify({originalPrompt:original,kind,durationSeconds,mode:'IMPROVE'}),
+  });
+  if(!response.ok){
+    const payload=await response.json().catch(()=>({}));
+    const error=new Error(copy(
+      'English prompt preparation failed. No audio was generated. Write your sound description in English or retry later.',
+      'No se pudo preparar el texto inglés. No se ha generado audio. Puedes escribirlo en inglés o intentarlo más tarde.'
+    ));
+    error.code=typeof payload?.code==='string'?payload.code:'SFX_PROMPT_UPSTREAM_FAILED';
+    throw error;
+  }
+  const result=await response.json();
+  if(original!==$('soundPrompt').value.trim()||kind!==$('soundKind').value||durationSeconds!==Number($('duration').value)){
+    throw new Error(copy('The original description changed. Please try again.','La descripción original ha cambiado. Vuelve a intentarlo.'));
+  }
+  if(result.status!=='READY'||typeof result.englishPrompt!=='string'){
+    inform(copy('Please clarify the requested sound. No audio was generated.',
+      'Aclara el sonido solicitado. No se ha generado audio.')+
+      (Array.isArray(result.notes)?' '+result.notes.join(' '):''),true);
+    return null;
+  }
+  state.englishDraft=stageEnglishDraft({originalPrompt:original,kind,durationSeconds,
+    englishPrompt:result.englishPrompt});
+  $('sfxEnglishDraft').value=result.englishPrompt;
+  englishDraftPanel(true,copy(
+    'Review or edit the English prompt, then select Generate sound again. Modal has not been contacted.',
+    'Revisa o edita el prompt inglés y vuelve a pulsar Generar sonido. Todavía no se ha llamado a Modal.'
+  )+(Array.isArray(result.notes)&&result.notes.length?' '+result.notes.join(' · '):''));
+  inform(copy('English description ready for review. No audio generated yet.','Descripción inglesa preparada para revisar. Aún no se ha generado audio.'));
+  return null;
 }
 function requiredDom() {
   return Boolean($('generateForm') && $('waveCanvas') && $('importLibraryBtn'));
@@ -172,7 +239,8 @@ function updateControls(){
   const job=state.job;
   const policy=costPolicy();
   const costReady=policy.perRequest!==null&&policy.daily!==null;
-  const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity();
+  const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity() &&
+    (!$('sfxEnglishReview')?.hidden ? Boolean($('sfxEnglishDraft')?.value.trim().length>=12):true);
   const activeJob=state.history?.active?.[0]??null;
   // The native confirmation is the one and only explicit per-request approval.
   // Do not require an additional consent checkbox for the same action.
@@ -396,6 +464,9 @@ function updateSfxEditorLocale(){
  text('sfxAnotherVariationBtn',es?'Probar otra versión':'Try another version');
  text('importLibraryBtn',es?'Usar sonido':'Use sound');
  text('importCueBtn',es?'Guardar y crear cue':'Save and create cue');
+ if(!state.englishDraft)text('sfxEnglishDraftNote',es?
+   'Revisa la traducción y vuelve a pulsar Generar sonido. Todavía no se ha generado audio.':
+   'Review the English description and select Generate sound again. No audio has been generated.');
  updateFades(state.fadeInSeconds,state.fadeOutSeconds);
  localizeSfxMarkup(document.querySelector('.sfx-lab'),sfxUiLocale());
  updateControls();
@@ -561,10 +632,12 @@ function bindEvents(){
         error.code='SFX_ACTIVE_LIMIT';
         throw error;
       }
+      const preparedPrompt=await prepareEnglishPromptIfNeeded();
+      if(preparedPrompt===null)return; // Draft is shown for review; no Modal request.
       const source=$('sourceLine').value.trim();
       const requestData={
         requestId:'req-'+crypto.randomUUID(),authorizationId:'auth-'+crypto.randomUUID(),confirmed:true,
-        sourceLineId:source||null,kind:$('soundKind').value,prompt:$('soundPrompt').value.trim(),
+        sourceLineId:source||null,kind:$('soundKind').value,prompt:preparedPrompt,
         durationSeconds:Number($('duration').value),seed:Number($('seed').value),
         acknowledgedMaxCostUsd:policy.perRequest,
       };
@@ -586,10 +659,20 @@ function bindEvents(){
   $('confirmRequest').addEventListener('change',updateControls);
   $('sfxReconnectBtn')?.addEventListener('click',()=>void checkConnection());
   for(const id of ['soundPrompt','duration','seed','soundKind','sourceLine']){
-    $(id).addEventListener('input',()=>{$('confirmRequest').checked=false;updateControls();});
-    $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
+    $(id).addEventListener('input',()=>{
+      if(['soundPrompt','duration','soundKind'].includes(id))invalidateEnglishDraft();
+      $('confirmRequest').checked=false;updateControls();
+    });
+    $(id).addEventListener('change',()=>{
+      if(['soundPrompt','duration','soundKind'].includes(id))invalidateEnglishDraft();
+      $('confirmRequest').checked=false;updateControls();
+    });
   }
-  $('loadPresetBtn').addEventListener('click',applyPreset);
+  $('sfxEnglishRestoreBtn')?.addEventListener('click',()=>{
+    invalidateEnglishDraft();$('soundPrompt').focus();updateControls();
+  });
+  $('sfxEnglishDraft')?.addEventListener('input',updateControls);
+    $('loadPresetBtn').addEventListener('click',applyPreset);
   $('sfxSuggestEnglishBtn')?.addEventListener('click',()=>{
     const suggestion=suggestEnglishSfxPrompt($('soundPrompt').value,$('sourceLine').value.trim());
     if(!suggestion){

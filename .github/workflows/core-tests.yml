@@ -24,6 +24,16 @@ jobs:
           python -m py_compile modal/runq_sfx_pilot.py
       - name: Full Codex QA (offline syntax, unit tests and synthetic cue comparisons)
         run: npm run qa:codex
+      - name: Build Codex AI test handoff and cost-safe task list (offline plan)
+        run: npm run qa:ai:tomorrow:plan
+      - name: Archive concise tomorrow Codex test instructions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-codex-ai-2026-10-30
+          path: artifacts/codex-ai-2026-10-30/*
+          if-no-files-found: warn
+          retention-days: 14
       - name: V15 RUNQ AI Agent mass evaluation (600 offline cases, zero provider calls)
         run: npm run qa:agent:mass
       - name: Upload V15 agent synthetic QA report

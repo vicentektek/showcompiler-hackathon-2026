@@ -23,6 +23,8 @@
     "qa:baseten:plan": "node tools/run-baseten-seminar-eval.mjs",
     "qa:compare-providers": "node tools/compare-provider-seminar.mjs",
     "qa:agent:mass": "node tools/runq-agent-mass-eval.mjs --cases 600 --seed 20261029",
+    "qa:ai:tomorrow:plan": "node tools/runq-codex-ai-handoff.mjs --plan",
+    "qa:ai:tomorrow:offline": "node tools/runq-codex-ai-handoff.mjs --run-offline",
     "qa:agent:live:plan": "node tools/runq-agent-live-eval.mjs --cases 200 --providers meta,baseten --budget-usd 30 --reserve-usd 0.15",
     "qa:agent:live": "node tools/runq-agent-live-eval.mjs"
   },
