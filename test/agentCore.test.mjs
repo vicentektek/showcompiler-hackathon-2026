@@ -108,3 +108,23 @@ test('audit detects unresolved media and missing triggers without playback',()=>
  assert.equal(report.issues.filter(x=>x.code==='NO_VOICE_TRIGGER').length,3);
  assert.equal(report.issues.filter(x=>x.code==='UNRESOLVED_AUDIO').length,3);
 });
+
+test('deleting a cue previews indirect automation edits on surviving cues',()=>{
+ const p=fixture();
+ const deleted=p.cues[1], survivor=p.cues[2];
+ const modified=normalizeShowProject({...p,cues:p.cues.map(c=>c.id===survivor.id?{
+  ...c,automation:{stopCueIds:[deleted.id]}
+ }:c)});
+ const plan=prepareAgentPlan(modified,[{op:'DELETE_CUE',cueId:deleted.id}]);
+ const indirect=plan.changes.find(change=>change.cueId===survivor.id);
+ assert.ok(indirect,'The surviving cue must be included in the operator preview');
+ assert.ok(indirect.changes.some(field=>field.field==='automation'),
+  'The removed stop target is a material automation edit');
+ assert.ok(indirect.changes.some(field=>field.field==='number'),
+  'Renumbering after deletion must still be visible');
+ assert.equal(modified.cues[2].automation.stopCueIds[0],deleted.id,
+  'Preview must not mutate the source show');
+ const committed=commitAgentPlan(modified,plan,{editable:true});
+ assert.deepEqual(committed.project.cues.find(c=>c.id===survivor.id).automation.stopCueIds,[]);
+ assert.deepEqual(undoAgentPlan(committed.project,committed.undo,{editable:true}),modified);
+});
