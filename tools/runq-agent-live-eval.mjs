@@ -211,6 +211,7 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
  const server=serverFactory();
  const rows=[];
  let stopReason='COMPLETE';
+ const disabledProviders=new Set();
  try{
   await new Promise((ok,fail)=>{
    server.once('error',fail);server.listen(0,'127.0.0.1',ok);
@@ -222,6 +223,7 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
    const context=buildAgentContext(scenario.project,{
     maxCues:80,maxScriptLines:120});
    for(const provider of config.providers){
+    if(disabledProviders.has(provider))continue;
     if(!await budget.reserve(config.reserveUsd)){
      stopReason='CUMULATIVE_BUDGET_CAP_REACHED';break outer;
     }
@@ -253,7 +255,9 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
     if([401,403,429].includes(status)||
        result.reason.startsWith('UPSTREAM_AUTH_OR_RATE_')||
        result.reason==='MODEL_API_KEY_NOT_CONFIGURED'){
-     stopReason='PROVIDER_AUTH_OR_RATE_BLOCK';break outer;
+     disabledProviders.add(provider);
+     stopReason='PROVIDER_AUTH_OR_RATE_BLOCK';
+     if(disabledProviders.size===config.providers.length)break outer;
     }
    }
   }
