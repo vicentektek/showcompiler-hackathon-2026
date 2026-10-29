@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { parseEvalArguments, makePlan, classifyArtifact, browserChecks } from '../tools/eval-commands.mjs';
 
 const catalog = JSON.parse(await readFile(new URL('./fixtures/eval-campaign-catalog.json', import.meta.url),'utf8'));
@@ -120,4 +120,14 @@ test('browser checks point to a bounded documented set of real smoke scripts', (
   assert.equal(browserChecks.length,7);
   assert.equal(new Set(browserChecks).size, browserChecks.length);
   for(const x of browserChecks) assert.match(x,/^tools\/[a-z0-9-]+\.mjs$/);
+});
+
+test('existing test scenarios refer to real checked-in fixtures or documented test glob', async () => {
+  const existing=catalog.cases.filter(x=>x.automation==='existing');
+  assert.ok(existing.length>10);
+  for (const x of existing) {
+    if (x.fixture==='test/*.test.mjs') continue; // Node test discovery glob.
+    assert.ok(!x.fixture.includes('..'), x.id + ' should not traverse directories');
+    await assert.doesNotReject(access(new URL('../'+x.fixture,import.meta.url)), x.id + ': '+x.fixture);
+  }
 });
