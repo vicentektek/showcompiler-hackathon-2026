@@ -134,7 +134,7 @@ export async function runPaidPilot(options,{fetchImpl=globalThis.fetch}={}){
  const record={
   kind:'AUTHORIZED_PILOT_DIAGNOSTIC_GOLD_PROVISIONAL',provider,runId,
   startedAt:new Date().toISOString(),gitCommit:originalSha,
-  plannedRequests:options.requests,actualProviderSubmissions:0,
+  plannedRequests:options.requests,reservedRequestSlots:0,
   modelMode:options.mode,caseId:options.caseId,
   outcome:'STARTED_NOT_SETTLED',reportPath,
   reservedBillingNotGuaranteed:true,rawProviderOutputSaved:false,
@@ -210,7 +210,7 @@ export async function runPaidPilot(options,{fetchImpl=globalThis.fetch}={}){
    await writeFile(join(logFolder,'modal-sfx-report.json'),JSON.stringify(providerReport,null,2)+'\n',{flag:'wx'});
   }
   record.finishedAt=new Date().toISOString();
-  record.actualProviderSubmissions=submitted;
+  record.reservedRequestSlots=submitted;
   record.outcome=providerReport?.haltReason||providerReport?.stoppedReason?
    'STOPPED_REQUIRES_REVIEW':'PILOT_COMPLETED_REQUIRES_DASHBOARD_REVIEW';
   record.reportedStopReason=providerReport?.haltReason??providerReport?.stoppedReason??null;
@@ -223,7 +223,7 @@ export async function runPaidPilot(options,{fetchImpl=globalThis.fetch}={}){
  }catch(e){
   record.outcome='FAILED_OR_BILLING_UNCERTAIN_STOP';
   record.finishedAt=new Date().toISOString();
-  record.actualProviderSubmissions=submitted;
+  record.reservedRequestSlots=submitted;
   record.localReservedUsd=ledger.status().reservedUsd;
   record.errorType=/^[A-Z_]{4,80}$/.test(e.message)?e.message:'PILOT_FAILED_CHECK_LOCAL_REPORTS';
   if(record.reportPath){
@@ -244,7 +244,7 @@ export async function main(args=[]){
   return;
  }
  const result=await runPaidPilot(opts);
- console.log('PILOT_'+result.outcome+': '+result.actualProviderSubmissions+' centrally reserved provider calls.');
+ console.log('PILOT_'+result.outcome+': '+result.reservedRequestSlots+' centrally reserved request slots (not necessarily provider submissions).');
  console.log('Local report (no raw provider output): '+result.reportPath+'/pilot-result.json');
  if(result.outcome!=='PILOT_COMPLETED_REQUIRES_DASHBOARD_REVIEW')process.exitCode=2;
 }
