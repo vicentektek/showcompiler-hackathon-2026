@@ -221,6 +221,57 @@
       ],
       "dependsOrder": "sequence",
       "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Operator voice capture with OBS",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S05",
+        "--obs",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Actor recognition with OBS",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S08",
+        "--mic-wav",
+        "production/runq-video-kit/natural-voices/mic-ready/02_jump_en_mic.wav",
+        "--voice-opt-in",
+        "--obs",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Manual GO with OBS",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S09",
+        "--obs",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }
