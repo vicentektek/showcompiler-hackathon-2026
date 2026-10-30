@@ -144,11 +144,31 @@ function getScenario(index,seed=20261029){
   conversation,expected,language,seedIndex:index,seed};
 }
 function judge(scenario,response){
- if(response.status==='CLARIFY')return {correct:scenario.expected.kind==='NO_PLAN',
-  resolved:false,valid:true,reason:'CLARIFIED'};
- if(response.status==='ANSWER')return {correct:['ANSWER','NO_PLAN'].includes(scenario.expected.kind),
-  resolved:false,valid:true,reason:'ANSWERED'};
- if(response.status!=='PLAN')return {correct:false,resolved:false,valid:false,reason:'BAD_STATUS'};
+ if(!response||typeof response!=='object'||!Array.isArray(response.operations)||
+    !['PLAN','ANSWER','CLARIFY'].includes(response.status)||
+    typeof response.message!=='string')
+  return {correct:false,resolved:false,valid:false,reason:'BAD_REPLY_SHAPE'};
+ if(response.status!=='PLAN'){
+  if(response.operations.length)
+   return {correct:false,resolved:false,valid:false,reason:'UNEXPECTED_OPERATIONS'};
+  if(response.status==='CLARIFY')
+   return {correct:scenario.expected.kind==='NO_PLAN',resolved:false,valid:true,reason:'CLARIFIED'};
+  if(scenario.expected.kind==='ANSWER'&&scenario.kind==='audio')
+   return {correct:null,resolved:false,valid:true,reviewRequired:true,reason:'ARTISTIC_REVIEW_REQUIRED'};
+  if(scenario.expected.kind==='ANSWER'&&scenario.kind==='summary'){
+   const reply=response.message.toLocaleLowerCase();
+   const grounded=scenario.project.cues.every(cue=>
+    reply.includes(cue.label.toLocaleLowerCase()));
+   return {correct:grounded,resolved:false,valid:true,
+    reason:grounded?'GROUNDED_SUMMARY':'UNGROUNDED_SUMMARY'};
+  }
+  if(scenario.expected.kind==='NO_PLAN'){
+   const falseClaim=/\b(?:i (?:deleted|created|removed|added)|he (?:borrado|creado|eliminado|a[nñ]adido))\b/i;
+   const correct=!falseClaim.test(response.message);
+   return {correct,resolved:false,valid:true,reason:correct?'SAFE_NO_PLAN':'FALSE_MUTATION_CLAIM'};
+  }
+  return {correct:false,resolved:false,valid:true,reason:'WRONG_ANSWER'};
+ }
  try{
   const plan=prepareAgentPlan(scenario.project,response.operations);
   const {expected}=scenario;
@@ -268,6 +288,7 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
     const latencyMs=Math.round(performance.now()-start);
     const row={id:scenario.id,category:scenario.kind,language:scenario.language,provider,
      httpStatus:status,latencyMs,correct:result.correct,
+     reviewRequired:!!result.reviewRequired,
      valid:result.valid,resolved:result.resolved,result:result.reason};
     rows.push(row);
     process.stdout.write(provider+' '+scenario.id+' '+scenario.kind+' '+result.reason+
