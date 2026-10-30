@@ -7,6 +7,8 @@ import {buildEnglishVideoDemo,assertEnglishScript,VIDEO_DEMO_TARGETS}
 import {parseArgs,plan,check,ROOT} from '../tools/video/run-demo-director.mjs';
 import {importPortableShow} from '../src/core/showArchive.mjs';
 import {parseLocalCueChat} from '../src/core/cueConversation.mjs';
+import {obsAuthentication} from '../tools/video/obs-control.mjs';
+import {createHash} from 'node:crypto';
 
 test('original English theatre script has fixed L# with 3 distinct spoken feet',async()=>{
   const script=await readFile(resolve(ROOT,'fixtures/demo/runq-the-last-go-en.txt'),'utf8');
@@ -66,4 +68,14 @@ test('11-shot plan is stable, 3:00, and maintains separate actor/operator audio 
   assert.equal(p.scenes.find(s=>s.id==='S05').audio,'operator/hero_01_fade_in.wav');
   assert.equal(p.scenes.find(s=>s.id==='S08').requirement.includes('operator ARM'),true);
   assert.equal((await check()).noPaidCalls,true);
+});
+
+test('OBS auth challenge is derived locally and never sent to Meta',()=>{
+  const digest=s=>createHash('sha256').update(s).digest('base64');
+  const password='example-password',salt='test-salt',challenge='test-challenge';
+  const expected=digest(digest(password+salt)+challenge);
+  assert.equal(obsAuthentication(password,salt,challenge),expected);
+  assert.throws(()=>obsAuthentication('',salt,challenge),/OBS_PASSWORD_REQUIRED/);
+  assert.throws(()=>parseArgs(['--check','--obs']));
+  assert.equal(parseArgs(['--scene','S09','--obs']).obs,true);
 });
