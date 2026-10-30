@@ -72,7 +72,8 @@ function opts(argv){
     !Number.isFinite(o.budgetUsd)||o.budgetUsd<0.10||o.budgetUsd>100||
     !Number.isFinite(o.reserveUsd)||o.reserveUsd<0.01||o.reserveUsd>5||
     !Number.isSafeInteger(o.seed)||o.seed<1||o.seed>2147483647||
-    !Number.isSafeInteger(o.startIndex)||o.startIndex<0||o.startIndex>100000)
+    !Number.isSafeInteger(o.startIndex)||o.startIndex<0||o.startIndex>100000||
+    o.startIndex+o.cases/o.providers.length-1>100000)
    throw new TypeError('INVALID_AGENT_LIVE_EVAL_CONFIG');
  return o;
 }
@@ -264,11 +265,13 @@ function format(report){
   'No prompt, project, secret or raw provider response is recorded.','',
   '| Provider | Attempts | Scored | Human review | Correct % | Valid % | Resolves % | Clarification % | Errors | p50/p95 ms |',
   '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
- for(const [provider,row] of Object.entries(report.providerMetrics)){
+ for(const [provider,row] of Object.entries(report.providerMetrics))
   output.push('| '+provider+' | '+row.total+' | '+row.scored+' | '+row.humanReview+
    ' | '+row.correctRate+' | '+row.validRate+' | '+row.resolvesRate+
    ' | '+row.clarificationRate+' | '+row.errors+
    ' | '+row.medianLatencyMs+'/'+row.p95LatencyMs+' |');
+ output.push('','## Language breakdown','');
+ for(const [provider,row] of Object.entries(report.providerMetrics)){
   for(const [language,score] of Object.entries(row.byLanguage))
    output.push('- '+provider+' / '+language+': '+score.scored+'/'+score.attempts+
     ' scored; valid '+score.validRate+'%; correct '+score.correctRate+'%.');
