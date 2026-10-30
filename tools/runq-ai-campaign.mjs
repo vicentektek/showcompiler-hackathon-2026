@@ -108,6 +108,44 @@ export async function readAiPaidReports(directory=resolve('artifacts/agent-live-
  return {reports,warnings};
 }
 
+/**
+ * Compare durable billable reservations against local completion evidence.
+ * An orphan reservation may have reached the provider before a local crash.
+ * No further paid run should be started until a human reconciles it.
+ */
+export async function auditAiReservations(evidence,{
+ file=resolve('.runq-local/agent-live-eval-budget.json')}={}){
+ let raw;
+ try{raw=await readFile(file,'utf8');}
+ catch(error){
+  if(error.code==='ENOENT')return {status:'NO_LEDGER',orphanKeys:[],reservations:0};
+  return {status:'LEDGER_UNREADABLE',orphanKeys:[],reservations:0};
+ }
+ try{
+  if(raw.length>4_000_000)throw new Error('SIZE');
+  const parsed=JSON.parse(raw);
+  if(parsed.version!==1||!Array.isArray(parsed.records))
+   throw new Error('SCHEMA');
+  const known=new Set();
+  for(const {report} of evidence.reports){
+   for(const item of report.results){
+    const n=Number(/^paid-0*([1-9][0-9]*)$/.exec(item.id)?.[1]);
+    if(Number.isSafeInteger(n))
+     known.add('r2-'+report.seed+'-'+(n-1)+'-'+item.provider);
+   }
+  }
+  const keys=parsed.records.filter(r=>r&&typeof r.caseKey==='string')
+   .map(r=>r.caseKey);
+  if(keys.some(k=>!/^r2-[0-9]+-[0-9]+-(meta|baseten)$/.test(k))||
+     new Set(keys).size!==keys.length)throw new Error('INVALID_KEYS');
+  const orphanKeys=keys.filter(k=>!known.has(k));
+  return {status:orphanKeys.length?'RECONCILE_REQUIRED':'RECONCILED',
+   orphanKeys,reservations:parsed.records.length};
+ }catch{
+  return {status:'LEDGER_UNREADABLE',orphanKeys:[],reservations:0};
+ }
+}
+
 function metricGroup(rows){
  const completed=rows.filter(x=>x.httpStatus===200);
  const scored=completed.filter(x=>typeof x.correct==='boolean');
@@ -268,17 +306,23 @@ export function formatAiCampaignReport(report,{manifestHash=null}={}){
 
 export async function runAiCampaign(config,{preflight=runAiPreflight,
  paidRunner=runPaidAgentEvaluation,reportsReader=readAiPaidReports,
+ ledgerAuditor=auditAiReservations,
  outputDir=resolve('artifacts/ai-campaign'),ciCheck=()=>process.env.CI==='true'}={}){
  if(config.live&&ciCheck())fail('PAID_TESTS_DISABLED_IN_CI');
  if(config.live&&!config.ackPaid)fail('EXPLICIT_PAID_OPT_IN_REQUIRED');
  if(config.live&&config.reportOnly)fail('INVALID_LIVE_REPORT_ONLY');
  const manifest=buildAiManifest(config);
  if(config.live&&!manifest.completeMatrix)fail('INCOMPLETE_PAID_LANGUAGE_MATRIX');
+ // Read previous outcome evidence BEFORE any new paid batch.
+ const previous=await reportsReader();
+ const priorLedger=await ledgerAuditor(previous);
+ const ledgerSafe=['NO_LEDGER','RECONCILED'].includes(priorLedger.status);
  let preflightPassed=null,paidResult=null,stage='DRY_RUN';
  if(!config.reportOnly){
   const report=await preflight();
   preflightPassed=report.passed===true;
   if(!preflightPassed)stage='OFFLINE_GATE_FAILED';
+  else if(config.live&&!ledgerSafe)stage='PRIOR_RESERVATIONS_NEED_RECONCILIATION';
   else if(config.live){
    // The only path that may reach a provider: explicit CLI opt-in and green offline gate.
    // The paid runner owns the durable ledger and refuses duplicated billing identities.
@@ -287,10 +331,16 @@ export async function runAiCampaign(config,{preflight=runAiPreflight,
   }else stage='READY_FOR_OPERATOR_REVIEW';
  }
  const evidence=await reportsReader();
+ const ledger=await ledgerAuditor(evidence);
  const result=analyzeAiPaidReports(evidence,{preflightPassed,
   providers:config.providers,seed:config.seed});
+ if(!['NO_LEDGER','RECONCILED'].includes(ledger.status)){
+  result.status='BLOCKED';
+  result.nextActions.unshift('P0: conciliar reservas de pago sin informe ('+
+   ledger.orphanKeys.length+'); no reiniciar estas solicitudes.');
+ }
  const summary={...result,stage,paidExecutionAuthorized:config.live,
-  manifestHash:manifest.hash,manifest:manifest.manifest,
+  budgetEvidence:ledger,manifestHash:manifest.hash,manifest:manifest.manifest,
   executedPaidBatch:paidResult?{
    requested:config.cases,attempted:paidResult.attemptedRequests,
    stopReason:paidResult.stopReason,localReservedUsd:paidResult.totalLocalReservedUsd}:null};
@@ -322,6 +372,7 @@ if(invoked){
   const result=await runAiCampaign(config);
   if(result.summary.stage==='OFFLINE_GATE_FAILED'||
      result.summary.stage==='PAID_BATCH_STOPPED'||
+     result.summary.stage==='PRIOR_RESERVATIONS_NEED_RECONCILIATION'||
      result.summary.status==='BLOCKED')
    process.exitCode=1;
  }catch(error){
