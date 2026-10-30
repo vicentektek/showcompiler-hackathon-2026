@@ -181,7 +181,10 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
   byProvider[p].correctRate>=95&&byProvider[p].contractValidRate>=99);
  let status='NEEDS_EVIDENCE';
  if(blocking)status='BLOCKED';
- else if(enough)status=qualityPass?'AUTOMATED_GATES_PASS':'QUALITY_GATES_FAIL';
+ else if(enough&&preflightPassed===true)
+  status=qualityPass?'AUTOMATED_GATES_PASS':'QUALITY_GATES_FAIL';
+ else if(enough&&preflightPassed===null)
+  status='NEEDS_FRESH_PREFLIGHT';
  const action=[];
  if(preflightPassed===false)action.push('P0: reparar la batería offline antes de gastar.');
  if(duplicates.length)action.push('P0: investigar informes de solicitudes duplicadas; no repetir estos IDs.');
@@ -265,7 +268,8 @@ export function formatAiCampaignReport(report,{manifestHash=null}={}){
 
 export async function runAiCampaign(config,{preflight=runAiPreflight,
  paidRunner=runPaidAgentEvaluation,reportsReader=readAiPaidReports,
- outputDir=resolve('artifacts/ai-campaign')}={}){
+ outputDir=resolve('artifacts/ai-campaign'),ciCheck=()=>process.env.CI==='true'}={}){
+ if(config.live&&ciCheck())fail('PAID_TESTS_DISABLED_IN_CI');
  if(config.live&&!config.ackPaid)fail('EXPLICIT_PAID_OPT_IN_REQUIRED');
  if(config.live&&config.reportOnly)fail('INVALID_LIVE_REPORT_ONLY');
  const manifest=buildAiManifest(config);
