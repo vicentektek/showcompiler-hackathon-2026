@@ -190,12 +190,14 @@ try {
   // The existing playback form may be docked at the bottom, but its inputs,
   // original Save handler, audition controls and the NEXT queue stay canonical.
   assert.equal(await page.locator('#rqStudioAudioDockToggle').count(),1);
+  assert.equal(await page.locator('#rqStudioAudioDockOpen').isVisible(),true);
+  assert.equal(await page.locator('#rqStudioAudioDock').isHidden(),true);
   assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),0);
   const playbackForm = page.locator('#cuePlaybackForm');
   const gainBeforeDock = await playbackForm.locator('[name="gainDb"]').inputValue();
   const nextBeforeDock = await page.locator('#preparedCueStatus').innerText();
   const startBeforeDock = await page.evaluate(()=>window.__testAudioStarts);
-  await page.locator('#rqStudioAudioDockToggle').click();
+  await page.locator('#rqStudioAudioDockOpen').click();
   assert.equal(await page.locator('#rqStudioAudioDockToggle').getAttribute('aria-expanded'),'true');
   assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),1);
   assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),0);
