@@ -231,7 +231,7 @@ function summarize(rows,config){
  const aggregate={};
  for(const provider of config.providers){
   const records=rows.filter(r=>r.provider===provider);
-  const scored=records.filter(r=>typeof r.correct==='boolean');
+  const scored=records.filter(r=>r.httpStatus===200&&typeof r.correct==='boolean');
   aggregate[provider]={
    total:records.length,scored:scored.length,
    humanReview:records.filter(r=>r.reviewRequired).length,
@@ -244,7 +244,7 @@ function summarize(rows,config){
    p95LatencyMs:percentile(records.map(r=>r.latencyMs),0.95),
    byLanguage:Object.fromEntries(['es','en'].map(lang=>{
     const subset=records.filter(r=>r.language===lang);
-    const scoredLang=subset.filter(r=>typeof r.correct==='boolean');
+    const scoredLang=subset.filter(r=>r.httpStatus===200&&typeof r.correct==='boolean');
     return [lang,{attempts:subset.length,scored:scoredLang.length,
      validRate:rate(subset,r=>r.valid),
      correctRate:rate(scoredLang,r=>r.correct)}];
@@ -330,7 +330,12 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
       if(result.reason==='AI_PROVIDER_UNAVAILABLE'&&[401,403,429].includes(reply.status))
        result.reason='UPSTREAM_AUTH_OR_RATE_'+reply.status;
      }
-    }catch(error){result.reason=(error.name??'NETWORK_ERROR').slice(0,60);}
+    }catch(error){
+     result.reason=(error.name??'NETWORK_ERROR').slice(0,60);
+     // A response body may have been charged but lost or truncated.
+     // Halt the campaign rather than continuing with untrusted infrastructure.
+     if(status===200)status=0;
+   }
     const latencyMs=Math.round(performance.now()-start);
     const row={id:scenario.id,category:scenario.kind,language:scenario.language,provider,
      httpStatus:status,latencyMs,correct:result.correct,
