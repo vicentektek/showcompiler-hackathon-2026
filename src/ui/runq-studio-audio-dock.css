@@ -99,3 +99,20 @@
   min-height:27px;padding:2px 7px;
  }
 }
+
+/* Collapsed dock stays out of flex layout: this preserves usable waveform
+   hit-target geometry on 1366x820 and 1093x614. */
+.rq8.rq14 .rq-studio-dock-open{
+ margin-left:3px;flex:none;min-height:27px;min-width:29px;
+ padding:3px 5px;border-radius:3px;border:1px solid #52748c;
+ background:#27445e;color:#e6f3ff;
+ font:800 17px/1 "Segoe UI Symbol",system-ui,sans-serif;
+ cursor:pointer;
+}
+.rq8.rq14 .rq-studio-dock-open[hidden]{display:none!important}
+.rq8.rq14 .rq-studio-dock-open:focus-visible{
+ outline:2px solid #b3dcfa;outline-offset:2px;
+}
+.rq8.rq14 .shell:not([data-active-workspace="cues"]) .rq-studio-dock-open{
+ display:none!important;
+}
