@@ -17,6 +17,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 
 const CATEGORIES=[
  'closing','followup','delete','reorder','rename','summary',
@@ -350,9 +351,12 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
     if([401,403,429].includes(status)||
        result.reason.startsWith('UPSTREAM_AUTH_OR_RATE_')||
        result.reason==='MODEL_API_KEY_NOT_CONFIGURED'){
-     disabledProviders.add(provider);
      stopReason='PROVIDER_AUTH_OR_RATE_BLOCK';
-     if(disabledProviders.size===config.providers.length)break outer;
+     break outer; // One authentication/quota error makes the remaining campaign unsafe.
+    }
+    if(status!==200){
+     stopReason='PROVIDER_HTTP_ERROR';
+     break outer; // No billing blind loops after a 5xx/schema rejection.
     }
    }
   }
@@ -361,6 +365,12 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   await budget.close();
  }
  const report=summarize(rows,config);report.stopReason=stopReason;
+ // Record exact source revision for reproducibility; never pool unlike commits.
+ try{report.sourceCommit=execFileSync('git',['rev-parse','HEAD'],
+  {encoding:'utf8',timeout:4000,stdio:['ignore','pipe','ignore']}).trim();}
+ catch{report.sourceCommit='UNKNOWN';}
+ report.modelIds={meta:'muse-spark-1.3',baseten:'meta-models/muse-spark-open-1026'};
+ report.protocol='runq-agent-plan-v1';
  report.totalLocalReservedUsd=Math.round(budget.committedUsd()*1e4)/1e4;
  const folder=resolve('artifacts/agent-live-eval');
  await mkdir(folder,{recursive:true});
