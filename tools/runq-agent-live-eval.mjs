@@ -103,11 +103,31 @@ function getScenario(index,seed=20261029){
     'Append three closing cues'][variants];
   expected={kind:'CREATE_CUE',count:3};
  }else if(kind==='followup'){
-  conversation=[
-   {role:'user',text:es?'Añádelos al final para rematar el show':
+  const isSpanish=es;
+  const previous=[
+   {role:'user',text:isSpanish?'Añádelos al final para rematar el show':
      'Add some cues at the end to finish the show'},
-   {role:'assistant',text:es?'¿Qué cues quieres?':'Which cues should I add?'}
+   {role:'assistant',text:isSpanish?'¿Qué cues quieres?':'Which cues should I add?'}
   ];
+  const context4=[
+   {role:'user',text:isSpanish?'¿Cuántos cues hay en el show?':
+     'How many cues does the show have?'},
+   {role:'assistant',text:isSpanish?'Hay cuatro cues existentes.':
+     'There are four existing cues.'},
+  ];
+  const context8=[
+   {role:'user',text:isSpanish?'Quiero preparar el cierre.':
+     'I want to work on the closing sequence.'},
+   {role:'assistant',text:isSpanish?'Podemos proponer nuevos cues sin cambiar los existentes.':
+     'We can propose new cues without changing existing ones.'},
+   {role:'user',text:isSpanish?'No modifiques el sonido original.':
+     'Do not change the original audio.'},
+   {role:'assistant',text:isSpanish?'Conservaré el audio y pediré aprobación de cambios.':
+     'I will preserve existing audio and propose only reviewable edits.'}
+  ];
+  conversation=variants===0?previous:
+   variants===1?[...context4,...previous]:
+   [...context8,...context4,...previous];
   prompt=es?'los que te parezcan más apropiados':'you decide what fits best';
   expected={kind:'CREATE_CUE',count:3};
  }else if(kind==='delete'){
