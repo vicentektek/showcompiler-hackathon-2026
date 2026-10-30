@@ -154,16 +154,26 @@ def main():
     ap.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[2])
     ap.add_argument('--output', type=Path, default=Path('production/runq-voice-kit'))
     ap.add_argument('--engine', choices=['plan', 'espeak', 'import'], default='plan')
+    ap.add_argument('--scope', choices=['hero', 'all'], default='hero',
+                    help='hero: 3 cue phrases, one repeat and narrator (default); all: 43 clips and 8 takes')
     ap.add_argument('--source-dir', type=Path, help='Licensed TTS clips named as voice jobs, WAV or MP3 (import)')
     args = ap.parse_args()
     if args.engine == 'import' and (not args.source_dir or not args.source_dir.is_dir()):
         ap.error('--engine import requires an existing --source-dir')
-    jobs, dialogue, _ = jobs_from_sources(args.repo)
+    all_jobs, dialogue, _ = jobs_from_sources(args.repo)
+    hero_ids = set(TRIGGERS.values()) | {'maya_l14_repeat'} | {
+        name for name, job in all_jobs.items() if job['kind'] == 'narrator'}
+    jobs = {name: job for name, job in all_jobs.items()
+            if args.scope == 'all' or name in hero_ids}
+    take_defs = dict(TAKES) if args.scope == 'all' else {
+        name: seq for name, seq in TAKES.items() if name[:2] in ('01', '02', '03', '04', '05')}
+    if args.scope == 'all':
+        take_defs['08_full_scene_en'] = dialogue
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
     (out/'jobs.json').write_text(json.dumps({'status': 'PLAN_ONLY' if args.engine == 'plan' else 'RENDERED',
                 'engine': args.engine, 'voices': {k:v[0] for k,v in VOICES.items()}, 'jobs': jobs,
-                'triggers': TRIGGERS, 'takes': dict(TAKES, **{'08_full_scene_en': dialogue})},
+                'triggers': TRIGGERS, 'takes': take_defs},
                 indent=2, ensure_ascii=False)+'\n', encoding='utf-8')
     for name, job in jobs.items():
         folder = out / 'ssml' / job['role'].lower()
@@ -185,9 +195,11 @@ def main():
                 raise FileNotFoundError(f'Missing required licensed source clip: {name} (wav/mp3/flac/m4a)')
             normalize_wav(source, target)
         clips[name] = target
-    for title, order in dict(TAKES, **{'08_full_scene_en': dialogue}).items():
+    for title, order in take_defs.items():
         assemble(order, clips, out/'takes'/f'{title}.wav', gap=1.5 if title == '08_full_scene_en' else 2.6)
     for name in COMMANDS:
+        if name not in clips:
+            continue
         destination = out/'commands'/f'{name.removeprefix("command_")}.wav'
         assemble([name], clips, destination, intro=0.7, gap=0, outro=0.7)
     for name, job in jobs.items():
@@ -200,7 +212,7 @@ def main():
               'license': 'local eSpeak placeholder, NOT a production voice' if args.engine=='espeak' else 'USER MUST VERIFY SOURCE TTS LICENSE',
               'files': [{'path': str(f.relative_to(out)), 'bytes': f.stat().st_size, 'sha256':sha256(f)} for f in files]}
     (out/'audio_manifest.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
-    print(f'{args.engine.upper()}: {len(clips)} clips; {len(TAKES)+1} takes; {len(COMMANDS)} commands; {len(files)} total WAV in {out}')
+    print(f'{args.engine.upper()}: {len(clips)} clips; {len(take_defs)} takes; {sum(name in clips for name in COMMANDS)} commands; {len(files)} total WAV in {out}')
     if args.engine == 'espeak':
         print('CAUTION: local robotic eSpeak voices are FOR QA TIMING ONLY, not the final public video.')
 
