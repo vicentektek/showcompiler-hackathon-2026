@@ -29,13 +29,13 @@ function usage(){
     'SHOT: node tools/video/run-demo-director.mjs --scene S05 --capture',
     'ASR:  node tools/video/run-demo-director.mjs --scene S08 --mic-wav "C:\\path\\to\\mic_linear_12s.wav" --voice-opt-in --capture',
     'S05 ASR: ... --scene S05 --mic-wav "C:\\path\\to\\operator_mic_12s.wav" --voice-opt-in --capture',
-    'IMPORTANT: --capture creates SILENT Playwright video. Use OBS to capture real app/system audio.',
+    'IMPORTANT: --capture creates SILENT Playwright video. Add --obs to start local OBS recording (preconfigured).',
     'The browser remains operator-driven for consent, ARM, GO, STOP and provider requests.'
   ].join('\n');
 }
 export function parseArgs(argv){
   const options={plan:false,check:false,scene:null,micWav:null,capture:false,voiceOptIn:false,
-    timeoutSeconds:180};
+    timeoutSeconds:180,obs:false};
   for(let i=0;i<argv.length;i++){
     const a=argv[i];
     if(a==='--plan')options.plan=true;
@@ -43,6 +43,7 @@ export function parseArgs(argv){
     else if(a==='--scene')options.scene=argv[++i];
     else if(a==='--mic-wav')options.micWav=argv[++i];
     else if(a==='--capture')options.capture=true;
+    else if(a==='--obs')options.obs=true;
     else if(a==='--voice-opt-in')options.voiceOptIn=true;
     else if(a==='--timeout-seconds')options.timeoutSeconds=Number(argv[++i]);
     else if(a==='--help'||a==='-h')options.help=true;
@@ -56,7 +57,7 @@ export function parseArgs(argv){
   if(options.voiceOptIn&&!options.micWav)throw Error('--voice-opt-in needs --mic-wav');
   if(!Number.isInteger(options.timeoutSeconds)||options.timeoutSeconds<10||options.timeoutSeconds>600)
     throw Error('--timeout-seconds must be an integer between 10 and 600');
-  if((options.plan||options.check)&&(options.capture||options.micWav))throw Error('Plan/check must have zero capture/voice');
+  if((options.plan||options.check)&&(options.capture||options.micWav||options.obs))throw Error('Plan/check must have zero capture/voice');
   return options;
 }
 export async function plan(){
@@ -116,7 +117,7 @@ export async function runScene(opts){
     opts.micWav=path;
   }
   const rl=createInterface({input,output});
-  let browser=null,context=null,page=null,server=null;
+  let browser=null,context=null,page=null,server=null,obs=null;
   try{
     if(opts.micWav){
       const message=[
@@ -177,18 +178,29 @@ export async function runScene(opts){
       log('No microphone WAV selected: this is an offline positioning shot ONLY.');
     await mkdir(OUTPUT,{recursive:true});
     if(opts.capture)await page.screenshot({path:resolve(OUTPUT,opts.scene+'-before.png')});
+    if(opts.obs){
+      const {connectObs}=await import('./obs-control.mjs');
+      obs=await connectObs();
+      await obs.beginRecording();
+      log('OBS RECORDING STARTED (local OBS-WebSocket). Verify scene/audio sources are configured.');
+    }
     log('Scene '+opts.scene+' — '+realName(opts.scene));
     log('OPERATE the real UI now. No GO/ARM/Meta call has been made by this tool.');
     if(opts.micWav)log('Audio source is a prerecorded WAV via Chromium fake microphone (NOT a human microphone).');
-    log('If using OBS, start/stop OBS capture manually. Playwright browser video is SILENT.');
+    if(!opts.obs)log('Start/stop OBS manually if you need real audio. Playwright browser video is SILENT.');
     await ask(rl,'When the scene is complete, press Enter to stop capturing and save a final screenshot.');
     if(opts.capture)await page.screenshot({path:resolve(OUTPUT,opts.scene+'-after.png')});
+    if(opts.obs){
+      const path=await obs.stopRecording();
+      log('OBS recording saved: '+(path??'check OBS recordings folder'));
+    }
     if(opts.scene==='S08'&&await page.locator('#rqLiveArm').getAttribute('aria-pressed')==='true')
       log('WARNING: Auto GO remained armed in UI. Ensure STOP ALL/DISARM before leaving.');
     await page.close();
     if(opts.capture)log('Playwright recorded a SILENT browser video under '+OUTPUT);
     log('End of shot. Save OBS application-audio recording separately.');
   }finally{
+    try{if(obs)await obs.close();}catch{}
     try{await page?.close();}catch{}
     try{await context?.close();}catch{}
     try{await browser?.close();}catch{}
