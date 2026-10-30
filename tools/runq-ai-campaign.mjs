@@ -16,6 +16,7 @@ import {parseAgentLiveOptions,getAgentLiveScenario,
 
 const CATEGORIES=['closing','followup','delete','reorder','rename',
  'summary','negative','missing','voice','audio'];
+const OBJECTIVE_CATEGORIES=CATEGORIES.filter(category=>category!=='audio');
 const PROVIDERS=['meta','baseten'];
 const VALID_STOPS=new Set(['COMPLETE','CUMULATIVE_BUDGET_CAP_REACHED',
  'CASE_ALREADY_RESERVED','UNKNOWN_REMOTE_OUTCOME','PROVIDER_AUTH_OR_RATE_BLOCK',
@@ -268,8 +269,15 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
   return m.scored>=60&&m.byLanguage.es.scored>=25&&m.byLanguage.en.scored>=25&&
    CATEGORIES.every(category=>m.byCategory[category].attempts>=4);
  });
- const qualityPass=enough&&providers.every(p=>
-  byProvider[p].correctRate>=95&&byProvider[p].contractValidRate>=99);
+ const qualityPass=enough&&providers.every(p=>{
+  const metrics=byProvider[p];
+  return metrics.correctRate>=95&&metrics.contractValidRate>=99&&
+   OBJECTIVE_CATEGORIES.every(category=>{
+    const family=metrics.byCategory[category];
+    return family.scored>=4&&family.correctRate>=95&&
+     family.contractValidRate>=99;
+   });
+ });
  let status='NEEDS_EVIDENCE';
  if(blocking)status='BLOCKED';
  else if(enough&&preflightPassed===true)
