@@ -95,8 +95,12 @@ def azure_ssml(job):
             '</speak>\n')
 
 def command(cmd, *, input_text=None):
-    return subprocess.run(cmd, input=input_text, text=input_text is not None,
-                          capture_output=True, check=True)
+    result = subprocess.run(cmd, input=input_text, text=input_text is not None,
+                            capture_output=True, check=False)
+    if result.returncode:
+        stderr = result.stderr if isinstance(result.stderr, str) else result.stderr.decode(errors='replace')
+        raise RuntimeError(f'{cmd[0]} failed (exit {result.returncode}): {stderr[-600:]}')
+    return result
 
 def normalize_wav(source, dest):
     if not shutil.which('ffmpeg'):
