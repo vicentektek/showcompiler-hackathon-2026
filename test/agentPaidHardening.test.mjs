@@ -37,6 +37,8 @@ test('start-index makes consecutive paid batches disjoint; invalid ranges fail c
  assert.equal([...a].filter(id=>b.has(id)).length,0);
  assert.throws(()=>parseAgentLiveOptions(['--start-index','-1']),/INVALID_AGENT_LIVE_EVAL_CONFIG/);
  assert.throws(()=>parseAgentLiveOptions(['--start-index','100001']),/INVALID_AGENT_LIVE_EVAL_CONFIG/);
+ assert.throws(()=>parseAgentLiveOptions(['--cases','200','--start-index','99950']),
+  /INVALID_AGENT_LIVE_EVAL_CONFIG/);
 });
 
 test('agent evaluator does not grade empty generic ANSWER as correct summary',()=>{
