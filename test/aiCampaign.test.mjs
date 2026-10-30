@@ -90,6 +90,17 @@ test('analyzer compares matching pairs only and never counts duplicated paid evi
  assert.equal(result.duplicates.length,1);
  assert.equal(result.status,'BLOCKED');
 });
+test('paid identity cannot be replayed under changed language or category metadata',()=>{
+ const original=row('paid-0001','meta');
+ const relabeled=row('paid-0001','meta',{language:'en',category:'audio'});
+ const result=analyzeAiPaidReports({reports:[
+  {filename:'eval-1-1.json',report:report([original])},
+  {filename:'eval-2-1.json',report:report([relabeled])}
+ ],warnings:[]},{preflightPassed:true,providers:['meta']});
+ assert.equal(result.attempted,1);
+ assert.equal(result.duplicates.length,1);
+ assert.equal(result.status,'BLOCKED');
+});
 
 test('analyzer refuses to pool different experiment seeds or remote unknown outcomes',()=>{
  const base=report([row('paid-0001','meta')]);

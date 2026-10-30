@@ -221,7 +221,9 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
    reason:report.stopReason});
   for(const row of report.results){
    if(!saneRow(row)){warnings.push({filename:item.filename,reason:'BAD_ROW'});continue;}
-   const key=[seed,row.id,row.provider,row.category,row.language].join('|');
+    // A paid reservation is identified by seed + case ID + provider. Category
+    // and language are metadata and must not make the same billed case unique.
+    const key=[seed,row.id,row.provider].join('|');
    if(seen.has(key)){duplicates.push({id:row.id,provider:row.provider});continue;}
    seen.add(key);rows.push({...row});
   }
