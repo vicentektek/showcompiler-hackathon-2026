@@ -23,12 +23,19 @@
     "qa:compare-providers": "node tools/compare-provider-seminar.mjs",
     "qa:agent:mass": "node tools/runq-agent-mass-eval.mjs --cases 600 --seed 20261029",
     "qa:agent:live:plan": "node tools/runq-agent-live-eval.mjs --cases 200 --providers meta,baseten --budget-usd 30 --reserve-usd 0.15",
-    "qa:agent:live": "node tools/runq-agent-live-eval.mjs"
+    "qa:agent:live": "node tools/runq-agent-live-eval.mjs",
+    "desktop:dev": "electron .",
+    "desktop:pack": "electron-builder --win portable --x64 --publish never"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "libarchive.js": "2.0.2"
+  },
+  "main": "electron/main.cjs",
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
   }
 }

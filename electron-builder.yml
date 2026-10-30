@@ -1,0 +1,23 @@
+appId: com.runq.studio
+productName: RUNQ
+asar: true
+directories:
+  output: dist-electron
+files:
+  - index.html
+  - sound-lab.html
+  - package.json
+  - src/**/*
+  - tools/**/*
+  - electron/**/*
+  - node_modules/libarchive.js/**/*
+  - "!**/*.map"
+  - "!**/test/**"
+  - "!**/.env"
+  - "!**/.runq-local/**"
+  - "!**/artifacts/**"
+win:
+  target:
+    - target: portable
+      arch: [x64]
+  artifactName: "RUNQ-spike-${version}-${arch}.${ext}"

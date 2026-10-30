@@ -1,0 +1,36 @@
+name: RUNQ experimental Windows portable smoke
+on:
+  push:
+    branches:
+      - spike/runq-electron-windows-2026-10-30
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-portable:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned runtime and builder (no paid AI)
+        run: npm install --no-audit --no-fund
+      - name: Offline security and loopback smoke
+        run: node --test test/electronSpike.test.mjs
+      - name: Package Windows portable candidate (not an installer/certified release)
+        run: npm run desktop:pack
+      - name: Check portable build exists
+        shell: pwsh
+        run: |
+          $exe = @(Get-ChildItem -Path dist-electron -Filter '*.exe' -File)
+          if ($exe.Count -lt 1) { throw 'Portable EXE missing' }
+          $exe | ForEach-Object { Write-Host "Build: $($_.Name) ($($_.Length) bytes)" }
+      - name: Upload private experimental build
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-windows-electron-spike
+          path: dist-electron/*.exe
+          retention-days: 2
+          if-no-files-found: error
