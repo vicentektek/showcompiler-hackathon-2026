@@ -213,6 +213,32 @@ try {
   assert.equal(await page.locator('#cuePlaybackForm').count(),1);
   assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforeDock);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),startBeforeDock,'Docking must never GO');
+  // A tab change must throw away the OLD detached form rather than leave stale
+  // clip handles linked to the previous inspector state.
+  await page.locator('#rqStudioAudioDockOpen').click();
+  await page.locator('[data-inspector-tab="details"]').click();
+  assert.equal(await page.locator('#rqStudioAudioDock').isHidden(),true);
+  assert.equal(await page.locator('#cuePlaybackForm').count(),0);
+  await page.locator('[data-inspector-tab="audio"]').click();
+  assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),1,
+    'Re-entering Audio rehomes the newly rendered playback form');
+  await page.setViewportSize({width:1920,height:1080});
+  const workstationGeometry=await page.evaluate(()=>{
+    const rect=id=>document.getElementById(id).getBoundingClientRect();
+    const list=rect('cueList'),dock=rect('rqStudioAudioDock');
+    const go=rect('operatorGoBtn'),stop=rect('operatorPanicBtn');
+    return {listWidth:list.width,dockWidth:dock.width,
+      dockBottom:dock.bottom,goBottom:go.bottom,stopBottom:stop.bottom,
+      windowHeight:innerHeight};
+  });
+  assert.ok(workstationGeometry.listWidth>280 && workstationGeometry.dockWidth>550,
+    'Studio work surfaces need real desktop width');
+  assert.ok(workstationGeometry.goBottom<=1080 && workstationGeometry.stopBottom<=1080,
+    'Bottom dock must not push GO / STOP ALL outside the desktop viewport');
+  await capture('06c-studio-audio-dock-1920.png');
+  await page.locator('#rqStudioAudioDockToggle').click();
+  await page.setViewportSize({width:1366,height:768});
+  assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),1);
   // Studio focus is a PRESENTATION mode. It never clones the cue list or
   // inspector, nor can it modify NEXT or start mocked show audio.
   assert.equal(await page.locator('#rqStudioFocusList').count(), 1);
