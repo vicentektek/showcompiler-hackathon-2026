@@ -201,21 +201,38 @@ function judge(scenario,response){
  }
 }
 function rate(values,predicate){return values.length?Math.round(1000*values.filter(predicate).length/values.length)/10:null;}
+function percentile(values,proportion){
+ if(!values.length)return null;
+ const sorted=[...values].sort((a,b)=>a-b);
+ return sorted[Math.ceil(proportion*sorted.length)-1];
+}
 function summarize(rows,config){
  const aggregate={};
  for(const provider of config.providers){
   const records=rows.filter(r=>r.provider===provider);
+  const scored=records.filter(r=>typeof r.correct==='boolean');
   aggregate[provider]={
-   total:records.length,validRate:rate(records,r=>r.valid),
-   correctRate:rate(records,r=>r.correct),
+   total:records.length,scored:scored.length,
+   humanReview:records.filter(r=>r.reviewRequired).length,
+   validRate:rate(records,r=>r.valid),
+   correctRate:rate(scored,r=>r.correct),
    resolvesRate:rate(records,r=>r.resolved),
    errors:records.filter(r=>r.httpStatus!==200).length,
    clarificationRate:rate(records,r=>r.result==='CLARIFIED'),
-   medianLatencyMs:records.length?records.map(r=>r.latencyMs).sort((a,b)=>a-b)[Math.floor(records.length/2)]:null,
+   medianLatencyMs:percentile(records.map(r=>r.latencyMs),0.5),
+   p95LatencyMs:percentile(records.map(r=>r.latencyMs),0.95),
+   byLanguage:Object.fromEntries(['es','en'].map(lang=>{
+    const subset=records.filter(r=>r.language===lang);
+    const scoredLang=subset.filter(r=>typeof r.correct==='boolean');
+    return [lang,{attempts:subset.length,scored:scoredLang.length,
+     validRate:rate(subset,r=>r.valid),
+     correctRate:rate(scoredLang,r=>r.correct)}];
+   }))
   };
  }
- return {version:1,realProviderEvaluations:config.live,providers:config.providers,
+ return {version:2,realProviderEvaluations:config.live,providers:config.providers,
   plannedRequests:config.cases,attemptedRequests:rows.length,
+  startIndex:config.startIndex,seed:config.seed,
   reserveUsdPerAttempt:config.reserveUsd,budgetUsd:config.budgetUsd,
   providerMetrics:aggregate,strictlySyntheticFixtures:true,results:rows};
 }
@@ -223,18 +240,24 @@ function format(report){
  const output=[
   '# RUNQ Agent — real-provider A/B evaluation','',
   'Synthetic theatre fixtures only. Human theatre review required for artistic quality.',
+  'A creative ANSWER is excluded from automatic accuracy until a person reviews it.',
   'No prompt, project, secret or raw provider response is recorded.','',
-  '| Provider | Attempts | Correct % | Valid % | Resolves % | Clarification % | Errors | Median ms |',
-  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
- for(const [provider,row] of Object.entries(report.providerMetrics))
-  output.push('| '+provider+' | '+row.total+' | '+row.correctRate+' | '+row.validRate+
-   ' | '+row.resolvesRate+' | '+row.clarificationRate+' | '+row.errors+
-   ' | '+row.medianLatencyMs+' |');
+  '| Provider | Attempts | Scored | Human review | Correct % | Valid % | Resolves % | Clarification % | Errors | p50/p95 ms |',
+  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
+ for(const [provider,row] of Object.entries(report.providerMetrics)){
+  output.push('| '+provider+' | '+row.total+' | '+row.scored+' | '+row.humanReview+
+   ' | '+row.correctRate+' | '+row.validRate+' | '+row.resolvesRate+
+   ' | '+row.clarificationRate+' | '+row.errors+
+   ' | '+row.medianLatencyMs+'/'+row.p95LatencyMs+' |');
+  for(const [language,score] of Object.entries(row.byLanguage))
+   output.push('- '+provider+' / '+language+': '+score.scored+'/'+score.attempts+
+    ' scored; valid '+score.validRate+'%; correct '+score.correctRate+'%.');
+ }
  output.push('','Reserved maximum USD per request: '+report.reserveUsdPerAttempt+
   '. This is a local reservation, NOT authoritative provider billing.',
   '','## Failures / review queue','');
- for(const row of report.results.filter(r=>!r.correct).slice(0,70))
-  output.push('- '+row.id+' · '+row.provider+' · '+row.category+
+ for(const row of report.results.filter(r=>r.correct!==true).slice(0,70))
+  output.push('- '+row.id+' · '+row.provider+' · '+row.language+' · '+row.category+
    ' · '+row.result+' · HTTP '+row.httpStatus);
  return output.join('\n')+'\n';
 }
