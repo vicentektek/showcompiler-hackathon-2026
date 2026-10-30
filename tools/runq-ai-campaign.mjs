@@ -147,6 +147,53 @@ export async function auditAiReservations(evidence,{
  }
 }
 
+async function readSmallJson(file){
+ try{
+  const data=await readFile(file,'utf8');
+  if(data.length>1_500_000)return null;
+  const obj=JSON.parse(data);
+  return obj&&typeof obj==='object'&&!Array.isArray(obj)?obj:null;
+ }catch{return null;}
+}
+/** Reuse only existing reports. Never infer live quality from dry-run outputs. */
+export async function readAiSubsystemEvidence({root=process.cwd()}={}){
+ const base=resolve(root);
+ const meta=await readSmallJson(join(base,'artifacts/seminar-live/report.json'));
+ const baseten=await readSmallJson(join(base,'artifacts/seminar-baseten/report.json'));
+ const theatre={};
+ for(const [name,report] of [['meta',meta],['baseten',baseten]]){
+  const isLive=report?.realInferenceExecuted===true&&
+   (name==='meta'?report.kind==='LOCAL_LIVE_META_EXPERIMENT':
+    report.kind==='LOCAL_LIVE_BASETEN_EXPERIMENT');
+  const scored=Number.isSafeInteger(report?.scoredCases)?report.scoredCases:0;
+  const f1=typeof report?.score?.f1==='number'&&
+   Number.isFinite(report.score.f1)?report.score.f1:null;
+  theatre[name]={status:!isLive?'NO_REAL_PROVIDER_EVIDENCE':
+   scored>0?'PROVISIONAL_SCORED':'LIVE_INCOMPLETE',
+   requests:isLive?report.submittedRequests:0,
+   scoredCases:isLive?scored:0,f1:isLive?f1:null,
+   goldHumanReviewed:report?.goldHumanReviewed===true,
+   stopReason:isLive?(report.haltReason??null):null};
+ }
+ let sfxReports=[];
+ const sfxDir=join(base,'.runq-local/sfx-latency-lab');
+ try{sfxReports=(await readdir(sfxDir)).filter(x=>/^report-[a-zA-Z0-9-]+\.json$/.test(x)).sort();}
+ catch(error){if(error.code!=='ENOENT')throw error;}
+ let sfx=null;
+ if(sfxReports.length)sfx=await readSmallJson(join(sfxDir,sfxReports.at(-1)));
+ const isRealSfx=sfx?.kind==='AUTHORIZED_MODAL_SFX_LATENCY_TEST';
+ const cases=Array.isArray(sfx?.cases)?sfx.cases:[];
+ const sound={status:isRealSfx?'REAL_ATTEMPTS_NEED_LISTENING':
+  'NO_REAL_GENERATION_EVIDENCE',cases:isRealSfx?cases.length:0,
+  completed:isRealSfx?cases.filter(x=>['READY','COMPLETE','COMPLETED',
+   'IMPORTED'].includes(x.status)).length:0,
+  stoppedReason:isRealSfx?(sfx.stoppedReason??null):null};
+ return {theatre,sound,
+  voice:{status:'REAL_ASR_EVIDENCE_NOT_CONNECTED'},
+  autopilot:{status:'REAL_REHEARSAL_EVIDENCE_NOT_CONNECTED'},
+  narration:{status:'NOT_IMPLEMENTED_OR_NOT_VALIDATED'}};
+}
+
 function metricGroup(rows){
  const completed=rows.filter(x=>x.httpStatus===200);
  const scored=completed.filter(x=>typeof x.correct==='boolean');
@@ -297,6 +344,17 @@ export function formatAiCampaignReport(report,{manifestHash=null}={}){
  if(!report.disagreements.length)lines.push('- Sin discrepancias emparejadas registradas.');
  lines.push('','## Acciones prioritarias','');
  for(const x of report.nextActions)lines.push('- '+x);
+ if(report.subsystems){
+  lines.push('','## Evidencia de otras IA','');
+  for(const [name,v] of Object.entries(report.subsystems.theatre??{}))
+   lines.push('- Guion '+name+': '+v.status+'; peticiones '+
+    (v.requests??0)+'; casos evaluados '+(v.scoredCases??0)+
+    '; F1 provisional '+(v.f1===null?'n/a':(v.f1*100).toFixed(1)+'%')+'.');
+  lines.push('- Sound Lab Modal: '+report.subsystems.sound.status+
+   '; trabajos informados '+report.subsystems.sound.cases+'.');
+  lines.push('- ASR: '+report.subsystems.voice.status+'.');
+  lines.push('- Autopiloto: '+report.subsystems.autopilot.status+'.');
+ }
  lines.push('','## Puertas de aceptación por sistema','',
   '| Sistema | Estado | Evidencia exigida |',
   '| --- | --- | --- |',
@@ -313,7 +371,8 @@ export function formatAiCampaignReport(report,{manifestHash=null}={}){
 export async function runAiCampaign(config,{preflight=runAiPreflight,
  paidRunner=runPaidAgentEvaluation,reportsReader=readAiPaidReports,
  ledgerAuditor=auditAiReservations,
- outputDir=resolve('artifacts/ai-campaign'),ciCheck=()=>process.env.CI==='true'}={}){
+ outputDir=resolve('artifacts/ai-campaign'),ciCheck=()=>process.env.CI==='true',
+ subsystemReader=readAiSubsystemEvidence}={}){
  if(config.live&&ciCheck())fail('PAID_TESTS_DISABLED_IN_CI');
  if(config.live&&!config.ackPaid)fail('EXPLICIT_PAID_OPT_IN_REQUIRED');
  if(config.live&&config.reportOnly)fail('INVALID_LIVE_REPORT_ONLY');
@@ -345,8 +404,10 @@ export async function runAiCampaign(config,{preflight=runAiPreflight,
   result.nextActions.unshift('P0: conciliar reservas de pago sin informe ('+
    ledger.orphanKeys.length+'); no reiniciar estas solicitudes.');
  }
+ const subsystems=await subsystemReader();
  const summary={...result,stage,paidExecutionAuthorized:config.live,
-  budgetEvidence:ledger,manifestHash:manifest.hash,manifest:manifest.manifest,
+  budgetEvidence:ledger,subsystems,
+  manifestHash:manifest.hash,manifest:manifest.manifest,
   executedPaidBatch:paidResult?{
    requested:config.cases,attempted:paidResult.attemptedRequests,
    stopReason:paidResult.stopReason,localReservedUsd:paidResult.totalLocalReservedUsd}:null};
