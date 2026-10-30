@@ -93,6 +93,7 @@ Estados posibles:
 | `BLOCKED` | Error crítico: preflight, resultados duplicados, mezcla de commits, reserva sin informe o situación remota incierta |
 | `PRIOR_RESERVATIONS_NEED_RECONCILIATION` | Hay reservas sin evidencia local; no enviar más hasta aclararlo |
 | `PAID_BATCH_STOPPED` | La campaña autorizada se detuvo sin completar todos sus intentos |
+| `PREVIOUS_PAID_CAMPAIGN_INCIDENT` | Falló una tanda anterior con esa misma semilla; la automatización bloquea nuevas peticiones hasta revisar el incidente y crear un experimento distinto |
 
 **Criterios automáticos iniciales del agente:** >=60 casos evaluados por proveedor, >=25 por idioma y >=4 intentos por categoría; >=95 % de exactitud semántica en el subconjunto evaluable y >=99 % de respuestas contractualmente válidas entre HTTP 200. Son **objetivos de aceptación internos**, no un estándar oficial.
 
