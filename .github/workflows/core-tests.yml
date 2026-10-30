@@ -24,6 +24,16 @@ jobs:
           python -m py_compile modal/runq_sfx_pilot.py
       - name: Full Codex QA (offline syntax, unit tests and synthetic cue comparisons)
         run: npm run qa:codex
+      - name: Integrated AI campaign analyzer (report-only, zero provider calls)
+        run: npm run qa:ai:campaign -- --report-only
+      - name: Upload consolidated AI acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-ai-acceptance-offline
+          path: artifacts/ai-campaign/run-*/summary.*
+          if-no-files-found: warn
+          retention-days: 14
       - name: V15 RUNQ AI Agent mass evaluation (600 offline cases, zero provider calls)
         run: npm run qa:agent:mass
       - name: Upload V15 agent synthetic QA report
