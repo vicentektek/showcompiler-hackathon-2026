@@ -43,8 +43,9 @@ export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=(
   return interpretLocalAgentRequest(show,request,{assetAvailable});
  const locale=/\b(?:add|create|append|insert|end|closing|whatever|appropriate)\b/i.test(request)?'en':'es';
  const spanish=locale==='es';
- const previous=prior.filter(x=>x.role==='user').slice(-3).reverse()
-  .find(x=>ADD.test(x.text)&&(CUES.test(x.text)||END.test(x.text)));
+ const lastUser=prior.filter(x=>x.role==='user').at(-1);
+ const previous=lastUser&&ADD.test(lastUser.text)&&
+  (CUES.test(lastUser.text)||END.test(lastUser.text))?lastUser:null;
  const askedForCreative=DELEGATE.test(request);
  const directAdd=ADD.test(request)&&CUES.test(request);
  const correction=/\b(?:mejor|en\s+vez\s+de|rather|instead|make\s+it|pon|que\s+sean)\b/i.test(request);

@@ -60,6 +60,19 @@ test('context from old project can be ignored by supplying empty conversation',(
  assert.notEqual(resolveAgentDialogue(p,'you decide',{history:[]}).status,'PLAN');
 });
 
+test('an unrelated turn closes an older pending creative request',()=>{
+ const p=show();
+ const interrupted=[
+  {role:'user',text:'Add 2 empty cues at the end'},
+  {role:'assistant',text:'Which cues should I add?'},
+  {role:'user',text:'How many cues are already in this show?'},
+  {role:'assistant',text:'There is one existing cue.'}
+ ];
+ const result=resolveAgentDialogue(p,'you decide',{history:interrupted});
+ assert.notEqual(result.status,'PLAN');
+ assert.deepEqual(result.operations,[]);
+});
+
 test('English count before adjective is not replaced by a default of three',()=>{
  const project=show();
  const result=resolveAgentDialogue(project,'Add 2 empty cues at the end');
