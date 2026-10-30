@@ -258,7 +258,8 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
    Number(a.reviewRequired)-Number(b.reviewRequired)||
    a.category.localeCompare(b.category));
  const mixedCommits=commits.size>1;
- const blocking=duplicates.length>0||mixedCommits||
+ const unknownCommit=[...commits].some(x=>!(/^[0-9a-f]{40}$/.test(x)));
+ const blocking=duplicates.length>0||mixedCommits||unknownCommit||
   stopped.some(x=>x.reason==='UNKNOWN_REMOTE_OUTCOME')||preflightPassed===false;
  const enough=providers.every(p=>{
   const m=byProvider[p];
@@ -277,6 +278,7 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
  if(preflightPassed===false)action.push('P0: reparar la batería offline antes de gastar.');
  if(duplicates.length)action.push('P0: investigar informes de solicitudes duplicadas; no repetir estos IDs.');
  if(mixedCommits)action.push('P0: no combinar resultados de versiones distintas del código; volver a evaluar con nuevos casos.');
+ if(unknownCommit)action.push('P0: informe real sin commit verificable; no certificar su calidad.');
  for(const s of stopped)
   if(s.reason==='UNKNOWN_REMOTE_OUTCOME')
    action.push('P0: comprobar proveedor/factura antes de otros envíos; resultado remoto incierto.');
@@ -296,7 +298,7 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
  action.push('Comparar costes reales en las consolas de Meta, Baseten y Modal.');
  action.push('Registrar voz real, Autopiloto armado y escucha SFX antes de certificar el flujo completo.');
  return {schema:1,status,seed,preflightPassed,
-  attempted:rows.length,duplicates,warnings,stopped,mixedCommits,commits:[...commits],byProvider,
+  attempted:rows.length,duplicates,warnings,stopped,mixedCommits,unknownCommit,commits:[...commits],byProvider,
   matchedPairs:paired.length,disagreements,failures,
   manualAcceptanceRequired:true,automaticQualitySufficient:qualityPass&&!blocking,
   nextActions:[...new Set(action)]};
