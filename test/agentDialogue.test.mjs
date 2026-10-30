@@ -80,3 +80,18 @@ test('English count before adjective is not replaced by a default of three',()=>
  assert.equal(result.operations.length,2);
  assert.deepEqual(result.operations.map(x=>x.label),['Pending cue 1','Pending cue 2']);
 });
+
+test('English delegated and corrective follow-ups stay in English',()=>{
+ const project=show();
+ const englishHistory=[
+  {role:'user',text:'Add some cues at the end to finish the show'},
+  {role:'assistant',text:'Which cues should I add?'}
+ ];
+ for(const prompt of ['you choose','as you see fit','make it four cues instead']){
+  const result=resolveAgentDialogue(project,prompt,{history:englishHistory});
+  assert.equal(result.status,'PLAN');
+  assert.match(result.message,/^I propose /);
+  assert.ok(result.operations.every(operation=>
+   /^(?:Closing|Final|Exit|Farewell|Last|Additional)/.test(operation.label)));
+ }
+});
