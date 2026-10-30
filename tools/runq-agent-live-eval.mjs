@@ -16,6 +16,7 @@ import {buildAgentContext,prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {createHash} from 'node:crypto';
 
 const CATEGORIES=[
  'closing','followup','delete','reorder','rename','summary',
@@ -27,7 +28,7 @@ const labels=[
  ['Theatre intro','Thunder','Music sting','Exit sequence'],
  ['Introducción','Puerta','Transición final','Despedida'],
 ];
-const dialogue=[
+const dialogueEn=[
  'ANA: Tonight everything is ready for our final presentation',
  '(Opening fanfare)',
  'LUIS: Please open the door when the music has finished',
@@ -36,9 +37,18 @@ const dialogue=[
  '(Closing music)',
  'FIN'
 ].join('\n');
+const dialogueEs=[
+ 'ANA: Esta noche tenemos todo preparado para la presentación final',
+ '(Suena la fanfarria inicial)',
+ 'LUIS: Abre la puerta cuando termine la música, por favor',
+ '(Se abre la puerta)',
+ 'ANA: Ha llegado el momento de despedirnos de todos',
+ '(Suena la música de cierre)',
+ 'FIN'
+].join('\n');
 function opts(argv){
  const o={live:false,ackPaid:false,cases:120,providers:['meta','baseten'],
-  budgetUsd:24,reserveUsd:0.15,seed:20261029};
+  budgetUsd:24,reserveUsd:0.15,seed:20261029,startIndex:0};
  const used=new Set();
  for(let i=0;i<argv.length;i++){
   const flag=argv[i];
@@ -46,12 +56,12 @@ function opts(argv){
   used.add(flag);
   if(flag==='--live'){o.live=true;continue;}
   if(flag==='--ack-paid'){o.ackPaid=true;continue;}
-  if(!['--cases','--providers','--budget-usd','--reserve-usd','--seed'].includes(flag))
+  if(!['--cases','--providers','--budget-usd','--reserve-usd','--seed','--start-index'].includes(flag))
    throw new TypeError('UNKNOWN_FLAG');
   const raw=argv[++i];
   if(!raw||raw.startsWith('--'))throw new TypeError('MISSING_FLAG_VALUE');
   const key={'--cases':'cases','--providers':'providers','--budget-usd':'budgetUsd',
-   '--reserve-usd':'reserveUsd','--seed':'seed'}[flag];
+   '--reserve-usd':'reserveUsd','--seed':'seed','--start-index':'startIndex'}[flag];
   o[key]=key==='providers'?raw.split(','):Number(raw);
  }
  if(o.live!==o.ackPaid||!Number.isSafeInteger(o.cases)||o.cases<2||o.cases>400||
@@ -61,24 +71,31 @@ function opts(argv){
     o.cases%o.providers.length!==0||o.cases/o.providers.length<1||
     !Number.isFinite(o.budgetUsd)||o.budgetUsd<0.10||o.budgetUsd>100||
     !Number.isFinite(o.reserveUsd)||o.reserveUsd<0.01||o.reserveUsd>5||
-    !Number.isSafeInteger(o.seed)||o.seed<1||o.seed>2147483647)
+    !Number.isSafeInteger(o.seed)||o.seed<1||o.seed>2147483647||
+    !Number.isSafeInteger(o.startIndex)||o.startIndex<0||o.startIndex>100000||
+    o.startIndex+o.cases/o.providers.length-1>100000)
    throw new TypeError('INVALID_AGENT_LIVE_EVAL_CONFIG');
  return o;
 }
-function fixture(index){
- let p=createNewShow({name:'Synthetic show '+(index%7),scriptText:dialogue});
- for(const label of labels[index%labels.length])
+function fixture(index,language){
+ let p=createNewShow({name:'Synthetic show '+(Math.floor(index/2)%7),
+  scriptText:language==='es'?dialogueEs:dialogueEn});
+ for(const label of labels[Math.floor(index/2)%labels.length])
   p=insertManualCue(p,{label}).project;
  return normalizeShowProject({...p,cues:p.cues.map((c,i)=>({
   ...c,sourceLineIds:['L2','L4','L6','L7'].slice(i,i+1)
  }))});
 }
-function getScenario(index){
- const project=fixture(index),kind=CATEGORIES[index%CATEGORIES.length];
- const cue1=project.cues[0],cue2=project.cues[1],cue3=project.cues[2];
- const variants=index%3;
+function getScenario(index,seed=20261029){
+ if(!Number.isSafeInteger(index)||index<0||index>100000||
+    !Number.isSafeInteger(seed)||seed<1||seed>2147483647)
+  throw new TypeError('INVALID_AGENT_SCENARIO');
+ // Every family is tested in both languages. Old index%10 / index%2 was monolingual.
  const es=index%2===0,language=es?'es':'en';
- const count=(index%4)+2;
+ const kind=CATEGORIES[Math.floor(index/2)%CATEGORIES.length];
+ const variants=(Math.floor(index/(CATEGORIES.length*2))+seed%3)%3;
+ const project=fixture(index,language);
+ const cue1=project.cues[0],cue2=project.cues[1],cue3=project.cues[2];
  let prompt,conversation=[],expected={kind};
  if(kind==='closing'){
   prompt=es?['Añade tres cues vacíos al final','Prepara 3 cues nuevos para cerrar la obra',
@@ -87,11 +104,31 @@ function getScenario(index){
     'Append three closing cues'][variants];
   expected={kind:'CREATE_CUE',count:3};
  }else if(kind==='followup'){
-  conversation=[
-   {role:'user',text:es?'Añádelos al final para rematar el show':
+  const isSpanish=es;
+  const previous=[
+   {role:'user',text:isSpanish?'Añádelos al final para rematar el show':
      'Add some cues at the end to finish the show'},
-   {role:'assistant',text:es?'¿Qué cues quieres?':'Which cues should I add?'}
+   {role:'assistant',text:isSpanish?'¿Qué cues quieres?':'Which cues should I add?'}
   ];
+  const context4=[
+   {role:'user',text:isSpanish?'¿Cuántos cues hay en el show?':
+     'How many cues does the show have?'},
+   {role:'assistant',text:isSpanish?'Hay cuatro cues existentes.':
+     'There are four existing cues.'},
+  ];
+  const context8=[
+   {role:'user',text:isSpanish?'Quiero preparar el cierre.':
+     'I want to work on the closing sequence.'},
+   {role:'assistant',text:isSpanish?'Podemos proponer nuevos cues sin cambiar los existentes.':
+     'We can propose new cues without changing existing ones.'},
+   {role:'user',text:isSpanish?'No modifiques el sonido original.':
+     'Do not change the original audio.'},
+   {role:'assistant',text:isSpanish?'Conservaré el audio y pediré aprobación de cambios.':
+     'I will preserve existing audio and propose only reviewable edits.'}
+  ];
+  conversation=variants===0?previous:
+   variants===1?[...context4,...previous]:
+   [...context8,...context4,...previous];
   prompt=es?'los que te parezcan más apropiados':'you decide what fits best';
   expected={kind:'CREATE_CUE',count:3};
  }else if(kind==='delete'){
@@ -125,14 +162,34 @@ function getScenario(index){
   expected={kind:'ANSWER'};
  }
  return {id:'paid-'+String(index+1).padStart(4,'0'),kind,project,prompt,
-  conversation,expected,language,seedIndex:index};
+  conversation,expected,language,seedIndex:index,seed};
 }
 function judge(scenario,response){
- if(response.status==='CLARIFY')return {correct:scenario.expected.kind==='NO_PLAN',
-  resolved:false,valid:true,reason:'CLARIFIED'};
- if(response.status==='ANSWER')return {correct:['ANSWER','NO_PLAN'].includes(scenario.expected.kind),
-  resolved:false,valid:true,reason:'ANSWERED'};
- if(response.status!=='PLAN')return {correct:false,resolved:false,valid:false,reason:'BAD_STATUS'};
+ if(!response||typeof response!=='object'||!Array.isArray(response.operations)||
+    !['PLAN','ANSWER','CLARIFY'].includes(response.status)||
+    typeof response.message!=='string')
+  return {correct:false,resolved:false,valid:false,reason:'BAD_REPLY_SHAPE'};
+ if(response.status!=='PLAN'){
+  if(response.operations.length)
+   return {correct:false,resolved:false,valid:false,reason:'UNEXPECTED_OPERATIONS'};
+  if(response.status==='CLARIFY')
+   return {correct:scenario.expected.kind==='NO_PLAN',resolved:false,valid:true,reason:'CLARIFIED'};
+  if(scenario.expected.kind==='ANSWER'&&scenario.kind==='audio')
+   return {correct:null,resolved:false,valid:true,reviewRequired:true,reason:'ARTISTIC_REVIEW_REQUIRED'};
+  if(scenario.expected.kind==='ANSWER'&&scenario.kind==='summary'){
+   const reply=response.message.toLocaleLowerCase();
+   const grounded=scenario.project.cues.every(cue=>
+    reply.includes(cue.label.toLocaleLowerCase()));
+   return {correct:grounded,resolved:false,valid:true,
+    reason:grounded?'GROUNDED_SUMMARY':'UNGROUNDED_SUMMARY'};
+  }
+  if(scenario.expected.kind==='NO_PLAN'){
+   const falseClaim=/\b(?:i (?:deleted|created|removed|added)|he (?:borrado|creado|eliminado|a[nñ]adido))\b/i;
+   const correct=!falseClaim.test(response.message);
+   return {correct,resolved:false,valid:true,reason:correct?'SAFE_NO_PLAN':'FALSE_MUTATION_CLAIM'};
+  }
+  return {correct:false,resolved:false,valid:true,reason:'WRONG_ANSWER'};
+ }
  try{
   const plan=prepareAgentPlan(scenario.project,response.operations);
   const {expected}=scenario;
@@ -165,21 +222,38 @@ function judge(scenario,response){
  }
 }
 function rate(values,predicate){return values.length?Math.round(1000*values.filter(predicate).length/values.length)/10:null;}
+function percentile(values,proportion){
+ if(!values.length)return null;
+ const sorted=[...values].sort((a,b)=>a-b);
+ return sorted[Math.ceil(proportion*sorted.length)-1];
+}
 function summarize(rows,config){
  const aggregate={};
  for(const provider of config.providers){
   const records=rows.filter(r=>r.provider===provider);
+  const scored=records.filter(r=>typeof r.correct==='boolean');
   aggregate[provider]={
-   total:records.length,validRate:rate(records,r=>r.valid),
-   correctRate:rate(records,r=>r.correct),
+   total:records.length,scored:scored.length,
+   humanReview:records.filter(r=>r.reviewRequired).length,
+   validRate:rate(records,r=>r.valid),
+   correctRate:rate(scored,r=>r.correct),
    resolvesRate:rate(records,r=>r.resolved),
    errors:records.filter(r=>r.httpStatus!==200).length,
    clarificationRate:rate(records,r=>r.result==='CLARIFIED'),
-   medianLatencyMs:records.length?records.map(r=>r.latencyMs).sort((a,b)=>a-b)[Math.floor(records.length/2)]:null,
+   medianLatencyMs:percentile(records.map(r=>r.latencyMs),0.5),
+   p95LatencyMs:percentile(records.map(r=>r.latencyMs),0.95),
+   byLanguage:Object.fromEntries(['es','en'].map(lang=>{
+    const subset=records.filter(r=>r.language===lang);
+    const scoredLang=subset.filter(r=>typeof r.correct==='boolean');
+    return [lang,{attempts:subset.length,scored:scoredLang.length,
+     validRate:rate(subset,r=>r.valid),
+     correctRate:rate(scoredLang,r=>r.correct)}];
+   }))
   };
  }
- return {version:1,realProviderEvaluations:config.live,providers:config.providers,
+ return {version:2,realProviderEvaluations:config.live,providers:config.providers,
   plannedRequests:config.cases,attemptedRequests:rows.length,
+  startIndex:config.startIndex,seed:config.seed,
   reserveUsdPerAttempt:config.reserveUsd,budgetUsd:config.budgetUsd,
   providerMetrics:aggregate,strictlySyntheticFixtures:true,results:rows};
 }
@@ -187,18 +261,26 @@ function format(report){
  const output=[
   '# RUNQ Agent — real-provider A/B evaluation','',
   'Synthetic theatre fixtures only. Human theatre review required for artistic quality.',
+  'A creative ANSWER is excluded from automatic accuracy until a person reviews it.',
   'No prompt, project, secret or raw provider response is recorded.','',
-  '| Provider | Attempts | Correct % | Valid % | Resolves % | Clarification % | Errors | Median ms |',
-  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
+  '| Provider | Attempts | Scored | Human review | Correct % | Valid % | Resolves % | Clarification % | Errors | p50/p95 ms |',
+  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
  for(const [provider,row] of Object.entries(report.providerMetrics))
-  output.push('| '+provider+' | '+row.total+' | '+row.correctRate+' | '+row.validRate+
-   ' | '+row.resolvesRate+' | '+row.clarificationRate+' | '+row.errors+
-   ' | '+row.medianLatencyMs+' |');
+  output.push('| '+provider+' | '+row.total+' | '+row.scored+' | '+row.humanReview+
+   ' | '+row.correctRate+' | '+row.validRate+' | '+row.resolvesRate+
+   ' | '+row.clarificationRate+' | '+row.errors+
+   ' | '+row.medianLatencyMs+'/'+row.p95LatencyMs+' |');
+ output.push('','## Language breakdown','');
+ for(const [provider,row] of Object.entries(report.providerMetrics)){
+  for(const [language,score] of Object.entries(row.byLanguage))
+   output.push('- '+provider+' / '+language+': '+score.scored+'/'+score.attempts+
+    ' scored; valid '+score.validRate+'%; correct '+score.correctRate+'%.');
+ }
  output.push('','Reserved maximum USD per request: '+report.reserveUsdPerAttempt+
   '. This is a local reservation, NOT authoritative provider billing.',
   '','## Failures / review queue','');
- for(const row of report.results.filter(r=>!r.correct).slice(0,70))
-  output.push('- '+row.id+' · '+row.provider+' · '+row.category+
+ for(const row of report.results.filter(r=>r.correct!==true).slice(0,70))
+  output.push('- '+row.id+' · '+row.provider+' · '+row.language+' · '+row.category+
    ' · '+row.result+' · HTTP '+row.httpStatus);
  return output.join('\n')+'\n';
 }
@@ -219,13 +301,17 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   const origin='http://127.0.0.1:'+server.address().port;
   const count=config.cases/config.providers.length;
   outer:for(let index=0;index<count;index++){
-   const scenario=getScenario(index);
+   const scenario=getScenario(config.startIndex+index,config.seed);
    const context=buildAgentContext(scenario.project,{
     maxCues:80,maxScriptLines:120});
    for(const provider of config.providers){
     if(disabledProviders.has(provider))continue;
-    if(!await budget.reserve(config.reserveUsd)){
-     stopReason='CUMULATIVE_BUDGET_CAP_REACHED';break outer;
+    const caseKey='r2-'+config.seed+'-'+scenario.seedIndex+'-'+provider;
+    const reserved=await budget.reserveCase(config.reserveUsd,caseKey);
+    if(reserved!=='RESERVED'){
+     stopReason=reserved==='DUPLICATE'?'CASE_ALREADY_RESERVED':
+      'CUMULATIVE_BUDGET_CAP_REACHED';
+     break outer;
     }
     const start=performance.now();
     let status=0,result={correct:false,valid:false,resolved:false,reason:'REQUEST_FAILED'};
@@ -246,12 +332,16 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
      }
     }catch(error){result.reason=(error.name??'NETWORK_ERROR').slice(0,60);}
     const latencyMs=Math.round(performance.now()-start);
-    const row={id:scenario.id,category:scenario.kind,provider,
+    const row={id:scenario.id,category:scenario.kind,language:scenario.language,provider,
      httpStatus:status,latencyMs,correct:result.correct,
+     reviewRequired:!!result.reviewRequired,
      valid:result.valid,resolved:result.resolved,result:result.reason};
     rows.push(row);
     process.stdout.write(provider+' '+scenario.id+' '+scenario.kind+' '+result.reason+
      ' '+latencyMs+'ms\n');
+    if(status===0){
+     stopReason='UNKNOWN_REMOTE_OUTCOME';break outer;
+    }
     if([401,403,429].includes(status)||
        result.reason.startsWith('UPSTREAM_AUTH_OR_RATE_')||
        result.reason==='MODEL_API_KEY_NOT_CONFIGURED'){
@@ -287,6 +377,19 @@ if(invoked){
    console.log('DRY RUN: '+attempts+' real AI requests when authorized; '+
     config.providers.join(' vs ')+'; reserve budget estimate $'+estimated.toFixed(2)+
     ' of configured $'+config.budgetUsd+'.');
+   const count=config.cases/config.providers.length;
+   const cases=Array.from({length:count},(_,i)=>
+    getScenario(config.startIndex+i,config.seed));
+   const coverage=Object.fromEntries(CATEGORIES.map(kind=>[kind,
+    Object.fromEntries(['es','en'].map(lang=>[lang,
+     cases.filter(c=>c.kind===kind&&c.language===lang).length]))]));
+   const manifest={schema:2,seed:config.seed,startIndex:config.startIndex,
+    requestCount:attempts,providers:config.providers,caseCount:count,
+    cases:cases.map(c=>({id:c.id,kind:c.kind,language:c.language})),coverage};
+   const hash=createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
+   console.log('Manifest SHA256: '+hash+'; case index range '+
+    config.startIndex+'..'+(config.startIndex+count-1));
+   console.log(JSON.stringify(coverage,null,2));
    console.log('To execute: repeat with --live --ack-paid. No requests performed now.');
   }else{
    const report=await runPaidAgentEvaluation(config);

@@ -21,16 +21,16 @@ test('paired evaluation fixtures are independent and score proposed changes with
  const a=getAgentLiveScenario(0),b=getAgentLiveScenario(0);
  assert.deepEqual(a.project,b.project);
  assert.equal(a.expected.kind,'CREATE_CUE');
- const creative={status:'PLAN',operations:Array.from({length:3},(_,i)=>({
+ const creative={status:'PLAN',message:'Proposed closing cues',operations:Array.from({length:3},(_,i)=>({
   op:'CREATE_CUE',label:'Artistic closing '+i,afterCueId:null
  }))};
  const r=judgeAgentLiveReply(a,creative);
  assert.equal(r.correct,true);
  assert.equal(r.valid,true);
  assert.equal(a.project.cues.length,4,'Judging must not alter source');
- assert.equal(judgeAgentLiveReply(a,{status:'CLARIFY',operations:[]}).correct,false);
- assert.equal(judgeAgentLiveReply(getAgentLiveScenario(6),
-  {status:'CLARIFY',operations:[]}).correct,true);
+ assert.equal(judgeAgentLiveReply(a,{status:'CLARIFY',message:'Cue not found or unsafe.',operations:[]}).correct,false);
+ assert.equal(judgeAgentLiveReply(getAgentLiveScenario(12),
+  {status:'CLARIFY',message:'Cue not found',operations:[]}).correct,true);
  const unsafe=judgeAgentLiveReply(a,{status:'PLAN',operations:[{op:'GO'}]});
  assert.equal(unsafe.valid,false);
 });
