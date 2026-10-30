@@ -27,6 +27,7 @@
 | [`TTS_AUTOMATION.md`](TTS_AUTOMATION.md) | Generación de 14 clips esenciales o 43 ampliados con SSML neuronal, muestras offline y ensamblado reproducible de tomas |
 | [`OPERATOR_VOICE_CUES_EN.md`](OPERATOR_VOICE_CUES_EN.md) | 17 frases en inglés para operador técnico, diferenciando edición conversacional de GO y pies de actores |
 | [`AUTOMATED_VIDEO_DIRECTOR.md`](AUTOMATED_VIDEO_DIRECTOR.md) | Plan técnico VS Code + Playwright + OBS + micrófono virtual para grabar todas las escenas reales con seguridad |
+| [`DEMO_OPERATIONS_SELECTION_2026-10-31.md`](DEMO_OPERATIONS_SELECTION_2026-10-31.md) | Selección priorizada para rodaje: edición mediante voz, corrección opcional, Meta real, Auto GO, salto y control manual |
 | [`tools/video/build_voice_kit.py`](../../../tools/video/build_voice_kit.py) | Script ejecutable, sin red ni claves, que crea SSML y WAV; importa después voces profesionales con licencia |
 
 ## Obra y razón de diseño
