@@ -86,6 +86,7 @@ function installStudioAudioDock(){
   openButton.setAttribute('aria-label',say('Open waveform and audio editor below','Abrir forma de onda y editor inferior'));
   openButton.title=openButton.getAttribute('aria-label');
   if(!eligible||!hasForm){
+   desk.dataset.rqStudioAudioExpanded='false';
    restoreForm();content.hidden=true;return;
   }
   const title=inspector.querySelector('.inspector-title strong')?.textContent?.trim()||'';
@@ -96,6 +97,7 @@ function installStudioAudioDock(){
   toggle.setAttribute('aria-expanded',String(enabled));
   content.hidden=!enabled;
   dock.dataset.expanded=String(enabled);
+  desk.dataset.rqStudioAudioExpanded=String(enabled&&eligible);
   if(enabled){
    const live=inspector.querySelector('#cuePlaybackForm');
    if(live){
