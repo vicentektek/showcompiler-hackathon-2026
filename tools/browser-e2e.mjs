@@ -187,6 +187,79 @@ try {
   const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
   assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
     'Compact inspector must show real editable audio settings without page scroll');
+  await page.setViewportSize({width:1366,height:768});
+  // The existing playback form may be docked at the bottom, but its inputs,
+  // original Save handler, audition controls and the NEXT queue stay canonical.
+  assert.equal(await page.locator('#rqStudioAudioDockToggle').count(),1);
+  assert.equal(await page.locator('#rqStudioAudioDockOpen').isVisible(),true);
+  assert.equal(await page.locator('#rqStudioAudioDock').isHidden(),true);
+  assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),0);
+  const playbackForm = page.locator('#cuePlaybackForm');
+  const gainBeforeDock = await playbackForm.locator('[name="gainDb"]').inputValue();
+  const nextBeforeDock = await page.locator('#preparedCueStatus').innerText();
+  const startBeforeDock = await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('#rqStudioAudioDockOpen').click();
+  assert.equal(await page.locator('#rqStudioAudioDockToggle').getAttribute('aria-expanded'),'true');
+  assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),1);
+  assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),0);
+  assert.equal(await page.locator('#cuePlaybackForm').count(),1,'Never clone the playback editor');
+  assert.equal(await playbackForm.locator('[name="gainDb"]').inputValue(),gainBeforeDock);
+  assert.equal(await playbackForm.locator('[name="fadeInMs"]').count(),1);
+  assert.equal(await playbackForm.locator('[name="startAtMs"]').count(),1);
+  assert.equal(await playbackForm.locator('.cue-waveform-editor').count(),1);
+  await capture('06b-studio-bottom-audio-dock.png');
+  await page.setViewportSize({width:1093,height:614});
+  assert.equal(await page.locator('.rq5-stage-body').isHidden(),true,
+    'At low viewport height, bottom audio editor temporarily replaces cue/inspector panes');
+  const compactDockLayout=await page.evaluate(()=>{
+    const dock=document.getElementById('rqStudioAudioDock').getBoundingClientRect();
+    const go=document.getElementById('operatorGoBtn').getBoundingClientRect();
+    const stop=document.getElementById('operatorPanicBtn').getBoundingClientRect();
+    return {dockVisible:dock.height>50,goBottom:go.bottom,stopBottom:stop.bottom};
+  });
+  assert.ok(compactDockLayout.dockVisible);
+  assert.ok(compactDockLayout.goBottom<=614 && compactDockLayout.stopBottom<=614,
+    'Manual GO and STOP ALL must remain reachable at 1093×614');
+  await capture('06d-studio-compact-audio-focus.png');
+  await page.setViewportSize({width:1366,height:768});
+  await page.locator('#rqStudioAudioDockToggle').click();
+  assert.equal(await page.locator('#rqStudioAudioDockToggle').getAttribute('aria-expanded'),'false');
+  assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),1);
+  assert.equal(await page.locator('#cuePlaybackForm').count(),1);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforeDock);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),startBeforeDock,'Docking must never GO');
+  // A tab change must throw away the OLD detached form rather than leave stale
+  // clip handles linked to the previous inspector state.
+  await page.locator('#rqStudioAudioDockOpen').click();
+  await page.locator('[data-inspector-tab="details"]').click();
+  assert.equal(await page.locator('#rqStudioAudioDock').isHidden(),true);
+  assert.equal(await page.locator('#cuePlaybackForm').count(),0);
+  await page.locator('[data-inspector-tab="audio"]').click();
+  assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),1,
+    'Re-entering Audio rehomes the newly rendered playback form');
+  await page.setViewportSize({width:1920,height:1080});
+  const workstationGeometry=await page.evaluate(()=>{
+    const rect=id=>document.getElementById(id).getBoundingClientRect();
+    const list=rect('cueList'),dock=rect('rqStudioAudioDock');
+    const go=rect('operatorGoBtn'),stop=rect('operatorPanicBtn');
+    return {listWidth:list.width,dockWidth:dock.width,
+      dockBottom:dock.bottom,goBottom:go.bottom,stopBottom:stop.bottom,
+      windowHeight:innerHeight};
+  });
+  assert.ok(workstationGeometry.listWidth>280 && workstationGeometry.dockWidth>550,
+    'Studio work surfaces need real desktop width');
+  assert.ok(workstationGeometry.goBottom<=1080 && workstationGeometry.stopBottom<=1080,
+    'Bottom dock must not push GO / STOP ALL outside the desktop viewport');
+  await capture('06c-studio-audio-dock-1920.png');
+  await page.locator('#rqStudioFocusList').click();
+  assert.equal(await page.locator('#rqStudioAudioDock').isHidden(),true,
+    'Expanding the cue list must reclaim the bottom dock space');
+  assert.equal(await page.locator('#cueList').isVisible(),true);
+  await page.locator('#rqStudioFocusList').click();
+  assert.equal(await page.locator('#rqStudioAudioDock').isVisible(),true);
+  await page.locator('#rqStudioAudioDockToggle').click();
+  await page.setViewportSize({width:1366,height:768});
+  assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),1);
   // Studio focus is a PRESENTATION mode. It never clones the cue list or
   // inspector, nor can it modify NEXT or start mocked show audio.
   assert.equal(await page.locator('#rqStudioFocusList').count(), 1);
