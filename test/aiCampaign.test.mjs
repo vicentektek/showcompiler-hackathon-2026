@@ -149,7 +149,8 @@ test('offline failure blocks paid campaign despite both live authorization flags
   const result=await runAiCampaign({...options([]),live:true,ackPaid:true},{
    preflight:async()=>({passed:false}),
    paidRunner:async()=>{paid++;return {stopReason:'COMPLETE',attemptedRequests:40};},
-   reportsReader:async()=>({reports:[],warnings:[]}),outputDir:tmp
+   reportsReader:async()=>({reports:[],warnings:[]}),outputDir:tmp,
+   ciCheck:()=>false
   });
   assert.equal(paid,0);
   assert.equal(result.summary.status,'BLOCKED');
@@ -167,4 +168,14 @@ test('report-only mode never calls preflight or providers',async()=>{
   });
   assert.equal(result.summary.stage,'DRY_RUN');
  }finally{await rm(tmp,{recursive:true,force:true});}
+});
+
+test('live coordinator itself refuses paid execution in CI before preflight',async()=>{
+ let calls=0;
+ await assert.rejects(()=>runAiCampaign({...options([]),live:true,ackPaid:true},{
+  ciCheck:()=>true,
+  preflight:async()=>{calls++;return {passed:true};},
+  paidRunner:async()=>{calls++;throw new Error('UNSAFE');}
+ }),/PAID_TESTS_DISABLED_IN_CI/);
+ assert.equal(calls,0);
 });
