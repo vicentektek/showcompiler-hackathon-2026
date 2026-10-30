@@ -266,3 +266,22 @@ test('missing source revision cannot be promoted to an automated pass',()=>{
  assert.equal(result.status,'BLOCKED');
  assert.equal(result.unknownCommit,true);
 });
+
+test('previous paid provider incident blocks further automatic spending on that seed',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-ai-incident-'));
+ let attempts=0;
+ try{
+  const old={...report([row('paid-0001','meta',{
+   status:429,correct:false,valid:false,reason:'UPSTREAM_AUTH_OR_RATE_429'})],
+   {stopReason:'PROVIDER_AUTH_OR_RATE_BLOCK'})};
+  const result=await runAiCampaign({...options([]),live:true,ackPaid:true},{
+   ciCheck:()=>false,preflight:async()=>({passed:true}),
+   ledgerAuditor:async()=>({status:'RECONCILED',orphanKeys:[],reservations:1}),
+   reportsReader:async()=>({reports:[{filename:'eval-1-1.json',report:old}],warnings:[]}),
+   paidRunner:async()=>{attempts++;throw new Error('DO_NOT_REPEAT');},outputDir:dir
+  });
+  assert.equal(attempts,0);
+  assert.equal(result.summary.stage,'PREVIOUS_PAID_CAMPAIGN_INCIDENT');
+  assert.equal(result.summary.status,'BLOCKED');
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
