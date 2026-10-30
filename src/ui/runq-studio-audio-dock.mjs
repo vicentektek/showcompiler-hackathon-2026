@@ -79,9 +79,10 @@ function installStudioAudioDock(){
    docked.remove();anchor=null;
   }
   const hasForm=!!candidate||!!content.querySelector('#cuePlaybackForm');
-  // Keep the collapsed editor completely out of the flex layout.
-  // The compact open button lives on the existing inspector heading instead.
-  dock.hidden=!eligible||!hasForm||!enabled;
+  const listFocused=desk.querySelector('.cue-workspace-body')?.dataset.rqStudioPane==='list';
+  // An operator asking to maximize the cue sequence must reclaim the
+  // entire height, even if the waveform dock is open on large desktops.
+  dock.hidden=!eligible||!hasForm||!enabled||listFocused;
   openButton.hidden=!eligible||!hasForm||enabled;
   openButton.setAttribute('aria-label',say('Open waveform and audio editor below','Abrir forma de onda y editor inferior'));
   openButton.title=openButton.getAttribute('aria-label');
@@ -97,7 +98,7 @@ function installStudioAudioDock(){
   toggle.setAttribute('aria-expanded',String(enabled));
   content.hidden=!enabled;
   dock.dataset.expanded=String(enabled);
-  desk.dataset.rqStudioAudioExpanded=String(enabled&&eligible);
+  desk.dataset.rqStudioAudioExpanded=String(enabled&&eligible&&!listFocused);
   if(enabled){
    const live=inspector.querySelector('#cuePlaybackForm');
    if(live){
@@ -124,6 +125,8 @@ function installStudioAudioDock(){
  toggle.addEventListener('click',()=>setEnabled(false));
  new MutationObserver(queueSync).observe(inspector,{childList:true,subtree:true});
  new MutationObserver(queueSync).observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
+ const splitBody=desk.querySelector('.cue-workspace-body');
+ if(splitBody)new MutationObserver(queueSync).observe(splitBody,{attributes:true,attributeFilter:['data-rq-studio-pane']});
  byId('uiLocaleSelect')?.addEventListener('change',queueSync);
  sync();
 }
