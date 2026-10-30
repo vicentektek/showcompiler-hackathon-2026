@@ -24,6 +24,8 @@
 | [`STORYBOARD_AND_CAPTURE.md`](STORYBOARD_AND_CAPTURE.md) | 11 planos, timecodes provisionales, overlays, captura limpia y montaje |
 | [`PRODUCTION_RUNBOOK.md`](PRODUCTION_RUNBOOK.md) | Preparación Windows, enrutado de audio, permisos, evidencia, métricas, control de calidad y exportación |
 | [`demo_manifest.json`](demo_manifest.json) | Matriz estructurada reutilizable por Codex: líneas, pies, cues, takes, gates y procedencia |
+| [`TTS_AUTOMATION.md`](TTS_AUTOMATION.md) | Generación de 14 clips esenciales o 43 ampliados con SSML neuronal, muestras offline y ensamblado reproducible de tomas |
+| [`tools/video/build_voice_kit.py`](../../../tools/video/build_voice_kit.py) | Script ejecutable, sin red ni claves, que crea SSML y WAV; importa después voces profesionales con licencia |
 
 ## Obra y razón de diseño
 
@@ -46,7 +48,8 @@
 - [x] Obra original inglés y pies planificados por escrito.
 - [x] Prompts de TTS y ensayos definidos.
 - [x] Texto narrador v2 y storyboard técnico redactados.
-- [ ] Generar WAV de los intérpretes y locutor por herramienta TTS elegida, sujeto a licencia.
+- [x] Generar WAV **robóticos provisionales** offline para QA técnico (eSpeak; no válidos como locución final). Script y SSML listos. 66 WAV (scope all), 29 WAV (scope hero).
+- [ ] Generar WAV **neuronales definitivos** de los intérpretes y locutor por herramienta TTS elegida, sujeto a licencia.
 - [ ] Preparar paquete RUNQ EN / cargar audio real y asignar pies con L#.
 - [ ] Validar Meta/voz/GO real, bajo control humano y con gastos explícitamente aprobados.
 - [ ] Aprobar la UI final, congelar commit, grabar capturas reales, editar vídeo.
