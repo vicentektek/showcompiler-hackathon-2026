@@ -116,3 +116,30 @@
 .rq8.rq14 .shell:not([data-active-workspace="cues"]) .rq-studio-dock-open{
  display:none!important;
 }
+
+/* Do not reduce the editor to an unclickable strip. The bottom editor has a
+   modest ceiling in medium desktops and a dedicated focus surface on low
+   viewports. The original manual transport stays outside the desk. */
+.rq8.rq14 .shell[data-active-workspace="cues"]
+ .rq5-desk[data-rq-studio-audio-expanded="true"] .rq5-stage-body{
+ flex:1 1 auto!important;min-height:120px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"]
+ .rq5-desk[data-rq-studio-audio-expanded="true"] .rq-studio-bottom-content{
+ max-height:min(25dvh,240px)!important;
+}
+@media(max-height:700px){
+ .rq8.rq14 .shell[data-active-workspace="cues"]
+  .rq5-desk[data-rq-studio-audio-expanded="true"] .rq5-stage-body{
+  display:none!important;min-height:0!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="cues"]
+  .rq5-desk[data-rq-studio-audio-expanded="true"] .rq-studio-bottom-dock{
+  flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="cues"]
+  .rq5-desk[data-rq-studio-audio-expanded="true"] .rq-studio-bottom-content{
+  flex:1 1 auto!important;max-height:none!important;min-height:0!important;
+  overflow:auto!important;
+ }
+}
