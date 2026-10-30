@@ -145,14 +145,13 @@ export async function runScene(opts){
       await context.grantPermissions(['microphone'],{origin:local.url});
     }
     page=await context.newPage();
-    page.on('dialog',async dialog=>{
-      // Neither browser context nor director silently accepts ARM dialogs.
-      let answer='';
-      try{answer=await ask(rl,
-        'RUNQ is asking to ARM/confirm: '+dialog.message()+
-        '\nType ARM for explicit approval, otherwise press Enter to decline.');}catch{}
-      if(answer==='ARM'&&dialog.type()==='confirm')await dialog.accept();
-      else await dialog.dismiss();
+    // One interactive input loop below handles BOTH dialog authorization and
+    // finishing the shot. Never start overlapping readline questions.
+    let pendingDialog=null;
+    page.on('dialog',dialog=>{
+      pendingDialog=dialog;
+      log('RUNQ dialog: '+dialog.message());
+      log('Type ARM at the CLI to authorize this single confirmation, or DECLINE.');
     });
     await page.goto(local.url+'/',{waitUntil:'domcontentloaded'});
     await page.locator('[data-workspace-nav="home"]').waitFor({state:'visible'});
@@ -188,7 +187,17 @@ export async function runScene(opts){
     log('OPERATE the real UI now. No GO/ARM/Meta call has been made by this tool.');
     if(opts.micWav)log('Audio source is a prerecorded WAV via Chromium fake microphone (NOT a human microphone).');
     if(!opts.obs)log('Start/stop OBS manually if you need real audio. Playwright browser video is SILENT.');
-    await ask(rl,'When the scene is complete, press Enter to stop capturing and save a final screenshot.');
+    while(true){
+      const typed=await ask(rl,'Type DONE to end the shot, or ARM/DECLINE when RUNQ displays a confirmation dialog.');
+      if(pendingDialog){
+        const dialog=pendingDialog;pendingDialog=null;
+        if(typed==='ARM'&&dialog.type()==='confirm')await dialog.accept();
+        else await dialog.dismiss();
+        continue;
+      }
+      if(typed==='DONE')break;
+      log('No dialog is pending. Type DONE to stop when the shot is complete.');
+    }
     if(opts.capture)await page.screenshot({path:resolve(OUTPUT,opts.scene+'-after.png')});
     if(opts.obs){
       const path=await obs.stopRecording();
