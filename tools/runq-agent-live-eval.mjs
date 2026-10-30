@@ -285,8 +285,11 @@ function format(report){
    ' · '+row.result+' · HTTP '+row.httpStatus);
  return output.join('\n')+'\n';
 }
-export async function runPaidAgentEvaluation(config,{serverFactory=createAppServer,fetchImpl=fetch}={}){
- if(!config?.live)throw new TypeError('EXPLICIT_PAID_OPT_IN_REQUIRED');
+export async function runPaidAgentEvaluation(config,{
+ serverFactory=createAppServer,fetchImpl=fetch,ciCheck=()=>process.env.CI==='true'
+}={}){
+ if(!config?.live||!config.ackPaid)throw new TypeError('EXPLICIT_PAID_OPT_IN_REQUIRED');
+ if(ciCheck())throw new TypeError('PAID_TESTS_DISABLED_IN_CI');
  const keys=config.providers.map(p=>p==='meta'?'MODEL_API_KEY':'BASETEN_API_KEY');
  for(const key of keys)if(typeof process.env[key]!=='string'||!process.env[key].trim())
   throw new Error('MISSING_PROVIDER_KEY_'+key);

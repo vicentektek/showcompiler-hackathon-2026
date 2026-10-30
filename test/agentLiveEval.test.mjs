@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {acquireAgentEvalBudget} from '../tools/agentLiveBudget.mjs';
 import {parseAgentLiveOptions,getAgentLiveScenario,
- judgeAgentLiveReply} from '../tools/runq-agent-live-eval.mjs';
+ judgeAgentLiveReply,runPaidAgentEvaluation} from '../tools/runq-agent-live-eval.mjs';
 
 test('paid experiment is off by default and requires BOTH explicit flags',()=>{
  const dry=parseAgentLiveOptions(['--cases','200','--providers','meta,baseten']);
@@ -16,6 +16,13 @@ test('paid experiment is off by default and requires BOTH explicit flags',()=>{
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--budget-usd','1000']));
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--cases','401']));
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--providers','meta,meta']));
+});
+test('programmatic paid runner requires acknowledgement and refuses CI before setup',async()=>{
+ const config={live:true,ackPaid:false,providers:[],budgetUsd:0};
+ await assert.rejects(()=>runPaidAgentEvaluation(config,{ciCheck:()=>false}),
+  /EXPLICIT_PAID_OPT_IN_REQUIRED/);
+ await assert.rejects(()=>runPaidAgentEvaluation({...config,ackPaid:true},{ciCheck:()=>true}),
+  /PAID_TESTS_DISABLED_IN_CI/);
 });
 test('paired evaluation fixtures are independent and score proposed changes without execution',()=>{
  const a=getAgentLiveScenario(0),b=getAgentLiveScenario(0);
