@@ -65,12 +65,34 @@ test('identical cue triggers are ambiguous even with very high confidence',()=>{
  assert.equal(result.action.type,'NONE');
  assert.equal(result.action.reason,'AMBIGUOUS');
 });
-test('failed GO does not move playhead or mark action as fired; duplicate turn can be discarded',()=>{
+test('failed GO consumes the turn without moving playhead or marking a cue fired',()=>{
  const state=initialRehearsalAutoState({focusLine:2}),r=choose(state,cues[0].trigger,'x');
- assert.equal(r.state,state);
- assert.equal(state.history.length,0);
- const discarded=discardRehearsalTurn(state,'x');
+ assert.equal(r.state.focusLine,state.focusLine);
+ assert.equal(r.state.lastCueId,null);
+ assert.equal(r.state.history.length,0);
+ assert.deepEqual(r.state.seenTurnIds,['x']);
+ const discarded=discardRehearsalTurn(r.state,'x');
+ assert.equal(discarded,r.state,'discarding the same turn remains idempotent');
  assert.equal(choose(discarded,cues[0].trigger,'x').action.reason,'DUPLICATE_TURN');
+});
+test('a completed low-confidence turn cannot fire later after focus changes',()=>{
+ const localCues=[
+  {id:'target',lineId:'L2',trigger:'uno dos tres cuatro cinco seis siete ocho nueve diez'},
+  {id:'anchor',lineId:'L3',trigger:'ahora abrimos la puerta principal para comenzar'}
+ ];
+ const weakText='uno dos tres cuatro cinco seis siete ocho nueve once';
+ let state=initialRehearsalAutoState({focusLine:100});
+ const weak=decideRehearsalAutoGo({cues:localCues,state,turnId:'old-turn',atMs:10000,
+  transcript:speech(weakText,10000),armed:true});
+ assert.equal(weak.action.reason,'LOW_CONFIDENCE');
+ state=weak.state;
+ const anchor=decideRehearsalAutoGo({cues:localCues,state,turnId:'anchor-turn',atMs:20000,
+  transcript:speech(localCues[1].trigger,20000),armed:true});
+ assert.equal(anchor.action.type,'FIRE');
+ state=acknowledgeRehearsalAutoGo(anchor.state,anchor.action);
+ const replay=decideRehearsalAutoGo({cues:localCues,state,turnId:'old-turn',atMs:30000,
+  transcript:speech(weakText,30000),armed:true});
+ assert.equal(replay.action.reason,'DUPLICATE_TURN');
 });
 test('English cues and spoken English match as strongly as Spanish',()=>{
  const state=initialRehearsalAutoState({focusLine:1});
