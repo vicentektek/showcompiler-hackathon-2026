@@ -251,6 +251,12 @@ try {
   assert.ok(workstationGeometry.goBottom<=1080 && workstationGeometry.stopBottom<=1080,
     'Bottom dock must not push GO / STOP ALL outside the desktop viewport');
   await capture('06c-studio-audio-dock-1920.png');
+  await page.locator('#rqStudioFocusList').click();
+  assert.equal(await page.locator('#rqStudioAudioDock').isHidden(),true,
+    'Expanding the cue list must reclaim the bottom dock space');
+  assert.equal(await page.locator('#cueList').isVisible(),true);
+  await page.locator('#rqStudioFocusList').click();
+  assert.equal(await page.locator('#rqStudioAudioDock').isVisible(),true);
   await page.locator('#rqStudioAudioDockToggle').click();
   await page.setViewportSize({width:1366,height:768});
   assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),1);
