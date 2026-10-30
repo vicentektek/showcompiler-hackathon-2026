@@ -94,6 +94,22 @@ test('a completed low-confidence turn cannot fire later after focus changes',()=
   transcript:speech(weakText,30000),armed:true});
  assert.equal(replay.action.reason,'DUPLICATE_TURN');
 });
+test('negated or quoted cue phrases never become automatic GO proposals',()=>{
+ const localCues=[{id:'door',lineId:'L2',trigger:'open the main door'}];
+ for(const [index,text] of [
+  'do not open the main door',
+  "don't open the main door",
+  'never open the main door',
+  'the line is open the main door',
+  'repeat after me open the main door'
+ ].entries()){
+  const state=initialRehearsalAutoState({focusLine:2});
+  const result=decideRehearsalAutoGo({cues:localCues,state,turnId:'unsafe-'+index,
+   atMs:10000,transcript:speech(text,10000),armed:true});
+  assert.equal(result.action.type,'NONE',text);
+  assert.equal(result.action.reason,'UNSAFE_TRIGGER_CONTEXT',text);
+ }
+});
 test('English cues and spoken English match as strongly as Spanish',()=>{
  const state=initialRehearsalAutoState({focusLine:1});
  const english=[{id:'en',lineId:'L8',trigger:'Listen to the distant thunder coming'}];

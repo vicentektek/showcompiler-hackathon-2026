@@ -8,6 +8,14 @@ import {compareSpeech,normalizeSpeech} from './voiceFollow.mjs';
 
 const lineNo=id=>Number(/^L([1-9]\d*)$/.exec(id??'')?.[1]);
 const wordCount=text=>normalizeSpeech(text).split(' ').filter(Boolean).length;
+function unsafeCueMention(actual,expected){
+ const text=normalizeSpeech(actual),trigger=normalizeSpeech(expected);
+ const start=text.lastIndexOf(trigger),end=start+trigger.length;
+ if(start<0||(start>0&&text[start-1]!==' ')||(end<text.length&&text[end]!==' '))return false;
+ const prefix=text.slice(0,start).trim();
+ return /(?:^|\s)(?:do not|don t|dont|never|not|no|nunca|jamas)(?:\s+\p{L}+){0,2}$/u.test(prefix)||
+  /(?:^|\s)(?:the (?:line|cue|trigger) is|say the (?:line|cue|trigger)|repeat after me|la frase es|el (?:pie|cue) es|di la frase|repite conmigo)$/u.test(prefix);
+}
 
 export const REHEARSAL_AUTO_POLICY=Object.freeze({
  nearThreshold:.88,seekThreshold:.97,nearMargin:.14,seekMargin:.14,
@@ -43,14 +51,16 @@ export function decideRehearsalAutoGo({
  const available=cues.filter(c=>typeof c?.id==='string'&&
   Number.isInteger(lineNo(c.lineId))&&lineNo(c.lineId)>=1&&
   typeof c.trigger==='string'&&wordCount(c.trigger)>=policy.minimumWords);
- const ranked=available.map(c=>{
+ let unsafeContext=false;
+ const ranked=available.flatMap(c=>{
+  if(unsafeCueMention(transcript.text,c.trigger)){unsafeContext=true;return [];}
   const line=lineNo(c.lineId),delta=line-state.focusLine;
-  return {cueId:c.id,lineId:c.lineId,line,delta,score:compareSpeech(transcript.text,c.trigger),
-    near:Math.abs(delta)<=policy.nearRadius};
+  return [{cueId:c.id,lineId:c.lineId,line,delta,score:compareSpeech(transcript.text,c.trigger),
+    near:Math.abs(delta)<=policy.nearRadius}];
  }).filter(x=>x.score>=Math.min(policy.nearThreshold,policy.seekThreshold))
  .sort((a,b)=>b.score-a.score||(a.near===b.near?0:a.near?-1:1)||
   Math.abs(a.delta)-Math.abs(b.delta));
- if(!ranked.length)return no('NO_MATCH',[],consumed);
+ if(!ranked.length)return no(unsafeContext?'UNSAFE_TRIGGER_CONTEXT':'NO_MATCH',[],consumed);
  const top=ranked[0];
  const threshold=top.near?policy.nearThreshold:policy.seekThreshold;
  if(top.score<threshold)return no('LOW_CONFIDENCE',[],consumed);
