@@ -14,12 +14,13 @@ const NAMES=Object.freeze({
  en:['Closing resonance','Final accent','Exit music',
      'Farewell ambience','Last echo','Exit transition'],
 });
-const STOP=/\b(?:no|nunca|jam[aá]s|never|don't|do not|without|sin)\s+(?:a[nñ]ad|agreg|cre|insert|add|create|append)/i;
+const STOP=/\b(?:no|nunca|jam[aá]s|never|don't|do not|without|sin)\s+(?:(?:lo|la|los|las|them)\s+)?(?:a[nñ]ad|agreg|cre|insert|add|create|append)/i;
 const ADD=/(?:\b(?:a[nñ]ad(?:e|as|ir|a)(?:lo|los|la|las)?|a[nñ][áa]de(?:lo|los|la|las)?|agrega(?:r|s)?|crea(?:r|s)?|incluye|inserta|pon(?:er)?|add|append|create|insert)\b)/i;
 const CUES=/\b(?:cues?|se[nñ]ales?|pistas?)\b/i;
 const END=/\b(?:final|finalizar|rematar|cierre|terminar|despedida|ending|end|closing|finish|outro)\b/i;
 const VAGUE=/\b(?:algunos|algunas|unos|unas|several|some|few|varios|varias)\b/i;
 const DELEGATE=/(?:los\s+que\s+(?:te\s+)?parezcan|lo\s+que\s+(?:te\s+)?parezca|t[uú]\s+elige|decide\s+t[uú]|como\s+(?:t[uú]\s+)?veas|as\s+you\s+(?:see\s+)?fit|you\s+(?:choose|decide)|whatever\s+(?:you\s+)?think|most\s+appropriate)/i;
+const ENGLISH=/(?:\b(?:add|create|append|insert|end|closing|whatever|appropriate|instead|rather)\b|\byou\s+(?:choose|decide)\b|\bas\s+you\s+(?:see\s+)?fit\b|\bmake\s+it\b)/i;
 const WORD_COUNTS={un:1,una:1,uno:1,one:1,dos:2,two:2,tres:3,three:3,cuatro:4,four:4,
  cinco:5,five:5,seis:6,six:6,siete:7,seven:7,ocho:8,eight:8,nueve:9,nine:9,
  diez:10,ten:10};
@@ -41,10 +42,11 @@ export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=(
  // Voice triggers are a separate guarded tool, never new empty closing cues.
  if(/(?:pies\s+(?:de\s+)?voz|spoken\s+triggers?|voice\s+triggers?)/i.test(request))
   return interpretLocalAgentRequest(show,request,{assetAvailable});
- const locale=/\b(?:add|create|append|insert|end|closing|whatever|appropriate)\b/i.test(request)?'en':'es';
+ const locale=ENGLISH.test(request)?'en':'es';
  const spanish=locale==='es';
- const previous=prior.filter(x=>x.role==='user').slice(-3).reverse()
-  .find(x=>ADD.test(x.text)&&(CUES.test(x.text)||END.test(x.text)));
+ const lastUser=prior.filter(x=>x.role==='user').at(-1);
+ const previous=lastUser&&ADD.test(lastUser.text)&&
+  (CUES.test(lastUser.text)||END.test(lastUser.text))?lastUser:null;
  const askedForCreative=DELEGATE.test(request);
  const directAdd=ADD.test(request)&&CUES.test(request);
  const correction=/\b(?:mejor|en\s+vez\s+de|rather|instead|make\s+it|pon|que\s+sean)\b/i.test(request);

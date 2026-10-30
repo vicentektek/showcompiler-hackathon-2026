@@ -90,6 +90,17 @@ test('analyzer compares matching pairs only and never counts duplicated paid evi
  assert.equal(result.duplicates.length,1);
  assert.equal(result.status,'BLOCKED');
 });
+test('paid identity cannot be replayed under changed language or category metadata',()=>{
+ const original=row('paid-0001','meta');
+ const relabeled=row('paid-0001','meta',{language:'en',category:'audio'});
+ const result=analyzeAiPaidReports({reports:[
+  {filename:'eval-1-1.json',report:report([original])},
+  {filename:'eval-2-1.json',report:report([relabeled])}
+ ],warnings:[]},{preflightPassed:true,providers:['meta']});
+ assert.equal(result.attempted,1);
+ assert.equal(result.duplicates.length,1);
+ assert.equal(result.status,'BLOCKED');
+});
 
 test('analyzer refuses to pool different experiment seeds or remote unknown outcomes',()=>{
  const base=report([row('paid-0001','meta')]);
@@ -118,6 +129,25 @@ test('sufficient paired reports can reach automated gates, never full profession
  assert.equal(analyzed.manualAcceptanceRequired,true);
  assert.equal(analyzed.matchedPairs,100);
  assert.equal(analyzed.byProvider.meta.scored,100);
+});
+test('high aggregate accuracy cannot hide a weak objective intent family',()=>{
+ const weaken=provider=>{
+  let changed=0;
+  return corpus().map(item=>{
+   const candidate={...item,provider};
+   if(candidate.category!=='delete'||changed>=4)return candidate;
+   changed++;
+   return {...candidate,correct:false,result:'WRONG_PLAN'};
+  });
+ };
+ const analyzed=analyzeAiPaidReports({reports:[
+  {filename:'eval-weak-family.json',report:report([
+   ...weaken('meta'),...weaken('baseten')])}
+ ],warnings:[]},{preflightPassed:true});
+ assert.equal(analyzed.byProvider.meta.correctRate,96);
+ assert.equal(analyzed.byProvider.meta.byCategory.delete.correctRate,60);
+ assert.equal(analyzed.status,'QUALITY_GATES_FAIL');
+ assert.equal(analyzed.automaticQualitySufficient,false);
 });
 
 test('default campaign performs preflight, writes review queue and never runs paid provider',async()=>{

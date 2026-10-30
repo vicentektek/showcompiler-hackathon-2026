@@ -97,6 +97,8 @@ Estados posibles:
 
 **Criterios automáticos iniciales del agente:** >=60 casos evaluados por proveedor, >=25 por idioma y >=4 intentos por categoría; >=95 % de exactitud semántica en el subconjunto evaluable y >=99 % de respuestas contractualmente válidas entre HTTP 200. Son **objetivos de aceptación internos**, no un estándar oficial.
 
+Cada familia objetiva (todas salvo `audio`) necesita además al menos cuatro casos puntuados y superar esos mismos umbrales; una media global alta ya no puede ocultar una familia débil. `audio` permanece fuera del PASS semántico automático porque exige valoración humana.
+
 La cifra de acierto no incluye respuestas sin HTTP 200 ni consejos artísticos pendientes de juicio humano. Los fallos se conservan por separado. El sistema presenta comparaciones pareadas y exige fuente/commit coherentes para no mezclar evaluaciones incompatibles.
 
 ## 6. Las demás IA: grado real de automatización

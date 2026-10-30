@@ -45,6 +45,8 @@ test('follow-up correction reuses only bounded local session context',()=>{
 test('negation, overly large batches and absent history never silently edit',()=>{
  const p=show();
  assert.notEqual(resolveAgentDialogue(p,'No añadas 3 cues al final').status,'PLAN');
+ assert.notEqual(resolveAgentDialogue(p,
+  'A\u00f1ade 3 cues al final, pero no los a\u00f1adas todav\u00eda').status,'PLAN');
  assert.notEqual(resolveAgentDialogue(p,'añade 40 cues vacíos al final').status,'PLAN');
  assert.notEqual(resolveAgentDialogue(p,'los que te parezcan más apropiados').status,'PLAN');
 });
@@ -58,10 +60,38 @@ test('context from old project can be ignored by supplying empty conversation',(
  assert.notEqual(resolveAgentDialogue(p,'you decide',{history:[]}).status,'PLAN');
 });
 
+test('an unrelated turn closes an older pending creative request',()=>{
+ const p=show();
+ const interrupted=[
+  {role:'user',text:'Add 2 empty cues at the end'},
+  {role:'assistant',text:'Which cues should I add?'},
+  {role:'user',text:'How many cues are already in this show?'},
+  {role:'assistant',text:'There is one existing cue.'}
+ ];
+ const result=resolveAgentDialogue(p,'you decide',{history:interrupted});
+ assert.notEqual(result.status,'PLAN');
+ assert.deepEqual(result.operations,[]);
+});
+
 test('English count before adjective is not replaced by a default of three',()=>{
  const project=show();
  const result=resolveAgentDialogue(project,'Add 2 empty cues at the end');
  assert.equal(result.status,'PLAN');
  assert.equal(result.operations.length,2);
  assert.deepEqual(result.operations.map(x=>x.label),['Pending cue 1','Pending cue 2']);
+});
+
+test('English delegated and corrective follow-ups stay in English',()=>{
+ const project=show();
+ const englishHistory=[
+  {role:'user',text:'Add some cues at the end to finish the show'},
+  {role:'assistant',text:'Which cues should I add?'}
+ ];
+ for(const prompt of ['you choose','as you see fit','make it four cues instead']){
+  const result=resolveAgentDialogue(project,prompt,{history:englishHistory});
+  assert.equal(result.status,'PLAN');
+  assert.match(result.message,/^I propose /);
+  assert.ok(result.operations.every(operation=>
+   /^(?:Closing|Final|Exit|Farewell|Last|Additional)/.test(operation.label)));
+ }
 });

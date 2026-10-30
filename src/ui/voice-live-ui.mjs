@@ -46,7 +46,7 @@ function refreshShow(){
   :local('No matching cue triggers configured; transcription will still work.',
     'Sin pies hablados configurados; la transcripción seguirá funcionando.');
 }
-function currentMatches(text){
+function currentMatches(text,receivedAtMs){
  if(!scenario||!text)return null;
  const live=inspectShow(),identity=JSON.stringify({script:live?.scriptText,cues:live?.cues});
  if(identity!==showFingerprint){
@@ -54,11 +54,11 @@ function currentMatches(text){
   return null;
  }
  try{return suggestVoiceCue({
-  cues:scenario.cues,transcript:{text,final:true,endMs:Date.now()},
+  cues:scenario.cues,transcript:{text,final:true,endMs:receivedAtMs},
   focusLine,consumedIds:[...consumedIds],nowMs:Date.now(),maxLookahead:25,
  });}catch{return null;}
 }
-function presentFinal(text,turnId){
+function presentFinal(text,turnId,receivedAtMs){
  if(!text?.trim())return;
  const resolvedTurn=turnId==null?'local-'+(++missingTurnCounter):String(turnId);
  const last=transcriptHistory.at(-1);
@@ -72,11 +72,11 @@ function presentFinal(text,turnId){
   $('rqLiveTranscript').append(line);
  }
  $('rqLivePartial').textContent='';
- const eventDetail={text,turnId:resolvedTurn,handled:false};
+ const eventDetail={text,turnId:resolvedTurn,endMs:receivedAtMs,handled:false};
  document.dispatchEvent(new CustomEvent('runq:voice-live-final',{detail:eventDetail}));
  if(eventDetail.handled)return; // Explicitly armed autopilot owns this final turn.
  const assistMode=$('rqLiveMode').value==='assist';
- const result=currentMatches(text);
+ const result=currentMatches(text,receivedAtMs);
  if(result?.status==='SUGGEST_PREPARE'){
   suggestedCueId=result.cueId;
   $('rqLivePrepare').disabled=!assistMode;$('rqLiveDismiss').disabled=!assistMode;
@@ -104,7 +104,7 @@ function acceptEvent(event){
  if(event.type==='transcript'&&typeof event.transcript==='string'){
   if(!event.final)$('rqLivePartial').textContent=event.transcript; // ENDPOINTING commits only on speechComplete.
  }else if(event.type==='speechComplete'&&typeof event.transcript==='string'){
-  presentFinal(event.transcript,event.turnId);
+  presentFinal(event.transcript,event.turnId,event.receivedAtMs);
  }else if(event.type==='speaker'){
   $('rqLiveSpeaker').textContent=local('Speaker: ','Hablante: ')+(event.label??'—');
  }else if(event.type==='sessionEnd'){

@@ -119,7 +119,8 @@ function caseCheck(id,category,rand){
   prompt=explicit?(english?'make it four cues instead':'mejor cuatro cues en vez de tres'):
    (english?dialog.english[variant%dialog.english.length]:
     dialog.spanish[variant%dialog.spanish.length]);
-  expected={kind:'CREATE_CUE',count:explicit?4:3,empty:false};
+  expected={kind:'CREATE_CUE',count:explicit?4:3,empty:false,
+   language:english?'en':'es'};
  }else if(category==='negative-and-bounds'){
   const scenario=variant%5;
   if(scenario===0)prompt='No añadas 3 cues al final';
@@ -158,6 +159,14 @@ function caseCheck(id,category,rand){
     x.actions.length===1&&x.actions[0].type==='PLAN_AUDIO'));
    if(expected.empty)assert.ok(added.every(c=>/cue pendiente|pending cue/i.test(c.label)));
    if(!expected.empty)assert.ok(/creative|creativ/i.test(result.message));
+   if(expected.language==='en'){
+    assert.match(result.message,/^I propose /);
+    assert.ok(added.every(c=>/^(?:Closing|Final|Exit|Farewell|Last|Additional)/.test(c.label)));
+   }
+   if(expected.language==='es'){
+    assert.match(result.message,/^Propongo /);
+    assert.ok(added.every(c=>/^(?:Resonancia|Acento|Música|Ambiente|Último|Transición|Cierre)/.test(c.label)));
+   }
   }else if(expected.kind==='DELETE_CUE'){
    assert.equal(result.operations.length,1);
    assert.equal(result.operations[0].cueId,expected.id);

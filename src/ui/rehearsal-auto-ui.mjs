@@ -5,7 +5,7 @@
  */
 import {makeProjectVoiceScenario} from '../core/voiceScenario.mjs';
 import {initialRehearsalAutoState,decideRehearsalAutoGo,
- acknowledgeRehearsalAutoGo,discardRehearsalTurn} from '../core/rehearsalAutopilot.mjs';
+ acknowledgeRehearsalAutoGo} from '../core/rehearsalAutopilot.mjs';
 
 const $=id=>document.getElementById(id);
 const t=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
@@ -162,18 +162,17 @@ async function finalTurn(detail){
  const now=Date.now();
  const proposed=decideRehearsalAutoGo({
   cues:scenario?.cues??[],
-  transcript:{text:detail.text,final:true,endMs:now},
+  transcript:{text:detail.text,final:true,endMs:detail.endMs},
   turnId:detail.turnId,atMs:now,state:autoState,armed,
  });
  const a=proposed.action;
+ autoState=proposed.state;
  if(a.type!=='FIRE'){
   if(['AMBIGUOUS','SEEK_TOO_SHORT','LOW_CONFIDENCE'].includes(a.reason)){
    log(t('Skipped uncertain phrase: ','Frase dudosa ignorada: ')+a.reason);
   }
   return;
  }
- // Consume this turn before asynchronous player acknowledgement.
- autoState=discardRehearsalTurn(autoState,a.turnId);
  busy=true;const run=epoch;
  $('rqLiveCue').textContent=t('AUTO GO evaluating ','Evaluando GO automático ')+a.cueId+' · '+a.lineId;
  const outcome=await new Promise(resolve=>{

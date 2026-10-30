@@ -20,7 +20,7 @@ async function body(req,limit=4096){
  for await(const part of req){size+=part.length;if(size>limit)throw Error('TOO_LARGE');parts.push(part);}
  return Buffer.concat(parts);
 }
-function externalEvent(data){
+function externalEvent(data,receivedAtMs){
  if(!data||typeof data!=='object')return null;
  const type=data.type;
  if(!['transcript','speechComplete','speechStart','speechEnd','speaker','audioProgress','error'].includes(type))return null;
@@ -29,6 +29,8 @@ function externalEvent(data){
  if(typeof data.final==='boolean')event.final=data.final;
  if(Number.isInteger(data.turnId)&&data.turnId>=0)event.turnId=data.turnId;
  if(Number.isFinite(data.audioProcessedMs)&&data.audioProcessedMs>=0)event.audioProcessedMs=data.audioProcessedMs;
+ if(type==='speechComplete'&&Number.isFinite(receivedAtMs)&&receivedAtMs>=0)
+  event.receivedAtMs=receivedAtMs;
  if(type==='speaker'&&typeof data.label==='string')event.label=data.label.slice(0,24);
  if(type==='error')event.message='META_STREAM_ERROR';
  return event;
@@ -96,7 +98,7 @@ export function makeVoiceLiveRoute({getKey=()=>process.env.MODEL_API_KEY,WebSock
       if(incoming?.sessionId&&!incoming?.type){
        clearTimeout(limit);resolve(incoming);return;
       }
-      const event=externalEvent(incoming);
+      const event=externalEvent(incoming,clock());
       if(event){s.events.push(event);if(s.events.length>60)s.events.splice(0,s.events.length-60);}
       if(event?.type==='error')close(s,'provider_error');
      });
