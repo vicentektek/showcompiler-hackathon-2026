@@ -19,12 +19,29 @@ export const AI_PREFLIGHT_STEPS=Object.freeze([
  {id:'baseten-plan',command:'qa:baseten:plan',critical:true},
  {id:'systematic-plan',command:'qa:systematic',critical:true},
 ]);
-const forbidden=/--live\b|--ack-paid\b|--authorize-one-billable/;
+// Explicit allowlist: a script named qa:meta:live can bill even without CLI flags.
+// Never trust a caller-supplied list of arbitrary npm scripts for this preflight.
+const SAFE=Object.freeze({
+ 'check:syntax':null,
+ test:null,
+ 'qa:codex':null,
+ 'qa:agent:mass':['--','--cases','2400','--seed','20261031'],
+ 'qa:agent:live:plan':null,
+ 'qa:meta:plan':null,
+ 'qa:baseten:plan':null,
+ 'qa:systematic':null
+});
 export function ensureOfflineSteps(steps=AI_PREFLIGHT_STEPS){
+ if(!Array.isArray(steps)||steps.length!==AI_PREFLIGHT_STEPS.length)
+  throw new TypeError('PREFLIGHT_CONTAINS_PAID_ACTION');
+ const seen=new Set();
  for(const step of steps){
-  const literal=[step.command,...(step.args??[])].join(' ');
-  if(forbidden.test(literal)||!step.command||!step.id)
+  const expected=Object.hasOwn(SAFE,step?.command)?SAFE[step.command]:undefined;
+  if(expected===undefined||seen.has(step.command)||
+     !step.id||!step.critical||
+     JSON.stringify(step.args??null)!==JSON.stringify(expected))
    throw new TypeError('PREFLIGHT_CONTAINS_PAID_ACTION');
+  seen.add(step.command);
  }
  return steps;
 }
