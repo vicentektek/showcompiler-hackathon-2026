@@ -1,6 +1,6 @@
 # RUNQ · paquete de preproducción del vídeo (29 octubre 2026)
 
-**Estado:** documentación, prompts y generador de voz ejecutable preparados; se han generado por separado WAV robóticos **solo para QA** (no versionados). **NO** hay voces neuronales finales, pruebas reales de Muse, capturas ni montaje definitivo. **Carácter:** obra y diálogos originales, libres de material de terceros; los audios sintéticos WAV existentes son del propio proyecto. **Repositorio:** privado. **Rama:** `docs/runq-video-production-kit-2026-10-29`, independiente de la integración.
+**Estado actualizado 31/10:** obra, voces naturales previas de actores (recibidas del usuario), cinco tomas preparadas, generador de espectáculo inglés ZIP, tareas VS Code, controlador OBS y planificación de captura implementados en rama de documentación. Las nuevas locuciones privadas **Arian (operador)** y **Benedict (narración)** existen en Descript, pendientes de escucha y exportación final. **NO** hay pruebas reales de Muse, capturas finales ni montaje definitivo. **Carácter:** obra y diálogos originales, libres de material de terceros; los audios sintéticos WAV existentes son del propio proyecto. **Repositorio:** privado. **Rama:** `docs/runq-video-production-kit-2026-10-29`, independiente de la integración.
 
 ## Decisiones recuperadas (no reinventar la campaña)
 
@@ -29,10 +29,17 @@
 | [`AUTOMATED_VIDEO_DIRECTOR.md`](AUTOMATED_VIDEO_DIRECTOR.md) | Plan técnico VS Code + Playwright + OBS + micrófono virtual para grabar todas las escenas reales con seguridad |
 | [`DEMO_OPERATIONS_SELECTION_2026-10-31.md`](DEMO_OPERATIONS_SELECTION_2026-10-31.md) | Selección priorizada para rodaje: edición mediante voz, corrección opcional, Meta real, Auto GO, salto y control manual |
 | [`tools/video/build_voice_kit.py`](../../../tools/video/build_voice_kit.py) | Script ejecutable, sin red ni claves, que crea SSML y WAV; importa después voces profesionales con licencia |
+| [`NARRATION_EN_V3_FILM_SCRIPT.md`](NARRATION_EN_V3_FILM_SCRIPT.md) | Locución definitiva por segmentos, actores y operador; limita narración S05/S08 |
+| [`OBS_CAPTURE_SETUP.md`](OBS_CAPTURE_SETUP.md) | Configuración OBS desde Windows, vídeo real de RUNQ y aislamiento de pistas; evita grabar VS Code |
+| [`video_shots.json`](video_shots.json) | Orden y duraciones de 11 escenas, validable por la herramienta |
+| [`tools/video/build-the-last-go.mjs`](../../../tools/video/build-the-last-go.mjs) | Genera ZIP inglés completo con tres WAV y triggers desde L# originales |
+| [`tools/video/run-demo-director.mjs`](../../../tools/video/run-demo-director.mjs) | CLI director: plan, verificación y capturas de escenas reales mediante Playwright y OBS opcional |
+| [`tools/video/prepare-natural-voice-takes.py`](../../../tools/video/prepare-natural-voice-takes.py) | Monta cinco tomas de los tres actores ingleses naturales, con 18 s de pre-roll para iniciar escucha/ARM |
+| [`tools/video/obs-control.mjs`](../../../tools/video/obs-control.mjs) | Control local OBS-WebSocket, nunca para grabaciones que ya estén activas |
 
 ## Obra y razón de diseño
 
-**The Last GO:** comedia breve y sobria sobre una deliberación antes de anunciar el resultado de un concurso. Tres intérpretes — Ella, James y Maya — permiten voces inglesas contrastadas. **No habla de RUNQ**: tiene guion dramático natural y acotaciones que un modelo debe interpretar con trazabilidad. Tres pies exactos se asocian a los tres WAV originales ya construibles sin APIs: atmósfera → campana → transición final. Esto reutiliza `src/core/demoShow.mjs` sin afirmar que su ZIP anterior sea la nueva obra. Una eventual automatización que construya un ZIP EN es **pendiente de implementación y prueba**.
+**The Last GO:** comedia breve y sobria sobre una deliberación antes de anunciar el resultado de un concurso. Tres intérpretes — Ella, James y Maya — permiten voces inglesas contrastadas. **No habla de RUNQ**: tiene guion dramático natural y acotaciones que un modelo debe interpretar con trazabilidad. Tres pies exactos se asocian a los tres WAV originales ya construibles sin APIs: atmósfera → campana → transición final. Esto reutiliza `src/core/demoShow.mjs` sin afirmar que su ZIP anterior sea la nueva obra. El constructor `tools/video/build-the-last-go.mjs` **ya está añadido** y genera el show ZIP inglés con WAV originales y un chequeo de importación/exportación; queda pendiente la validación de los tests/CI del commit y una prueba humana en Windows.
 
 **No confundir:** la obra limpia es el input para análisis Meta; la matriz técnica y el guion de presentación NO deben importarse como obra. Si se decide insertar voces de «director» en los tests, estas pertenecen a las tomas de ensayo, no al texto teatral original.
 
