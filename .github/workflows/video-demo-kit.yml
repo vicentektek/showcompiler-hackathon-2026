@@ -1,0 +1,48 @@
+name: RUNQ video demo kit (offline)
+on:
+  push:
+    branches:
+      - docs/runq-video-production-kit-2026-10-29
+    paths:
+      - 'tools/video/**'
+      - 'docs/video/demo-pack/**'
+      - 'fixtures/demo/runq-the-last-go-en.txt'
+      - 'test/videoDemoKit.test.mjs'
+      - '.github/workflows/video-demo-kit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Node syntax
+        run: |
+          node --check tools/video/build-the-last-go.mjs
+          node --check tools/video/run-demo-director.mjs
+      - name: Offline video kit contract tests (no provider or microphone)
+        run: node --test test/videoDemoKit.test.mjs
+      - name: Build source-line accurate English portable show and WAVs
+        run: node tools/video/build-the-last-go.mjs
+      - name: Generate dry-run scene plan and environment check
+        run: |
+          node tools/video/run-demo-director.mjs --plan > production/runq-video-kit/scene-plan.json
+          node tools/video/run-demo-director.mjs --check > production/runq-video-kit/doctor.json
+      - name: Upload rights-clear offline show
+        uses: actions/upload-artifact@v4
+        with:
+          name: RUNQ_The_Last_GO_English_Offline_Demo
+          path: |
+            production/runq-video-kit/RUNQ_THE_LAST_GO_EN.showcompiler.zip
+            production/runq-video-kit/sfx/*.wav
+            production/runq-video-kit/scene-plan.json
+            production/runq-video-kit/doctor.json
+          if-no-files-found: error
+          retention-days: 14

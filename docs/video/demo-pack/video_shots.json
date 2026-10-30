@@ -1,0 +1,121 @@
+{
+  "schema": "runq-film-shots/v1",
+  "status": "PLANNED_NOT_RECORDED",
+  "target_seconds": 180,
+  "frames_per_second": 30,
+  "resolution": "1920x1080",
+  "source": "DEMO_OPERATIONS_SELECTION_2026-10-31.md",
+  "no_fake_ui": true,
+  "scenes": [
+    {
+      "id": "S01",
+      "start": "00:00",
+      "end": "00:10",
+      "seconds": 10,
+      "workspace": null,
+      "mode": "editorial",
+      "audio": "narrator/S01.wav",
+      "requirement": "TITLE only; no fake RUNQ UI"
+    },
+    {
+      "id": "S02",
+      "start": "00:10",
+      "end": "00:26",
+      "seconds": 16,
+      "workspace": "script",
+      "mode": "real-capture",
+      "audio": "narrator/S02.wav",
+      "requirement": "Original script, not competitor UI"
+    },
+    {
+      "id": "S03",
+      "start": "00:26",
+      "end": "00:35",
+      "seconds": 9,
+      "workspace": "home",
+      "mode": "real-capture",
+      "audio": "narrator/S03.wav",
+      "requirement": "RUNQ frozen build and logo"
+    },
+    {
+      "id": "S04",
+      "start": "00:35",
+      "end": "00:55",
+      "seconds": 20,
+      "workspace": "script",
+      "mode": "meta-explicit-opt-in",
+      "audio": "narrator/S04.wav",
+      "requirement": "Import original text and L#; never simulate Meta inference"
+    },
+    {
+      "id": "S05",
+      "start": "00:55",
+      "end": "01:20",
+      "seconds": 25,
+      "workspace": "cues",
+      "mode": "voice-one-shot-with-consent",
+      "audio": "operator/hero_01_fade_in.wav",
+      "requirement": "Real recorded voice -> Muse transcript -> local parser preview -> human APPLY; no voice call by default"
+    },
+    {
+      "id": "S06",
+      "start": "01:20",
+      "end": "01:40",
+      "seconds": 20,
+      "workspace": "audio",
+      "mode": "real-capture",
+      "audio": "narrator/S06.wav",
+      "requirement": "Real WAV waveform/trim/preview"
+    },
+    {
+      "id": "S07",
+      "start": "01:40",
+      "end": "01:47",
+      "seconds": 7,
+      "workspace": "rehearsal",
+      "mode": "real-capture",
+      "audio": "narrator/S07.wav",
+      "requirement": "Voice follow initially disarmed"
+    },
+    {
+      "id": "S08",
+      "start": "01:47",
+      "end": "02:35",
+      "seconds": 48,
+      "workspace": "rehearsal",
+      "mode": "voice-one-shot-with-consent",
+      "audio": "actors/linear_or_jump.wav",
+      "requirement": "Actual provider transcription using prerecording; operator ARM; verified cue GO and optional skip; no narrator"
+    },
+    {
+      "id": "S09",
+      "start": "02:35",
+      "end": "02:50",
+      "seconds": 15,
+      "workspace": "operation",
+      "mode": "human-manual-transport",
+      "audio": "narrator/S09.wav",
+      "requirement": "NEXT -> GO -> STOP ALL through real operator UI"
+    },
+    {
+      "id": "S10",
+      "start": "02:50",
+      "end": "02:55",
+      "seconds": 5,
+      "workspace": null,
+      "mode": "editorial",
+      "audio": "narrator/S10.wav",
+      "requirement": "Montage of verified screen captures"
+    },
+    {
+      "id": "S11",
+      "start": "02:55",
+      "end": "03:00",
+      "seconds": 5,
+      "workspace": null,
+      "mode": "editorial",
+      "audio": "narrator/S11.wav",
+      "requirement": "Original RunQ title card"
+    }
+  ]
+}
