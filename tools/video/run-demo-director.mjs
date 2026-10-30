@@ -129,7 +129,6 @@ export async function runScene(opts){
       if(await ask(rl,message)!=='I AUTHORIZE VOICE')throw Error('VOICE_NOT_AUTHORIZED');
     }
     const {chromium}=await import('playwright-core');
-    ({server,url:undefined}= {});
     const local=await startServer();
     server=local.server;
     const browserArgs=['--no-first-run','--no-default-browser-check'];
@@ -193,7 +192,7 @@ export async function runScene(opts){
     try{await page?.close();}catch{}
     try{await context?.close();}catch{}
     try{await browser?.close();}catch{}
-    try{await new Promise(resolve=>server?.close(resolve)??resolve());}catch{}
+    try{if(server)await new Promise(resolve=>server.close(resolve));}catch{}
     rl.close();
   }
 }
