@@ -260,7 +260,7 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
  const mixedCommits=commits.size>1;
  const unknownCommit=[...commits].some(x=>!(/^[0-9a-f]{40}$/.test(x)));
  const blocking=duplicates.length>0||mixedCommits||unknownCommit||
-  stopped.some(x=>x.reason==='UNKNOWN_REMOTE_OUTCOME')||preflightPassed===false;
+  stopped.length>0||preflightPassed===false;
  const enough=providers.every(p=>{
   const m=byProvider[p];
   return m.scored>=60&&m.byLanguage.es.scored>=25&&m.byLanguage.en.scored>=25&&
@@ -384,12 +384,15 @@ export async function runAiCampaign(config,{preflight=runAiPreflight,
  const previous=await reportsReader();
  const priorLedger=await ledgerAuditor(previous);
  const ledgerSafe=['NO_LEDGER','RECONCILED'].includes(priorLedger.status);
+ const previousIncident=previous.reports.some(item=>
+  item.report.seed===config.seed&&item.report.stopReason!=='COMPLETE');
  let preflightPassed=null,paidResult=null,stage='DRY_RUN';
  if(!config.reportOnly){
   const report=await preflight();
   preflightPassed=report.passed===true;
   if(!preflightPassed)stage='OFFLINE_GATE_FAILED';
   else if(config.live&&!ledgerSafe)stage='PRIOR_RESERVATIONS_NEED_RECONCILIATION';
+  else if(config.live&&previousIncident)stage='PREVIOUS_PAID_CAMPAIGN_INCIDENT';
   else if(config.live){
    // The only path that may reach a provider: explicit CLI opt-in and green offline gate.
    // The paid runner owns the durable ledger and refuses duplicated billing identities.
@@ -442,6 +445,7 @@ if(invoked){
   if(result.summary.stage==='OFFLINE_GATE_FAILED'||
      result.summary.stage==='PAID_BATCH_STOPPED'||
      result.summary.stage==='PRIOR_RESERVATIONS_NEED_RECONCILIATION'||
+     result.summary.stage==='PREVIOUS_PAID_CAMPAIGN_INCIDENT'||
      result.summary.status==='BLOCKED')
    process.exitCode=1;
  }catch(error){
