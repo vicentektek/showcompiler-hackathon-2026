@@ -1,0 +1,55 @@
+/* RUNQ Studio: scoped pane presentation; the original controls and queue own all actions.
+   Added after the existing theme only because these are new component states. */
+.rq8.rq14 .shell[data-active-workspace="cues"] .rq-studio-pane-toggle {
+  flex: none;
+  min-height: 27px;
+  margin-left: auto;
+  padding: 3px 8px;
+  font: 650 10px/1.2 Segoe UI, system-ui, sans-serif;
+  color: #c3d9eb;
+  background: #233345;
+  border: 1px solid #48617a;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"] .rq-studio-pane-toggle:hover {
+  background: #315174;
+  border-color: #80adcf;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"] .rq-studio-pane-toggle[aria-pressed="true"] {
+  background: #2b5277;
+  color: #ffffff;
+  border-color: #86b7e0;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"] .rq-studio-pane-toggle:focus-visible {
+  outline: 2px solid #badaff;
+  outline-offset: 2px;
+}
+/* Existing grid and splitter are preserved for split mode. The hidden pane is
+   not unmounted: its state and any staged inspector edits remain in the DOM. */
+.rq8.rq14 .shell[data-active-workspace="cues"] .rq5-show-workspace
+  .cue-workspace-body[data-rq-studio-pane="list"],
+.rq8.rq14 .shell[data-active-workspace="cues"] .rq5-show-workspace
+  .cue-workspace-body[data-rq-studio-pane="inspector"] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"]
+  .cue-workspace-body[data-rq-studio-pane="list"] .rq5-inspector-frame,
+.rq8.rq14 .shell[data-active-workspace="cues"]
+  .cue-workspace-body[data-rq-studio-pane="inspector"] .rq5-sequence-frame {
+  display: none !important;
+}
+.rq8.rq14 .shell[data-active-workspace="cues"]
+  .cue-workspace-body[data-rq-studio-pane="list"] .rq7-split-handle,
+.rq8.rq14 .shell[data-active-workspace="cues"]
+  .cue-workspace-body[data-rq-studio-pane="inspector"] .rq7-split-handle {
+  display: none !important;
+}
+@media (max-width: 1100px) {
+  .rq8.rq14 .shell[data-active-workspace="cues"] .rq-studio-pane-toggle {
+    font-size: 9px;
+    min-height: 26px;
+    padding-inline: 5px;
+  }
+}
