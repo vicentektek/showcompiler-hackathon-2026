@@ -22,6 +22,15 @@ function installStudioAudioDock(){
  bar.className='rq-studio-bottom-bar';
  const heading=document.createElement('strong');
  heading.className='rq-studio-bottom-heading';
+ const inspectorHeader=desk.querySelector('.rq5-inspector-heading');
+ const openButton=document.createElement('button');
+ openButton.type='button';
+ openButton.id='rqStudioAudioDockOpen';
+ openButton.className='rq-studio-dock-open';
+ openButton.textContent='▤';
+ openButton.title='Open bottom audio editor';
+ openButton.setAttribute('aria-label','Open waveform and audio editor below');
+ inspectorHeader?.append(openButton);
  const toggle=document.createElement('button');
  toggle.type='button';
  toggle.id='rqStudioAudioDockToggle';
@@ -70,7 +79,12 @@ function installStudioAudioDock(){
    docked.remove();anchor=null;
   }
   const hasForm=!!candidate||!!content.querySelector('#cuePlaybackForm');
-  dock.hidden=!eligible||!hasForm;
+  // Keep the collapsed editor completely out of the flex layout.
+  // The compact open button lives on the existing inspector heading instead.
+  dock.hidden=!eligible||!hasForm||!enabled;
+  openButton.hidden=!eligible||!hasForm||enabled;
+  openButton.setAttribute('aria-label',say('Open waveform and audio editor below','Abrir forma de onda y editor inferior'));
+  openButton.title=openButton.getAttribute('aria-label');
   if(!eligible||!hasForm){
    restoreForm();content.hidden=true;return;
   }
@@ -98,12 +112,14 @@ function installStudioAudioDock(){
   scheduled=true;
   queueMicrotask(()=>{scheduled=false;sync();});
  }
- toggle.addEventListener('click',()=>{
+ function setEnabled(next){
   if(!isStudio()||!audioSelected())return;
-  enabled=!enabled;
+  enabled=Boolean(next);
   try{localStorage.setItem(STORAGE_KEY,String(enabled));}catch{}
   sync();
- });
+ }
+ openButton.addEventListener('click',()=>setEnabled(true));
+ toggle.addEventListener('click',()=>setEnabled(false));
  new MutationObserver(queueSync).observe(inspector,{childList:true,subtree:true});
  new MutationObserver(queueSync).observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
  byId('uiLocaleSelect')?.addEventListener('change',queueSync);
