@@ -1,6 +1,6 @@
 # RUNQ · paquete de preproducción del vídeo (29 octubre 2026)
 
-**Estado:** materiales ESCRITOS preparados; NO hay grabaciones TTS, pruebas reales, clips ni montaje final realizados por este paquete. **Carácter:** obra y diálogos originales, libres de material de terceros; los audios sintéticos WAV existentes son del propio proyecto. **Repositorio:** privado. **Rama:** `docs/runq-video-production-kit-2026-10-29`, independiente de la integración.
+**Estado:** documentación, prompts y generador de voz ejecutable preparados; se han generado por separado WAV robóticos **solo para QA** (no versionados). **NO** hay voces neuronales finales, pruebas reales de Muse, capturas ni montaje definitivo. **Carácter:** obra y diálogos originales, libres de material de terceros; los audios sintéticos WAV existentes son del propio proyecto. **Repositorio:** privado. **Rama:** `docs/runq-video-production-kit-2026-10-29`, independiente de la integración.
 
 ## Decisiones recuperadas (no reinventar la campaña)
 
