@@ -31,7 +31,10 @@ test('paid options require both authorization flags and a full bilingual matrix'
   /PAID_MATRIX_REQUIRES_COMPLETE_BILINGUAL_CYCLES/);
  assert.throws(()=>options(['--cases','40','--budget-usd','120']),
   /INVALID_AGENT_LIVE_EVAL_CONFIG/);
- assert.equal(options(['--cases','80','--live','--ack-paid']).live,true);
+ if(process.env.CI==='true')
+  assert.throws(()=>options(['--cases','80','--live','--ack-paid']),
+   /PAID_TESTS_DISABLED_IN_CI/);
+ else assert.equal(options(['--cases','80','--live','--ack-paid']).live,true);
 });
 test('manifest uses 10 categories across ES/EN with source-stable hash and no text',()=>{
  const first=buildAiManifest(options([]));
@@ -143,7 +146,7 @@ test('offline failure blocks paid campaign despite both live authorization flags
  const tmp=await mkdtemp(join(tmpdir(),'runq-ai-paid-stop-'));
  let paid=0;
  try{
-  const result=await runAiCampaign(options(['--live','--ack-paid']),{
+  const result=await runAiCampaign({...options([]),live:true,ackPaid:true},{
    preflight:async()=>({passed:false}),
    paidRunner:async()=>{paid++;return {stopReason:'COMPLETE',attemptedRequests:40};},
    reportsReader:async()=>({reports:[],warnings:[]}),outputDir:tmp
