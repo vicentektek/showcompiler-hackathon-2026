@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
+import {mkdtemp,rm,readFile,writeFile,mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {ensureOfflineSteps,AI_PREFLIGHT_STEPS} from '../tools/runq-ai-preflight.mjs';
 import {parseAiCampaignOptions,buildAiManifest,analyzeAiPaidReports,
- formatAiCampaignReport,runAiCampaign,auditAiReservations} from '../tools/runq-ai-campaign.mjs';
+ formatAiCampaignReport,runAiCampaign,auditAiReservations,
+ readAiSubsystemEvidence} from '../tools/runq-ai-campaign.mjs';
 
 const options=(more=[])=>parseAiCampaignOptions(more);
 const row=(id,provider,{language='es',category='closing',status=200,
@@ -228,4 +229,30 @@ test('analyzer refuses to pool quality scores from different RUNQ source commits
  ],warnings:[]},{preflightPassed:true});
  assert.equal(analysis.status,'BLOCKED');
  assert.equal(analysis.mixedCommits,true);
+});
+
+test('subsystem reader distinguishes real theatre inferences from dry-run and SFX listening',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-ai-other-evidence-'));
+ try{
+  await mkdir(join(dir,'artifacts','seminar-live'),{recursive:true});
+  await mkdir(join(dir,'artifacts','seminar-baseten'),{recursive:true});
+  await mkdir(join(dir,'.runq-local','sfx-latency-lab'),{recursive:true});
+  await writeFile(join(dir,'artifacts','seminar-live','report.json'),
+   JSON.stringify({kind:'OFFLINE_META_REQUEST_PLAN',realInferenceExecuted:false,
+    scoredCases:99,score:{f1:1}}));
+  await writeFile(join(dir,'artifacts','seminar-baseten','report.json'),
+   JSON.stringify({kind:'LOCAL_LIVE_BASETEN_EXPERIMENT',realInferenceExecuted:true,
+    submittedRequests:3,scoredCases:2,score:{f1:0.5},goldHumanReviewed:false}));
+  await writeFile(join(dir,'.runq-local','sfx-latency-lab','report-2026-10-30.json'),
+   JSON.stringify({kind:'AUTHORIZED_MODAL_SFX_LATENCY_TEST',
+    cases:[{status:'READY'},{status:'FAILED'}]}));
+  const evidence=await readAiSubsystemEvidence({root:dir});
+  assert.equal(evidence.theatre.meta.status,'NO_REAL_PROVIDER_EVIDENCE');
+  assert.equal(evidence.theatre.meta.f1,null);
+  assert.equal(evidence.theatre.baseten.status,'PROVISIONAL_SCORED');
+  assert.equal(evidence.theatre.baseten.f1,0.5);
+  assert.equal(evidence.sound.status,'REAL_ATTEMPTS_NEED_LISTENING');
+  assert.equal(evidence.sound.completed,1);
+  assert.equal(evidence.voice.status,'REAL_ASR_EVIDENCE_NOT_CONNECTED');
+ }finally{await rm(dir,{recursive:true,force:true});}
 });
