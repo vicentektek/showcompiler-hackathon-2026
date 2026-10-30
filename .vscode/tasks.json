@@ -234,7 +234,10 @@
         "--capture"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "RUNQ_OBS_PASSWORD": "${input:runqObsPassword}"
+        }
       },
       "problemMatcher": []
     },
@@ -253,7 +256,10 @@
         "--capture"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "RUNQ_OBS_PASSWORD": "${input:runqObsPassword}"
+        }
       },
       "problemMatcher": []
     },
@@ -269,9 +275,20 @@
         "--capture"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "RUNQ_OBS_PASSWORD": "${input:runqObsPassword}"
+        }
       },
       "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "runqObsPassword",
+      "type": "promptString",
+      "description": "OBS WebSocket password (local 127.0.0.1:4455; not stored in repository)",
+      "password": true
     }
   ]
 }
