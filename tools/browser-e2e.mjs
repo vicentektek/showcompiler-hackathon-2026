@@ -187,6 +187,7 @@ try {
   const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
   assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
     'Compact inspector must show real editable audio settings without page scroll');
+  await page.setViewportSize({width:1366,height:768});
   // The existing playback form may be docked at the bottom, but its inputs,
   // original Save handler, audition controls and the NEXT queue stay canonical.
   assert.equal(await page.locator('#rqStudioAudioDockToggle').count(),1);
@@ -207,6 +208,20 @@ try {
   assert.equal(await playbackForm.locator('[name="startAtMs"]').count(),1);
   assert.equal(await playbackForm.locator('.cue-waveform-editor').count(),1);
   await capture('06b-studio-bottom-audio-dock.png');
+  await page.setViewportSize({width:1093,height:614});
+  assert.equal(await page.locator('.rq5-stage-body').isHidden(),true,
+    'At low viewport height, bottom audio editor temporarily replaces cue/inspector panes');
+  const compactDockLayout=await page.evaluate(()=>{
+    const dock=document.getElementById('rqStudioAudioDock').getBoundingClientRect();
+    const go=document.getElementById('operatorGoBtn').getBoundingClientRect();
+    const stop=document.getElementById('operatorPanicBtn').getBoundingClientRect();
+    return {dockVisible:dock.height>50,goBottom:go.bottom,stopBottom:stop.bottom};
+  });
+  assert.ok(compactDockLayout.dockVisible);
+  assert.ok(compactDockLayout.goBottom<=614 && compactDockLayout.stopBottom<=614,
+    'Manual GO and STOP ALL must remain reachable at 1093×614');
+  await capture('06d-studio-compact-audio-focus.png');
+  await page.setViewportSize({width:1366,height:768});
   await page.locator('#rqStudioAudioDockToggle').click();
   assert.equal(await page.locator('#rqStudioAudioDockToggle').getAttribute('aria-expanded'),'false');
   assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),1);
