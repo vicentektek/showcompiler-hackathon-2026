@@ -30,7 +30,7 @@ test('paired evaluation fixtures are independent and score proposed changes with
  assert.equal(a.project.cues.length,4,'Judging must not alter source');
  assert.equal(judgeAgentLiveReply(a,{status:'CLARIFY',message:'Cue not found or unsafe.',operations:[]}).correct,false);
  assert.equal(judgeAgentLiveReply(getAgentLiveScenario(12),
-  {status:'CLARIFY',operations:[]}).correct,true);
+  {status:'CLARIFY',message:'Cue not found',operations:[]}).correct,true);
  const unsafe=judgeAgentLiveReply(a,{status:'PLAN',operations:[{op:'GO'}]});
  assert.equal(unsafe.valid,false);
 });
