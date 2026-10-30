@@ -171,3 +171,12 @@ artifacts/systematic-eval/
 # Live agent provider benchmarking: costs, anonymized diagnostics and local budget only.
 artifacts/agent-eval/
 artifacts/agent-live-eval/
+
+# RUNQ video production: generated voice audio, source recordings and unpublished media.
+# Scripts, cue maps and reviewed text remain versioned under docs/video/ and tools/video/.
+production/runq-voice-kit/
+production/audio/
+production/video/
+production/reports/
+**/__pycache__/
+*.pyc
