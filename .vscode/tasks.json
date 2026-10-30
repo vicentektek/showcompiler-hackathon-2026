@@ -81,6 +81,146 @@
         "qa:systematic"
       ],
       "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Prepare English show",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/build-the-last-go.mjs"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Check environment",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--check"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Show storyboard",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--plan"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Script import",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S04",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Conversational cue editor",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S05",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Waveform and audio",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S06",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Rehearsal disarmed",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S07",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Real voice rehearsal (consent required)",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S08",
+        "--mic-wav",
+        "production/runq-video-kit/natural-voices/mic-ready/01_linear_en_mic.wav",
+        "--voice-opt-in",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Manual operation",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/video/run-demo-director.mjs",
+        "--scene",
+        "S09",
+        "--capture"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RUNQ VIDEO · Offline preparation",
+      "dependsOn": [
+        "RUNQ VIDEO · Prepare English show",
+        "RUNQ VIDEO · Check environment"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
     }
   ]
 }
