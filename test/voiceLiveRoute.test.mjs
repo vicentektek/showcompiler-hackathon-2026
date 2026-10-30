@@ -92,6 +92,7 @@ test('malformed or cross-origin browser requests cannot open upstream sessions',
 });
 test('one bilingual live session, simulated event delivery, bounded PCM, explicit endStream',async()=>{
  await withServer(async(base,upstream)=>{
+  const earliestEventMs=Date.now();
   const start=await api(base,'start',{lang:'mixed'});
   assert.equal(start.status,200);
   assert.equal(start.body.maximumSeconds,180);
@@ -110,7 +111,11 @@ test('one bilingual live session, simulated event delivery, bounded PCM, explici
   assert.equal((await api(base,'stop',{session:id})).status,200);
   assert.ok(upstream.messages.some(x=>typeof x==='string'&&JSON.parse(x).type==='endStream'));
   poll=await api(base,'poll',{session:id});
-  assert.ok(poll.body.events.some(x=>x.type==='speechComplete'&&x.transcript==='Listen to the storm.'));
+  const complete=poll.body.events.find(x=>x.type==='speechComplete'&&
+   x.transcript==='Listen to the storm.');
+  assert.ok(complete);
+  assert.ok(Number.isFinite(complete.receivedAtMs));
+  assert.ok(complete.receivedAtMs>=earliestEventMs&&complete.receivedAtMs<=Date.now());
   assert.ok(!JSON.stringify(poll.body).includes('mock-key'));
  });
 });
@@ -127,8 +132,13 @@ test('client code never contains Meta token or GO transport calls',async()=>{
  const {fileURLToPath}=await import('node:url');
  const path=fileURLToPath(new URL('../src/ui/voice-live-ui.mjs',import.meta.url));
  const code=readFileSync(path,'utf8');
+ const auto=readFileSync(fileURLToPath(new URL('../src/ui/rehearsal-auto-ui.mjs',import.meta.url)),'utf8');
  for(const invalid of ['api.meta.ai','MODEL_API_KEY','operatorGoBtn','player.go(','runq:operator-quick-go','localStorage.setItem'])
   assert.ok(!code.includes(invalid),invalid);
  assert.ok(code.includes("type==='speechComplete'"));
+ assert.ok(code.includes('presentFinal(event.transcript,event.turnId,event.receivedAtMs)'));
+ assert.ok(code.includes('endMs:receivedAtMs'));
+ assert.ok(auto.includes('endMs:detail.endMs'));
+ assert.ok(!auto.includes('endMs:now'));
  assert.ok(code.includes('runq:voice-follow-highlight-line'));
 });

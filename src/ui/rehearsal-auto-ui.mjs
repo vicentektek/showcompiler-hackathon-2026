@@ -162,7 +162,7 @@ async function finalTurn(detail){
  const now=Date.now();
  const proposed=decideRehearsalAutoGo({
   cues:scenario?.cues??[],
-  transcript:{text:detail.text,final:true,endMs:now},
+  transcript:{text:detail.text,final:true,endMs:detail.endMs},
   turnId:detail.turnId,atMs:now,state:autoState,armed,
  });
  const a=proposed.action;

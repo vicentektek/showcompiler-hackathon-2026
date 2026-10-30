@@ -60,7 +60,7 @@ try{
  assert.equal(await page.locator('#rqLiveArm').isEnabled(),true);
  assert.equal(await page.locator('#rqLiveArm').getAttribute('aria-pressed'),'false');
  const send=async(i,turnId)=>page.evaluate(({trigger,turnId})=>{
-  const detail={text:trigger,turnId,handled:false};
+  const detail={text:trigger,turnId,endMs:Date.now(),handled:false};
   document.dispatchEvent(new CustomEvent('runq:voice-live-final',{detail}));
   return detail.handled;
  },{trigger:sample[i],turnId});
