@@ -2,6 +2,8 @@
 
 **Estado:** guion de locución para generación y pruebas; **NO** indica que la build soporte cada orden por voz. Grabaciones pendientes. Mantener separados el narrador, los actores y el operador. La identidad del operador debe ser una voz inglesa propia, distinta de James/Maya/Ella y del narrador.
 
+> **Selección para el vídeo principal:** NO sintetizar de momento las 17 órdenes de esta biblioteca. Las elegidas tras revisar el código V15 son `Set the fade in to three seconds.` y, opcionalmente, `Make it four seconds.`; detalles, riesgos y alternativas en [DEMO_OPERATIONS_SELECTION_2026-10-31.md](DEMO_OPERATIONS_SELECTION_2026-10-31.md). Las demás quedan para pruebas extendidas, no son claims de funcionalidades completas.
+
 ## Funciones de voz diferentes (NO mezclarlas)
 
 1. **Actores / pies**: RUNQ escucha frases de la obra para disparar cues en Ensayo **solo después de ARM explícito**. Entradas de `fixtures/demo/runq-the-last-go-en.txt`: L6, L14, L23.
