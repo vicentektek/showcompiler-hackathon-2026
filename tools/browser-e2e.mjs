@@ -187,6 +187,34 @@ try {
   const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
   assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
     'Compact inspector must show real editable audio settings without page scroll');
+  // Studio focus is a PRESENTATION mode. It never clones the cue list or
+  // inspector, nor can it modify NEXT or start mocked show audio.
+  assert.equal(await page.locator('#rqStudioFocusList').count(), 1);
+  assert.equal(await page.locator('#rqStudioFocusInspector').count(), 1);
+  const nextBeforeFocus = await page.locator('#preparedCueStatus').innerText();
+  const audioBeforeFocus = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('#rqStudioFocusList').click();
+  assert.equal(await page.locator('.cue-workspace-body').getAttribute('data-rq-studio-pane'), 'list');
+  assert.equal(await page.locator('.rq5-inspector-frame').isHidden(), true);
+  assert.equal(await page.locator('#cueList .cue-item').count(), 3);
+  assert.equal(await page.locator('#cueInspector').count(), 1, 'Hidden inspector is not recreated');
+  await capture('06-studio-list-focus-1093.png');
+  await page.locator('#rqStudioFocusList').click();
+  assert.equal(await page.locator('.cue-workspace-body').getAttribute('data-rq-studio-pane'), 'split');
+  assert.equal(await page.locator('.rq5-inspector-frame').isVisible(), true);
+  await page.locator('#rqStudioFocusInspector').click();
+  assert.equal(await page.locator('.cue-workspace-body').getAttribute('data-rq-studio-pane'), 'inspector');
+  assert.equal(await page.locator('.rq5-sequence-frame').isHidden(), true);
+  assert.equal(await page.locator('#cueList').count(), 1, 'Hidden cue list retains its identity');
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').isVisible(), true);
+  await capture('06a-studio-inspector-focus-1093.png');
+  await page.locator('#rqStudioFocusInspector').focus();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('.cue-workspace-body').getAttribute('data-rq-studio-pane'), 'split');
+  assert.equal(await page.locator('.rq5-sequence-frame').isVisible(), true);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), nextBeforeFocus);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), audioBeforeFocus,
+    'Expanding either Studio pane must never GO');
   await page.setViewportSize({width:1366,height:768});
   // Conversational cue editor: offline text -> draft -> correction -> apply -> undo.
   assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
