@@ -45,6 +45,8 @@ test('follow-up correction reuses only bounded local session context',()=>{
 test('negation, overly large batches and absent history never silently edit',()=>{
  const p=show();
  assert.notEqual(resolveAgentDialogue(p,'No añadas 3 cues al final').status,'PLAN');
+ assert.notEqual(resolveAgentDialogue(p,
+  'A\u00f1ade 3 cues al final, pero no los a\u00f1adas todav\u00eda').status,'PLAN');
  assert.notEqual(resolveAgentDialogue(p,'añade 40 cues vacíos al final').status,'PLAN');
  assert.notEqual(resolveAgentDialogue(p,'los que te parezcan más apropiados').status,'PLAN');
 });
