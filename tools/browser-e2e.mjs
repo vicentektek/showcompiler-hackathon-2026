@@ -187,6 +187,30 @@ try {
   const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
   assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
     'Compact inspector must show real editable audio settings without page scroll');
+  // The existing playback form may be docked at the bottom, but its inputs,
+  // original Save handler, audition controls and the NEXT queue stay canonical.
+  assert.equal(await page.locator('#rqStudioAudioDockToggle').count(),1);
+  assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),0);
+  const playbackForm = page.locator('#cuePlaybackForm');
+  const gainBeforeDock = await playbackForm.locator('[name="gainDb"]').inputValue();
+  const nextBeforeDock = await page.locator('#preparedCueStatus').innerText();
+  const startBeforeDock = await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('#rqStudioAudioDockToggle').click();
+  assert.equal(await page.locator('#rqStudioAudioDockToggle').getAttribute('aria-expanded'),'true');
+  assert.equal(await page.locator('#rqStudioAudioDockContent #cuePlaybackForm').count(),1);
+  assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),0);
+  assert.equal(await page.locator('#cuePlaybackForm').count(),1,'Never clone the playback editor');
+  assert.equal(await playbackForm.locator('[name="gainDb"]').inputValue(),gainBeforeDock);
+  assert.equal(await playbackForm.locator('[name="fadeInMs"]').count(),1);
+  assert.equal(await playbackForm.locator('[name="startAtMs"]').count(),1);
+  assert.equal(await playbackForm.locator('.cue-waveform-editor').count(),1);
+  await capture('06b-studio-bottom-audio-dock.png');
+  await page.locator('#rqStudioAudioDockToggle').click();
+  assert.equal(await page.locator('#rqStudioAudioDockToggle').getAttribute('aria-expanded'),'false');
+  assert.equal(await page.locator('#cueInspector #cuePlaybackForm').count(),1);
+  assert.equal(await page.locator('#cuePlaybackForm').count(),1);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),nextBeforeDock);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),startBeforeDock,'Docking must never GO');
   // Studio focus is a PRESENTATION mode. It never clones the cue list or
   // inspector, nor can it modify NEXT or start mocked show audio.
   assert.equal(await page.locator('#rqStudioFocusList').count(), 1);
