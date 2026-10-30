@@ -15,7 +15,7 @@ const row=(id,provider,{language='es',category='closing',status=200,
  correct,valid,resolved:true,result:reason,reviewRequired});
 const report=(rows,{seed=20261031,stopReason='COMPLETE'}={})=>({
  version:2,realProviderEvaluations:true,strictlySyntheticFixtures:true,
- seed,startIndex:0,stopReason,results:rows});
+ seed,startIndex:0,stopReason,sourceCommit:'a'.repeat(40),results:rows});
 const corpus=(num=100)=>Array.from({length:num},(_,i)=>row('paid-'+String(i+1).padStart(4,'0'),
  'meta',{language:i%2?'en':'es',category:[
  'closing','followup','delete','reorder','rename','summary',
@@ -255,4 +255,14 @@ test('subsystem reader distinguishes real theatre inferences from dry-run and SF
   assert.equal(evidence.sound.completed,1);
   assert.equal(evidence.voice.status,'REAL_ASR_EVIDENCE_NOT_CONNECTED');
  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('missing source revision cannot be promoted to an automated pass',()=>{
+ const records=[...corpus(),...corpus().map(x=>({...x,provider:'baseten'}))];
+ const old=report(records);
+ delete old.sourceCommit;
+ const result=analyzeAiPaidReports({reports:[{filename:'eval-1-1.json',
+  report:old}],warnings:[]},{preflightPassed:true});
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.unknownCommit,true);
 });
