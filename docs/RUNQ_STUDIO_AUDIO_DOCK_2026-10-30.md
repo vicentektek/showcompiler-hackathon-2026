@@ -47,3 +47,21 @@ to put the same node back. No clones or second preview engine exist.
 
 No automatic merge or paid provider request. Physical Windows audio/voice
 remains an explicit operator gate.
+
+## 30 Oct responsive correction after Chrome evidence
+
+The first CI failed at the original waveform fade pointer target because a
+**collapsed** bottom dock was still consuming vertical space. This was fixed
+by placing the compact open button in the existing inspector heading.
+
+A later screenshot at **1093×614** showed that even a deliberately opened
+three-part layout leaves the sequence too short and the dock overlaps the
+inspector's tab hit targets. Therefore **below 701 px viewport height**, an
+expanded bottom editor explicitly replaces the editor's two top panes until
+the operator returns it to the inspector. The manual GO and STOP ALL remain
+outside the collapsing desk and visible. At larger sizes the dock and existing
+sequence/inspector share height with a bounded waveform region.
+
+This is a UX responsiveness fix, not a change to the waveform drag algorithm,
+cue schema, audio engine or playback permissions. Acceptance requires fresh
+Chrome screenshots and the exact-head CI before merging.
