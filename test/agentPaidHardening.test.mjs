@@ -84,3 +84,18 @@ test('case reservations survive process restart and reject duplicate paid identi
   assert.equal(new Set(data.records.map(r=>r.caseKey)).size,3);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('paid follow-up fixtures exercise 2, 4 and 8 conversation turns',()=>{
+ const seed=20261031;
+ assert.equal(getAgentLiveScenario(2,seed).kind,'followup');
+ assert.equal(getAgentLiveScenario(2,seed).conversation.length,2);
+ assert.equal(getAgentLiveScenario(22,seed).conversation.length,4);
+ assert.equal(getAgentLiveScenario(42,seed).conversation.length,8);
+ for(const index of [2,3,22,23,42,43]){
+  const scenario=getAgentLiveScenario(index,seed);
+  assert.equal(scenario.expected.kind,'CREATE_CUE');
+  assert.equal(scenario.expected.count,3);
+  assert.ok(scenario.conversation.every(turn=>
+   ['user','assistant'].includes(turn.role)&&turn.text.length>0));
+ }
+});
