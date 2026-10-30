@@ -57,3 +57,95 @@ test('RunQ workspace v2 keeps dense editor and library independent of execution'
   assert.doesNotMatch(enhancement,/operatorGoBtn|operatorPanicBtn|\.go\(|\.play\(/);
   assert.match(enhancement,/MutationObserver\(updateCounts\)/);
 });
+
+test('RunQ shell leaves shared workspace panels under app.mjs visibility control', async () => {
+  const [html, app, shell] = await Promise.all([
+    read('index.html'), read('src/ui/app.mjs'), read('src/ui/runq-shell.mjs'),
+  ]);
+
+  assert.match(html, /data-workspaces="script rehearsal"/);
+  assert.match(html, /data-workspaces="cues operation rehearsal"/);
+  assert.match(
+    app,
+    /panel\.hidden\s*=\s*!panel\.dataset\.workspaces\.split\(' '\)\.includes\(activeWorkspace\)/,
+  );
+  assert.doesNotMatch(shell, /querySelectorAll\(['"]\[data-workspaces\]['"]\)/);
+  assert.doesNotMatch(shell, /panel\.before\(|view\.append\(panel\)|data\.rqView|data-rq-view/);
+});
+
+test('RunQ density changes preserve unrelated root feature classes', async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    getElementById: () => null,
+    querySelector: () => null,
+    readyState: 'loading',
+    addEventListener() {},
+  };
+
+  try {
+    const { applyDensity } = await import(
+      new URL('../src/ui/runq-shell.mjs?runq-density-regression', import.meta.url)
+    );
+    assert.equal(typeof applyDensity, 'function');
+
+    const classes = new Set(['rq8', 'rq14', 'density-compact']);
+    const root = {
+      classList: {
+        add: (...names) => names.forEach((name) => classes.add(name)),
+        remove: (...names) => names.forEach((name) => classes.delete(name)),
+      },
+    };
+
+    assert.equal(applyDensity(root, 'comfortable'), true);
+    assert.deepEqual([...classes].sort(), ['density-comfortable', 'rq14', 'rq8']);
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
+});
+
+function assertBalancedCss(source) {
+  let depth = 0;
+  let line = 1;
+  let quote = '';
+  let inComment = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+    if (char === '\n') line += 1;
+
+    if (inComment) {
+      if (char === '*' && next === '/') {
+        inComment = false;
+        index += 1;
+      }
+      continue;
+    }
+    if (quote) {
+      if (char === '\\') index += 1;
+      else if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '/' && next === '*') {
+      inComment = true;
+      index += 1;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === '{') depth += 1;
+    if (char === '}') {
+      assert.ok(depth > 0, `orphan closing brace at line ${line}`);
+      depth -= 1;
+    }
+  }
+
+  assert.equal(depth, 0, `${depth} unclosed CSS block(s)`);
+}
+
+test('RunQ shell stylesheet has balanced rule blocks', async () => {
+  assertBalancedCss(await read('src/ui/runq-shell.css'));
+});

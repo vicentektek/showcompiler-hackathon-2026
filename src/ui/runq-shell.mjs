@@ -3,11 +3,10 @@
  *
  * Restructures the existing index.html DOM into the approved production shell
  * (topbar, navigation rail, main workspace, inspector, bottom editor) and
- * mounts the five workspace views inside it.
+ * presents the existing workspace views without changing their ownership.
  *
  * Presentation only. All execution semantics (audio, cues, GO, STOP, Autopilot,
- * IA, scripting) remain owned by app.mjs. This module only moves existing
- * elements into the shell containers and toggles workspace visibility.
+ * IA, scripting and workspace visibility) remain owned by app.mjs.
  */
 const $ = (id) => document.getElementById(id);
 const shell = document.querySelector('.shell');
@@ -29,7 +28,30 @@ const VIEW_LABELS = {
   },
 };
 
+const VIEW_ICONS = {
+  home: '⌂', script: '≡', ai: '✦', cues: '▤', audio: '◉', soundlab: '≈',
+  setup: '⚙', rehearsal: '◎', operation: '▶',
+};
+
+const CTX_CLASS = {
+  home: 'rq-ctx-studio', script: 'rq-ctx-studio', ai: 'rq-ctx-studio',
+  cues: 'rq-ctx-studio', audio: 'rq-ctx-studio', soundlab: 'rq-ctx-studio',
+  setup: 'rq-ctx-studio',
+  rehearsal: 'rq-ctx-rehearsal',
+  operation: 'rq-ctx-directo',
+};
+
+const DENSITY_VALUES = ['compact', 'standard', 'comfortable'];
+const DENSITY_CLASSES = DENSITY_VALUES.map((value) => `density-${value}`);
+
 let mounted = false;
+
+function applyDensity(root, value) {
+  if (!root?.classList || !DENSITY_VALUES.includes(value)) return false;
+  root.classList.remove(...DENSITY_CLASSES);
+  root.classList.add(`density-${value}`);
+  return true;
+}
 
 /* ── Build shell wrappers if they do not exist ── */
 function ensureShellStructure() {
@@ -109,13 +131,39 @@ function ensureShellStructure() {
     navList.append(item);
     btn.hidden = true;
   });
-
   // Density selector.
   const density = document.createElement('select');
   density.className = 'rq-density-select';
-  ['compact', 'standard', 'comfortable'].forEach((key) => {
+  DENSITY_VALUES.forEach((key) => {
     const opt = document.createElement('option');
     opt.value = key;
+    opt.textContent = key === 'compact' ? 'Compacto' : key === 'standard' ? 'Normal' : 'Cómodo';
+    density.append(opt);
+  });
+  const storedDensity = localStorage.getItem('runq.ui.cueDensity.v1');
+  if (DENSITY_VALUES.includes(storedDensity)) density.value = storedDensity;
+  density.addEventListener('change', () => {
+    applyDensity(document.documentElement, density.value);
+    localStorage.setItem('runq.ui.cueDensity.v1', density.value);
+  });
+  navFoot.append(density);
+
+  nav.append(navList, navFoot);
+
+  // Main area: add head wrapper around existing title/subtitle if present.
+  const mainHead = document.createElement('div');
+  mainHead.className = 'rq-main-head';
+  const mainTitle = document.createElement('div');
+  mainTitle.className = 'rq-main-title';
+  const mainSub = document.createElement('div');
+  mainSub.className = 'rq-main-sub';
+  mainHead.append(mainTitle, mainSub);
+  const mainToolbar = document.createElement('div');
+  mainToolbar.className = 'rq-main-toolbar';
+  mainHead.append(mainToolbar);
+  main.prepend(mainHead);
+}
+
 /* ── Mount views into shell grid areas ── */
 function mountShellAreas() {
   if (!shell) return;
@@ -175,11 +223,6 @@ function setShellWorkspace(workspace) {
   shell.dataset.activeWorkspace = workspace;
   shell.className = shell.className.replace(/rq-ctx-\S+/g, '') + ' ' + (CTX_CLASS[workspace] || '');
 
-  const views = document.querySelectorAll('[data-rq-view]');
-  views.forEach((v) => {
-    v.classList.toggle('rq-view-active', v.dataset.rqView === workspace);
-  });
-
   // Update nav pressed states.
   document.querySelectorAll('.rq-nav-item').forEach((item) => {
     const pressed = item.dataset.workspaceNav === workspace;
@@ -214,9 +257,7 @@ function init() {
   wireNav();
   // Apply stored density.
   const stored = localStorage.getItem('runq.ui.cueDensity.v1');
-  if (['compact', 'standard', 'comfortable'].includes(stored)) {
-    document.documentElement.classList.add('density-' + stored);
-  }
+  applyDensity(document.documentElement, stored);
   // Set initial workspace from app.
   const current = shell ? shell.dataset.activeWorkspace : 'home';
   setShellWorkspace(current);
@@ -228,60 +269,4 @@ if (document.readyState === 'loading') {
   init();
 }
 
-export { setShellWorkspace, mountShellAreas, observeWorkspace };
-    opt.textContent = key === 'compact' ? 'Compacto' : key === 'standard' ? 'Normal' : 'Cómodo';
-    density.append(opt);
-  });
-  const stored = localStorage.getItem('runq.ui.cueDensity.v1');
-  if (['compact', 'standard', 'comfortable'].includes(stored)) density.value = stored;
-  density.addEventListener('change', () => {
-    document.documentElement.className = '';
-    document.documentElement.classList.add('density-' + density.value);
-    localStorage.setItem('runq.ui.cueDensity.v1', density.value);
-  });
-  navFoot.append(density);
-
-  nav.append(navList, navFoot);
-
-  // Main area: add head wrapper around existing title/subtitle if present.
-  const mainHead = document.createElement('div');
-  mainHead.className = 'rq-main-head';
-  const mainTitle = document.createElement('div');
-  mainTitle.className = 'rq-main-title';
-  const mainSub = document.createElement('div');
-  mainSub.className = 'rq-main-sub';
-  mainHead.append(mainTitle, mainSub);
-  const mainToolbar = document.createElement('div');
-  mainToolbar.className = 'rq-main-toolbar';
-  mainHead.append(mainToolbar);
-  main.prepend(mainHead);
-
-  // Wrap existing workspace panels into per-view containers without removing them.
-  const panels = Array.from(main.querySelectorAll('[data-workspaces]'));
-  panels.forEach((panel) => {
-    const wsList = panel.dataset.workspaces.split(' ');
-    wsList.forEach((ws) => {
-      const view = document.createElement('div');
-      view.className = 'rq-view';
-      view.dataset.rqView = ws;
-      panel.before(view);
-      view.append(panel);
-    });
-  });
-}
-};
-
-const VIEW_ICONS = {
-  home: '⌂', script: '≡', ai: '✦', cues: '▤', audio: '◉', soundlab: '≈',
-  setup: '⚙', rehearsal: '◎', operation: '▶',
-};
-
-const CTX_CLASS = {
-  home: 'rq-ctx-studio', script: 'rq-ctx-studio', ai: 'rq-ctx-studio',
-  cues: 'rq-ctx-studio', audio: 'rq-ctx-studio', soundlab: 'rq-ctx-studio',
-  setup: 'rq-ctx-studio',
-  rehearsal: 'rq-ctx-rehearsal',
-  operation: 'rq-ctx-directo',
-};
-
-let mounted = false;
+export { applyDensity, setShellWorkspace, mountShellAreas, observeWorkspace };

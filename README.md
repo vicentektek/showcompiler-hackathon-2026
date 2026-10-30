@@ -6,9 +6,10 @@ ShowCompiler is a new, hackathon-only browser prototype for turning theatre scri
 
 ## Run locally
 
-Node.js 20 or newer is required; there are no npm dependencies to install.
+Node.js 20 or newer is required. The core test suites and ZIP import need no packages; run `npm install` once to enable local RAR/7z archive import through the pinned `libarchive.js` 2.0.2 WASM codec, which the loopback server serves from `node_modules` (never from a CDN). `package-lock.json` pins that codec for reproducible installs.
 
 ```sh
+npm install
 npm test
 npm run check:syntax
 npm run demo:package
