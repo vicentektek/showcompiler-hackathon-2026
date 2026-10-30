@@ -18,7 +18,8 @@ const CATEGORIES=['closing','followup','delete','reorder','rename',
  'summary','negative','missing','voice','audio'];
 const PROVIDERS=['meta','baseten'];
 const VALID_STOPS=new Set(['COMPLETE','CUMULATIVE_BUDGET_CAP_REACHED',
- 'CASE_ALREADY_RESERVED','UNKNOWN_REMOTE_OUTCOME','PROVIDER_AUTH_OR_RATE_BLOCK']);
+ 'CASE_ALREADY_RESERVED','UNKNOWN_REMOTE_OUTCOME','PROVIDER_AUTH_OR_RATE_BLOCK',
+ 'PROVIDER_HTTP_ERROR']);
 const IDENTIFIER=/^[a-zA-Z0-9._:-]{1,100}$/;
 
 function fail(message){throw new TypeError(message);}
@@ -164,10 +165,11 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
   fail('INVALID_CAMPAIGN_REPORTS');
  const warnings=[...input.warnings];
  const rows=[],seen=new Set(),duplicates=[];
- const stopped=[];
+ const stopped=[],commits=new Set();
  for(const item of input.reports){
   const report=item.report;
   if(report.seed!==seed)continue; // Different experiment is never silently pooled.
+  commits.add(report.sourceCommit??'UNKNOWN');
   if(report.stopReason!=='COMPLETE')stopped.push({file:item.filename,
    reason:report.stopReason});
   for(const row of report.results){
@@ -208,8 +210,9 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
    Number(b.httpStatus===0)-Number(a.httpStatus===0)||
    Number(a.reviewRequired)-Number(b.reviewRequired)||
    a.category.localeCompare(b.category));
- const blocking=duplicates.length>0||stopped.some(x=>x.reason==='UNKNOWN_REMOTE_OUTCOME')||
-  preflightPassed===false;
+ const mixedCommits=commits.size>1;
+ const blocking=duplicates.length>0||mixedCommits||
+  stopped.some(x=>x.reason==='UNKNOWN_REMOTE_OUTCOME')||preflightPassed===false;
  const enough=providers.every(p=>{
   const m=byProvider[p];
   return m.scored>=60&&m.byLanguage.es.scored>=25&&m.byLanguage.en.scored>=25&&
@@ -226,6 +229,7 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
  const action=[];
  if(preflightPassed===false)action.push('P0: reparar la batería offline antes de gastar.');
  if(duplicates.length)action.push('P0: investigar informes de solicitudes duplicadas; no repetir estos IDs.');
+ if(mixedCommits)action.push('P0: no combinar resultados de versiones distintas del código; volver a evaluar con nuevos casos.');
  for(const s of stopped)
   if(s.reason==='UNKNOWN_REMOTE_OUTCOME')
    action.push('P0: comprobar proveedor/factura antes de otros envíos; resultado remoto incierto.');
@@ -245,7 +249,7 @@ export function analyzeAiPaidReports(input,{preflightPassed=null,
  action.push('Comparar costes reales en las consolas de Meta, Baseten y Modal.');
  action.push('Registrar voz real, Autopiloto armado y escucha SFX antes de certificar el flujo completo.');
  return {schema:1,status,seed,preflightPassed,
-  attempted:rows.length,duplicates,warnings,stopped,byProvider,
+  attempted:rows.length,duplicates,warnings,stopped,mixedCommits,commits:[...commits],byProvider,
   matchedPairs:paired.length,disagreements,failures,
   manualAcceptanceRequired:true,automaticQualitySufficient:qualityPass&&!blocking,
   nextActions:[...new Set(action)]};
@@ -262,7 +266,9 @@ export function formatAiCampaignReport(report,{manifestHash=null}={}){
   '- Solicitudes registradas: '+report.attempted,
   '- Pares comparables: '+report.matchedPairs,
   '- Duplicados detectados: '+report.duplicates.length,
+  '- Commits mezclados: '+(report.mixedCommits?'SÍ':'NO'),
   '- Campañas detenidas: '+report.stopped.length,
+  '- Reservas sin resultado: '+(report.budgetEvidence?.orphanKeys?.length??'sin auditoría'),
   '- Revisión humana sigue siendo necesaria: SÍ'];
  if(manifestHash)lines.push('- SHA256 manifiesto previsto: '+manifestHash);
  lines.push('','## Calidad por proveedor','',
