@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {ensureOfflineSteps,AI_PREFLIGHT_STEPS} from '../tools/runq-ai-preflight.mjs';
 import {parseAiCampaignOptions,buildAiManifest,analyzeAiPaidReports,
- formatAiCampaignReport,runAiCampaign} from '../tools/runq-ai-campaign.mjs';
+ formatAiCampaignReport,runAiCampaign,auditAiReservations} from '../tools/runq-ai-campaign.mjs';
 
 const options=(more=[])=>parseAiCampaignOptions(more);
 const row=(id,provider,{language='es',category='closing',status=200,
@@ -178,4 +178,54 @@ test('live coordinator itself refuses paid execution in CI before preflight',asy
   paidRunner:async()=>{calls++;throw new Error('UNSAFE');}
  }),/PAID_TESTS_DISABLED_IN_CI/);
  assert.equal(calls,0);
+});
+
+test('durable payment journal reconciliation detects crashes without response evidence',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-ai-ledger-audit-'));
+ const file=join(dir,'ledger.json');
+ try{
+  const input={version:1,records:[
+   {sequence:1,reserveUsd:0.15,caseKey:'r2-20261031-0-meta'},
+   {sequence:2,reserveUsd:0.15,caseKey:'r2-20261031-1-baseten'}]};
+  await writeFile(file,JSON.stringify(input),'utf8');
+  const one={reports:[{filename:'eval-1-1.json',report:report([
+   row('paid-0001','meta')])}],warnings:[]};
+  const audit=await auditAiReservations(one,{file});
+  assert.equal(audit.status,'RECONCILE_REQUIRED');
+  assert.deepEqual(audit.orphanKeys,['r2-20261031-1-baseten']);
+  const reconciled=await auditAiReservations({reports:[...one.reports,{
+   filename:'eval-2-1.json',report:report([
+    row('paid-0002','baseten',{language:'en',category:'followup'})
+   ])}],warnings:[]},{file});
+  assert.equal(reconciled.status,'RECONCILED');
+  assert.equal(reconciled.orphanKeys.length,0);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('campaign blocks further paid calls when journal contains unresolved reservations',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-ai-orphan-stop-'));
+ let paidCalls=0;
+ try{
+  const result=await runAiCampaign({...options([]),live:true,ackPaid:true},{
+   ciCheck:()=>false,preflight:async()=>({passed:true}),
+   reportsReader:async()=>({reports:[],warnings:[]}),
+   ledgerAuditor:async()=>({status:'RECONCILE_REQUIRED',
+    orphanKeys:['r2-20261031-1-meta'],reservations:1}),
+   paidRunner:async()=>{paidCalls++;throw new Error('DANGEROUS');},
+   outputDir:dir
+  });
+  assert.equal(paidCalls,0);
+  assert.equal(result.summary.stage,'PRIOR_RESERVATIONS_NEED_RECONCILIATION');
+  assert.equal(result.summary.status,'BLOCKED');
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('analyzer refuses to pool quality scores from different RUNQ source commits',()=>{
+ const a={...report([row('paid-0001','meta')]),sourceCommit:'a'.repeat(40)};
+ const b={...report([row('paid-0002','baseten')]),sourceCommit:'b'.repeat(40)};
+ const analysis=analyzeAiPaidReports({reports:[
+  {filename:'eval-1-1.json',report:a},{filename:'eval-2-1.json',report:b}
+ ],warnings:[]},{preflightPassed:true});
+ assert.equal(analysis.status,'BLOCKED');
+ assert.equal(analysis.mixedCommits,true);
 });
