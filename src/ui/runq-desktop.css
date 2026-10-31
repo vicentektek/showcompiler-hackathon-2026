@@ -233,3 +233,12 @@ body.rq-resizing-row,body.rq-resizing-row *{cursor:row-resize!important;user-sel
 @keyframes rq-pulse{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace] article.cue-item.cue-playing [data-cue-state]::before{animation:none}}
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .operator-next{border-left:6px solid #ffb02e;padding-left:12px;background:#2e2610;border-radius:2px}
+
+/* Discoverability: visible resize handles and a prominent Script button. */
+.rq-grip-row::after{top:50%;bottom:auto;left:50%;right:auto;width:64px;height:4px;margin:-2px 0 0 -32px;border-radius:2px;background:#7b8090}
+.rq-grip-col::after{left:50%;right:auto;top:50%;bottom:auto;width:4px;height:64px;margin:-32px 0 0 -2px;border-radius:2px;background:#7b8090}
+.rq-grip:hover::after,.rq-grip:focus-visible::after,.rq-grip.dragging::after{background:var(--accent,#5b9bff)}
+.rq-grip-row:hover,.rq-grip-row.dragging{background:linear-gradient(transparent 3px,rgba(91,155,255,.35) 3px,rgba(91,155,255,.35) 5px,transparent 5px)}
+.rq-live-script-toggle{order:-1;margin:0 10px 0 0!important;padding:0 14px!important;height:30px!important;font-size:13px!important;font-weight:600;letter-spacing:.02em;border:1px solid #5b9bff!important;background:#1d2a3d!important;color:#cfe2ff!important;border-radius:3px!important;white-space:nowrap}
+.rq-live-script-toggle:hover{background:#27426b!important}
+.rq-live-script-toggle[aria-pressed=true]{background:#2f6fd6!important;color:#fff!important}

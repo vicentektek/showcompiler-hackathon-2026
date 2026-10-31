@@ -190,9 +190,9 @@ function mountLiveScript(relayout) {
   btn.type = 'button';
   btn.className = 'rq-live-script-toggle';
   btn.title = 'Mostrar el guion junto a los cues / Show the script beside the cues';
-  const label = () => { btn.textContent = es() ? 'Guion' : 'Script'; };
-  label();
+  const label = () => { btn.textContent = (on ? '? ' : '? ') + (es() ? 'Guion' : 'Script'); };
   let on = false;
+  label();
   try { on = localStorage.getItem(SCRIPT_KEY) === '1'; } catch { /* storage unavailable */ }
 
   const follow = () => {
@@ -213,6 +213,7 @@ function mountLiveScript(relayout) {
   };
   const set = (v) => {
     on = v;
+    label();
     btn.setAttribute('aria-pressed', String(on));
     document.documentElement.classList.toggle('rq-live-script', on);
     try { localStorage.setItem(SCRIPT_KEY, on ? '1' : '0'); } catch { /* storage unavailable */ }
