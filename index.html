@@ -50,6 +50,7 @@
   <script src="/src/ui/runq-interface.mjs" type="module"></script>
   <script src="/src/ui/runq-panels.mjs" type="module"></script>
   <script src="/src/ui/runq-soundlab-ui.mjs" type="module"></script>
+  <script src="/src/ui/runq-a11y.mjs" type="module"></script>
 </head>
 <body>
   <a class="rq-skip-link" href="#rqMain" data-i18n="a11y.skip">Skip to content</a>
@@ -253,6 +254,7 @@
       <div class="layout">
         <section class="panel home-panel" data-workspaces="home" aria-labelledby="homeHeading">
           <div class="panel-head"><div><span class="step">00</span><h2 id="homeHeading" data-i18n="workspace.homeTitle">Start your show</h2></div></div>
+          <img class="home-logo" src="/assets/runq-wordmark.png" alt="RUNQ — from script to stage" width="420" height="79">
           <div class="home-tiles">
             <button id="homeNewBtn" class="home-tile" type="button">
               <strong data-i18n="workspace.homeNew">Create a new show</strong>

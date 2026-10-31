@@ -122,10 +122,10 @@ try {
     'Desktop page bar sits above the workspace like a software tab strip');
   await page.locator('.runq-menu').nth(2).locator('summary').click();
   await page.locator('.runq-menu').nth(2).locator('button').filter({hasText:'Script'}).click();
-  assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-selected'),'true');
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
   await page.locator('[data-workspace-nav="home"]').click();
-  assert.equal(await page.locator('[data-workspace-nav="home"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="home"]').getAttribute('aria-selected'), 'true');
   await page.locator('#homeDemoBtn').click();
   try {
     await page.waitForFunction(() => document.querySelector('#cuesCount')?.textContent === '3', null, { timeout: 10000 });
@@ -152,7 +152,7 @@ try {
   assert.equal(await page.evaluate(()=>window.__testAudioStarts), 0);
   const workspaceStates = await page.locator('[data-workspace-nav]').evaluateAll(buttons =>
     buttons.map(button => ({ name: button.dataset.workspaceNav,
-      pressed: button.getAttribute('aria-pressed'), current: button.classList.contains('is-current') })));
+      pressed: button.getAttribute('aria-selected'), current: button.classList.contains('is-current') })));
   assert.deepEqual(workspaceStates.filter(state => state.pressed === 'true').map(state => state.name), ['cues'],
     'Exactly one workspace should be pressed when Cue Editor is active');
   assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
@@ -220,10 +220,10 @@ try {
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
   assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
   assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
-  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-selected'), 'true');
   await page.locator('[data-workspace-nav="audio"]').click();
-  assert.equal(await page.locator('[data-workspace-nav="audio"]').getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-pressed'), 'false');
+  assert.equal(await page.locator('[data-workspace-nav="audio"]').getAttribute('aria-selected'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-selected'), 'false');
   assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
   assert.equal(await page.locator('#runqAudioOverview').count(), 1);
   // V12: file list cannot be pushed below the fold by import forms on compact
@@ -438,7 +438,7 @@ try {
   // just by selecting a line. Existing global review remains accessible.
   const beforeContextualStarts=await page.evaluate(()=>window.__testAudioStarts);
   await page.locator('#rq14ScriptAI button').first().click();
-  assert.equal(await page.locator('[data-workspace-nav="ai"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('[data-workspace-nav="ai"]').getAttribute('aria-selected'),'true');
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeContextualStarts);
   await page.locator('[data-workspace-nav="script"]').click();
   assert.equal(await page.locator('.rq5-script-scenes').count(),1);

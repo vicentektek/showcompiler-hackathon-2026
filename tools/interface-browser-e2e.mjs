@@ -35,7 +35,7 @@ const prepared=()=>page.locator('.cue-prepared [data-cue-select]').getAttribute(
 const route=async name=>{
   await page.locator(`[data-workspace-nav="${name}"]`).click();
   await page.waitForFunction(name=>document.querySelector('.shell').dataset.activeWorkspace===name,name);
-  assert.equal(await page.locator('[data-workspace-nav][aria-pressed="true"]').count(),1);
+  assert.equal(await page.locator('[data-workspace-nav][aria-selected="true"]').count(),1);
 };
 try {
   await page.goto(origin);

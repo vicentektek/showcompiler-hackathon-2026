@@ -49,6 +49,7 @@ const allowed = new Map([
   ['/src/ui/runq-panels.mjs', ['src/ui/runq-panels.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-soundlab.css', ['src/ui/runq-soundlab.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-soundlab-ui.mjs', ['src/ui/runq-soundlab-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-a11y.mjs', ['src/ui/runq-a11y.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-brand.css', ['src/ui/runq-brand.css', 'text/css; charset=utf-8']],
   ['/assets/runq-logo-full.png', ['assets/runq-logo-full.png', 'image/png']],
   ['/assets/runq-wordmark.png', ['assets/runq-wordmark.png', 'image/png']],

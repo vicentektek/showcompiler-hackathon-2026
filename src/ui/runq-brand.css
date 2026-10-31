@@ -98,3 +98,17 @@
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 :is(.rq5-route, .rq16-reset, .item-actions .btn.small, .rq-live-script-toggle) { min-height: 24px !important; min-width: 24px !important; }
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .rq5-route { padding: 0 10px !important; }
 
+
+/* Project screen: brand hero, spotlight backdrop, sage featured tile */
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=home] main {
+  background-image: radial-gradient(60% 45% at 50% 0%, rgba(167,178,143,.14), transparent 70%), radial-gradient(40% 30% at 85% 100%, rgba(30,42,33,.9), transparent 70%) !important;
+}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-panel .home-logo { display: block; width: min(420px, 70%); height: auto; margin: 18px auto 26px; filter: drop-shadow(0 8px 30px rgba(167,178,143,.18)); }
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-panel { max-width: 900px !important; }
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-tile { background: #171a16 !important; border: 1px solid #2a3128 !important; border-radius: 10px !important; padding: 16px 18px !important; transition: border-color .15s, transform .15s, box-shadow .15s; }
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-tile:hover { border-color: #a7b28f !important; transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.4); }
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-tile strong { font-size: 15px !important; color: #ebe6dd !important; }
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-tile span { font-size: 12.5px !important; color: #aab3a5 !important; }
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-tile.featured { background: linear-gradient(135deg, #8d9a74, #b9c4a3) !important; border-color: #b9c4a3 !important; }
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-tile.featured :is(strong, span) { color: #0f110e !important; }
+@media (prefers-reduced-motion: reduce) { :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .home-tile { transition: none !important; } }
