@@ -12,19 +12,19 @@ Fecha: 31/10/2026. Estado: **documentación publicada; infraestructura y corpus 
 El paquete inicial que se preparó fuera del repositorio contenía **100 guiones sintéticos (50 pares ES/EN), 102 conversaciones (51 pares ES/EN), 18 recorridos E2E y 32 fallos tipados**, además de un runner. **Esos archivos de corpus y ejecutables NO se han integrado todavía en esta rama**. No los declares presentes ni ejecutados. La tarea E0 debe recrearlos con esta especificación, o recuperarlos de su fuente local SI existe y tras inspeccionarlos. Todas las etiquetas semánticas iniciales son DRAFT_NEEDS_STAGE_EXPERT, nunca VERIFIED sin revisión. No trates las muestras como gold definitivo.
 
 ## Base y precauciones
-- Rama independiente de documentación: \`docs/runq-evals-exhaustive-2026-10-31\`.
-- Partida: \`feat/runq-interface-rework-2026-10-31\` (versión visual aprobada).
-- **No se ha modificado** ni \`main\` ni el checkout local de Copilot.
-- El usuario tenía modificaciones locales y una rama \`feat/runq-ai-campaign-100-2026-10-31\` sin constancia de publicación remota. No cambies de rama dentro de su worktree sin asegurar primero ese estado.
-- No sustituyas el motor de tests ya existente: \`tools/runq-agent-mass-eval.mjs\`, \`tools/runq-systematic-lab.mjs\`, \`docs/RUNQ_SYSTEMATIC_EVAL_PROTOCOL.md\`, \`docs/QA_MATRIX_2026-10-27.md\`.
+- Rama independiente de documentación: `docs/runq-evals-exhaustive-2026-10-31`.
+- Partida: `feat/runq-interface-rework-2026-10-31` (versión visual aprobada).
+- **No se ha modificado** ni `main` ni el checkout local de Copilot.
+- El usuario tenía modificaciones locales y una rama `feat/runq-ai-campaign-100-2026-10-31` sin constancia de publicación remota. No cambies de rama dentro de su worktree sin asegurar primero ese estado.
+- No sustituyas el motor de tests ya existente: `tools/runq-agent-mass-eval.mjs`, `tools/runq-systematic-lab.mjs`, `docs/RUNQ_SYSTEMATIC_EVAL_PROTOCOL.md`, `docs/QA_MATRIX_2026-10-27.md`.
 
 ## Incorporar los documentos en el checkout local **sin cambiar de rama**
 En la terminal del repo, si no se interfiere con trabajo en curso:
-\`\`\`powershell
+```powershell
 git fetch origin docs/runq-evals-exhaustive-2026-10-31
 git show origin/docs/runq-evals-exhaustive-2026-10-31:docs/qa-evals-2026-10-31/PROMPT_PARA_COPILOT.md
-\`\`\`
-Leer con \`git show\` no modifica los archivos de trabajo. Para copiar documentos al checkout actual, Copilot debe revisar primero \`git status\`, realizar respaldo verificable y resolver eventuales conflictos; no hacer reset, checkout, merge ni cherry-pick ciegos.
+```
+Leer con `git show` no modifica los archivos de trabajo. Para copiar documentos al checkout actual, Copilot debe revisar primero `git status`, realizar respaldo verificable y resolver eventuales conflictos; no hacer reset, checkout, merge ni cherry-pick ciegos.
 
 ## Plan inmediato
 1. Inspeccionar capacidades **reales** del checkout; congelar SHA y tests existentes.
