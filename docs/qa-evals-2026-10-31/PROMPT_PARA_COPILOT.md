@@ -1,3 +1,5 @@
+> **ACTUALIZACIÓN DE AUTORIZACIÓN (2026-10-31):** el usuario ha permitido a Copilot ejecutar QA pagada en la campaña RUNQ de 100 USD (Meta 65, Modal 35; Baseten/Fireworks 0), con máximos 400/100 solicitudes y sin confirmación individual. Antes de cualquier llamada pagada lee [PAID_AUTONOMOUS_QA_POLICY.md](PAID_AUTONOMOUS_QA_POLICY.md), integra y prueba el gateway central con reservas anteriores y verifica saldo/créditos. Los textos anteriores que prohibían absolutamente toda llamada de pago están sustituidos **solo para esta campaña**; los demás controles siguen vigentes. No elevar los límites diarios o por solicitud de Modal. Si una condición falla, no hacer llamadas pagadas, informar BLOCKED y seguir offline.
+
 # PROMPT LISTO PARA PEGAR EN COPILOT · RUNQ QA/EVALS
 
 Actúa como **arquitecto senior de calidad y evaluación de IA**, experto en Node.js, Playwright, guiones escénicos, gestión de cues, Web Audio y voz. Quiero que implementes un banco exhaustivo y reproducible de pruebas para Show Builder + Studio + RUNQ AI, sobre el checkout que tengo abierto en VS Code, **sin perder ni sobrescribir trabajo**.
@@ -78,6 +80,6 @@ Entrega:
 - Reporte inicial HONESTO: fixtures creados ≠ comportamiento probado de RUNQ ≠ evaluación real del modelo.
 - QA con comandos, SHA, pruebas PASS/FAIL/NOT_RUN y evidencia.
 - Documentación de lo que falta y prompt de continuación por siguiente fase.
-- **Sin merges automáticos** y sin activar modelos de pago.
+- **Sin merges automáticos**. Las llamadas pagadas están permitidas **únicamente** bajo la política condicionada de Meta/Modal y con el gateway probado.
 
 No me pidas descargar un ZIP: **toda la documentación de referencia ya está en GitHub**. Haz el máximo trabajo comprobable posible dentro del checkout local y termina con un resumen verificable.
