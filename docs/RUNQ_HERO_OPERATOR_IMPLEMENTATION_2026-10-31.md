@@ -64,7 +64,7 @@ afterCueId es ID persistente, nunca número visual. El insertManualCue actual us
 
 ## Cambios de integración esperados para Copilot
 1. Inspeccionar primero AGENTS.md, ramas, worktrees, status y commits; localizar candidata más reciente, proteger cambios locales/untracked; crear otro worktree de implementación. NO usar main por defecto ni fusionar PRs en bloque.
-2. Integrar src/core/heroCue.mjs y test/heroCue.test.mjs si no están; el fixture inglés original ya vive en fixtures/demo/runq-the-last-go-en.txt en la rama base.
+2. Integrar src/core/heroCue.mjs y test/heroCue.test.mjs si no están; **en esta rama Hero** también se ha incorporado `fixtures/demo/runq-the-last-go-en.txt` desde la rama de vídeo, junto a `tools/video/build-the-last-go.mjs` y `tools/video/prepare-natural-voice-takes.py`. El fixture NO estaba en la rama de integración original, por lo que se debe copiar expresamente al worktree de implementación y verificar los tests.
 3. En agentCore.validateAgentOperations admitir CREATE_CONFIGURED_CUE con forma estricta. En prepareAgentPlan y commitAgentPlan aceptar contexto de disponibilidad/assetReady. Crear mediante insertManualCue, después transformar solo el nuevo cue a PLAY+assetId+sourceLineIds L20+trigger como una **única transacción** en una copia normalizada. El undo debe conservar snapshot exacto. El diff de cue CREATED actual solo muestra label/number: ampliarlo a audio, trigger, sourceLineIds y renumeraciones para que el operador pueda revisar todo.
 4. Conectar interpretHeroCueCommand antes del intérprete de comandos genérico en el agente local. Si devuelve CLARIFY no iniciar proveedor ni modificar; si devuelve PLAN validarlo, preparar preview y pedir aprobación.
 5. UI del agente en Studio: dropdown solo de WAV READY, invalidación ante cambio de show/asset, campo dictado editable; Record/Stop/Transcribe reutilizando patrón de src/ui/cue-conversation-ui.mjs y POST /api/voice/transcribe con consentimiento individual y lenguaje EN. Nunca transcribir automáticamente al montar UI ni auto-submit/auto-apply desde una orden de edición; **NO** convertir accidentalmente ese dictado en GO/ARM. Los comandos expresos de transporte de operador se consideran en su propio flujo (véase siguiente sección). Gestionar exclusividad del micrófono con voz de ensayos.
@@ -85,6 +85,8 @@ afterCueId es ID persistente, nunca número visual. El insertManualCue actual us
 - **H12:** show original 3 cues intacto; las pruebas de Autopiloto y STOP ALL siguen pasando.
 
 ## Recursos originales y cómo usarlos
+
+**Inventario detallado de materiales, estado por rama y archivos que todavía hay que descargar:** `docs/RUNQ_THE_LAST_GO_ASSET_INVENTORY_2026-10-31.md`. No afirmar que el show ZIP EN o los WAV de voces están en el repositorio solo por tener un constructor y enlaces a Descript.
 - Audio Arian Hero (~8,4 s) Descript: https://web.descript.com/64447897-f516-4c76-8464-7275c97e8f2f/4fd1c
 - Publicación de audio con acceso privado: https://share.descript.com/view/LzKKWM9L27v
 - Audio original de Arian para fade (fallback): https://web.descript.com/4d0882c0-5aa0-4903-a6fc-330ab8691679
