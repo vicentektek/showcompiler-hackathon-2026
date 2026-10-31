@@ -24,7 +24,7 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - The existing untracked `respaldo-runq-cambios.patch` remains untouched; its SHA-256 before/after checks is `C67C435284F07B524AB8ECE379B148324C563AE758C952B4E630A473A8A1352A`. Work remains uncommitted on the isolated feature branch.
 - Additional targeted backup before the edge-case implementation: `RUNQ-QA-Backups/pre-agent-context-edgecase-20261031-074129`, four files, SHA-256 manifest verified. Browser-test backup: `RUNQ-QA-Backups/pre-agent-browser-payload-test-20261031-074214`, one file, manifest verified.
 
-## Remaining work / human-only acceptance
+## Historical acceptance notes at 07:46 (superseded by later provider controls)
 
 - Human acoustic/hardware validation: real output device, routing, latency, microphone/actor speech conditions, and safe rehearsal/room procedures.
 - Optional live Meta/Baseten/Modal experiments require separate operator authorization and spend policy; no such requests were run.
@@ -186,3 +186,10 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - No generalized number/label parser was invented or claimed. Hero retains its separate supported English spoken-number grammar. Source text, existing global voice proposals, collision checks and GO/STOP are preserved.
 - This is a small additional core fix discovered before declaring a candidate; rerun focused interpretation, original-show/browser acceptance and final offline regression before packaging.
 - Final focused Agent core/dialogue/routes: **25/25**; local mass QA **600/600** with zero provider calls; syntax, original-WAV AI review, expanded Last GO and Agent Studio browser gates passed. Continue committed-source final Codex gate and fresh Windows delivery, preserving RC v2.
+
+## RC v3 acceptance checkpoint before Windows packaging
+
+- Implementation guard committed at `6b63a83`; final full `npm run qa:codex` repeated after that core change and passed **665/665**, fail/skip 0, existing/Windows syntax, illustrative cue evaluator and original seminar contracts. Agent mass QA remains 600/600 locally, not Muse inference.
+- Final general browser, dictation/cancel/late-result and genuine-WAV rehearsal transport regressions also passed. Expanded Last GO and current UI/Library/SFX gates preserve source, prepared GO and independent transport invariants.
+- Preserved official Node 22.16.0 checksum input was rechecked against the actual installed executable: `c5ff4c736112dd483c750fd4149d30c8a116db1a49b8b3ec88be4b65e6c86c19`. Complete 142078-byte distribution license remains external. No runtime download, dependency addition, key or ledger access was needed.
+- Extended the extracted Windows acceptance to require actual packaged cue/L#/audio-ready context and the visible drop handler's no-overwrite/no-play behavior. Continue a fresh external committed-source build and independent EXE/browser/hash test; only then create the new RC v3 snapshot. RC v2 stays at `bce9bd3`; no ref/worktree overwrite.

@@ -68,6 +68,8 @@ try{
  const original=await read();
  await page.locator('[data-workspace-nav="ai"]').click();
  assert.equal(await page.locator('#rqAgentWorkspace #rqAgentDrawer').count(),1);
+ assert.ok((await page.locator('#rqAgentContextSource').textContent()).includes('L7'));
+ assert.ok((await page.locator('#rqAgentContextAudio').textContent()).includes('READY'));
  await page.locator('#rqAgentSelectedSound').selectOption(original.assets[0].id);
  await page.locator('#rqAgentPrompt').fill('Insert a cue before cue three. Name it Decision Tension. Use the selected sound. Set the voice trigger to line twenty.');
  await page.locator('#rqAgentSubmit').click();
@@ -85,6 +87,19 @@ try{
  await page.locator('#bundleFileInput').setInputFiles({name:'reviewed-last-go.zip',mimeType:'application/zip',buffer:saved});
  await waitReady(4);
  assert.equal((await read()).scriptText,original.scriptText);
+ await page.locator('[data-workspace-nav="audio"]').click();
+ assert.equal(await page.locator('#audioBatchDropZone').isVisible(),true,
+  'The extracted package must contain the actual visible drop surface and live handler');
+ const source=restored.audioFiles[0];
+ assert.equal(await page.locator('#audioBatchDropZone').evaluate((el,{name,base64})=>{
+  const data=new DataTransfer();
+  data.items.add(new File([Uint8Array.from(atob(base64),c=>c.charCodeAt(0))],name,{type:'audio/wav'}));
+  return el.dispatchEvent(new DragEvent('drop',{dataTransfer:data,bubbles:true,cancelable:true}));
+ },{name:source.name,base64:Buffer.from(source.bytes).toString('base64')}),false);
+ await page.waitForFunction(()=>document.querySelector('#audioBatchStatus')?.textContent.includes('1 skipped'));
+ assert.deepEqual((await read()).assets.map(asset=>asset.id),original.assets.map(asset=>asset.id));
+ assert.equal((await read()).cueCount,4);
+ assert.equal((await read()).active.length,0,'Packaged duplicate drop must not execute or overwrite audio');
  await page.locator('[data-workspace-nav="operation"]').click();
  await page.locator('#operatorGoBtn').click();
  await page.waitForFunction(()=>{
@@ -109,7 +124,7 @@ try{
  assert.equal((await read()).preparedCueId,prepared);assert.equal((await read()).active.length,0);
  await page.screenshot({path:path.join(path.dirname(root),'live-inspector-768.png'),animations:'disabled'});
  assert.deepEqual(errors,[]);assert.deepEqual(remote,[]);
- console.log('WINDOWS PACKAGE E2E PASS: '+manifest.files.length+' file hashes, actual EXE/runtime/HTTP, original Last GO WAVs, reviewed Hero, complete ZIP export/reload/reopen, real browser GO/STOP ALL. No provider or acoustic measurement.');
+ console.log('WINDOWS PACKAGE E2E PASS: '+manifest.files.length+' file hashes, actual EXE/runtime/HTTP, original Last GO WAVs, visible AI cue/source/readiness, reviewed Hero, complete ZIP export/reload/reopen, actual visible no-overwrite drop, real browser GO/STOP ALL. No provider or acoustic measurement.');
 }finally{
  await browser?.close();
  app.stdin.end('exit\n');

@@ -2,7 +2,21 @@
 
 Rolling state report for resuming the current work; not a claim that the full sprint is complete.
 
-## Repository
+## RC v3 follow-up - 31 October afternoon
+
+- Development branch: `feat/runq-rc-v3-development-2026-10-31`, created from preserved RC v2 `bce9bd34ecf6e2d6e5f529b23a2337e16555be29`. RC v1/v2, main, other worktrees and the original untracked patch remain untouched.
+- Validated implementation checkpoints: `416b791` (numeric/selected voice scope), `04e6f3b` (main AI context, review hierarchy and ES/EN state), `6bfc19c` (persistent/stale-safe conversational Sound Lab handoff), `85c3821` (visible safe file drops, unclipped Library and complete original-show journey), `6b63a83` (unsupported voice references clarify instead of widening).
+- Demonstrable change beyond RC v2: visible cue/L#/original-text/actual-ready-media context; more usable selective approval and loading/error states; retained multiturm sound actions that never generate automatically; dropped-WAV relocalization with stable IDs and no overwrite; native short-window scrolling and measured unclipped file-list space.
+- Full final `npm run qa:codex`: **665/665**, fail/skip 0, existing/Windows syntax, illustrative cue evaluator and nine-script/13-window/49-event seminar contract. `npm run qa:agent:mass`: **600/600 local cases**, zero provider calls. Neither score measures Muse.
+- Focused Agent core/dialogue/routes **25/25** and audio/import/ES-EN **21/21**. Current browser PASS: `test:ai-review`, `test:last-go`, `test:interface`, `test:dictation`, Agent Studio, general browser/persistence/tamper rollback, rehearsal auto, compressed audio/drop and Sound Lab.
+- Last GO now begins at original TXT plus multiple authentic original WAVs, not merely a preconfigured ZIP. One explicitly OFFLINE model-shaped response remains human-approved; actual source feet match full original dialogue after speech normalization. It validates Hero apply/undo, graphical trim, a real 950ms region looping beyond its end, fade persistence, synthetic speech skip/rewind/repeat/duplicate refusal, independent STOP preserving the other sound, panic/no restart, ZIP and JSON roundtrips, missing-media GO refusal, visible drop recovery and busy-drop refusal.
+- Unclipped file-list measurements: **75.0625px at 1366×768; 100px at 1093×614 after native wheel scroll; 67.0625px at 768×900**. The earlier 27.0625px clipped result failed and was corrected; CSS client height alone is no longer accepted as visibility evidence.
+- External captures preserve the original AI before frame and final main/context/review/error/size views, original-show missing/relocated media and Directo. No private reports or model responses were copied into Git.
+- [Short physical microphone/acoustic protocol](demo/THE_LAST_GO_REPRODUCIBLE.md) covers actual audition on the GO bus, safe gain, source/trigger review, explicit ARM, independent stops, no restart, Directo and portable/relocalized reopen. Physical microphone/ASR, sound heard, routing and measured latency are still operator acceptance, not automated PASS.
+- Authorized paid work is not blocked merely by cost. The exact unmet controls are genuine dashboard reconciliation of uncertain historical reservations, an eligible operator-run path under the existing ledger/sublimits, and for Fireworks an implemented/configured path and cap. The two inspected historical derived summaries contain zero requests/scored cases. Do not retry uncertain Modal jobs, fabricate dashboard verification, start a new ledger, read keys or use Baseten.
+- Windows source remains the dependency-light unsigned browser launcher. Its extracted-package gate now also checks actual cue/source/readiness context and visible no-overwrite file-drop handling. Build a fresh external package from this committed handoff, verify it independently, then create a fresh RC v3 snapshot only if the actual EXE/hash/browser gate passes. Final package evidence is recorded in the dated sprint diary after that gate; no main merge, push, public release or remote CI is performed.
+
+## Historical repository record (RC v1/v2)
 
 - Branch: `feat/runq-ai-context-hardening-2026-10-31`
 - Validated checkpoints: `143bd86` (context), `53e4047` (Rehearsal), `cd7d40d` (Last GO/Hero), `b908470` (main AI), `ac9e106` (dictation), `0975476` (Stage/Library gates), `8cce4ac` (Live layout), `79702d1` (Windows). Consult `git log` for the current documentation/candidate HEAD.
