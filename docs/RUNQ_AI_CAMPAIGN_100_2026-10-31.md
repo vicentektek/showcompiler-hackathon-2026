@@ -61,6 +61,17 @@ Interrupted two-ledger writes remain reserved conservatively and never retry.
 
 ## Exact remaining live gates
 
+### Supervised first-pair procedure
+
+The owner supervises an explicit first pair: one new Muse Spark request and one
+new Stable Audio submission through the budget-guarded local product routes.
+The owner verifies vendor credit/limits and initiates each paid action in their
+private terminal or RUNQ UI; the assistant can prepare inputs and review sanitized
+results. No credential sharing, agent-initiated paid calls, retries of uncertain
+requests, automatic cue acceptance, GO or provider-policy bypass is permitted.
+Keep the original request IDs and all reservations after errors; a status lookup
+or WAV download is not another generation. Expand only after reviewing the pair.
+
 The general budget authorization is already granted. It is not the blocker.
 Before an operator executes a paid command:
 
