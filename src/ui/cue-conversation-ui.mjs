@@ -5,6 +5,7 @@
  */
 import {stageCueConversationChange,parseLocalCueChat,validateCueChatModelReply}
  from '../core/cueConversation.mjs';
+import {userFacingError} from './userFacingErrors.mjs';
 const $=id=>document.getElementById(id);
 const es=()=>$('uiLocaleSelect')?.value==='es';
 const t=(esText,enText)=>es()?esText:enText;
@@ -168,8 +169,8 @@ async function submit(){
   lastField=keys.length?keys.at(-1):lastField;
   addMessage('assistant',replyMessage+(staged.diff.length?'':' · '+t('Sin cambios nuevos','No new changes')));
   $('rqChatPrompt').value='';
-  notify(source==='LOCAL'?t('Vista previa local · sin costes','Local preview · no provider costs'):
-    t('Propuesta de Muse Spark · pendiente de aprobar','Muse Spark proposal · awaiting approval'));
+  notify(source==='LOCAL'?t('Propuesta lista para revisar','Suggestion ready for review'):
+    t('Propuesta de Muse Spark · pendiente de aprobar','Muse Spark suggestion · review before applying'));
  }catch(error){
   const message=error?.message==='AI_CONSENT_REQUIRED'
    ?t('Marca la autorización a Meta para interpretar esta instrucción compleja.',
@@ -177,7 +178,7 @@ async function submit(){
    :error?.message==='STALE_CUE_OR_PROJECT'
     ?t('Se modificó el cue o el espectáculo. Revisa antes de reintentar.',
       'The cue or show changed. Review before retrying.')
-    :t('No se ha podido interpretar o validar: ','Could not interpret/validate: ')+String(error.message).slice(0,100);
+    :userFacingError(error,es()?'es':'en');
   notify(message,true);addMessage('assistant',message);
  }finally{processing=false;renderDraft();}
 }
@@ -217,8 +218,8 @@ function localized(){
  $('rqChatPromptLabel').textContent=t('¿Qué quieres cambiar?','What would you like to change?');
  $('rqChatPrompt').placeholder=t('Ej.: Baja el volumen a −9 dB y pon un fade in de 3 segundos.',
   'E.g. Set gain to -9 dB and a 3-second fade in.');
- $('rqChatAiConsentText').textContent=t('Autorizar una consulta a Meta si hace falta IA',
-  'Authorize one Meta request if AI interpretation is needed');
+ $('rqChatAiConsentText').textContent=t('Autorizo enviar esta instrucción a Meta si necesita interpretación con IA',
+  'I authorize sending this instruction to Meta if AI interpretation is needed');
  $('rqChatSubmit').textContent=t('Proponer cambios','Propose changes');
  $('rqChatApply').textContent=t('Aplicar cambios','Apply changes');
  $('rqChatDiscard').textContent=t('Descartar','Discard');
