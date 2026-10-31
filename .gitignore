@@ -171,3 +171,7 @@ artifacts/systematic-eval/
 # Live agent provider benchmarking: costs, anonymized diagnostics and local budget only.
 artifacts/agent-eval/
 artifacts/agent-live-eval/
+
+# The Last GO locally generated demo ZIP, actor voice samples and microphone captures
+# Keep private audio and production renders out of commits.
+/production/runq-video-kit/
