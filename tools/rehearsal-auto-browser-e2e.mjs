@@ -50,7 +50,14 @@ try{
   mimeType:'application/zip',buffer:archive});
  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3',null,{timeout:15000});
  await page.locator('[data-workspace-nav="rehearsal"]').click();
- await page.locator('#rqLiveMode').selectOption('auto');
+ const mode=page.locator('#rqLiveSessionMode');
+ assert.equal(await mode.isVisible(),true,'Rehearsal policy must be accessible without leaving the workspace');
+ assert.ok((await mode.locator('option[value="auto"]').textContent()).includes('automatic GO'));
+ assert.ok((await mode.locator('option[value="assist"]').textContent()).includes('suggest NEXT'));
+ await mode.selectOption('assist');
+ assert.equal(await page.locator('#rqLiveMode').inputValue(),'assist');
+ await mode.selectOption('auto');
+ assert.equal(await page.locator('#rqLiveMode').inputValue(),'auto');
  // Mock "Muse stream is ready" only. It cannot request external services,
  // bypass arming or synthesize fake sound in the browser engine.
  await page.evaluate(()=>{
@@ -64,11 +71,18 @@ try{
   document.dispatchEvent(new CustomEvent('runq:voice-live-final',{detail}));
   return detail.handled;
  },{trigger:sample[i],turnId});
+ const snapshot=()=>page.evaluate(()=>{
+  let state,events;
+  document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:value=>{state=value;}}}));
+  document.dispatchEvent(new CustomEvent('runq:show-event-read',{detail:{respond:value=>{events=value;}}}));
+  return {active:state.active,preparedCueId:state.preparedCueId,
+   started:events.filter(event=>event.type==='CUE_STARTED').reverse().map(event=>event.cueId)};
+ });
  // Without ARM, no GO even for exact transcript.
  assert.equal(await send(0,'disarmed'),false);
  await page.waitForTimeout(150);
  assert.equal(/\b1\s*·/.test(await page.locator('#operatorLastGo').textContent()),false);
- await page.locator('#rqLiveArm').click();
+ await page.locator('#rqLiveAutoStart').click();
  await page.waitForFunction(()=>document.querySelector('#rqLiveArm')?.getAttribute('aria-pressed')==='true',null,{timeout:5000});
  assert.equal(await send(0,'first'),true);
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('First'),null,{timeout:7000});
@@ -81,6 +95,20 @@ try{
  assert.equal(await send(1,'rewind'),true);
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('Backwards'),null,{timeout:7000});
  assert.equal(/\b2\s*·/.test(await page.locator('#operatorLastGo').textContent()),true);
+ assert.deepEqual((await snapshot()).started,[
+  modified.cues[0].id,modified.cues[2].id,modified.cues[1].id,
+ ],'Actual playback skips cue 2 until the later rewind');
+ const beforeRepeat=(await snapshot()).started.length;
+ await send(1,'rewind');
+ await page.waitForTimeout(100);
+ assert.equal((await snapshot()).started.length,beforeRepeat,'Duplicate final turns never replay');
+ await page.waitForTimeout(2600);
+ await send(1,'repeat');
+ await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('Repeat take'));
+ assert.equal((await snapshot()).started.length,beforeRepeat+1,'A new take replays only after cooldown');
+ await page.locator('[data-cue-action="stop"][data-cue-id="'+modified.cues[1].id+'"]').click();
+ assert.equal((await snapshot()).active.some(cue=>cue.cueId===modified.cues[1].id),false,
+  'Individual STOP terminates the repeated sound');
  // Panic must always disarm; speech after emergency stop cannot fire.
  assert.equal(await page.locator('#rqLivePanicBtn').isVisible(),true);
  await page.locator('#rqLivePanicBtn').click();
@@ -88,9 +116,26 @@ try{
  assert.equal(await send(0,'after-panic'),false);
  await page.waitForTimeout(150);
  assert.equal(/\b2\s*·/.test(await page.locator('#operatorLastGo').textContent()),true);
+ assert.equal((await snapshot()).active.length,0,'STOP ALL leaves no browser audio instance running');
+ const beforeNavigation=await snapshot();
+ await page.locator('#operatorBackBtn').click();
+ await page.locator('#operatorSkipBtn').click();
+ assert.deepEqual((await snapshot()).started,beforeNavigation.started,'NEXT/back navigation never executes GO');
+ await page.locator('#rqLiveAutoStart').click();
+ await page.waitForFunction(()=>document.querySelector('#rqLiveArm')?.getAttribute('aria-pressed')==='true');
+ await page.locator('#operatorGoBtn').click();
+ await page.waitForFunction(()=>document.querySelector('#rqLiveArm')?.getAttribute('aria-pressed')==='false');
+ const afterManual=await snapshot();
+ await send(0,'after-manual');
+ await page.waitForTimeout(100);
+ assert.deepEqual((await snapshot()).started,afterManual.started,'Manual GO invalidates automatic speech execution');
+ await page.locator('#stopAllBtn').click();
+ await page.locator('[data-workspace-nav="operation"]').click();
+ assert.equal(await send(0,'outside-rehearsal'),false);
+ assert.equal((await snapshot()).active.length,0);
  assert.deepEqual(remote,[], 'No provider calls in browser rehearsal E2E');
  assert.deepEqual(errors,[], 'Browser runtime errors');
- console.log('REHEARSAL AUTO GO E2E PASS: off by default, arm unlock, skip, rewind, STOP ALL override, real WAV');
+ console.log('REHEARSAL AUTO GO E2E PASS: visible policy, ARM, skip, rewind, duplicate/repeat, individual STOP, STOP ALL, manual GO override, navigation isolation; real WAV engine, synthetic ASR');
 }finally{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));

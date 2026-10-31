@@ -56,3 +56,12 @@ test('one-click autopilot start, single confirmation and non-fatal busy GO repli
  assert.ok(ui.includes("'TRANSPORT_BUSY'"));
  assert.ok(ui.includes('pendingQuickArm'));
 });
+
+test('rehearsal exposes the shared policy and labels options by value, not order',()=>{
+ const html=read('index.html'),ui=read('src/ui/rehearsal-auto-ui.mjs');
+ assert.ok(html.includes('id="rqLiveSessionMode"'));
+ assert.ok(ui.includes('option[value="assist"]'));
+ assert.ok(ui.includes('option[value="auto"]'));
+ assert.ok(!ui.includes("$('rqLiveMode').options[0]"));
+ assert.ok(ui.includes("$('rqLiveMode').dispatchEvent(new Event('change'"));
+});

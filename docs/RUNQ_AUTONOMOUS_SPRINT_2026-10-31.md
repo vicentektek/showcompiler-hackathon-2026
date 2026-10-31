@@ -38,3 +38,14 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - Preparing a descriptive checkpoint commit with explicit file staging; the private/local patch and generated reports are excluded.
 - The sprint continues beyond this checkpoint: prioritize The Last GO reproducibility, rehearsal/voice/audio cancellation, then visible Studio/AI improvements and release readiness.
 - Baseten is excluded from the current campaign. Paid evaluations remain a separately operated path under the repository's coding-agent restrictions; do not bypass budgets or access credentials.
+
+## 11:20 - 11:26 - P0 rehearsal controls and expanded playback regression
+
+- Preserved the initial context block in commit `143bd86`; the untracked operator patch remains excluded.
+- Recovered the broader backlog from the execution plan and open issues #112, #118, #105, #86 and #46-#54. Existing Hero Operator work is isolated on `origin/docs/runq-hero-operator-handoff-2026-10-31`; no other worktree was changed.
+- Reproduced a real broken browser gate: `rqLiveMode` had moved to a hidden Setup tab, so Rehearsal had no local mode selector. Option labels were also assigned by index despite reversed option order.
+- External backup `RUNQ-QA-Backups/pre-rehearsal-controls-20261031-112108`: five files, source/copy hashes and persisted manifest verified.
+- Added a visible shared-policy selector in Rehearsal, synchronized through the existing Setup preference event. Labels now use option values; both selectors reflect busy state. No new audio engine or automatic arming.
+- Before/after screenshots and approved mockups are stored only in the session files, not Git. Expanded browser regression proves actual local WAV engine starts for skip/rewind/repeat, duplicate-turn suppression, individual STOP, STOP ALL, manual GO override and navigation isolation. ASR inputs are synthetic, not a live recognition result.
+- `npm run qa:codex`: 638/638 tests, syntax and offline contracts passed. `npm run test:interface` and `node tools/rehearsal-auto-browser-e2e.mjs` passed.
+- Continuing immediately with the original Last GO material and the safe human-reviewed Hero configured-cue path.

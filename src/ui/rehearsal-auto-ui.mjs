@@ -29,6 +29,9 @@ function log(value){
 }
 function display(){
  const button=$('rqLiveArm'),mode=$('rqLiveMode').value;
+ const sessionMode=$('rqLiveSessionMode');
+ sessionMode.value=mode;
+ sessionMode.disabled=$('rqLiveMode').disabled||busy;
  const auto=mode==='auto';
  button.hidden=!auto;
  const quick=$('rqLiveAutoStart');
@@ -133,8 +136,11 @@ function localized(){
   'Herramientas de diagnóstico · micrófono y simulación');
  $('rqLivePanicBtn').textContent=t('STOP ALL AUDIO','PARAR TODO EL AUDIO');
  $('rqLiveModeLabel').textContent=t('Cue follow mode','Modo de seguimiento de cues');
- $('rqLiveMode').options[0].textContent=t('Assist · suggest NEXT','Asistente · sugerir NEXT');
- $('rqLiveMode').options[1].textContent=t('Rehearsal autopilot · automatic GO','Autopiloto de ensayo · GO automático');
+ $('rqLiveSessionModeLabel').textContent=t('Cue follow mode','Modo de seguimiento de cues');
+ for(const selector of [$('rqLiveMode'),$('rqLiveSessionMode')]){
+  selector.querySelector('option[value="assist"]').textContent=t('Assist · suggest NEXT','Asistente · sugerir NEXT');
+  selector.querySelector('option[value="auto"]').textContent=t('Rehearsal autopilot · automatic GO','Autopiloto de ensayo · GO automático');
+ }
  $('rqLiveAutoHelp').textContent=t(
   'Listening alone does NOT start cues. Click ARM AUTOMATIC GO to enable playback. STOP ALL disarms instantly. Repeats, rewinds and jumps are supported.',
   'Escuchar NO ejecuta cues. Pulsa ARMAR GO AUTOMÁTICO para permitir la reproducción. PARAR TODO desarma de inmediato. Puedes repetir, retroceder o saltar.'
@@ -269,7 +275,13 @@ function mount(){
  if(!$('rqLiveMode'))return;
  $('rqLiveArm').addEventListener('click',()=>void arm());
  $('rqLiveAutoStart')?.addEventListener('click',quickStart);
+ $('rqLiveSessionMode').addEventListener('change',()=>{
+  $('rqLiveMode').value=$('rqLiveSessionMode').value;
+  $('rqLiveMode').dispatchEvent(new Event('change',{bubbles:true}));
+ });
  new MutationObserver(display).observe($('rqLiveStart'),{attributes:true,attributeFilter:['disabled']});
+ new MutationObserver(display).observe($('rqLiveMode'),{attributes:true,attributeFilter:['disabled']});
+ document.addEventListener('runq:operator-preferences-changed',display);
  $('rqLivePanicBtn').addEventListener('click',()=>{
   const emergency=$('stopAllBtn');
   if(emergency){emergency.click();disarm('STOP ALL');}

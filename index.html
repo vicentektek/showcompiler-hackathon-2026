@@ -124,6 +124,13 @@
             <output id="rqLiveSpeaker"></output>
           </header>
           <div class="rqlive-main">
+            <label class="rqlive-session-mode" for="rqLiveSessionMode">
+              <span id="rqLiveSessionModeLabel">Cue follow policy</span>
+              <select id="rqLiveSessionMode">
+                <option value="assist">Assist · suggest NEXT</option>
+                <option value="auto">Rehearsal autopilot · automatic GO</option>
+              </select>
+            </label>
             <button type="button" id="rqLiveAutoStart" class="btn accent rqlive-quick-start">▶ INICIAR AUTOPILOTO</button>
             <button type="button" id="rqLivePanicBtn" class="btn danger small" hidden>STOP ALL</button>
             <meter id="rqLiveMeter" min="0" max="100" value="0" aria-label="Live microphone level"></meter>

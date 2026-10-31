@@ -11,6 +11,8 @@
 5. Unique earlier triggers can **rewind**, unique later triggers can **jump forward**, and a new turn repeating the same cue after a short guard interval can **retrigger** that cue. A repeated cue stops its previous sound first.
 6. **DISARM AUTO GO**, **Stop listening**, **STOP ALL**, leaving the Rehearsal workspace, changing the show, or hiding the browser tab disarms autopilot. Manual GO also disarms. The listening session itself may continue after de-arming, but **cannot trigger audio**.
 
+The visible Rehearsal policy selector shares its value with Setup; changing either persists the same preference and never starts listening or arms playback. While a live session is busy, both selectors are disabled. Once listening is ready, the primary button changes to **ARM AUTOPILOT**; the detailed arming control remains available in session settings.
+
 ## Safety and limitations
 
 - No unarmed speech event may call player GO. No auto GO in the Operation workspace.
@@ -28,6 +30,7 @@
 - Pure deterministic ES and EN: first GO, jump ahead without intermediate GO, rewind, repeat, cooldown, ambiguous triggers, duplicate turns, stale/final gating.
 - Static wiring: user ARM, Web Audio output unlock, existing guarded GO transport, STOP ALL override.
 - Chrome UI with generated rights-clear WAV files and synthetic completed speech turns; **zero paid provider calls**. End-to-end proof requires a green CI run; this is not a live Muse ASR accuracy test.
+- Expanded browser coverage checks actual engine-start events for skip/rewind/repeat, duplicate-turn suppression, individual STOP, STOP ALL, manual GO disarming, and NEXT/back navigation without sound.
 
 ## Further testing
 
