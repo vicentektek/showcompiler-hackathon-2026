@@ -70,3 +70,16 @@ El techo de 100 USD es una **autorización de gasto, no una garantía de factura
 \`docs/qa-evals-2026-10-31/paid-campaign-policy.json\` es el manifiesto de cifras, y este documento define sus condiciones. Esta excepción prevalece sobre el veto histórico general de agentes **solo después de integrar y verificar el gateway central de gastos**; nunca sustituye las invariantes de AGENTS.md relativas a datos, control de escena, secretos y CI.
 
 La rama \`docs/runq-evals-exhaustive-2026-10-31\` es documental. **Tener estos archivos en GitHub no equivale a que los runners ejecutables estén modificados o seguros.** No iniciar un \`--live\` solo por leer la autorización.
+
+
+## 7. Aplicación tras los bloqueos de Copilot (01/11/2026)
+
+La batería offline ha dado 736/736 tests correctos, pero `creditVerified:false` y el requisito de checkout limpio han impedido ejecutar modelos reales. El trabajo local informado tiene 41,497324 USD reservados; estas cifras son históricas y deben **volver a leerse** del ledger antes de cualquier lote, sin inferir saldo del proveedor.
+
+- **Checkout con cambios:** no es condición suficiente para bloquear todas las pruebas. El agente debe proteger modificaciones locales, preparar un snapshot reproducible con hash de fuentes, versiones y tests, o una copia de trabajo aislada que incluya el código nuevo. Si el runner prohíbe árboles sucios, modificarlo con un gate verificable de snapshot o ejecutar en la copia aislada; no eliminar la comprobación sin sustitución.
+- **Crédito por proveedor:** la autorización es separable. Meta puede avanzar solo si el saldo de Meta está verificado; Modal puede seguir bloqueado por saldo desconocido sin bloquear Meta. No inferir `creditVerifiedMeta=true` a partir del estado global `creditVerified:false`. Crear estados independientes y no considerar un mero HTTP 200 como balance confirmado.
+- **Sin acceso automatizado al saldo:** obtener evidencia de panel oficial, fecha, saldo/promoción, vencimiento y moneda; almacenarla localmente. Si no se consigue, marcar únicamente ese proveedor como `BLOCKED_CREDIT_UNVERIFIED` y continuar preparando las demás pruebas.
+- **Garantías intactas:** gateway de gasto único, límite global 100 USD, Meta 65/400, Modal 35/100, reservas anteriores, cero reintentos y prohibición de secretos en los informes. El agente NO puede alegar que existe crédito por el solo hecho de que haya presupuesto autorizado.
+- **Resultado esperado:** el agente debe corregir bloqueos técnicos y realizar un piloto corto tan pronto como un proveedor alcance estado `READY`. Los tests offline ya verdes no son una razón suficiente para finalizar el trabajo sin intentar resolver las dependencias operativas.
+
+El estado `READY` de cada proveedor exige simultáneamente consentimiento vigente, crédito verificado, gateway y saldo bajo límites, snapshot reproducible, comando live explícito y plan offline satisfactorio.
