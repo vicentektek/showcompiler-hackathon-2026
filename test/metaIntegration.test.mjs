@@ -294,7 +294,7 @@ test('scene window offset returns transient coverage, observations and proposal 
         provider:'META_MODEL_API',
         proposals:[proposal],
         details:[detail],
-        observations:[{cueKind:'MUSIC',basis:'EXPLICIT',transport:'STOP',reason:'Existing music ends.'}],
+        observations:[{sourceLineId:'L126',cueKind:'MUSIC',basis:'EXPLICIT',transport:'STOP',reason:'Existing music ends.'}],
         duplicatesRemoved:1,
         coverage:{
           totalLines:130,sceneCount:1,totalWindows:3,
@@ -313,6 +313,7 @@ test('scene window offset returns transient coverage, observations and proposal 
   assert.deepEqual(data.proposals, [proposal]);
   assert.deepEqual(data.proposalDetails, [detail]);
   assert.equal(data.observations[0].transport, 'STOP');
+  assert.equal(data.observations[0].sourceLineId, 'L126');
   assert.equal(data.duplicatesRemoved, 1);
   assert.equal(data.coverage.complete, true);
   const imported = addMetaProposals(later, data.proposals);

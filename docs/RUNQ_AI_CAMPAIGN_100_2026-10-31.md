@@ -158,6 +158,55 @@ transport. Verify save/export/reopen with real WAV bytes; browser engine checks
 are not proof of physical sound, microphone recognition or theatre readiness.
 No model response, warning, navigation or cost tooling may call GO/STOP.
 
+## Deterministic quality campaign
+
+`npm run qa:quality` freezes an original 400 Meta / 100 Modal matrix under
+ignored `.runq-local/quality-campaign/`: ten functional families, ES/EN,
+four difficulties, 60% development and 40% held-out cases. The first phase
+has 30 varied Meta cases. Fixtures and gold are provisional; a plan is not
+500 actual provider calls.
+
+`npm run qa:quality:history` is offline. It hash-checks original saved WAVs,
+compares existing silence/duration flags with versioned RMS/clipping/gap
+checks, and reports legacy evidence limitations. Silent intervals have 20 ms
+resolution. Ambience gap checks are PCM heuristics, not semantic judgement.
+No WAV, journal, historical budget or show is modified.
+
+Only the owner starts paid execution, once, after the existing clean-commit,
+credit and spend gates:
+
+```powershell
+node tools\runq-quality-campaign.mjs --live --ack-paid --credit-verified --credit-record <private-credit.json> --continuous
+```
+
+The private credit record contains `policyRevision` from campaignPolicy,
+`sourceCommit`, `verifiedAt` (within 24 hours), method
+`AUTHENTICATED_PROVIDER_DASHBOARD`, and `providers.meta` / `providers.modal`
+objects with `currency: "USD"` and actual `availableUsd`. This is an owner
+attestation, not automated vendor balance verification. Do not fabricate it.
+The command uses only existing loopback product APIs and their ledger gates;
+it never reads a key. `--resume` continues existing intent receipts. Uncertain
+Meta requests never repeat; Modal resumes only the original job ID with bounded
+refresh/download. Shared per-user intent fingerprints exclude random project
+IDs, candidate labels and seeds. No result can auto-accept/import or call GO.
+
+Phases stop on uncertainty, unscorable evidence, critical failures or over 20%
+scored failures. The owner may inspect a separately staged candidate, not
+silently override this gate. Create one offline:
+
+```powershell
+node tools\runq-quality-campaign.mjs --new-candidate preservation-v1 --agent-suffix "Preserve every unrequested property."
+```
+
+`--candidate <private-candidate.json>` runs changed agent instructions or a
+different supported extraction design mode without altering stable prompts.
+`--baseline-report <file> --candidate-report <file>` compares only matching
+case fingerprints and evidence modes. It blocks regressions and records
+insufficient holdout evidence; approval remains human. Code changes use the
+normal focused/full regression gate and a separately pinned clean commit.
+Historical aggregate-only agent replies cannot establish edit preservation,
+cue extraction precision or a measured improvement of Muse.
+
 ## Saved-take recovery and manual acceptance
 
 Sound -> Create & edit -> **Show saved takes** loads the bounded local history.

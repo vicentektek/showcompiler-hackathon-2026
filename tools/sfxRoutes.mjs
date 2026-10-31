@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import {acquireGlobalSpendLedger,globalLedgerDefaultPath} from '../src/qa/globalSpendLedger.mjs';
 import {
   createSfxJobStore, normalizeSfxCostPolicy, normalizeSfxModelRevision,
+  SFX_QA_CAMPAIGN_DAILY_START_CEILING,
 } from '../src/core/sfxJobStore.mjs';
 import {
   prepareAudioGenerationPlan, authorizeAudioGenerationPlan,
@@ -45,7 +46,33 @@ function exactly(value, allowed) {
   return Object.keys(value).every(key => allowed.includes(key));
 }
 
+const STANDARD_MAX_DAILY_STARTS = 10;
+
+/**
+ * Supervised QA evaluation campaign opt-in. Normal product use keeps the
+ * fixed daily limit; an operator-authorized campaign may raise the start
+ * count (never above the campaign ceiling) and set a campaign daily budget.
+ * Any invalid value fails closed to the standard configuration.
+ */
+export function supervisedQaCampaignFromEnv(env = process.env) {
+  if (env.RUNQ_SFX_QA_CAMPAIGN !== '1') return null;
+  const raw = env.RUNQ_SFX_QA_MAX_DAILY_STARTS;
+  const maxDailyStarts = raw === undefined || raw === ''
+    ? SFX_QA_CAMPAIGN_DAILY_START_CEILING : Number(raw);
+  if (!Number.isSafeInteger(maxDailyStarts) || maxDailyStarts < 1 ||
+      maxDailyStarts > SFX_QA_CAMPAIGN_DAILY_START_CEILING) {
+    return null;
+  }
+  return Object.freeze({ maxDailyStarts });
+}
+
 function configuration() {
+  const campaign = supervisedQaCampaignFromEnv();
+  const dailyBudgetRaw =
+    campaign && typeof process.env.RUNQ_SFX_QA_DAILY_BUDGET_USD === 'string' &&
+    process.env.RUNQ_SFX_QA_DAILY_BUDGET_USD.trim()
+      ? process.env.RUNQ_SFX_QA_DAILY_BUDGET_USD
+      : process.env.RUNQ_SFX_DAILY_BUDGET_USD;
   return {
     enabled: process.env.RUNQ_SFX_PILOT_ENABLED === '1',
     endpointUrl: process.env.MODAL_SFX_ENDPOINT,
@@ -53,9 +80,18 @@ function configuration() {
     proxyTokenSecret: process.env.MODAL_PROXY_TOKEN_SECRET,
     estimatedMaxCostUsdPerRequest:
       Number(process.env.RUNQ_SFX_ESTIMATED_MAX_COST_USD),
-    dailyBudgetUsd: Number(process.env.RUNQ_SFX_DAILY_BUDGET_USD),
+    dailyBudgetUsd: Number(dailyBudgetRaw),
     modelRevision: process.env.RUNQ_SFX_MODEL_REVISION || null,
   };
+}
+
+function defaultSfxStore() {
+  const campaign = supervisedQaCampaignFromEnv();
+  return createSfxJobStore({
+    directory: join(dirname(globalLedgerDefaultPath()), 'shared-modal-jobs-v1'),
+    maxDailyStarts: campaign?.maxDailyStarts ?? STANDARD_MAX_DAILY_STARTS,
+    supervisedQaCampaign: campaign !== null,
+  });
 }
 
 function makeDefaultClient(config) {
@@ -113,10 +149,7 @@ function sendFailure(response, error, headers) {
 
 /** Dependency injection keeps every endpoint test free, local and deterministic. */
 export function makeSfxRoute({
-  sfxStore = createSfxJobStore({
-    directory: join(dirname(globalLedgerDefaultPath()), 'shared-modal-jobs-v1'),
-    maxDailyStarts: 10,
-  }),
+  sfxStore = defaultSfxStore(),
   sfxConfig = configuration,
   sfxPilotClient = null,
   reserveCampaign = reserveModalCampaign,
@@ -146,6 +179,9 @@ export function makeSfxRoute({
       minDurationSeconds: 1,
       maxDurationSeconds: 12,
       maxSimultaneousJobs: 1,
+      maxDailyStarts: Number.isSafeInteger(sfxStore.maxDailyStarts)
+        ? sfxStore.maxDailyStarts : null,
+      supervisedQaCampaign: sfxStore.supervisedQaCampaign === true,
       requiresExplicitConfirmation: true,
       requiresExactCostAcknowledgement: true,
       estimatedMaxCostUsdPerRequest:

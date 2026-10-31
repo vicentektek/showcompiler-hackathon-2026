@@ -6,7 +6,7 @@ import {mkdir,open,readFile,writeFile,rename,unlink} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createHash,randomUUID} from 'node:crypto';
-import {inspectPcm16Wav} from '../src/core/modalSfxPilotClient.mjs';
+import {measureAudioQuality} from '../src/qa/audioQuality.mjs';
 import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
 
 export const MODAL_PILOT_CASES=Object.freeze([
@@ -49,26 +49,7 @@ export function parseModalBatchOptions(argv){
 }
 
 export function measurePilotWav(bytes,expectedDuration){
- const metadata=inspectPcm16Wav(bytes),data=Buffer.from(bytes);
- let start=0,length=0;
- for(let offset=12;offset+8<=data.length;){
-  const size=data.readUInt32LE(offset+4);
-  if(data.toString('ascii',offset,offset+4)==='data'){start=offset+8;length=size;break;}
-  offset+=8+size+(size%2);
- }
- let sum=0,peak=0,clipped=0,nearSilent=0;
- for(let offset=start;offset<start+length;offset+=2){
-  const raw=data.readInt16LE(offset),value=Math.abs(raw)/32768;
-  peak=Math.max(peak,value);sum+=value*value;
-  if(Math.abs(raw)>=32767)clipped++;
-  if(value<0.001)nearSilent++;
- }
- const samples=length/2,rms=Math.sqrt(sum/samples);
- return {...metadata,durationMatches:Math.abs(metadata.durationSeconds-expectedDuration)<=0.1,
-  rmsDbfs:rms>0?20*Math.log10(rms):null,peak,clippedFraction:clipped/samples,
-  nearSilentFraction:nearSilent/samples,
-  suspectedWholeFileSilence:rms<0.001,
-  artisticReview:'PENDING_HUMAN_LISTENING',distortion:'NOT_DETERMINED_BY_PCM_METRICS'};
+ return measureAudioQuality(bytes,expectedDuration);
 }
 
 async function save(file,value){

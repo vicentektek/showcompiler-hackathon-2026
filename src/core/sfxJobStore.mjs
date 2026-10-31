@@ -43,6 +43,11 @@ const fileName = id => 'job-' + digest(id) + '.json';
 const hex = value => /^[a-f0-9]{64}$/.test(value ?? '');
 
 export const SFX_DURATION_TOLERANCE_SECONDS = 0.1;
+// Normal product use keeps the historical conservative ceiling. A supervised
+// QA evaluation campaign may raise the daily start count, but only through an
+// explicit opt-in flag and never beyond the authorized campaign ceiling.
+export const SFX_STANDARD_DAILY_START_CEILING = 25;
+export const SFX_QA_CAMPAIGN_DAILY_START_CEILING = 150;
 
 function requireId(id) {
   if (typeof id !== 'string' || !ID.test(id)) throw new TypeError('Invalid SFX job ID');
@@ -197,10 +202,16 @@ function validateReconciliation(record) {
 export function createSfxJobStore({
   directory,
   maxDailyStarts = 3,
+  supervisedQaCampaign = false,
   clock = () => new Date(),
 } = {}) {
+  const dailyStartCeiling = supervisedQaCampaign === true
+    ? SFX_QA_CAMPAIGN_DAILY_START_CEILING
+    : SFX_STANDARD_DAILY_START_CEILING;
   if (typeof directory !== 'string' || !directory.trim() ||
-      !Number.isSafeInteger(maxDailyStarts) || maxDailyStarts < 1 || maxDailyStarts > 25) {
+      typeof supervisedQaCampaign !== 'boolean' ||
+      !Number.isSafeInteger(maxDailyStarts) || maxDailyStarts < 1 ||
+      maxDailyStarts > dailyStartCeiling) {
     throw new TypeError('Invalid SFX journal configuration');
   }
   const root = directory;
@@ -513,5 +524,9 @@ export function createSfxJobStore({
     });
   }
 
-  return Object.freeze({ reserve, update, read, list, publicView, storeWav, wavBytes, reconcileCancelled });
+  return Object.freeze({
+    reserve, update, read, list, publicView, storeWav, wavBytes, reconcileCancelled,
+    maxDailyStarts,
+    supervisedQaCampaign: supervisedQaCampaign === true,
+  });
 }

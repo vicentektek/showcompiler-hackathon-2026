@@ -28,6 +28,8 @@ export async function loadLocalSfxEnvironment({ filePath = join(projectRoot,'.en
     'MODAL_PROXY_TOKEN_ID','MODAL_PROXY_TOKEN_SECRET',
     'RUNQ_SFX_ESTIMATED_MAX_COST_USD','RUNQ_SFX_DAILY_BUDGET_USD',
     'RUNQ_SFX_MODEL_REVISION',
+    'RUNQ_SFX_QA_CAMPAIGN','RUNQ_SFX_QA_MAX_DAILY_STARTS',
+    'RUNQ_SFX_QA_DAILY_BUDGET_USD',
   ]);
   for(const raw of content.replace(/^\uFEFF/,'').split(/\r?\n/)) {
     const match=/^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(raw);

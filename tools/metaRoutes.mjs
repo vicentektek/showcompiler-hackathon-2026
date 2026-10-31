@@ -118,6 +118,15 @@ function safeTheatricalDetail(value) {
   };
 }
 
+function safeObservation(value,coverage){
+  const detail=safeTheatricalDetail(value);
+  if(value.sourceLineId===undefined)return detail;
+  if(!LINE_ID.test(value.sourceLineId)||!coverage?.analyzedLineIds.includes(value.sourceLineId)){
+    throw new TypeError('Meta observation does not match supplied script excerpt or audio list');
+  }
+  return {...detail,sourceLineId:value.sourceLineId};
+}
+
 /** Returns a handler that sends only selected script lines + asset *names* to Meta. */
 export function makeMetaRoute({
   modelClient = campaignMetaClient,
@@ -228,7 +237,7 @@ export function makeMetaRoute({
       }));
       const independentReview = result.independentReview === undefined ? undefined : safeIndependentReview(result.independentReview, coverage);
       const proposalDetails = result.details === undefined ? undefined : result.details.map(safeTheatricalDetail);
-      const observations = result.observations === undefined ? undefined : result.observations.map(safeTheatricalDetail);
+      const observations = result.observations === undefined ? undefined : result.observations.map(value=>safeObservation(value,coverage));
       const duplicatesRemoved = result.duplicatesRemoved === undefined ? undefined : result.duplicatesRemoved;
       if (proposalDetails && proposalDetails.length !== output.length) {
         throw new TypeError('Invalid Meta theatrical detail count');

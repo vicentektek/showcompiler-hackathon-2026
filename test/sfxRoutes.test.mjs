@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createAppServer } from '../tools/dev-server.mjs';
 import { createSfxJobStore } from '../src/core/sfxJobStore.mjs';
+import { supervisedQaCampaignFromEnv } from '../tools/sfxRoutes.mjs';
 import { inspectPcm16Wav } from '../src/core/modalSfxPilotClient.mjs';
 
 const TEST_DATE = '2026-10-28T12:00:00.000Z';
@@ -330,4 +331,63 @@ test('SFX status refuses missing or free-form model revision even with valid cos
   assert.equal(status.modelRevision,null);
   assert.equal((await post(base,'/api/sfx/jobs',payload())).status,503);
   assert.equal(calls.start,0);
+});
+
+test('supervised QA campaign ceilings: 150 only with explicit opt-in, standard cap unchanged',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'runq-sfx-'));
+  t.after(()=>rm(directory,{recursive:true,force:true}));
+  assert.throws(()=>createSfxJobStore({directory,maxDailyStarts:26}),TypeError);
+  assert.throws(()=>createSfxJobStore({directory,maxDailyStarts:150}),TypeError);
+  assert.throws(()=>createSfxJobStore({
+    directory,maxDailyStarts:151,supervisedQaCampaign:true,
+  }),TypeError);
+  assert.throws(()=>createSfxJobStore({
+    directory,maxDailyStarts:150,supervisedQaCampaign:'yes',
+  }),TypeError);
+  const campaign=createSfxJobStore({directory,maxDailyStarts:150,supervisedQaCampaign:true});
+  assert.equal(campaign.maxDailyStarts,150);
+  assert.equal(campaign.supervisedQaCampaign,true);
+  const standard=createSfxJobStore({directory,maxDailyStarts:10});
+  assert.equal(standard.maxDailyStarts,10);
+  assert.equal(standard.supervisedQaCampaign,false);
+});
+
+test('supervisedQaCampaignFromEnv requires the explicit flag and fails closed on bad values',()=>{
+  assert.equal(supervisedQaCampaignFromEnv({}),null);
+  assert.equal(supervisedQaCampaignFromEnv({RUNQ_SFX_QA_MAX_DAILY_STARTS:'150'}),null);
+  assert.deepEqual(
+    supervisedQaCampaignFromEnv({RUNQ_SFX_QA_CAMPAIGN:'1'}),
+    {maxDailyStarts:150});
+  assert.deepEqual(
+    supervisedQaCampaignFromEnv({RUNQ_SFX_QA_CAMPAIGN:'1',RUNQ_SFX_QA_MAX_DAILY_STARTS:'40'}),
+    {maxDailyStarts:40});
+  for(const bad of ['0','-5','151','2.5','NaN','many']){
+    assert.equal(supervisedQaCampaignFromEnv({
+      RUNQ_SFX_QA_CAMPAIGN:'1',RUNQ_SFX_QA_MAX_DAILY_STARTS:bad,
+    }),null,'expected fail-closed for '+bad);
+  }
+});
+
+test('SFX_DAILY_LIMIT appears only at the configured effective limit and status reports it',async t=>{
+  const {store}=await fixture(t,{storeOptions:{maxDailyStarts:4,supervisedQaCampaign:true}});
+  const {pilot}=fakePilot();
+  const base=await server(t,{sfxStore:store,sfxPilotClient:pilot,sfxConfig:enabled});
+  const status=await(await fetch(base+'/api/sfx/status')).json();
+  assert.equal(status.maxDailyStarts,4);
+  assert.equal(status.supervisedQaCampaign,true);
+  assert.equal(status.maxSimultaneousJobs,1);
+  for(let n=0;n<4;n++){
+    const id='campaign-'+n;
+    await store.reserve(storeRequest({
+      requestId:id,authorizationId:'auth-'+id,sourceLineId:'L1',
+      modelCandidate:model,kind:'SFX',prompt:'Rain',durationSeconds:1,seed:0,
+    }),{confirm:true});
+    await store.update(id,'QUEUED',{remoteJobId:'fc-c'+n});
+    await store.update(id,'FAILED');
+    // Below the configured limit the fourth start must NOT be rejected (3 < 4).
+    if(n<3)assert.equal((await store.read('campaign-'+n)).status,'FAILED');
+  }
+  const over=await post(base,'/api/sfx/jobs',payload());
+  assert.equal(over.status,429);
+  assert.equal((await over.json()).code,'SFX_DAILY_LIMIT');
 });
