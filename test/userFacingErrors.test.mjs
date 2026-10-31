@@ -18,4 +18,5 @@ test('handles locale and audio validation errors',()=>{
  assert.match(userFacingError('Audio must be 1–20 MB and decodable by Chromium','en','audio'),/audio file/i);
  assert.match(userFacingError('FAILED TO FETCH','es'),/conectar/);
  assert.match(userFacingError(null,'es'),/No se ha podido/);
+ assert.match(userFacingError('HTTP 500','en','sound'),/check its status/);
 });
