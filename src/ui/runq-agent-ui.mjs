@@ -6,6 +6,7 @@ import {buildAgentContext,prepareAgentPlan} from '../core/agentCore.mjs';
 import {resolveAgentDialogue,boundedAgentConversation} from '../core/agentDialogue.mjs';
 import {userFacingError} from './userFacingErrors.mjs';
 import {createCommandDictation,commandDictationMessage} from './command-dictation.mjs';
+import {parseScript,getScriptLine} from '../core/script.mjs';
 const $=id=>document.getElementById(id);
 const es=()=>$('uiLocaleSelect')?.value==='es';
 const lang=(esText,enText)=>es()?esText:enText;
@@ -18,6 +19,7 @@ const make=(tag,cls='',text='')=>{
 let proposed=null,working=false,history=[],lastPrompt='';
 let sessionProjectId=null,sessionGeneration=null;
 let selectedBatch=null;
+let displayPhase='idle',chromeCopies=[];
 let requestEpoch=0,requestController=null,requestBase=null,dictation=null,dictationContext=null;
 function state(){
  let result=null;
@@ -27,6 +29,56 @@ function state(){
 function notify(text,error=false){
  const status=$('rqAgentStatus');
  if(status){status.textContent=text;status.classList.toggle('is-error',error);}
+ if(error)displayPhase='error';
+ renderReviewState();
+}
+function renderReviewState(){
+ const drawer=$('rqAgentDrawer');if(!drawer)return;
+ const phase=working?'working':selectedBatch?'review':displayPhase;
+ drawer.dataset.phase=phase;drawer.setAttribute('aria-busy',String(working));
+ const words={
+  idle:['Próxima instrucción','Ready for instruction'],working:['Preparando propuesta','Preparing proposal'],
+  review:['Pendiente de aprobación','Awaiting approval'],error:['Revisar error','Review error'],
+  applied:['Lote aplicado','Batch applied'],
+ };
+ const label=$('rqAgentPhase');if(label)label.textContent=lang(...words[phase]);
+ const count=selectedBatch?.enabled.filter(Boolean).length??0;
+ const summary=$('rqAgentReviewSummary');
+ if(summary)summary.textContent=lang('Cambios propuestos · '+count+' operaciones seleccionadas · Sin aplicar',
+  'Proposed changes · '+count+' selected operations · Not applied');
+}
+function syncContext(s){
+ const cue=s.project.cues.find(item=>item.id===s.selectedCueId),context=$('rqAgentContext');
+ if(!context)return;
+ const linked=cue?.actions.filter(action=>action.type==='PLAY').map(action=>({
+  name:s.project.assets.find(asset=>asset.id===action.assetId)?.name??action.assetId,
+  ready:assetReady(action.assetId,s)===true,
+ }))??[];
+ const lines=parseScript(s.project.scriptText);
+ const sources=(cue?.sourceLineIds??[]).slice(0,2).map(id=>({
+  id,text:getScriptLine(lines,id)?.text??null,
+ }));
+ const key=JSON.stringify([s.project.name,cue,linked,sources,es()]);
+ if(context.dataset.snapshot===key)return;
+ context.dataset.snapshot=key;
+ $('rqAgentContextCue').textContent=cue?lang('Cue seleccionado · ','Selected cue · ')+cue.number+' · '+cue.label:
+  lang('Sin cue seleccionado','No cue selected');
+ $('rqAgentShowName').textContent=s.project.name;
+ $('rqAgentContextSource').textContent=sources.length?sources.map(line=>
+  line.id+' · '+(line.text?.slice(0,350)??lang('Fuente no disponible','Source unavailable'))).join('\n'):
+  lang('Sin referencias del guion. No se inventarán líneas.','No script references. Source lines will not be invented.');
+ $('rqAgentContextAudio').textContent=linked.length?linked.map(asset=>
+  asset.name+' · '+(asset.ready?lang('LISTO','READY'):lang('NO DISPONIBLE','UNAVAILABLE'))).join(' · '):
+  lang('Sin audio vinculado · configura un sonido antes de GO','No linked audio · configure a sound before GO');
+ $('rqAgentViewSource').disabled=!sources[0]?.text;
+ $('rqAgentOpenCue').disabled=!cue;
+}
+function renderChrome(){
+ for(const [element,esText,enText] of chromeCopies)element.textContent=lang(esText,enText);
+ if($('rqAgentPrompt'))$('rqAgentPrompt').placeholder=lang(
+  'Ej.: propón un pie para el cue seleccionado; revisa el show…',
+  'e.g. propose a trigger for the selected cue; audit the show…');
+ renderReviewState();
 }
 function contextKey(){
  const s=state();
@@ -41,6 +93,8 @@ function refreshControls(){
   button.disabled=working||Boolean(dictation?.busy);
  const cancel=$('rqAgentCancel');
  if(cancel)cancel.disabled=!working&&!dictation?.hasWork;
+ $('rqAgentApply').disabled=!proposed||working||Boolean(dictation?.busy)||!state()?.canApply;
+ renderReviewState();
  if(!dictation)return;
  $('rqAgentRecord').disabled=working||['acquiring','transcribing'].includes(dictation.phase);
  $('rqAgentRecord').textContent=dictation.phase==='recording'
@@ -52,7 +106,7 @@ function cancelPending(reason='cancelled'){
  dictation?.cancel(reason);
  if(!working){refreshControls();return;}
  requestEpoch++;requestController?.abort();requestController=null;requestBase=null;
- working=false;$('rqAgentConsent').checked=false;showPlan(null);refreshControls();
+ working=false;displayPhase='idle';$('rqAgentConsent').checked=false;showPlan(null);refreshControls();
  notify(lang('Consulta cancelada. Los resultados tardíos no se aplicarán.',
   'Request cancelled. Late results will not be applied.'));
 }
@@ -75,6 +129,7 @@ function showPlan(plan,baseProject=null,keepSelection=false){
    enabled:plan.operations.map(()=>true)};
  }else if(!keepSelection)selectedBatch=null;
  proposed=plan;
+ if(displayPhase==='applied'||displayPhase==='error')displayPhase='idle';
  const panel=$('rqAgentProposal'),list=$('rqAgentDiff'),selector=$('rqAgentOps');
  panel.hidden=!plan&&!selectedBatch;
  list.replaceChildren();selector.replaceChildren();
@@ -106,7 +161,7 @@ function showPlan(plan,baseProject=null,keepSelection=false){
    li.append(label);selector.append(li);
   });
  }
- $('rqAgentApply').disabled=!plan;
+ refreshControls();
  if(!plan)return;
  // Every change in a proposed transaction must be reviewable, including
  // renumbering and indirect automation changes on other cues.
@@ -141,6 +196,7 @@ function short(value){
 function sync(){
  const s=state(),button=$('rqAgentToggle');
  if(!s||!button)return;
+ syncContext(s);
  if((requestBase!==null&&requestBase!==contextKey())||contextKey()===null)cancelPending('context_changed');
  if(dictation?.hasWork&&dictationContext!==contextKey())dictation.cancel('context_changed');
  if(sessionProjectId!==s.project.id||sessionGeneration!==s.generation){
@@ -148,7 +204,10 @@ function sync(){
    history=[];showPlan(null);
    if($('rqAgentSelectedSound'))$('rqAgentSelectedSound').value='';
    $('rqAgentMessages')?.replaceChildren();
-   addMessage('assistant',lang('Nuevo espectáculo: conversación reiniciada.','New show: conversation reset.'));
+   displayPhase='idle';
+   addMessage('assistant',lang(
+    'Contexto del nuevo show preparado. Consulta el guion o el audio del cue seleccionado; propón cambios y revisa el lote antes de aplicar.',
+    'New show context ready. Inspect the selected cue’s script or audio; propose changes and review the batch before applying.'));
   }
   sessionProjectId=s.project.id;sessionGeneration=s.generation;
  }
@@ -229,7 +288,7 @@ async function sendRequest(forceAI=false,custom=null){
  const conversation=boundedAgentConversation(history);
  const epoch=++requestEpoch;requestBase=contextKey();
  requestController=new AbortController();
- working=true;lastPrompt=instruction;showPlan(null);
+ working=true;displayPhase='idle';lastPrompt=instruction;showPlan(null);
  refreshControls();
  addMessage('user',instruction);
  notify(forceAI?lang('Preparando propuesta con IA…','Preparing an AI suggestion…'):
@@ -326,6 +385,7 @@ function apply(){
  if(response?.ok){
   addMessage('assistant',lang('Cambios aplicados: ','Changes applied: ')+response.changes.length);
   showPlan(null);
+  displayPhase='applied';
   notify(lang('Cambios aplicados. Puedes deshacer el último lote.',
    'Changes applied. You may undo the last batch.'));
  }else notify(userFacingError(response?.error,es()?'es':'en'),true);
@@ -335,7 +395,7 @@ function undo(){
  let response=null;
  document.dispatchEvent(new CustomEvent('runq:agent-undo',{detail:{respond:value=>{response=value;}}}));
  if(response?.ok){
-  showPlan(null);addMessage('assistant',lang('Último lote deshecho.','Last batch undone.'));
+  showPlan(null);displayPhase='idle';addMessage('assistant',lang('Último lote deshecho.','Last batch undone.'));
   notify(lang('Operación revertida.','Operation reverted.'));
  }else notify(userFacingError(response?.error,es()?'es':'en'),true);
 }
@@ -356,9 +416,23 @@ function mount(){
  closeBtn.id='rqAgentClose';
  closeBtn.type='button';closeBtn.setAttribute('aria-label',lang('Cerrar agente','Close agent'));
  head.append(title,closeBtn);
+ const phase=make('span','rq-agent-phase');phase.id='rqAgentPhase';title.append(phase);
+ const context=make('section','rq-agent-context');context.id='rqAgentContext';
+ context.setAttribute('aria-label',lang('Contexto actual del cue','Current cue context'));
+ const contextHeading=make('div','rq-agent-context-heading');
+ const selectedCue=make('strong','');selectedCue.id='rqAgentContextCue';
+ const showName=make('small','');showName.id='rqAgentShowName';
+ contextHeading.append(selectedCue,showName);
+ const source=make('p','rq-agent-context-source');source.id='rqAgentContextSource';
+ const audio=make('small','rq-agent-context-audio');audio.id='rqAgentContextAudio';
+ const contextActions=make('div','rq-agent-actions');
+ const viewSource=make('button','btn subtle small');viewSource.id='rqAgentViewSource';viewSource.type='button';
+ const openCue=make('button','btn subtle small');openCue.id='rqAgentOpenCue';openCue.type='button';
+ const library=make('button','btn subtle small');library.id='rqAgentOpenLibrary';library.type='button';
+ contextActions.append(viewSource,openCue,library);context.append(contextHeading,source,audio,contextActions);
  const messages=make('div','rq-agent-messages');messages.id='rqAgentMessages';
  const proposals=make('section','rq-agent-proposal');proposals.id='rqAgentProposal';proposals.hidden=true;
- proposals.append(make('strong','',lang('Cambios propuestos · Sin aplicar','Proposed changes · Not applied')));
+ const reviewSummary=make('strong','');reviewSummary.id='rqAgentReviewSummary';proposals.append(reviewSummary);
  const ops=make('ol','rq-agent-ops');ops.id='rqAgentOps';
  const diff=make('ol','rq-agent-diff');diff.id='rqAgentDiff';
  const approve=make('button','btn accent small',lang('Aplicar lote','Apply batch'));
@@ -373,20 +447,22 @@ function mount(){
  const input=make('textarea','');input.id='rqAgentPrompt';input.rows=4;input.maxLength=1600;
  input.placeholder=lang('Ej.: elimina el cue 2; pon pies de voz; revisa el show...',
   'e.g. delete cue 2; assign spoken triggers; review the show...');
- const soundLabel=make('label','rq-agent-selected-sound',lang(
-  'Sonido para crear un cue configurado (elección explícita)',
-  'Sound for a configured cue (explicit selection)'));
+ const soundLabel=make('label','rq-agent-selected-sound');
+ const soundTitle=make('span','');
+ soundLabel.append(soundTitle);
  soundLabel.htmlFor='rqAgentSelectedSound';
  const sound=make('select','');sound.id='rqAgentSelectedSound';soundLabel.append(sound);
  const examples=make('div','rq-agent-examples');
- for(const [text,cmd] of [
-  [lang('Revisar show','Audit show'),lang('Revisa el show','Audit the show')],
-  [lang('Pies de voz','Voice triggers'),lang('Pon pies de voz coherentes a todos los cues','Assign spoken triggers to all cues')],
-  [lang('Preparar cierre','Prepare ending'),lang('Añade tres cues para rematar el show','Add three cues to finish the show')],
-  [lang('Resumen','Summary'),lang('Resumen del proyecto','Show summary')]
+ const exampleCopies=[];
+ for(const [esText,enText,esCommand,enCommand] of [
+  ['Revisar show','Audit show','Revisa el show','Audit the show'],
+  ['Pies de voz','Voice triggers','Pon pies de voz coherentes a todos los cues','Assign spoken triggers to all cues'],
+  ['Preparar cierre','Prepare ending','Añade tres cues para rematar el show','Add three cues to finish the show'],
+  ['Resumen','Summary','Resumen del proyecto','Show summary']
  ]){
-  const b=make('button','btn subtle small',text);b.type='button';
-  b.addEventListener('click',()=>{input.value=cmd;void sendRequest(false,cmd);});examples.append(b);
+  const b=make('button','btn subtle small',lang(esText,enText));b.type='button';
+  exampleCopies.push([b,esText,enText]);
+  b.addEventListener('click',()=>{const cmd=lang(esCommand,enCommand);input.value=cmd;void sendRequest(false,cmd);});examples.append(b);
  }
  const voice=make('details','rq-agent-ai-options');voice.id='rqAgentVoice';
  voice.append(make('summary','',lang('Dictar instrucción · revisión manual','Dictate instruction · manual review')));
@@ -439,8 +515,42 @@ function mount(){
   lang('Sin modificaciones pendientes.','No pending modifications.'));
  status.id='rqAgentStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  composer.append(label,input,soundLabel,examples,voice,aiOptions,actions,status);
- panel.append(head,messages,proposals,composer);
+ panel.append(head,context,messages,proposals,composer);
  document.body.append(panel);
+ chromeCopies=[
+  ...exampleCopies,
+  [title.querySelector('strong'),'Asistente de proyecto','Project agent'],
+  [title.querySelector('small'),'Solo diseño y revisión · Ningún GO automático','Design and review only · No automatic GO'],
+  [viewSource,'Ver guion','View script'],[openCue,'Abrir Cue Editor','Open Cue Editor'],
+  [library,'Abrir Biblioteca','Open Library'],[label,'¿Qué quieres cambiar en este espectáculo?','What would you like to change in this show?'],
+  [local,'Proponer localmente','Plan locally'],[cloud,'Consultar IA','Ask AI'],[undoButton,'Deshacer lote','Undo batch'],
+  [cancel,'Cancelar pendiente','Cancel pending'],[approve,'Aplicar lote seleccionado','Apply selected batch'],
+  [discard,'Descartar','Discard'],[aiSummary,'Servicio de IA y permisos','AI service and permissions'],
+  [soundTitle,'Sonido para crear un cue (elección explícita)','Sound for a configured cue (explicit selection)'],
+  [voice.querySelector('summary'),'Dictar instrucción · revisión manual','Dictate instruction · manual review'],
+  [providerLabel.querySelector('span'),'Proveedor para consulta opcional','Provider for optional request'],
+  [consentLabel.querySelector('span'),'Autorizo una consulta con la instrucción y el contexto acotado del show al proveedor elegido (puede tener coste).',
+   'I authorize one request with this instruction and bounded show context to the selected AI provider (may incur a charge).'],
+  [consentDetails,'Incluye hasta 80 cues, 120 líneas originales del guion, nombres/estado de medios y hasta 8 mensajes recientes. No se envían archivos de audio.',
+   'Includes up to 80 cues, 120 original script lines, media names/status and up to 8 recent messages. Audio files are never sent.'],
+  [voiceConsentLabel.querySelector('span'),'Autorizo enviar esta grabación a Meta para transcribirla (puede tener coste).',
+   'I authorize this recording to be sent to Meta for transcription (may incur a charge).'],
+  [transcribe,'Transcribir grabación','Transcribe recording'],
+ ];
+ const navigate=workspace=>document.querySelector(`[data-workspace-nav="${workspace}"]`)?.click();
+ viewSource.addEventListener('click',()=>{
+  const s=state(),cue=s?.project.cues.find(item=>item.id===s.selectedCueId);
+  if(cue?.sourceLineIds[0])document.dispatchEvent(new CustomEvent('runq:navigate-to-source',{detail:{lineId:cue.sourceLineIds[0]}}));
+  close();
+ });
+ openCue.addEventListener('click',()=>{
+  const s=state();
+  if(s?.selectedCueId)document.dispatchEvent(new CustomEvent('runq:navigate-to-cue',{detail:{cueId:s.selectedCueId}}));
+  close();
+ });
+ library.addEventListener('click',()=>{navigate('audio');close();});
+ $('uiLocaleSelect')?.addEventListener('change',()=>{renderChrome();sync();refreshControls();});
+ renderChrome();
  dictation=createCommandDictation({
   owner:'agent-command',contextKey,
   onTranscript:text=>{input.value=text;input.focus();},

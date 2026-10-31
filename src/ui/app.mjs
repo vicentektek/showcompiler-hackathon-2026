@@ -2245,6 +2245,13 @@ document.addEventListener('runq:navigate-to-cue',event=>{
  if(typeof id!=='string'||!show.cues.some(c=>c.id===id))return;
  if(setWorkspace('cues'))selectCueForInspection(id);
 });
+document.addEventListener('runq:navigate-to-source',event=>{
+ const lineId=event.detail?.lineId;
+ if(typeof lineId!=='string'||!getScriptLine(parseScript(show.scriptText),lineId)){
+  feedback('status.noSourceLine',{},'error');return;
+ }
+ jumpToScriptLine(lineId);
+});
 document.addEventListener('runq:open-contextual-ia',event=>{
  const detail=event.detail??{},lineId=detail.lineId;
  if(lineId&&!/^L[1-9]\d*$/.test(lineId))return;

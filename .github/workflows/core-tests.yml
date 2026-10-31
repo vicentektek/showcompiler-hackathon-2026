@@ -100,6 +100,8 @@ jobs:
         run: node tools/sfx-lab-browser-e2e.mjs
       - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
         run: node tools/runq-agent-browser-e2e.mjs
+      - name: RUNQ AI contextual review with original show WAVs (offline fixtures)
+        run: npm run test:ai-review
       - name: Last GO complete-show and reviewed Hero Chrome E2E (offline)
         run: npm run test:last-go
       - name: Reviewed dictation and late-result cancellation Chrome E2E (synthetic, offline)

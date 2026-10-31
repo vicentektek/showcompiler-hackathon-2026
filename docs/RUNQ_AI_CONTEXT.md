@@ -35,6 +35,8 @@ The Studio agent is not shown in Rehearsal or Direct. Its optional AI action req
 
 Local requests mentioning **this cue / selected cue / cue seleccionado** resolve against the current stable selected cue ID. Voice-trigger requests naming one cue propose only that cue; missing targets, ambiguous numeric lists/ranges and absent selection clarify instead of silently widening to all cues. Explicit whole-show trigger proposals retain their existing behavior. Even scoped suggestions check trigger collisions against the entire original show.
 
+The main Agent and contextual drawer now share a visible **selected cue / original source / actual audio readiness** strip. View Script, Open Cue Editor and Open Library only navigate; they do not prepare GO, audition or contact a provider. Missing media remain visibly unavailable and cannot be selected as READY sounds. The Agent exposes preparing/review/error/applied states, one-shot consent, selected-operation counts and an independently scrollable review surface. Apply stays disabled during requests/capture or blocked show state. Its ES/EN interface labels/disclosures update without translating original script or conversation.
+
 ### Script proposals, sound and voice
 
 - Theatre analysis proposes source-linked suggestions for human review; approval is a separate action and does not play audio (`src/core/theatreCueAnalysis.mjs`, `src/core/workspace.mjs`).
@@ -60,6 +62,7 @@ npm test
 npm run qa:codex
 npm run test:interface
 node tools/runq-agent-browser-e2e.mjs
+npm run test:ai-review
 ```
 
 These commands must not call a paid provider. Do not run live inference from tests or an unattended coding session.
