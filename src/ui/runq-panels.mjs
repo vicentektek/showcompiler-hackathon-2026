@@ -116,6 +116,10 @@ function mount() {
       Object.assign(handle.style, { left: '0', right: '0', top: '-4px', bottom: 'auto', width: 'auto', height: GRIP + 'px' });
       return;
     }
+    if(cfg.id==='live-cues'&&getComputedStyle(el).display==='grid'&&Number.isFinite(saved[cfg.id])){
+      const [lo,hi]=limits(e);
+      apply(e,clamp(saved[cfg.id],lo,hi));
+    }
     const t = tracks(el, cfg.axis);
     // Optional panels (e.g. the Live script) collapse the grid; no grip while only one track exists.
     if (t.length < 2) { handle.hidden = true; return; }

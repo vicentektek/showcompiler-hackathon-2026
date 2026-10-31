@@ -250,4 +250,18 @@ body.rq-resizing-row,body.rq-resizing-row *{cursor:row-resize!important;user-sel
  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace .operator-queue{
   grid-template-columns:minmax(0,1fr)!important;
  }
+ @container runq-stage (max-width:720px){
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .cue-workspace-body{
+   display:flex!important;flex-direction:column!important;overflow-y:auto!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-sequence-frame{
+   flex:0 0 180px!important;border-right:0!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq14-stage-monitor{
+   flex:0 0 230px!important;border-left:0!important;border-top:1px solid var(--line)!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] [data-rq-panel=live-cues]{
+   display:none!important;
+  }
+ }
 }

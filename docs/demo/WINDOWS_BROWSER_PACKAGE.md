@@ -12,6 +12,8 @@ Verified on Windows x64 with .NET Framework's installed C# compiler, Node 22.16.
 
 Requires Windows x64, .NET Framework 4.5+ and a current browser supporting the existing Web Audio application. No automatic restart or model request occurs at launch. Actual microphone/ASR, audible output, device routing and room latency require separate operator measurements. Paid AI must be configured and explicitly authorized by the operator; this packaging gate performs no provider calls.
 
+The package has its own working directory and intentionally does not include private evaluation ledgers or credentials. It therefore does not reuse the original lab's local budget history. Run any paid campaign from the operator-approved directory under its existing ledger and spend policy; never use fresh package copies to bypass a cap.
+
 ## Rebuild without secrets or dependencies
 
 Use Node >=20 and the existing Windows .NET Framework compiler. Obtain the **complete license** and official `win-x64/node.exe` SHA-256 for the exact installed Node version from the public Node distribution. The observed Node 22.16.0 SHA-256 was `c5ff4c736112dd483c750fd4149d30c8a116db1a49b8b3ec88be4b65e6c86c19`; do not reuse it for another version.
@@ -30,3 +32,5 @@ Use `npm.cmd` for the flagged build command in PowerShell: the local `npm.ps1` i
 `FILE_HASHES.json` covers 165 payload files in this build; the ZIP's separately reported SHA-256 covers the manifest as well. `SOURCE_REVISION.txt` records the checkout base: build a delivery after committing validated source. Archive timestamps can differ between builds, so compare the reported hash of the actual delivered ZIP rather than assuming a byte-reproducible compressed archive.
 
 The extracted-package gate exercises the actual EXE, bundled Node and HTTP server, checks payload hashes and process exit, imports/decodes Last GO, reviews/applies Hero, exports/reloads/reopens four cues with three WAVs, and performs browser-engine GO/STOP ALL. Browser output is not acoustic evidence. Cross-platform offline tests cover sanitized startup failure; Windows-only contract tests cover rejected build inputs. Windows compilation/extracted EXE verification is local evidence, not an unexecuted Linux CI claim.
+
+The follow-up gate restores the original three-cue show, explicitly returns to Live after import, opens Script at 768px and checks the real status/read-only inspector has no horizontal overflow and no change to prepared GO/audio. Its `live-inspector-768.png` capture is written next to the freshly extracted application, not into the delivered ZIP.

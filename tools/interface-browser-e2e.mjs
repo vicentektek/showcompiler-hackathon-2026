@@ -162,6 +162,13 @@ try {
         const go=await page.locator('#operatorGoBtn').boundingBox();
         assert.ok(go&&go.x>=0&&go.x+go.width<=size.width+1&&go.y+go.height<=size.height+1,
           `GO stays usable with Live script open at ${size.width}`);
+        const liveBody=await page.locator('.cue-workspace-body').evaluate(el=>({
+          width:el.clientWidth,content:el.scrollWidth,
+          right:el.getBoundingClientRect().right,
+          inspectorRight:el.querySelector('#rq14StageCurrent').getBoundingClientRect().right,
+        }));
+        assert.ok(liveBody.content<=liveBody.width+1&&liveBody.inspectorRight<=liveBody.right+1,
+          `Live inspector must not be horizontally clipped at ${size.width}: ${JSON.stringify(liveBody)}`);
         if(size.width>=1093){
           const panel=page.locator('.layout > .panel[data-workspaces~="script"]');
           const originalWidth=(await panel.boundingBox()).width;
@@ -184,6 +191,10 @@ try {
             return Math.abs(width-expected)<=2;
           },originalWidth);
           if(size.width===1920){
+            const sequenceGrip=page.locator('[data-rq-panel="live-cues"]');
+            await sequenceGrip.focus();
+            await sequenceGrip.press('ArrowLeft');
+            const sequencePreference=await page.evaluate(()=>JSON.parse(localStorage.getItem('runq.panels.v1'))['live-cues']);
             const edge=await grip.boundingBox();
             await page.mouse.move(edge.x+edge.width/2,edge.y+edge.height/2);
             await page.mouse.down();
@@ -194,6 +205,15 @@ try {
             assert.ok((await panel.boundingBox()).width<=368,'Stored wide script panel is clamped in a smaller window');
             const narrowGo=await page.locator('#operatorGoBtn').boundingBox();
             assert.ok(narrowGo&&narrowGo.x+narrowGo.width<=769&&narrowGo.y+narrowGo.height<=901);
+            const monitor=page.locator('#rq14StageCurrent');
+            await monitor.scrollIntoViewIfNeeded();
+            const frame=await page.locator('.cue-workspace-body').boundingBox();
+            const box=await monitor.boundingBox();
+            assert.ok(box.width>=frame.width-3&&box.x+box.width<=frame.x+frame.width+1,
+              'Narrow Live status/inspector is full-width and reachable by vertical scrolling');
+            assert.equal(await sequenceGrip.isVisible(),false,'Horizontal split grip is unavailable in stacked mode');
+            assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('runq.panels.v1'))['live-cues']),
+              sequencePreference,'Narrow layout preserves the operator preferred wide split');
             await toggle.click();
             await page.setViewportSize(size);
             await toggle.click();
@@ -203,6 +223,12 @@ try {
               const width=document.querySelector('.layout > .panel[data-workspaces~="script"]').getBoundingClientRect().width;
               return Math.abs(width-expected)<=2;
             },originalWidth);
+            assert.equal(await sequenceGrip.isVisible(),true,'Wide Live split remains resizable after narrow stacking');
+            const restoredSequence=await page.locator('.cue-workspace-body').evaluate(el=>parseFloat(getComputedStyle(el).gridTemplateColumns));
+            assert.ok(Math.abs(restoredSequence-sequencePreference)<=1,'Returning wide restores the actual preferred track width');
+            await sequenceGrip.dblclick();
+            assert.equal(await page.evaluate(()=>Object.hasOwn(JSON.parse(localStorage.getItem('runq.panels.v1')),'live-cues')),false,
+              'Double-click clears the saved wide preference after responsive restoration');
           }
           assert.equal(await prepared(),initialPrepared);
         }

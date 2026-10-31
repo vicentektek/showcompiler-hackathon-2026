@@ -92,6 +92,7 @@ export async function buildWindowsPackage({output,nodeLicensePath,expectedNodeSh
   'Requires Windows with .NET Framework 4.5+ and a current Chromium/Edge/Chrome browser.',
   'Open demo\\RUNQ_THE_LAST_GO_EN.showcompiler.zip as a complete show inside RUNQ.',
   'Original script and three original synthesized WAVs are included. AI is optional and requires explicit operator consent/configuration.',
+  'This package uses a different working directory. It does not carry the original evaluation budget ledger; never use copies to bypass an approved spend cap.',
   'GO and STOP stay deterministic and local. Recording/AI proposals never apply or play automatically.',
   'Press STOP ALL in RUNQ and close the browser before exiting the launcher.',
   'Stopping this HTTP server alone does not stop audio already decoded in an open browser.',

@@ -22,6 +22,8 @@ Local candidate reference: `feat/runq-release-candidate-2026-10-31`, to be creat
 
 ### Candidate acceptance evidence
 
+Continued after the initial candidate: narrow loaded-show screenshot review reproduced Live inspector clipping (358px available / 615px content). Original sequence/status now stack within narrow Stage containers; wide resize preferences are retained/restored and reset still works. Full interface, real-WAV Last GO, Stage safety and **661/661** offline tests passed. The packaged gate now also checks this actual Chrome geometry and captures the original three-cue show at 768px. Preserve initial `f5ff320` and create a fresh `feat/runq-release-candidate-v2-2026-10-31` from the validated follow-up; no ref overwrite.
+
 - PASS: `npm run qa:codex` (661/661 Windows tests, existing/Windows syntax, illustrative cue QA, seminar contract).
 - PASS repeated: `npm run test:interface`, `npm run test:dictation`, `npm run test:last-go`, `node tools/rehearsal-auto-browser-e2e.mjs`, `node tools/stagecraft-cue-safety-e2e.mjs`, `node tools/browser-e2e.mjs`, `node tools/runq-agent-browser-e2e.mjs`, `node tools/voice-follow-click-e2e.mjs`.
 - PASS earlier: keymap, audio batch and SFX Lab browser gates; `npm run qa:agent:mass` (600/600 local scenarios, not real-model accuracy).

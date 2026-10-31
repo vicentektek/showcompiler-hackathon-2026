@@ -94,6 +94,20 @@ try{
  });
  await page.locator('#operatorPanicBtn').click();
  assert.equal((await read()).active.length,0);
+ await page.locator('#bundleFileInput').setInputFiles({name:'original-last-go.zip',mimeType:'application/zip',buffer:archive});
+ await waitReady(3);
+ const prepared=(await read()).preparedCueId;
+ await page.locator('[data-workspace-nav="operation"]').click();
+ await page.setViewportSize({width:768,height:900});
+ await page.locator('.rq-live-script-toggle').click();
+ await page.locator('.layout > .panel[data-workspaces~="script"]').evaluate(async el=>
+  Promise.all(el.getAnimations().map(animation=>animation.finished)));
+ await page.locator('#rq14StageCurrent').scrollIntoViewIfNeeded();
+ const body=await page.locator('.cue-workspace-body').evaluate(el=>({width:el.clientWidth,content:el.scrollWidth}));
+ assert.ok(body.content<=body.width+1,'Actual packaged Live inspector must not be horizontally clipped');
+ console.log('WINDOWS_NARROW_LAYOUT_OK '+JSON.stringify(body));
+ assert.equal((await read()).preparedCueId,prepared);assert.equal((await read()).active.length,0);
+ await page.screenshot({path:path.join(path.dirname(root),'live-inspector-768.png'),animations:'disabled'});
  assert.deepEqual(errors,[]);assert.deepEqual(remote,[]);
  console.log('WINDOWS PACKAGE E2E PASS: '+manifest.files.length+' file hashes, actual EXE/runtime/HTTP, original Last GO WAVs, reviewed Hero, complete ZIP export/reload/reopen, real browser GO/STOP ALL. No provider or acoustic measurement.');
 }finally{
