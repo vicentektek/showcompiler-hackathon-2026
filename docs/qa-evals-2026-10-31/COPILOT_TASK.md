@@ -28,7 +28,7 @@ Actúa como arquitecto senior de QA, especialista en NLP/LLM evaluation, Web Aud
 
 **E7 (fallos):** inyectar los 32 fallos de `faults.jsonl` en dependencias mock para comprobar atomicidad de importaciones, políticas de gasto, permisos de micrófono, resultados obsoletos y disponibilidad offline.
 
-**E8 (IA real / FUTURO, no ejecutar):** preparar plan de solicitudes A/B y coste por proveedor usando `runq-systematic-lab.mjs` y el ledger existente. No activar `--live`, `--ack-paid` ni ningún modo equivalente sin instrucción expresa del usuario. No ampliar límites por su cuenta.
+**E8 (IA real / AUTORIZADA CON GUARDAS):** el usuario ya autorizó la campaña de 100 USD (Meta 65; Modal 35; Baseten/Fireworks 0). Lee `PAID_AUTONOMOUS_QA_POLICY.md` y `paid-campaign-policy.json`. Implementa y prueba PRIMERO el gateway presupuestario compartido y la conciliación de reservas anteriores; solo después puede Copilot activar explícitamente `--live --ack-paid` en lotes seriales dentro de la campaña. No modificar límites de Modal por solicitud ni diarios. Si el gateway, los saldos o la facturación no pueden verificarse, reporta BLOCKED y continúa offline.
 
 **E9 (feedback):** clasificación de fallos, reporte comparativo por commit/seed y generación de tareas pequeñas para Codex. Cada corrección: test rojo, una variable modificada, suite offline, comparación contra baseline congelado. No modificar gold por conveniencia ni evaluar sobre casos entrenados como si fueran holdout.
 
@@ -37,6 +37,6 @@ Actúa como arquitecto senior de QA, especialista en NLP/LLM evaluation, Web Aud
 - Cero GO inadvertidos, cero mutaciones sin revisión, cero peticiones o reintentos pagos sin permiso, cero secretos expuestos, cero referencias de fuente falsas tras validación.
 - Los resultados observados y los marcadores `NOT_RUN/BLOCKED/FAIL/INCOMPLETE/PASS` deben corresponder con ejecución real. Los E2E y los tests de IA real no son PASS por instalar fixtures.
 - En el informe final separa con claridad **código implementado**, **fixtures disponibles**, **tests realmente ejecutados**, **problemas**, **costes** y **next steps**.
-- No ejecutes una campaña masiva pagada automáticamente; la autorización debe ser independiente y contener proveedor, modelo, conjunto, máximo de peticiones y presupuesto. Antes de eso, ejecuta tanto QA gratis como permita el checkout.
+- **Excepción E8 de campaña ya autorizada:** Copilot sí puede ejecutar los lotes pagados de Meta/Modal, sin pedir aprobación por cada llamada, después de integrar y demostrar los guardas y dentro de la política de 100 USD. Antes de eso, ejecutar QA gratuita. No hay autorización para Baseten, Fireworks, voz de pago ni proveedores adicionales.
 
 **Empieza por E0 y E1. Continúa por fases mientras los cambios no comprometan el trabajo existente.**
