@@ -50,3 +50,19 @@ Para utilizarlo en el checkout activo con modificaciones sin confirmar:
 5. Verificar gates, créditos y pruebas offline antes de ejecutar un \`--live\`. La existencia del archivo **no lanza pruebas por sí misma ni convierte el presupuesto en garantía de facturación**.
 
 El agente dedicado puede realizar lotes pagados sin confirmación por solicitud únicamente dentro de los topes de 100 USD, Meta 65 USD y Modal 35 USD, y cuando el gasto está controlado por el gateway compartido.
+
+
+## Nuevo test extremo del Asistente de Show — Gauntlet v2 (01/11/2026)
+
+Prueba ejecutable disponible en la MISMA rama:
+- [164 preguntas en 13 conversaciones](../../fixtures/qa/show-assistant-gauntlet-v2.json), incluyendo un maratón de 44 turnos y 10 guiones originales.
+- [Runner offline](../../tools/runq-show-assistant-gauntlet-v2.mjs): no importa proveedores ni ejecuta GO ni aprueba planes.
+- [Tests de contrato](../../test/runqShowAssistantGauntletV2.test.mjs): validación del corpus y de las reglas de clasificación de fallos.
+- [Protocolo y E2E](SHOW_ASSISTANT_GAUNTLET_V2.md): precisión semántica, revisión humana, selección de casos Meta y cinco recorridos críticos del Builder.
+
+Comandos una vez incorporados de manera NO destructiva al checkout actual:
+
+    node --test test/runqShowAssistantGauntletV2.test.mjs
+    node tools/runq-show-assistant-gauntlet-v2.mjs
+
+Un FAIL es diagnóstico del programa actual, no un error en la existencia del corpus. NINGUNA prueba publicada aquí ha sido ejecutada sobre el checkout local del usuario por esta publicación. No confundir \`CONTRACT_PASS\` con calidad de Muse.
