@@ -1,5 +1,8 @@
 import { compileSoundProposals, applyProposalEdits, recompileProposal } from '../core/soundPromptCompiler.mjs';
 import { waveformPeaks, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
+import { userFacingError } from '../ui/userFacingErrors.mjs';
+const isSpanish = () => document.getElementById('uiLocaleSelect')?.value === 'es';
+const ux = (es,en) => isSpanish() ? es : en;
 
 const api = '/api/sfx';
 const STATUS_WITH_AUDIO = new Set(['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT']);
@@ -25,6 +28,14 @@ export const SFX_ACCEPTANCE_CASES = Object.freeze({
     prompt:'A small seated theatre audience murmurs quietly before a performance, then the conversations gradually fade until the room becomes attentive and nearly silent, realistic indoor acoustics, no applause, no music.',
   }),
 });
+
+const STATUS_LABEL_EN = Object.freeze({
+  SUBMISSION_UNKNOWN:'Status uncertain — check before retrying',
+  QUEUED:'Queued', RUNNING:'Generating', READY_FOR_REVIEW:'Ready to listen',
+  ACCEPTED_FOR_MANUAL_IMPORT:'Accepted', REJECTED:'Discarded',
+  CANCEL_REQUESTED:'Cancellation requested', CANCELLED:'Cancelled', FAILED:'Failed',
+});
+const jobLabel = status => (isSpanish() ? STATUS_LABEL : STATUS_LABEL_EN)[status] ?? ux('Estado desconocido','Status unavailable');
 
 const state = {
   initialized:false, enabled:false, working:false, job:null, audio:null,
@@ -66,11 +77,16 @@ function showCost(settings) {
   const ready=policy.perRequest!==null&&policy.daily!==null;
   element.classList.toggle('ready',ready);
   element.textContent=ready
-    ? `Límite estimado por solicitud: ${money(policy.perRequest)}. Presupuesto diario: ${money(policy.daily)}. Son límites preventivos, no el importe facturado.`
-    : 'No hay una política de coste válida; la generación está bloqueada.';
+    ? ux('Límite preventivo por generación: ','Estimated ceiling per generation: ')+money(policy.perRequest)+
+      ux('. Límite diario: ','. Daily limit: ')+money(policy.daily)+
+      ux('. No son cargos confirmados.','. These are safety ceilings, not billed amounts.')
+    : ux('La generación no está configurada. Revisa la conexión y los límites en el servidor local.',
+      'Generation is not configured. Check connection and spending limits in local server settings.');
   text('confirmRequestLabel',ready
-    ? `Autorizo UNA generación con un límite estimado de ${money(policy.perRequest)}.`
-    : 'Autorizo una única solicitud con el límite indicado.');
+    ? ux('Autorizo esta generación (máximo estimado ',
+         'I authorize this generation (estimated maximum ')+money(policy.perRequest)+').'
+    : ux('Autorizo esta generación al activar el servicio.',
+         'I authorize this generation when the service is available.'));
 }
 async function request(path,{method='GET',data}={}) {
   const options={method,cache:'no-store'};
@@ -101,12 +117,12 @@ function updateControls(){
   const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity();
   const allowed=state.enabled&&!state.working&&costReady&&promptReady&&$('confirmRequest').checked;
   $('generateBtn').disabled=!allowed;
-  $('generationHint').textContent=state.working?'Procesando la solicitud…':
-    !state.enabled?'No disponible: '+connectionProblem(state.settings):
-    !costReady?'Falta la política de coste del servidor.':
-    !promptReady?'Escribe un prompt y comprueba la duración.':
-    !$('confirmRequest').checked?'Marca la autorización de una única generación.':
-    'Listo: puedes generar una toma.';
+  $('generationHint').textContent=state.working?ux('Generando sonido…','Generating sound…'):
+    !state.enabled?ux('La generación no está disponible. Puedes seguir editando audio.','Generation is unavailable. You can still edit audio.'):
+    !costReady?ux('Revisa la configuración del servicio de IA.','Check the AI service settings.'):
+    !promptReady?ux('Describe el sonido y elige su duración.','Describe your sound and choose its duration.'):
+    !$('confirmRequest').checked?ux('Autoriza esta generación para continuar.','Authorize this generation to continue.'):
+    ux('Listo para generar.','Ready to generate.');
   const reconnect=$('sfxReconnectBtn');
   if(reconnect) reconnect.disabled=state.working;
   const reviewButton=$('sfxCheckResultBtn');
@@ -155,7 +171,7 @@ function viewJob(job){
     state.loadedRemoteRequestId=null;
     state.auditionedRemoteRequestId=null;
   }
-  text('jobState',job ? (STATUS_LABEL[job.status]??job.status?.replaceAll('_',' ')) : 'No job loaded');
+  text('jobState',job ? jobLabel(job.status) : ux('Sin sonido generado','No sound generated yet'));
   const cost=job?.cost??{};
   const timing=job?.latencies??job?.timing??job?.timings??{};
   const detail=job ? [
@@ -166,7 +182,7 @@ function viewJob(job){
     job.prompt,
   ].filter(Boolean).join('\n') : 'No remote call is made when a saved record is opened.';
   text('jobTechnicalDetails',detail);
-  text('jobDetails',job ? `Toma ${job.durationSeconds}s · ${STATUS_LABEL[job.status]??job.status} · ${job.sourceLineId??'prompt libre'}` : 'Genera un sonido para obtener un resultado.');
+  text('jobDetails',job ? ux('Toma ','Take ')+job.durationSeconds+'s · '+jobLabel(job.status)+(job.sourceLineId?' · '+job.sourceLineId:'') : ux('Describe un sonido para comenzar.','Describe a sound to get started.'));
   if(job){
     $('requestId').value=job.requestId;
     try{localStorage.setItem('runq-sfx-last-id-v1',job.requestId);}catch{}
@@ -309,7 +325,7 @@ function currentJobId(){
 async function action(operation){
   if(state.working)return;
   busy(true);
-  try{await operation();}catch(error){inform('Action failed: '+(error?.message||'unknown error'),true);}
+  try{await operation();}catch(error){inform(userFacingError(error,isSpanish()?'es':'en','audio'),true);}
   finally{busy(false);}
 }
 function applyPreset(){
@@ -347,7 +363,7 @@ function bindScriptCompiler(){
       const select=$('scriptSfxSelect');select.replaceChildren();
       proposals.forEach((p,i)=>{const option=document.createElement('option');option.value=String(i);option.textContent=(i+1)+'. '+p.soundSource+' · '+(p.action??'acción por concretar');select.append(option);});
       $('scriptSfxResults').hidden=proposals.length===0;
-      $('scriptSfxStatus').textContent=proposals.length?proposals.length+' propuesta(s) · sin consumo':'No se detectaron sonidos explícitos';
+      $('scriptSfxStatus').textContent=proposals.length?ux(proposals.length+' propuesta(s) preparadas',proposals.length+' suggestion(s) ready'):ux('No se han encontrado sonidos explícitos','No explicit sounds found');
       if(proposals.length)showScriptProposal();
     }catch(error){$('scriptSfxResults').hidden=true;$('scriptSfxStatus').textContent='Revisa la acotación: '+error.message;}
   });
@@ -397,7 +413,7 @@ function bindEvents(){
     event.preventDefault();
     void action(async()=>{
       const policy=costPolicy();
-      if(!state.enabled||!$('confirmRequest').checked||policy.perRequest===null)throw new Error('Generator is disabled, unpriced or not confirmed');
+      if(!state.enabled||!$('confirmRequest').checked||policy.perRequest===null||policy.daily===null)throw new Error('SFX_NOT_CONFIGURED');
       const source=$('sourceLine').value.trim();
       const requestData={
         requestId:'req-'+crypto.randomUUID(),authorizationId:'auth-'+crypto.randomUUID(),confirmed:true,
@@ -405,10 +421,12 @@ function bindEvents(){
         durationSeconds:Number($('duration').value),seed:Number($('seed').value),
         acknowledgedMaxCostUsd:policy.perRequest,
       };
-      if(!confirm(`Submit ONE external generation request with a configured maximum estimate of ${money(policy.perRequest)}? No automatic retries.`))return;
+      // The explicit, amount-specific checkbox is the sole user authorization.
+      // The server still validates confirmed, authorizationId, the exact cost cap
+      // and daily budget before any billable request. Never retry automatically.
       const response=await request('/jobs',{method:'POST',data:requestData});
       viewJob(await response.json());$('confirmRequest').checked=false;
-      inform('Submitted once. Refresh is manual; RunQ will not retry an uncertain request.');
+      inform(ux('Solicitud enviada. Comprueba el resultado para escuchar el sonido.','Request submitted. Check the result to listen to your sound.'));
     });
   });
   $('confirmRequest').addEventListener('change',updateControls);
@@ -435,7 +453,7 @@ function bindEvents(){
       await loadAudio(await result.arrayBuffer(),'Generado · '+job.requestId+'.wav','remote');
       inform('WAV cargado. Pulsa Play para escucharlo antes de aceptarlo.');
     }else{
-      inform('Estado: '+(STATUS_LABEL[job.status]??job.status)+'. Vuelve a comprobar cuando quieras.');
+      inform(ux('Estado: ','Status: ')+jobLabel(job.status)+ux('. Puedes comprobarlo de nuevo.','. Check again when ready.'));
     }
   }));
   $('openJobBtn').addEventListener('click',()=>void action(async()=>{
@@ -471,7 +489,7 @@ function bindEvents(){
   }));
   $('demoAudioBtn').addEventListener('click',()=>void action(async()=>{
     const bytes=makeOfflineImpactDemoWav();await loadAudio(bytes.buffer,'Offline synthesized impact · NOT AI','local');
-    inform('Synthetic test sound loaded locally. It cannot be imported as an AI result.');
+    inform(ux('Ejemplo de audio local cargado. No ha sido generado por IA.','Local audio example loaded. This is not AI-generated.'));
   }));
   $('localWav').addEventListener('change',()=>void action(async()=>{
     const file=$('localWav').files?.[0];if(!file)return;
@@ -620,23 +638,26 @@ function connectionProblem(settings){
 }
 async function checkConnection(){
   if(connectionCheck)return connectionCheck;
-  text('engineBadge','Comprobando…');
+  text('engineBadge',ux('Comprobando…','Connecting…'));
   connectionCheck=(async()=>{
     try{
       const settings=await(await request('/status')).json();
       state.settings=settings;
       state.enabled=settings.enabled===true;
       showCost(settings);
-      text('engineBadge',state.enabled?'Generador configurado':'Generador no disponible');
+      text('engineBadge',state.enabled?ux('IA disponible','AI ready'):ux('IA sin conexión','AI unavailable'));
       $('engineBadge')?.classList.toggle('active',state.enabled);
+      text('sfxProviderDiagnostics',connectionProblem(settings));
       inform(state.enabled
-        ? 'El servidor tiene la configuración necesaria. Puedes autorizar una solicitud; la conexión real se comprobará al enviarla.'
-        : connectionProblem(settings),!state.enabled);
+        ? ux('Puedes crear un sonido nuevo.','Ready to create a new sound.')
+        : ux('La generación no está disponible. Puedes importar y editar sonidos mientras tanto.',
+          'Sound generation is unavailable. You can still import and edit sounds.'),!state.enabled);
     }catch(error){
       state.enabled=false;state.settings=null;showCost(null);
-      text('engineBadge','Sin conexión al servidor');
+      text('engineBadge',ux('IA sin conexión','AI unavailable'));
       $('engineBadge')?.classList.remove('active');
-      inform('No se pudo consultar el generador local: '+(error?.message??'error de red'),true);
+      text('sfxProviderDiagnostics',userFacingError(error,isSpanish()?'es':'en'));
+      inform(ux('No se puede conectar con el generador. La edición local sigue disponible.','Cannot connect to the generator. Local audio editing is still available.'),true);
     }finally{updateControls();}
   })();
   try{await connectionCheck;}finally{connectionCheck=null;}
