@@ -51,3 +51,6 @@ Never move or re-create the tag; make a new tag for later approved versions. Thi
 
 ## Not verified
 Real audio output by ear, Spanish locale and very small viewports for the newest Live additions, hardware/multichannel. No professional live-show certification is claimed.
+
+## Sound design screen restyle (post-approval)
+Sound > Create & edit was restyled after tag `runq-interface-approved-2026-10-31` (the tag is unchanged). New files: `src/ui/runq-soundlab.css` (studio layout: create + result on the left, listen & edit on the right, hero header, gradient step badges and generate button, animated empty waveform) and `src/ui/runq-soundlab-ui.mjs` (one-click example prompts and a character counter; it only fills the prompt, never starts a generation). No generation, authorisation or provider logic changed.
