@@ -98,6 +98,10 @@ jobs:
         env:
           RUNQ_CAPTURE_UI: '1'
         run: node tools/sfx-lab-browser-e2e.mjs
+      - name: Saved-take recovery, real Web Audio and portable roundtrip (synthetic, offline)
+        env:
+          RUNQ_SFX_HISTORY_DIRECTORY: ''
+        run: npm run test:sfx-history
       - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
         run: node tools/runq-agent-browser-e2e.mjs
       - name: RUNQ AI contextual review with original show WAVs (offline fixtures)

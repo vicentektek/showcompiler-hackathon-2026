@@ -242,3 +242,41 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - Read-only `npm run budget:status` confirms unchanged conservative reserves:
   global 32.774374 / remaining 67.225626; Meta remaining 32.894171; Modal 34.8.
   No live calls, ledger reset, uncertain-request retry or fabricated credit check.
+
+## Subsequent block - visible saved takes and historical WAV roundtrip
+
+- Added an explicit saved-take selector to the current Sound workspace, with
+  localized ES/EN status and provenance notice. Listing/selecting reads only
+  local records; generation, remote polling, audition, approval, import and GO
+  remain separate explicit actions. Cached history status follows acceptance.
+- Recovered takes no longer attach an old L# to a new cue merely because the
+  current independent script has that same line number. Original asset
+  provenance is retained; same-session generation remains backward-compatible.
+- SHA-verified source backup: `sfx-history-20261031-151954`, seven original files
+  plus workflow backup SHA
+  `795C45C7B72C6C9C70F3D86069A0C99A03BB17638087BA5CBF864AF95825F09D`.
+  Before/after captures stay private/local. Actual 1366x900 EN and 768x900 ES
+  captures show visible, unclipped history controls and matching accepted status.
+- `npm run test:sfx-history` passed with original synthetic fixtures. It also
+  passed separately against COPIES of the two existing historical Modal WAV
+  records. Those two records have ONE distinct audio hash:
+  `b2f16500f2efecc416ab14632efad0f91bee24d0488e3977ebf723b1e011feed`,
+  705644 bytes, 4 seconds, stereo, 44100 Hz. This is not sound diversity,
+  new API generation, paid-model accuracy or acoustic evaluation.
+- Chrome decoded the actual historical bytes, auditioned before isolated-copy
+  approval, imported/created a cue, applied IN 50ms / OUT 800ms / both fades 50ms,
+  explicitly prepared NEXT, executed GO/STOP ALL and exported/reopened a portable
+  ZIP with unchanged original WAV hash and no fabricated source. The synthetic
+  UNKNOWN journal remained unplayable/non-retryable. Original journals stayed
+  hash-identical; no real journal was accepted or changed by the harness.
+- Added the free default-fixture gate to GitHub CI; private historical mode is
+  not used in CI. Local final `qa:codex` **681/681**, `test:interface`,
+  `test:ai-review`, `test:last-go`, `test:dictation`, existing Sound Lab smoke and
+  both new history modes passed. No new dependency, remote CI run or main merge.
+- Continued account-verification investigation using read-only provider pages:
+  the integrated browser could not load the attempted Meta portal; Modal's
+  actual login page requires sign-in. No authenticated credit balance was
+  obtained, OAuth grant made, credential read or dashboard attestation invented.
+  The new global spending authorization remains granted. Fresh live batches
+  still need authentic account verification and the retained operator-run
+  execution controls; physical microphone/room listening also remains pending.

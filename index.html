@@ -396,6 +396,12 @@
               <section class="sfx-card" aria-labelledby="jobsHeading">
                 <div class="sfx-section-header"><span class="sfx-index">02</span><div><h3 id="jobsHeading" data-sfx-en="Your sound" data-sfx-es="Tu sonido">Your sound</h3><p data-sfx-en="Preview the result before saving it" data-sfx-es="Escucha el resultado antes de guardarlo">Preview the result before saving it</p></div></div>
                 <div class="sfx-job-info"><div class="sfx-pill" id="jobState">No sound generated yet</div><p id="jobDetails" class="sfx-muted">Describe a sound to get started.</p></div>
+                <div class="sfx-inline sfx-history">
+                  <label><span data-sfx-en="Saved takes" data-sfx-es="Tomas guardadas">Saved takes</span><select id="sfxHistorySelect" disabled aria-describedby="sfxHistoryStatus"><option value="">Choose a saved take</option></select></label>
+                  <button class="btn subtle" id="sfxHistoryRefreshBtn" type="button" data-sfx-en="Show saved takes" data-sfx-es="Ver tomas guardadas">Show saved takes</button>
+                </div>
+                <p id="sfxHistoryStatus" class="sfx-muted sfx-small" role="status" data-sfx-en="Opens local history only. No generation, playback or cue change." data-sfx-es="Solo abre el historial local. No genera, reproduce ni cambia cues.">Opens local history only. No generation, playback or cue change.</p>
+                <p id="sfxHistoryNotice" class="sfx-muted sfx-small" hidden data-sfx-en="This earlier take keeps its original provenance. New cues do not inherit its old script reference; review the source in this show." data-sfx-es="La toma anterior conserva su procedencia. El nuevo cue no hereda la referencia antigua; revisa su fuente en este espectáculo.">This earlier take keeps its original provenance. New cues do not inherit its old script reference; review the source in this show.</p>
                 <div class="sfx-buttons">
                   <button class="btn primary-secondary" id="sfxCheckResultBtn" type="button" disabled data-sfx-en="Check result and load audio" data-sfx-es="Comprobar resultado y cargar audio">Check result and load audio</button>
                   <button class="btn" id="acceptBtn" type="button" data-sfx-en="Accept sound" data-sfx-es="Aceptar toma">Accept sound</button>

@@ -34,6 +34,9 @@
 .sfx-inline {align-items:stretch;gap:7px}
 .sfx-inline select {min-width:0;flex:1}
 .sfx-inline .btn {flex:0 0 auto}
+.sfx-history {flex-wrap:wrap}
+.sfx-history label {flex:1 1 180px;min-width:0}
+.sfx-history select {width:100%;max-width:100%}
 .sfx-notice {border-left:2px solid #849661;background:#252b26;padding:10px 11px;font-size:11px;line-height:1.55;color:#cbd3c8}
 .sfx-cost {border:1px solid #615b3d;background:#2d2a1e;color:#f0dda1;padding:10px 11px;border-radius:4px;font-size:11px;line-height:1.5}
 .sfx-cost.ready {border-color:#536843;background:#202b20;color:#dff5ac}

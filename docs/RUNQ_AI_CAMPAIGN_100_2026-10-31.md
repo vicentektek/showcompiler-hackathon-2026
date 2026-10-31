@@ -114,6 +114,37 @@ transport. Verify save/export/reopen with real WAV bytes; browser engine checks
 are not proof of physical sound, microphone recognition or theatre readiness.
 No model response, warning, navigation or cost tooling may call GO/STOP.
 
+## Saved-take recovery and manual acceptance
+
+Sound -> Create & edit -> **Show saved takes** loads the bounded local history.
+Choosing a take opens its record only: no provider polling, generation,
+acceptance, cue creation or sound. Check/load the WAV explicitly, audition at low
+volume, STOP the audition, then decide whether to accept. Unknown submissions
+remain non-retryable; their review/poll controls are disabled.
+
+Import + create cue is a separate confirmed action. Recovered takes preserve
+their original asset provenance, but new cues do not inherit an old L# merely
+because that number exists in the current script. Newly generated same-session
+source behavior is preserved. Inspect the created cue, explicitly Set as NEXT,
+then GO/STOP ALL. Export through File -> Export complete show, reopen it and
+verify original WAV hashes, IN/OUT/fades and silent reopening.
+
+`npm run test:sfx-history` is a free browser regression with original synthetic
+fixtures, real Web Audio and a synthetic UNKNOWN journal. CI runs only that
+mode. An operator can separately set `RUNQ_SFX_HISTORY_DIRECTORY` to the existing
+private local journal to reuse historical WAV bytes WITHOUT submitting jobs.
+The harness copies journals to a temporary isolated directory, makes no provider
+requests, changes acceptance only in that copy and rechecks original hashes.
+Automated clicks/audition state are NOT an acoustic or human acceptance.
+Historical takes with the same prompt/seed and identical WAV hash represent one
+distinct sound, not independent semantic quality measurements.
+
+Manual sign-off still requires listening through the intended output device,
+checking the actual effect against the brief, background noise/levels, complete
+show GO/NEXT/individual STOP/STOP ALL, and real microphone/actor speech. Use the
+already documented Last GO protocol; never describe synthetic speech or headless
+AudioContext success as physical microphone or room validation.
+
 ## Preserved delivery
 
 RC v2 `bce9bd3`, RC v3 `ca466a7`, their Windows ZIPs and other worktrees remain

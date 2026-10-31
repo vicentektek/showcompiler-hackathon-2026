@@ -39,6 +39,7 @@ const jobLabel = status => (isSpanish() ? STATUS_LABEL : STATUS_LABEL_EN)[status
 
 const state = {
   initialized:false, enabled:false, working:false, job:null, audio:null,
+  historyJobs:[],recoveredJob:false,
   sourceBytes:null, context:null, source:null, gain:null, peaks:null,
   fileOrigin:null, loadedRemoteRequestId:null, auditionedRemoteRequestId:null,
   inSeconds:0, outSeconds:0, fadeInSeconds:0, fadeOutSeconds:0, dragStart:null, settings:null,
@@ -129,6 +130,8 @@ function updateControls(){
   if(reviewButton)reviewButton.disabled=state.working||!job||
     !(ACTIVE_STATUS.has(job.status)||STATUS_WITH_AUDIO.has(job.status));
   $('openJobBtn').disabled=state.working;
+  if($('sfxHistoryRefreshBtn'))$('sfxHistoryRefreshBtn').disabled=state.working;
+  if($('sfxHistorySelect'))$('sfxHistorySelect').disabled=state.working||!state.historyJobs.length;
   $('refreshBtn').disabled=state.working||!state.enabled||!job||!ACTIVE_STATUS.has(job.status);
   $('cancelBtn').disabled=state.working||!state.enabled||!job||!['QUEUED','RUNNING'].includes(job.status);
   $('loadGeneratedBtn').disabled=state.working||!job||!STATUS_WITH_AUDIO.has(job.status);
@@ -167,6 +170,11 @@ function viewJob(job){
   const changed=state.job?.requestId!==job?.requestId;
   if(changed)clearReviewedAudio();
   state.job=job;
+  if(job){
+    state.historyJobs=state.historyJobs.map(saved=>saved.requestId===job.requestId?job:saved);
+    renderHistoryOptions();
+  }
+  if($('sfxHistoryNotice'))$('sfxHistoryNotice').hidden=!job||!state.recoveredJob;
   if(changed){
     state.loadedRemoteRequestId=null;
     state.auditionedRemoteRequestId=null;
@@ -273,7 +281,24 @@ function updateSfxEditorLocale(){
  modes[1].textContent=es?'Mover fundido de entrada':'Move fade-in edge';
  modes[2].textContent=es?'Mover fundido de salida':'Move fade-out edge';
  text('importCueBtn',es?'Importar y crear cue':'Import + create cue');
+ renderHistoryOptions();
  updateFades(state.fadeInSeconds,state.fadeOutSeconds);
+}
+function renderHistoryOptions(){
+ const select=$('sfxHistorySelect');
+ if(!select)return;
+ const selected=select.value;
+ const placeholder=document.createElement('option');
+ placeholder.value='';placeholder.textContent=ux('Elige una toma guardada','Choose a saved take');
+ select.replaceChildren(placeholder);
+ for(const job of state.historyJobs){
+  const option=document.createElement('option');
+  option.value=job.requestId;
+  option.textContent=job.createdAt.slice(0,16).replace('T',' ')+' · '+job.kind+' · '+
+   job.durationSeconds+'s · '+jobLabel(job.status);
+  select.append(option);
+ }
+ select.value=state.historyJobs.some(job=>job.requestId===selected)?selected:'';
 }
 function updateTrim(inSeconds,outSeconds){
   if(!state.audio)return;
@@ -414,6 +439,34 @@ function bindScriptCompiler(){
   });
 }
 function bindEvents(){
+  $('sfxHistoryRefreshBtn')?.addEventListener('click',()=>void action(async()=>{
+    const result=await(await request('/jobs')).json();
+    if(!result||!Array.isArray(result.jobs)||result.jobs.length>50||
+      result.jobs.some(job=>!job||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(job.requestId??'')||
+        typeof job.createdAt!=='string'||!Object.hasOwn(STATUS_LABEL_EN,job.status)||
+        !['SFX','ENVIRONMENT'].includes(job.kind)||!Number.isFinite(job.durationSeconds))||
+      new Set(result.jobs.map(job=>job.requestId)).size!==result.jobs.length)
+      throw new Error('Invalid saved sound history');
+    state.historyJobs=result.jobs;
+    renderHistoryOptions();
+    text('sfxHistoryStatus',result.jobs.length
+      ?ux(result.jobs.length+' toma(s) locales. Elige y escucha antes de aceptar.',
+        result.jobs.length+' local take(s). Choose and listen before accepting.')
+      :ux('No hay tomas guardadas en este historial local.','No saved takes in this local history.'));
+  }));
+  $('sfxHistorySelect')?.addEventListener('change',()=>void action(async()=>{
+    const requestId=$('sfxHistorySelect').value;
+    if(!requestId)return;
+    if(!state.historyJobs.some(job=>job.requestId===requestId))
+      throw new Error('Saved take is not in the loaded history');
+    const job=await(await request('/jobs/'+encodeURIComponent(requestId))).json();
+    if(job.requestId!==requestId)throw new Error('Saved take identity mismatch');
+    state.recoveredJob=true;
+    $('confirmRequest').checked=false;
+    viewJob(job);
+    inform(ux('Registro anterior abierto. Comprueba el WAV antes de aceptar.',
+      'Earlier record opened. Check the WAV before accepting.'));
+  }));
   $('generateForm').addEventListener('submit',event=>{
     event.preventDefault();
     void action(async()=>{
@@ -430,7 +483,9 @@ function bindEvents(){
       // The server still validates confirmed, authorizationId, the exact cost cap
       // and daily budget before any billable request. Never retry automatically.
       const response=await request('/jobs',{method:'POST',data:requestData});
-      viewJob(await response.json());$('confirmRequest').checked=false;
+      const job=await response.json();
+      state.recoveredJob=false;
+      viewJob(job);$('confirmRequest').checked=false;
       inform(ux('Solicitud enviada. Comprueba el resultado para escuchar el sonido.','Request submitted. Check the result to listen to your sound.'));
     });
   });
@@ -467,7 +522,9 @@ function bindEvents(){
     }
   }));
   $('openJobBtn').addEventListener('click',()=>void action(async()=>{
-    viewJob(await(await request('/jobs/'+encodeURIComponent(currentJobId()))).json());
+    const job=await(await request('/jobs/'+encodeURIComponent(currentJobId()))).json();
+    state.recoveredJob=true;
+    viewJob(job);
     inform(ux('Resultado anterior cargado.','Previous result loaded.'));
   }));
   $('refreshBtn').addEventListener('click',()=>void action(async()=>{
@@ -621,6 +678,7 @@ function bindEvents(){
     if(!confirm('Import verified WAV AND create one manual cue? GO stays manual.'))return;
     const result=await state.onImportReviewed({
       createCue:true,job:structuredClone(state.job),
+      linkSource:!state.recoveredJob,
       audioBytes:new Uint8Array(state.sourceBytes.slice(0)),
       reviewedRegion:Object.freeze({inSeconds:state.inSeconds,outSeconds:state.outSeconds,
         fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds}),
@@ -689,6 +747,7 @@ export async function initializeSoundLab({onImportReviewed,onReservePreview,onPr
   if(!state.job && $('requestId').value.trim()){
     try{
       const result=await request('/jobs/'+encodeURIComponent(currentJobId()));
+      state.recoveredJob=true;
       viewJob(await result.json());
     }catch{/* Old/missing local records are safely ignored. */}
   }

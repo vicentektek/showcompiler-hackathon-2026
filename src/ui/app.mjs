@@ -3064,7 +3064,7 @@ $('audioFileInput').addEventListener('change', async event => {
   catch (error) { showError(error); }
 });
 
-async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,createCue=false}={}){
+async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,createCue=false,linkSource=true}={}){
   const candidate=await prepareReviewedSfxImport({job,audioBytes,reviewedRegion});
   const result=await importSingleAudioFile(candidate.file,{
     provenance:candidate.provenance,refuseReplacement:true,
@@ -3073,7 +3073,7 @@ async function importReviewedGeneratedSfx({job,audioBytes,reviewedRegion,createC
   if(createCue){
     // Human confirmed this additional edit; never changes or fires the GO queue.
     const next=createCueFromReviewedAudio(show,{
-      assetId:result.assetId,job,reviewedRegion,
+      assetId:result.assetId,job,reviewedRegion,linkSource,
     });
     show=next.project;
     selectedCueId=next.cueId;

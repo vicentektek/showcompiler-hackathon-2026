@@ -55,3 +55,13 @@ test('sound review cannot mutate other assets or fabricate provenance',()=>{
  assert.throws(()=>createCueFromReviewedAudio(before,{assetId,job,reviewedRegion:{...region,fadeInSeconds:2,fadeOutSeconds:2}}),/Fades/);
  assert.equal(before.cues.length,0);
 });
+test('recovered take preserves provenance without claiming the coinciding L# of another script',()=>{
+ const before=project(),assetId=before.assets[0].id;
+ const out=createCueFromReviewedAudio(before,{
+  assetId,job,linkSource:false,reviewedRegion:{inSeconds:0,outSeconds:3},
+ });
+ assert.deepEqual(out.project.cues[0].sourceLineIds,[]);
+ assert.equal(out.project.assets[0].provenance.sourceLineId,'L2');
+ assert.equal(out.project.scriptText,before.scriptText);
+ assert.throws(()=>createCueFromReviewedAudio(before,{assetId,job,linkSource:'yes'}),/approval/);
+});

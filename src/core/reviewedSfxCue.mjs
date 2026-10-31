@@ -7,7 +7,8 @@ import {assignAudioToCue,updateCuePlayback} from './workspace.mjs';
 import {parseScript} from './script.mjs';
 
 const toMs=(v,max)=>Number.isFinite(v)?Math.max(0,Math.min(max,Math.round(v*1000))):NaN;
-export function createCueFromReviewedAudio(project,{assetId,job,reviewedRegion}={}){
+export function createCueFromReviewedAudio(project,{assetId,job,reviewedRegion,linkSource=true}={}){
+ if(typeof linkSource!=='boolean')throw new TypeError('Invalid source link approval');
  const current=normalizeShowProject(project);
  if(typeof assetId!=='string'||!current.assets.some(a=>a.id===assetId))
   throw new TypeError('Generated audio must already be registered in the library');
@@ -35,7 +36,8 @@ export function createCueFromReviewedAudio(project,{assetId,job,reviewedRegion}=
   fadeInMs:fadeIn,fadeOutMs:fadeOut,
  });
  const validLines=new Set(parseScript(current.scriptText||'').map(x=>x.id));
- if(validLines.has(job.sourceLineId)){
+ // An earlier take's L# alone does not prove its source belongs to this show.
+ if(linkSource&&validLines.has(job.sourceLineId)){
   next=normalizeShowProject({...next,cues:next.cues.map(c=>c.id===inserted.cueId
    ?{...c,sourceLineIds:[job.sourceLineId]}:c)});
  }
