@@ -40,6 +40,7 @@ function mount() {
     if (!el) continue;
     const handle = document.createElement('div');
     handle.className = 'rq-grip rq-grip-' + (cfg.mode === 'size' ? 'row' : cfg.mode === 'width' ? 'col' : cfg.axis);
+    handle.dataset.rqPanel=cfg.id;
     handle.setAttribute('role', 'separator');
     handle.setAttribute('aria-orientation', (cfg.mode === 'size' || cfg.axis === 'row') ? 'horizontal' : 'vertical');
     handle.tabIndex = 0;
@@ -58,10 +59,15 @@ function mount() {
     e.el.style.removeProperty('height');
     e.el.style.removeProperty('flex');
     e.el.style.removeProperty('max-height');
+    e.el.style.removeProperty('--rq-script-w');
   }
 
   function apply(e, px) {
     const { cfg, el } = e;
+    if(cfg.mode==='width'){
+      el.style.setProperty('--rq-script-w',px+'px');
+      return;
+    }
     if (cfg.mode === 'size') {
       el.style.setProperty('height', px + 'px', 'important');
       el.style.setProperty('max-height', 'none', 'important');
@@ -87,7 +93,11 @@ function mount() {
 
   function limits(e) {
     const { cfg, el } = e;
-    if (cfg.mode === 'size' || cfg.mode === 'width') return [cfg.min, cfg.max];
+    if(cfg.mode==='width'){
+      const available=el.parentElement.getBoundingClientRect().width-360;
+      return [cfg.min,Math.min(cfg.max,Math.max(cfg.min,available))];
+    }
+    if (cfg.mode === 'size') return [cfg.min, cfg.max];
     const r = el.getBoundingClientRect();
     const total = cfg.axis === 'col' ? r.width : r.height;
     return [cfg.min, Math.max(cfg.min, total - cfg.minOther)];
@@ -97,6 +107,11 @@ function mount() {
     const { cfg, el, handle } = e;
     handle.hidden = !active(e);
     if (handle.hidden) return;
+    if(cfg.mode==='width'){
+      handle.hidden=!document.documentElement.classList.contains('rq-live-script');
+      Object.assign(handle.style,{right:'0',left:'auto',top:'0',bottom:'0',width:GRIP+'px',height:'auto'});
+      return;
+    }
     if (cfg.mode === 'size') {
       Object.assign(handle.style, { left: '0', right: '0', top: '-4px', bottom: 'auto', width: 'auto', height: GRIP + 'px' });
       return;
@@ -189,8 +204,11 @@ function mountLiveScript(relayout) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'rq-live-script-toggle';
-  btn.title = 'Mostrar el guion junto a los cues / Show the script beside the cues';
-  const label = () => { btn.textContent = (on ? '? ' : '? ') + (es() ? 'Guion' : 'Script'); };
+  btn.setAttribute('aria-controls', preview.id);
+  const label = () => {
+    btn.textContent = es() ? (on ? 'Ocultar guion' : 'Mostrar guion') : (on ? 'Hide script' : 'Show script');
+    btn.title = btn.textContent;
+  };
   let on = false;
   label();
   try { on = localStorage.getItem(SCRIPT_KEY) === '1'; } catch { /* storage unavailable */ }

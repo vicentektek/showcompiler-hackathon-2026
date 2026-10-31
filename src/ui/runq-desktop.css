@@ -194,7 +194,7 @@ body.rq-resizing-row,body.rq-resizing-row *{cursor:row-resize!important;user-sel
 
 /* LIVE: opt-in script follow panel, growable running-cues area, resizable dock */
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]{display:flex!important;flex-direction:column;flex:0 0 auto!important;box-sizing:border-box;width:0;min-width:0!important;height:auto;align-self:stretch;overflow:hidden;opacity:0;padding:8px 0!important;border-width:0!important;margin-right:-6px;pointer-events:none;transform:translateX(-14px);transition:width .32s cubic-bezier(.2,.8,.2,1),opacity .22s ease,transform .32s cubic-bezier(.2,.8,.2,1),margin .32s ease,padding .32s ease}
-:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]{width:var(--rq-script-w,360px);opacity:1;padding:8px!important;border-width:1px!important;margin-right:0;pointer-events:auto;transform:none}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]{width:min(var(--rq-script-w,360px),max(220px,calc(100vw - 400px)));opacity:1;padding:8px!important;border-width:1px!important;margin-right:0;pointer-events:auto;transform:none}
 @media (prefers-reduced-motion:reduce){:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]{transition:none!important}}
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]>:is(label,#showName,.line-actions,#runqScriptContext,.subheading,.script-search-row){display:none!important}
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script] .panel-head{flex:none;margin:0 0 6px;padding:0 0 6px}
@@ -242,3 +242,12 @@ body.rq-resizing-row,body.rq-resizing-row *{cursor:row-resize!important;user-sel
 .rq-live-script-toggle{order:-1;margin:0 10px 0 0!important;padding:0 14px!important;height:30px!important;font-size:13px!important;font-weight:600;letter-spacing:.02em;border:1px solid #a7b28f!important;background:#1e2a21!important;color:#d3dbc2!important;border-radius:3px!important;white-space:nowrap}
 .rq-live-script-toggle:hover{background:#464b3c!important}
 .rq-live-script-toggle[aria-pressed=true]{background:#8c9578!important;color:#fff!important}
+
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace{
+ container-type:inline-size;container-name:runq-stage;
+}
+@container runq-stage (max-width:640px){
+ :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace .operator-queue{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+}

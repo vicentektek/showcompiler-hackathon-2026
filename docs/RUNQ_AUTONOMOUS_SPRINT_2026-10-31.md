@@ -92,3 +92,13 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - `npm run qa:agent:mass`: **600/600** difficult local scenarios passed, zero paid calls. These evaluate the deterministic local interpreter only, not Muse/Modal/Fireworks accuracy.
 - Library/Live approved references B/E were inspected. Current prototype omits unsupported media types, external routing and fabricated meters; do not add those as presentation-only claims. Identified a real visible placeholder in the existing Live read-only Script toggle; improve its accessible label and test the actual panel next.
 - Windows packaging feasibility: a local .NET Framework C# compiler is present and Node is already installed. Investigate a dependency-free, honestly labeled Windows launcher package; do not claim a native audio engine or installer.
+
+## 12:01 - Live read-only script panel and narrow-window transport
+
+- External `RUNQ-QA-Backups/pre-live-script-accessibility-20261031-120158` protects the panel controller, browser test and desktop CSS with verified SHA-256 copies.
+- Replaced the visible `? Script` placeholder with localized Show/Hide script and explicit `aria-controls`. Reading still only shows original text; it never prepares or triggers a cue.
+- New responsive click testing reproduced a more important real bug: opening the script beside a narrow Live workspace made the two-column prepared/GO cluster collapse long cue text into a 1,917px-tall dock, covering the script toggle. Added container-aware stacking based on actual remaining stage width, not just viewport width.
+- Fixed the existing width-mode drag handler: it had treated a flex sidebar as grid rows and hidden its grip. Width now uses the existing script CSS variable; the actual accessible grip changes and saves width, resets on double click, and stays within the panel. Stored large widths are clamped when shrinking the window.
+- Interface E2E passed real drag/persist/reset and 1920-to-768 shrink, actual Show/Hide clicks, original text, usable GO and zero playback/provider calls at four sizes. The actual Last GO long-label show also passed at 768x900 with its script open. Last GO, Dictation, Rehearsal and Stage safety gates passed; `npm run qa:codex` remains **657/657**, offline.
+- Evidence correction: the first Studio frame in the earlier six-workspace capture was taken before asynchronous ZIP import finished. It is not valid loaded-show comparison evidence. Current frames for all six workspaces now explicitly wait for three cues and all three WAVs READY; the earlier loaded AI/Sound/Script/Rehearsal/Live frames remain historical evidence. Current captures are session-local only.
+- Continuing directly to verified Windows launcher packaging and stable candidate preparation.

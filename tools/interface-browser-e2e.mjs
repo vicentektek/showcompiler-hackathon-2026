@@ -144,6 +144,71 @@ try {
         assert.ok(await page.locator('#operatorGoBtn').isVisible());
         assert.ok(await page.locator('#operatorPanicBtn').isVisible());
       }
+      if(name==='operation'){
+        const toggle=page.locator('.rq-live-script-toggle');
+        assert.equal(await toggle.getAttribute('aria-controls'),'scriptPreview');
+        assert.equal(await toggle.textContent(),'Show script');
+        await toggle.click();
+        assert.equal(await toggle.getAttribute('aria-pressed'),'true');
+        assert.equal(await toggle.textContent(),'Hide script');
+        await page.locator('.layout > .panel[data-workspaces~="script"]').evaluate(async el=>{
+          await Promise.all(el.getAnimations().map(animation=>animation.finished));
+        });
+        assert.equal(await page.locator('#scriptPreview').isVisible(),true);
+        assert.equal(await prepared(),initialPrepared,'Live script reading never prepares another GO');
+        assert.equal(await page.evaluate(()=>window.audioStarts),0);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,
+          `Live script panel has no page overflow at ${size.width}`);
+        const go=await page.locator('#operatorGoBtn').boundingBox();
+        assert.ok(go&&go.x>=0&&go.x+go.width<=size.width+1&&go.y+go.height<=size.height+1,
+          `GO stays usable with Live script open at ${size.width}`);
+        if(size.width>=1093){
+          const panel=page.locator('.layout > .panel[data-workspaces~="script"]');
+          const originalWidth=(await panel.boundingBox()).width;
+          const grip=panel.locator('[data-rq-panel="live-script"]');
+          assert.equal(await grip.isVisible(),true,'Live script exposes its actual width grip');
+          const box=await grip.boundingBox();
+          await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
+          await page.mouse.down();
+          await page.mouse.move(box.x+box.width/2+80,box.y+box.height/2);
+          await page.mouse.up();
+          await page.waitForFunction(expected=>{
+            const width=document.querySelector('.layout > .panel[data-workspaces~="script"]').getBoundingClientRect().width;
+            return width>=expected+60;
+          },originalWidth);
+          const savedWidth=await page.evaluate(()=>JSON.parse(localStorage.getItem('runq.panels.v1'))['live-script']);
+          assert.ok(Math.abs(savedWidth-originalWidth-80)<=2,'Live script width is genuinely resized and saved');
+          await grip.dblclick();
+          await page.waitForFunction(expected=>{
+            const width=document.querySelector('.layout > .panel[data-workspaces~="script"]').getBoundingClientRect().width;
+            return Math.abs(width-expected)<=2;
+          },originalWidth);
+          if(size.width===1920){
+            const edge=await grip.boundingBox();
+            await page.mouse.move(edge.x+edge.width/2,edge.y+edge.height/2);
+            await page.mouse.down();
+            await page.mouse.move(edge.x+edge.width/2+360,edge.y+edge.height/2);
+            await page.mouse.up();
+            await page.setViewportSize({width:768,height:900});
+            await panel.evaluate(async el=>Promise.all(el.getAnimations().map(animation=>animation.finished)));
+            assert.ok((await panel.boundingBox()).width<=368,'Stored wide script panel is clamped in a smaller window');
+            const narrowGo=await page.locator('#operatorGoBtn').boundingBox();
+            assert.ok(narrowGo&&narrowGo.x+narrowGo.width<=769&&narrowGo.y+narrowGo.height<=901);
+            await toggle.click();
+            await page.setViewportSize(size);
+            await toggle.click();
+            await panel.evaluate(async el=>Promise.all(el.getAnimations().map(animation=>animation.finished)));
+            await grip.dblclick();
+            await page.waitForFunction(expected=>{
+              const width=document.querySelector('.layout > .panel[data-workspaces~="script"]').getBoundingClientRect().width;
+              return Math.abs(width-expected)<=2;
+            },originalWidth);
+          }
+          assert.equal(await prepared(),initialPrepared);
+        }
+        await toggle.click();
+        assert.equal(await toggle.getAttribute('aria-pressed'),'false');
+      }
       if(name==='cues'&&size.width>=1000){
         const go=await page.locator('#operatorGoBtn').boundingBox();
         assert.ok(go.y+go.height<=size.height,`GO stays on screen at ${size.width}`);
