@@ -1,5 +1,16 @@
 # RunQ — protocolo de evaluación y mejora sistemática (27 octubre 2026)
 
+## Actualizacion autorizada - 31 octubre 2026
+
+La [politica vigente](RUNQ_AI_CAMPAIGN_100_2026-10-31.md) establece USD 100
+globales, Meta USD 65 y Modal USD 35; Baseten y Fireworks USD 0. El limite de
+USD 2 se conserva **por comando**, no como techo global de la nueva campana.
+Los dos runners conservan el historial local y exigen tambien el ledger
+compartido por usuario, independiente del checkout. No reiniciar registros,
+repetir peticiones desconocidas ni confundir reservas con facturacion o credito.
+La autorizacion general ya existe; los controles de ejecucion por operador,
+dashboard real, credenciales privadas, gold provisional y no auto-GO siguen.
+
 ## Finalidad
 
 Evaluar Muse Spark mediante **experimentos controlados**, con guiones originales, un gold **provisional**, trazas de eventos estrictamente tipadas y tareas concretas para Codex. El objetivo es mejorar prompts, validación y usabilidad, **no entrenar automáticamente los pesos de Meta** ni permitir que un agente ejecute audio.
@@ -13,7 +24,14 @@ El sistema separa cinco capas: (1) ingesta y planificación con L# estables, (2)
 - `node tools/runq-systematic-lab.mjs --cases hotel-door,gala-rundown --modes literal,balanced --max-requests 4 --budget-usd 0.35`: planificación offline del experimento.
 - `node tools/runq-systematic-lab.mjs --live --ack-paid --cases hotel-door,gala-rundown --modes literal,balanced --max-requests 4 --budget-usd 0.35`: **cuatro peticiones autorizadas como máximo**, serializadas y con reservas antes de enviar. No lo ejecutes como Codex.
 
-El límite global de reservas es **2 USD acumulados en `CWD/.runq-local/meta-eval-budget.json`**. Es específico de esa copia de trabajo. Los dos programas de inferencia comparten ese límite si se ejecutan desde el mismo directorio. La prueba anterior `hotel-door` reservó 0,069127 USD en `C:\Users\Usuario\runq-seminar`; **para conservar su registro, ejecutar el programa nuevo desde esa misma copia tras actualizarla**, no desde otra clonación. Ningún sistema local puede garantizar el límite de facturación global de Meta. Comprobar el panel y no usar otras aplicaciones con la misma API key.
+El historial local en `CWD/.runq-local/meta-eval-budget.json` conserva sus entradas
+y ahora tiene un techo acumulado de **65 USD**, ademas del ledger compartido
+global de **100 USD**. El comando sigue limitado a 2 USD. La prueba anterior
+`hotel-door` reservo 0,069127 USD; no debe considerarse disponible para repetir.
+Conservar e importar conservadoramente los historiales anteriores con el
+procedimiento de la politica vigente; nunca usar una copia nueva para evadirlos.
+Ningun sistema local garantiza facturacion o credito real de Meta: comprobar el
+panel y no usar otras aplicaciones con la misma API key.
 
 ## Qué se registra
 
@@ -42,7 +60,11 @@ Una solicitud incompleta o truncada produce diagnóstico, **no** un F1 artificia
 
 Los precios y tokens tienen volatilidad. `tools/metaSeminarEval.mjs` estima un máximo a partir del tamaño de petición, margen de entrada y 8192 tokens de salida; el registro global reserva de forma conservadora **antes** de cada llamada. El gasto estimado del proveedor se registra por separado. Los costes mostrados por el cliente no son garantía de cargos finales.
 
-Límites actuales: hasta 20 peticiones por comando y 2 USD de reserva acumulada en la copia local. Para pruebas más masivas se necesitaría una autorización y un diseño presupuestario explícitos, no eliminar el techo silenciosamente. La mejor eficiencia se logra primero corrigiendo el diagnóstico y seleccionando casos discriminativos.
+Limites actuales: hasta 20 peticiones y 2 USD **por comando**, mas los techos
+persistentes de la politica vigente. La ampliacion a USD 100 ya esta autorizada,
+pero tandas mayores requieren diagnostico previo y credito verificado; no
+eliminar controles ni repetir estados desconocidos. La mejor eficiencia se
+logra primero corrigiendo el diagnostico y seleccionando casos discriminativos.
 
 ## No prometer falsas capacidades
 

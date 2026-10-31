@@ -25,6 +25,7 @@ test('offline preview does not contact generation provider', async () => {
     const result=await runSfxLatencyLab(parseSfxLatencyArgs(),{
       envLoader:async()=>{},
       serverFactory:()=>createAppServer({
+        reserveCampaign:async()=>{},
         sfxStore:createSfxJobStore({directory:dir}),
         sfxConfig:()=>({enabled:false,estimatedMaxCostUsdPerRequest:0.05,dailyBudgetUsd:0.5}),
         sfxPilotClient:{start:async()=>{starts++;throw new Error('unexpected paid call');}},
@@ -55,6 +56,7 @@ test('paid lab cancels stalled first job and never sends second', async () => {
         now:()=>tick,
         sleep:async ms=>{tick+=ms;},
         serverFactory:()=>createAppServer({
+          reserveCampaign:async()=>{},
           sfxStore:createSfxJobStore({directory:dir,maxDailyStarts:3}),
           sfxConfig:()=>cfg,sfxPilotClient:client,
         }),

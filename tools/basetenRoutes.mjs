@@ -6,6 +6,8 @@ import { deserializeShowProject, MAX_PROJECT_JSON_BYTES } from '../src/core/proj
 import { addModelProposals } from '../src/core/workspace.mjs';
 import { normalizeScriptLanguageHint } from '../src/core/scriptLanguage.mjs';
 import { callBasetenCueModel, BASETEN_MODEL, BASETEN_PROVIDER, BasetenOutputError } from '../src/core/basetenCueProvider.mjs';
+import {campaignBasetenFetch} from './campaignFetch.mjs';
+const prohibitedCampaignClient=options=>callBasetenCueModel({...options,fetchImpl:campaignBasetenFetch});
 
 function reply(res, status, object, headers) {
   res.writeHead(status, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
@@ -42,7 +44,7 @@ async function parseBody(req) {
 }
 
 export function makeBasetenRoute({
-  modelClient = callBasetenCueModel,
+  modelClient = prohibitedCampaignClient,
   getKey = () => process.env.BASETEN_API_KEY,
 } = {}) {
   let busy = false;

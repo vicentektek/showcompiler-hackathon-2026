@@ -6,7 +6,7 @@ import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readSeminarCorpus } from './seminarCorpus.mjs';
 import { runMetaSeminarEval } from './metaSeminarEval.mjs';
-import { acquireMetaBudgetLedger } from './metaBudgetLedger.mjs';
+import { acquireCampaignMetaBudget } from './metaBudgetLedger.mjs';
 import { evaluateStageEventCases } from '../src/core/stageCueQa.mjs';
 import { summarizeEvaluationRequests } from './evalMeasurements.mjs';
 
@@ -102,7 +102,7 @@ export function formatExperimentReport(summary){
   lines.push('','## Budget','',
     'Calls '+summary.submittedRequests+'; reserved $'+summary.reservedUsd.toFixed(4)+
     '; observed usage estimate $'+summary.estimatedSpendUsd.toFixed(4)+'.',
-    'The existing cross-run ledger limits reservations to $2 in the same checkout only.',
+    'Meta cumulative ceiling $65 and shared per-user campaign $100; command ceiling remains $2.',
     'Billing platform remains authoritative. Failed calls are not retried.','',
     '## Measured request telemetry','',
     'Latency samples '+summary.measurements.latencyMs.sampled+', average '+
@@ -145,7 +145,7 @@ export async function runSystematicExperiment(options={},deps={}){
   let ledger=null,calls=0,reservedUsd=0,estimatedSpendUsd=0;
   const runs=[],attempts=[],measurementCases=[];
   try{
-    if(opt.live)ledger=await (deps.acquireLedger??acquireMetaBudgetLedger)();
+    if(opt.live)ledger=await (deps.acquireLedger??acquireCampaignMetaBudget)();
     for(const {caseId,mode} of plan){
       if(opt.live&&calls>=opt.maxRequests)break;
       const left=round(opt.budgetUsd-reservedUsd);

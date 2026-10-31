@@ -114,9 +114,10 @@ function parseReply(envelope){
  if(data.edits.length)throw new TypeError('UNEXPECTED_NON_PATCH_EDITS');
  return validateCueChatModelReply({status:data.status,message:data.message,changes:null});
 }
+import {campaignMetaFetch} from './campaignFetch.mjs';
 export function makeCueConversationRoute({
  getKey=()=>process.env.MODEL_API_KEY,
- fetchImpl=fetch,model=MODEL,
+ fetchImpl=campaignMetaFetch,model=MODEL,
 }={}){
  let active=false;
  return async(req,res,pathname,headers)=>{

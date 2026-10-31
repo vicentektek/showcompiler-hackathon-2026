@@ -10,7 +10,7 @@ const FILE=resolve('.runq-local/agent-live-eval-budget.json');
 const MAX_LIMIT=100;
 const cents=n=>Math.round((n+Number.EPSILON)*1e6)/1e6;
 const amount=n=>typeof n==='number'&&Number.isFinite(n)&&n>0&&n<=MAX_LIMIT;
-export async function acquireAgentEvalBudget({file=FILE,limitUsd=30}={}){
+export async function acquireAgentEvalBudget({file=FILE,limitUsd=65}={}){
  if(!amount(limitUsd)||typeof file!=='string'||file.length<8||file.length>400)
   throw new TypeError('INVALID_PAID_BUDGET');
  const filename=resolve(file);

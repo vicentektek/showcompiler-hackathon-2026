@@ -5,17 +5,38 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {acquireAgentEvalBudget} from '../tools/agentLiveBudget.mjs';
 import {parseAgentLiveOptions,getAgentLiveScenario,
- judgeAgentLiveReply} from '../tools/runq-agent-live-eval.mjs';
+ judgeAgentLiveReply,runPaidAgentEvaluation} from '../tools/runq-agent-live-eval.mjs';
 
 test('paid experiment is off by default and requires BOTH explicit flags',()=>{
- const dry=parseAgentLiveOptions(['--cases','200','--providers','meta,baseten']);
+ const dry=parseAgentLiveOptions(['--cases','20','--providers','meta']);
  assert.equal(dry.live,false);
- assert.equal(dry.cases,200);
+ assert.equal(dry.cases,20);
+ assert.equal(dry.budgetUsd,65);
+ assert.deepEqual(parseAgentLiveOptions([]).providers,['meta']);
+ assert.throws(()=>parseAgentLiveOptions(['--providers','meta,baseten']));
+ assert.throws(()=>parseAgentLiveOptions(['--providers','fireworks']));
+ assert.throws(()=>parseAgentLiveOptions(['--budget-usd','65.000001']));
  assert.throws(()=>parseAgentLiveOptions(['--live','--cases','200']));
  assert.throws(()=>parseAgentLiveOptions(['--ack-paid']));
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--budget-usd','1000']));
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--cases','401']));
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--providers','meta,meta']));
+});
+test('programmatic paid entrypoint rejects prohibited or unacknowledged requests before side effects',async()=>{
+ let ledgerCalls=0,networkCalls=0;
+ const dependencies={sharedLedgerFactory:()=>{ledgerCalls++;throw new Error('unexpected');},
+  fetchImpl:()=>{networkCalls++;throw new Error('unexpected');}};
+ const config=parseAgentLiveOptions(['--live','--ack-paid']);
+ await assert.rejects(()=>runPaidAgentEvaluation({...config,providers:['baseten']},dependencies),
+  /INVALID_AGENT_LIVE_EVAL_CONFIG/);
+ await assert.rejects(()=>runPaidAgentEvaluation({...config,ackPaid:false},dependencies),
+  /EXPLICIT_PAID_OPT_IN_REQUIRED/);
+ assert.equal(ledgerCalls,0);assert.equal(networkCalls,0);
+});
+test('20-case product plan includes both languages for every scenario category',()=>{
+ for(let index=0;index<10;index++){
+  assert.notEqual(getAgentLiveScenario(index).language,getAgentLiveScenario(index+10).language);
+ }
 });
 test('paired evaluation fixtures are independent and score proposed changes without execution',()=>{
  const a=getAgentLiveScenario(0),b=getAgentLiveScenario(0);

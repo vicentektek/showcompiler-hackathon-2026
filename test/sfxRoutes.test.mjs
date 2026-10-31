@@ -76,7 +76,7 @@ function fakePilot({ output = wav() }={}) {
   return {pilot,calls};
 }
 async function server(t, settings) {
-  const s = createAppServer(settings);
+  const s = createAppServer({reserveCampaign:async()=>{},...settings});
   await new Promise((resolve,reject)=>{
     s.once('error',reject); s.listen(0,'127.0.0.1',resolve);
   });
@@ -92,6 +92,26 @@ function post(base, path, body, options={}) {
   });
 }
 const enabled = () => ({ enabled:true, ...costPolicy, modelRevision });
+
+test('Modal campaign denial blocks submission and duplicate retries before global accounting',async t=>{
+ const {store}=await fixture(t);
+ const {pilot,calls}=fakePilot();
+ let reserves=0;
+ const base=await server(t,{sfxStore:store,sfxPilotClient:pilot,sfxConfig:enabled,
+  reserveCampaign:async()=>{reserves++;const e=new Error('denied');
+   e.code='SFX_CAMPAIGN_BUDGET_LIMIT';throw e;}});
+ const blocked=await post(base,'/api/sfx/jobs',payload());
+ assert.equal(blocked.status,503);
+ assert.equal((await blocked.json()).code,'SFX_CAMPAIGN_BUDGET_LIMIT');
+ assert.equal(calls.start,0);
+ assert.deepEqual((await store.list()).jobs,[]);
+ assert.equal(reserves,1);
+ const original=payload();
+ await store.reserve(storeRequest({...original,modelCandidate:model}),{confirm:true});
+ const duplicate=await post(base,'/api/sfx/jobs',original);
+ assert.equal(duplicate.status,409);assert.equal(reserves,1);
+ assert.equal(calls.start,0);
+});
 
 test('feature disabled: read-only capabilities and no external jobs',async t=>{
   const {store} = await fixture(t);

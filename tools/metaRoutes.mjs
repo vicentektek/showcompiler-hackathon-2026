@@ -15,6 +15,9 @@ import {
   sanitizeMetaDiagnostic,
   validateMetaModelId,
 } from '../src/core/metaCueProvider.mjs';
+import {campaignMetaFetch} from './campaignFetch.mjs';
+
+const campaignMetaClient=options=>callMetaCueModel({...options,fetchImpl:campaignMetaFetch});
 
 function answer(response, code, data, headers) {
   response.writeHead(code, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
@@ -117,7 +120,7 @@ function safeTheatricalDetail(value) {
 
 /** Returns a handler that sends only selected script lines + asset *names* to Meta. */
 export function makeMetaRoute({
-  modelClient = callMetaCueModel,
+  modelClient = campaignMetaClient,
   getKey = () => process.env.MODEL_API_KEY,
   getModel = () => process.env.META_MODEL_ID || DEFAULT_META_MODEL,
   requestIdFactory = createMetaRequestId,

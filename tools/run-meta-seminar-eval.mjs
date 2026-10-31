@@ -4,12 +4,12 @@
  * MODEL_API_KEY in the LOCAL terminal. NEVER call this in CI.
  */
 import { parseLiveOptions, runMetaSeminarEval } from './metaSeminarEval.mjs';
-import { acquireMetaBudgetLedger } from './metaBudgetLedger.mjs';
+import { acquireCampaignMetaBudget } from './metaBudgetLedger.mjs';
 try{
   const options=parseLiveOptions(process.argv.slice(2));
   // An exclusive local budget ledger protects against repeated VS Code runs.
   // Offline planning must never create or modify the paid ledger.
-  const ledger=options.live?await acquireMetaBudgetLedger():null;
+  const ledger=options.live?await acquireCampaignMetaBudget():null;
   let run;
   try{
     run=await runMetaSeminarEval({
@@ -21,7 +21,7 @@ try{
   console.log('Meta requests sent: '+run.submittedRequests+'; conservative reserve $'+run.conservativeReservedUsd.toFixed(4)+' of $'+run.budgetCapUsd.toFixed(2));
   console.log('Estimated usage charge: '+(run.observedUsageEstimatedUsd===null?'not available':'$'+run.observedUsageEstimatedUsd.toFixed(4)));
   console.log('Scored complete cases: '+run.scoredCases+'; halt reason: '+(run.haltReason??'none'));
-  if(options.live)console.log('Persistent local cumulative reserve: .runq-local/meta-eval-budget.json (max $2).');
+  if(options.live)console.log('Persistent Meta history max $65 AND per-user shared campaign max $100; command limit remains $2.');
   console.log('Private local reports: artifacts/seminar-live/report.{md,json} (or --output path)');
   if(run.haltReason&&options.live)process.exitCode=1;
 }catch(error){

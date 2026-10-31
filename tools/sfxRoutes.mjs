@@ -2,7 +2,8 @@
  * SFX preparation API; kept separate from deterministic operator transport.
  * Loopback only, explicit operator POST, no startup jobs or automatic retries.
  */
-import { resolve } from 'node:path';
+import { dirname, join } from 'node:path';
+import {acquireGlobalSpendLedger,globalLedgerDefaultPath} from '../src/qa/globalSpendLedger.mjs';
 import {
   createSfxJobStore, normalizeSfxCostPolicy, normalizeSfxModelRevision,
 } from '../src/core/sfxJobStore.mjs';
@@ -61,6 +62,20 @@ function makeDefaultClient(config) {
   return createModalSfxPilotClient(config);
 }
 
+async function reserveModalCampaign(input){
+  const ledger=await acquireGlobalSpendLedger();
+  try{
+    const result=await ledger.reserve({
+      requestId:'modal-'+input.requestId,runId:'modal-'+input.authorizationId,
+      provider:'modal',estimatedMaximumUsd:input.estimatedMaxCostUsdPerRequest,
+    });
+    if(!result.accepted){
+      const error=new Error('Campaign reservation rejected');
+      error.code='SFX_CAMPAIGN_'+result.reason;
+      throw error;
+    }
+  }finally{await ledger.close();}
+}
 function safePolicy(config) {
   try { return normalizeSfxCostPolicy(config); }
   catch { return null; }
@@ -88,6 +103,8 @@ function sendFailure(response, error, headers) {
     error?.code === 'SFX_BUDGET_UNKNOWN' ? 'SFX_BUDGET_UNKNOWN' :
     error?.code === 'SFX_ACTIVE_LIMIT' ? 'SFX_ACTIVE_LIMIT' :
     error?.code === 'SFX_TRANSITION' ? 'SFX_INVALID_STATE' :
+    /^SFX_CAMPAIGN_(BUDGET_LIMIT|DUPLICATE_ID|PROVIDER_PROHIBITED)$/.test(error?.code??'')
+      ? error.code :
     status === 413 ? 'SFX_TOO_LARGE' :
     status === 400 ? 'SFX_INVALID_REQUEST' :
     status === 404 ? 'SFX_NOT_FOUND' : 'SFX_SERVICE';
@@ -97,10 +114,11 @@ function sendFailure(response, error, headers) {
 /** Dependency injection keeps every endpoint test free, local and deterministic. */
 export function makeSfxRoute({
   sfxStore = createSfxJobStore({
-    directory: resolve(process.cwd(), '.runq-local', 'sfx-generation'),
+    directory: join(dirname(globalLedgerDefaultPath()), 'shared-modal-jobs-v1'),
   }),
   sfxConfig = configuration,
   sfxPilotClient = null,
+  reserveCampaign = reserveModalCampaign,
 } = {}) {
   let busy = false; // One in-flight pilot or journal mutation per local server.
   return async function handle(request, response, pathname, headers) {
@@ -280,6 +298,10 @@ export function makeSfxRoute({
           acknowledgedMaxCostUsd: acknowledgedPolicy.acknowledgedMaxCostUsd,
         };
         // Reserve BEFORE any paid submission; duplicates and budget fail closed.
+        if(await sfxStore.read(input.requestId)){
+          const error=new Error('Duplicate SFX job');error.code='SFX_DUPLICATE';throw error;
+        }
+        await reserveCampaign(requestData);
         const job = await sfxStore.reserve(requestData, { confirm: true });
         const submittedAt = performance.now();
         try {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * RUNQ V15 real-provider A/B evaluation.
+ * RUNQ bounded Meta product evaluation.
  *
  * Default is DRY RUN; --live --ack-paid explicitly authorizes billed calls.
  * Same synthetic show and prompt go to each selected provider, sequentially.
@@ -16,6 +16,9 @@ import {buildAgentContext,prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {randomUUID} from 'node:crypto';
+import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
+import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
 
 const CATEGORIES=[
  'closing','followup','delete','reorder','rename','summary',
@@ -37,8 +40,8 @@ const dialogue=[
  'FIN'
 ].join('\n');
 function opts(argv){
- const o={live:false,ackPaid:false,cases:120,providers:['meta','baseten'],
-  budgetUsd:24,reserveUsd:0.15,seed:20261029};
+ const o={live:false,ackPaid:false,cases:20,providers:['meta'],
+  budgetUsd:CAMPAIGN_POLICY.capsUsd.meta,reserveUsd:0.15,seed:20261029};
  const used=new Set();
  for(let i=0;i<argv.length;i++){
   const flag=argv[i];
@@ -57,10 +60,10 @@ function opts(argv){
  if(o.live!==o.ackPaid||!Number.isSafeInteger(o.cases)||o.cases<2||o.cases>400||
     !Array.isArray(o.providers)||!o.providers.length||o.providers.length>2||
     new Set(o.providers).size!==o.providers.length||
-    o.providers.some(x=>!['meta','baseten'].includes(x))||
+    o.providers.some(x=>x!=='meta')||
     o.cases%o.providers.length!==0||o.cases/o.providers.length<1||
-    !Number.isFinite(o.budgetUsd)||o.budgetUsd<0.10||o.budgetUsd>100||
-    !Number.isFinite(o.reserveUsd)||o.reserveUsd<0.01||o.reserveUsd>5||
+    !Number.isFinite(o.budgetUsd)||o.budgetUsd<0.10||o.budgetUsd>CAMPAIGN_POLICY.capsUsd.meta||
+    !Number.isFinite(o.reserveUsd)||o.reserveUsd<0.15||o.reserveUsd>5||
     !Number.isSafeInteger(o.seed)||o.seed<1||o.seed>2147483647)
    throw new TypeError('INVALID_AGENT_LIVE_EVAL_CONFIG');
  return o;
@@ -77,7 +80,7 @@ function getScenario(index){
  const project=fixture(index),kind=CATEGORIES[index%CATEGORIES.length];
  const cue1=project.cues[0],cue2=project.cues[1],cue3=project.cues[2];
  const variants=index%3;
- const es=index%2===0,language=es?'es':'en';
+ const es=(index+Math.floor(index/CATEGORIES.length))%2===0,language=es?'es':'en';
  const count=(index%4)+2;
  let prompt,conversation=[],expected={kind};
  if(kind==='closing'){
@@ -202,13 +205,24 @@ function format(report){
    ' · '+row.result+' · HTTP '+row.httpStatus);
  return output.join('\n')+'\n';
 }
-export async function runPaidAgentEvaluation(config,{serverFactory=createAppServer,fetchImpl=fetch}={}){
- if(!config?.live)throw new TypeError('EXPLICIT_PAID_OPT_IN_REQUIRED');
- const keys=config.providers.map(p=>p==='meta'?'MODEL_API_KEY':'BASETEN_API_KEY');
+export async function runPaidAgentEvaluation(config,{serverFactory=createAppServer,fetchImpl=fetch,
+ sharedLedgerFactory=acquireGlobalSpendLedger,budgetFactory=acquireAgentEvalBudget}={}){
+ if(config?.live!==true||config.ackPaid!==true)throw new TypeError('EXPLICIT_PAID_OPT_IN_REQUIRED');
+ config=opts(['--live','--ack-paid','--cases',String(config.cases),
+  '--providers',config.providers?.join(',')??'','--budget-usd',String(config.budgetUsd),
+  '--reserve-usd',String(config.reserveUsd),'--seed',String(config.seed)]);
+ const shared=await sharedLedgerFactory();
+ let sharedStatus;
+ let budget,server;
+ const runId='agent-'+randomUUID();
+ const keys=['MODEL_API_KEY'];
+ try{
  for(const key of keys)if(typeof process.env[key]!=='string'||!process.env[key].trim())
   throw new Error('MISSING_PROVIDER_KEY_'+key);
- const budget=await acquireAgentEvalBudget({limitUsd:config.budgetUsd});
- const server=serverFactory();
+ budget=await budgetFactory({limitUsd:config.budgetUsd});
+ // This private test server uses the reservation already held by THIS runner;
+ // the normal application routes reserve independently via campaignFetch.
+ server=serverFactory({agentFetch:fetch});
  const rows=[];
  let stopReason='COMPLETE';
  const disabledProviders=new Set();
@@ -226,6 +240,11 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
     if(disabledProviders.has(provider))continue;
     if(!await budget.reserve(config.reserveUsd)){
      stopReason='CUMULATIVE_BUDGET_CAP_REACHED';break outer;
+    }
+    const requestId=runId+'-'+scenario.id;
+    const reservation=await shared.reserve({requestId,runId,provider,estimatedMaximumUsd:config.reserveUsd});
+    if(!reservation.accepted){
+     stopReason='CAMPAIGN_'+reservation.reason;break outer;
     }
     const start=performance.now();
     let status=0,result={correct:false,valid:false,resolved:false,reason:'REQUEST_FAILED'};
@@ -246,7 +265,11 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
      }
     }catch(error){result.reason=(error.name??'NETWORK_ERROR').slice(0,60);}
     const latencyMs=Math.round(performance.now()-start);
-    const row={id:scenario.id,category:scenario.kind,provider,
+    const row={id:scenario.id,category:scenario.kind,provider,requestId,runId,
+     promptVersion:'agent-design-context-rcv3',language:scenario.language,
+     expectedProvenance:'synthetic independent product contract',
+     reservedMaximumUsd:reservation.amountUsd,actualBilledUsd:null,
+     tokens:null,retries:0,
      httpStatus:status,latencyMs,correct:result.correct,
      valid:result.valid,resolved:result.resolved,result:result.reason};
     rows.push(row);
@@ -262,11 +285,12 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
    }
   }
  }finally{
-  await new Promise(resolve=>server.close(()=>resolve()));
-  await budget.close();
+  if(server.listening)await new Promise(resolve=>server.close(()=>resolve()));
+  sharedStatus=shared.status();
  }
  const report=summarize(rows,config);report.stopReason=stopReason;
  report.totalLocalReservedUsd=Math.round(budget.committedUsd()*1e4)/1e4;
+ report.campaign=sharedStatus;
  const folder=resolve('artifacts/agent-live-eval');
  await mkdir(folder,{recursive:true});
  const run='eval-'+Date.now()+'-'+process.pid;
@@ -276,6 +300,10 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   ' requests, reserved ledger $'+report.totalLocalReservedUsd+
   ', stop '+stopReason+'; report '+folder+'/'+run+'.md');
  return report;
+ }finally{
+  try{if(budget)await budget.close();}
+  finally{await shared.close();}
+ }
 }
 export {opts as parseAgentLiveOptions,getScenario as getAgentLiveScenario,judge as judgeAgentLiveReply};
 const invoked=process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href;

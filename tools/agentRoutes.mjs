@@ -6,6 +6,7 @@
 import {AGENT_DESIGN_WORKSPACES,validateAgentOperations} from '../src/core/agentCore.mjs';
 import {normalizeSpeech} from '../src/core/voiceFollow.mjs';
 import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
+import {campaignMetaFetch,campaignBasetenFetch} from './campaignFetch.mjs';
 const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
 const MAX_BODY=24500,MAX_RESPONSE=24000;
@@ -100,7 +101,7 @@ function enforceModelScope(plan,context){
  return plan;
 }
 export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
- getBasetenKey=()=>process.env.BASETEN_API_KEY,fetchImpl=fetch,model=MODEL}={}){
+ getBasetenKey=()=>process.env.BASETEN_API_KEY,fetchImpl,model=MODEL}={}){
  let busy=false;
  return async(req,res,path,headers)=>{
   if(path!=='/api/agent/interpret')return false;
@@ -185,7 +186,8 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
    }
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),provider==='baseten'?40000:25000);
    let response;
-   try{response=await fetchImpl(provider==='baseten'?BASETEN_URL:ENDPOINT,{method:'POST',headers:{
+   const transport=fetchImpl??(provider==='baseten'?campaignBasetenFetch:campaignMetaFetch);
+   try{response=await transport(provider==='baseten'?BASETEN_URL:ENDPOINT,{method:'POST',headers:{
     Authorization:'Bearer '+key.trim(),'Content-Type':'application/json',Accept:'application/json'
    },body:JSON.stringify(payload),signal:controller.signal});}
    finally{clearTimeout(timer);}

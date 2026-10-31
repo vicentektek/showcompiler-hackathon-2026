@@ -6,12 +6,43 @@
  */
 import { mkdir, open, readFile, writeFile, rename, unlink } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
+import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
 
 const VERSION=1;
-const LIMIT_USD=2;
+const LIMIT_USD=CAMPAIGN_POLICY.capsUsd.meta;
 const DEFAULT_LEDGER=resolve('.runq-local/meta-eval-budget.json');
 function money(v){return Number(v.toFixed(6));}
 function valid(v){return typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=LIMIT_USD+0.000001}
+
+/** Keep the old local history AND enforce the cross-checkout campaign ceiling. */
+export async function acquireCampaignMetaBudget({localOptions={},sharedOptions={}}={}){
+   const shared=await acquireGlobalSpendLedger(sharedOptions);
+   let local;
+   try{local=await acquireMetaBudgetLedger(localOptions);}
+   catch(error){await shared.close();throw error;}
+   const runId='seminar-'+randomUUID();
+   let sequence=0,closed=false;
+   return {
+    async reserve(amount){
+     if(closed)throw new Error('BUDGET_LEDGER_CLOSED');
+     // Any interrupted two-ledger write stays reserved; never refund uncertainty.
+     if(!await local.reserve(amount))return false;
+     const result=await shared.reserve({
+      requestId:runId+'-'+(++sequence),runId,provider:'meta',estimatedMaximumUsd:amount,
+     });
+     return result.accepted;
+    },
+    remainingUsd:()=>Math.min(local.remainingUsd(),shared.status().remainingUsd,
+     shared.status().perProvider.meta.remainingUsd),
+    committedReserveUsd:local.committedReserveUsd,
+    async close(){
+     if(closed)return;closed=true;
+     try{await local.close();}finally{await shared.close();}
+    },
+   };
+}
 
 export async function acquireMetaBudgetLedger({file=DEFAULT_LEDGER,limitUsd=LIMIT_USD}={}){
   if(typeof file!=='string'||file.length<5||file.length>320||!valid(limitUsd)||limitUsd===0){
