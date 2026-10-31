@@ -179,3 +179,15 @@
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace] :is(h1,h2,h3,h4) {letter-spacing:.04em!important}
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace] .rq5-script-scenes button,:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace] .rq5-script-scenes .scene-item {border-radius:2px!important;background:#26272b!important;border:1px solid var(--line)!important}
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace] #runqScriptContext {font-size:11px!important}
+
+/* Drag-to-resize grips (runq-panels.mjs) */
+.rq-grip{position:absolute;z-index:30;background:transparent;touch-action:none}
+.rq-grip-col{cursor:col-resize}
+.rq-grip-row{cursor:row-resize}
+.rq-grip::after{content:"";position:absolute;background:transparent;transition:background .12s}
+.rq-grip-col::after{left:3px;right:3px;top:0;bottom:0}
+.rq-grip-row::after{top:3px;bottom:3px;left:0;right:0}
+.rq-grip:hover::after,.rq-grip:focus-visible::after,.rq-grip.dragging::after{background:var(--accent,#5b9bff)}
+.rq-grip:focus-visible{outline:none}
+body.rq-resizing-col,body.rq-resizing-col *{cursor:col-resize!important;user-select:none!important}
+body.rq-resizing-row,body.rq-resizing-row *{cursor:row-resize!important;user-select:none!important}

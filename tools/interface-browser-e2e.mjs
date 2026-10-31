@@ -139,6 +139,24 @@ try {
   await page.locator('#stopAllBtn').click();
   console.log('PASS: explicit GO, STOP ALL and audition retain separate transport state');
 
+  // Drag-to-resize panels change layout only and persist per workspace.
+  await route('operation');
+  const liveCols=()=>page.evaluate(()=>getComputedStyle(document.querySelector('.cue-workspace-body')).gridTemplateColumns.split(' ')[0]);
+  const liveBefore=parseFloat(await liveCols());
+  const grip=await page.locator('.cue-workspace-body > .rq-grip-col').boundingBox();
+  await page.mouse.move(grip.x+grip.width/2,grip.y+grip.height/2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x+grip.width/2+200,grip.y+grip.height/2,{steps:5});
+  await page.mouse.up();
+  assert.ok(parseFloat(await liveCols())>liveBefore+150,'Live cue list widens when its grip is dragged');
+  await route('cues');
+  await route('operation');
+  assert.ok(parseFloat(await liveCols())>liveBefore+150,'Live panel width persists across workspace switches');
+  await page.locator('.cue-workspace-body > .rq-grip-col').dblclick();
+  assert.ok(Math.abs(parseFloat(await liveCols())-liveBefore)<2,'Double-click restores the default width');
+  assert.equal(await prepared(),next,'Resizing never changes the prepared cue');
+  console.log('PASS: draggable panels resize, persist and reset without touching NEXT');
+
   await page.locator('#uiLocaleSelect').selectOption('es');
   await page.reload();
   await route('rehearsal');
