@@ -47,6 +47,27 @@ test('budget authorization cannot fake dashboard credit verification or tolerate
  assert.throws(()=>upgradeCampaignBudget(legacy(),{authorizedAt:'invalid'}));
  assert.equal(CAMPAIGN_POLICY.totalCapUsd,100);
 });
+test('failed reservation preserves pre-existing temporary evidence and does not charge the ledger',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-campaign-temp-'));
+ const file=join(dir,'global.json'),temp=file+'.tmp-'+process.pid;
+ let ledger;
+ try{
+  await writeFile(file,JSON.stringify(updated()));
+  const original=await readFile(file),evidence='preserved uncertain write';
+  await writeFile(temp,evidence);
+  ledger=await acquireGlobalSpendLedger({file});
+  const before=ledger.status();
+  await assert.rejects(()=>ledger.reserve({
+   requestId:'temp-conflict',runId:'run-test',provider:'meta',estimatedMaximumUsd:0.15,
+  }),{code:'EEXIST'});
+  assert.equal(await readFile(temp,'utf8'),evidence);
+  assert.deepEqual(await readFile(file),original);
+  assert.deepEqual(ledger.status(),before);
+ }finally{
+  if(ledger)await ledger.close();
+  await rm(dir,{recursive:true,force:true});
+ }
+});
 test('shared ledger rejects forbidden providers, duplicates, cap overflow and overlapping processes',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'runq-campaign-'));
  const file=join(dir,'global.json');

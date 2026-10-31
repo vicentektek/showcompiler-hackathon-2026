@@ -106,11 +106,17 @@ async function readState(file){
 }
 async function writeState(file,state){
  const temp=file+'.tmp-'+process.pid;
+ let created=false;
  try{
-  await writeFile(temp,JSON.stringify(state,null,2)+'\n',{mode:0o600,flag:'wx'});
+  const handle=await open(temp,'wx',0o600);
+  created=true;
+  try{await handle.writeFile(JSON.stringify(state,null,2)+'\n');}
+  finally{await handle.close();}
   await rename(temp,file);
  }catch(error){
-  try{await unlink(temp);}catch(cleanup){if(cleanup.code!=='ENOENT')throw new AggregateError([error,cleanup],'CAMPAIGN_WRITE_CLEANUP_FAILED');}
+  if(created){
+   try{await unlink(temp);}catch(cleanup){if(cleanup.code!=='ENOENT')throw new AggregateError([error,cleanup],'CAMPAIGN_WRITE_CLEANUP_FAILED');}
+  }
   throw error;
  }
 }

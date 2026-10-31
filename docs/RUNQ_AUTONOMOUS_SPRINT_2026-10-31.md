@@ -224,3 +224,21 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - Scoring protocol v2 reports exact scored/review/error denominators; HTTP errors and subjective review do not fabricate task accuracy. New private report rows include expected contracts, typed operation kinds/target ordinals/changed fields, source commit, model ID and null unknown tokens/billing. No raw model message is stored.
 - `node --test test/agentLiveEval.test.mjs`: **9/9**, including a measured denominator contract (2 scored, 1 human review, 1 HTTP error -> 50% deterministic accuracy). This tests the evaluator, not Muse. Source/test SHA backups are under `campaign-scoring-20261031-1514`.
 - Updated the seminar lab's obsolete cumulative-USD-2 wording to distinguish USD 2 per command, Meta 65 cumulative and global 100. No model calls, invoice reconciliation, account attestation, GO/STOP changes or old report rewrites.
+
+## Subsequent block - preserve uncertain ledger write evidence
+
+- Review reproduced a coupled budget-writer defect: an exclusive temporary-file
+  collision correctly rejected a reservation but cleanup deleted a pre-existing
+  temporary file that this operation had not created. The new deterministic test
+  failed with ENOENT before the fix.
+- The writer now records successful exclusive creation and cleans up only its
+  own temporary file. A collision preserves earlier evidence, leaves the on-disk
+  ledger byte-identical, rolls back the uncommitted in-memory reservation and
+  surfaces EEXIST before any provider submission.
+- External SHA-256-verified source/test backup:
+  `campaign-temp-ownership-20261031`. Focused budget/scoring/reviewed-cue contracts:
+  **20/20**. Full current-worktree `npm run qa:codex`: **681/681**, no failures or
+  skips, syntax and free seminar/synthetic evaluator contracts passed.
+- Read-only `npm run budget:status` confirms unchanged conservative reserves:
+  global 32.774374 / remaining 67.225626; Meta remaining 32.894171; Modal 34.8.
+  No live calls, ledger reset, uncertain-request retry or fabricated credit check.
