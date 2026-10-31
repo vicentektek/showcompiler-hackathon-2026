@@ -144,3 +144,9 @@ No confundir responder correctamente con ejecutar una acción. Las acciones del 
 - [OpenAI — Realtime Eval Guide](https://developers.openai.com/cookbook/examples/realtime_eval_guide)
 - [Anthropic — Demystifying evals for AI agents](https://www.anthropic.com/research/demystifying-evals-for-ai-agents)
 - Repo RUNQ: `docs/RUNQ_SYSTEMATIC_EVAL_PROTOCOL.md`, `docs/QA_MATRIX_2026-10-27.md`, `docs/REHEARSAL_AUTOPILOT.md`.
+
+## Anexo — Autorización de campañas pagadas del 31/10/2026
+
+El usuario autoriza pruebas con modelos reales ejecutadas por Copilot dentro de **100 USD acumulados**: **Meta 65 USD**, **Modal 35 USD**, **Baseten 0**, **Fireworks 0**. Se conservan los límites diarios y por solicitud existentes para Modal. La autorización no convierte tests sintéticos en evaluación de modelos. Para el contrato operativo, migración de ledgers y condiciones bloqueantes, consultar [PAID_AUTONOMOUS_QA_POLICY.md](PAID_AUTONOMOUS_QA_POLICY.md) y [paid-campaign-policy.json](paid-campaign-policy.json).
+
+Las limitaciones anteriores de "no ejecutar modelos de pago" se sustituyen únicamente para **E8, después de que exista gateway compartido y pruebas offline de presupuestos**. Ningún CI ni suite estándar ejecuta APIs reales. Copilot no necesita pedir permiso por cada solicitud dentro de este límite ya autorizado, pero debe registrar reserva previa, evitar reintentos y detenerse en fallo, incertidumbre o crédito desconocido.
