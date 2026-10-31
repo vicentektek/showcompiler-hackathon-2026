@@ -1,8 +1,8 @@
 # RUNQ Eval Report v1 — contrato
 
-Reporte emitido como \`artifacts/runq-evals/<run-id>/summary.json\`, y resumen Markdown paralelo. No subir artefactos con datos privados.
+Reporte emitido como `artifacts/runq-evals/<run-id>/summary.json`, y resumen Markdown paralelo. No subir artefactos con datos privados.
 
-\`\`\`json
+```json
 {
   "schemaVersion": 1,
   "runId": "local-20261031-001",
@@ -42,12 +42,12 @@ Reporte emitido como \`artifacts/runq-evals/<run-id>/summary.json\`, y resumen M
     }
   ]
 }
-\`\`\`
+```
 
 Reglas:
 - Incluir denominadores, percentiles/estratos y listado de fallos; separar datos de proveedor de fixtures.
-- \`precision/recall/f1 = null\` cuando no existe gold verificado y predicción real completa, o el estrato no es evaluable.
-- \`NOT_RUN\` significa que no hubo ejecución; \`BLOCKED\` dependencia ausente; \`INCOMPLETE\` ejecución parcial; \`FAIL\` aserción efectivamente incumplida.
+- `precision/recall/f1 = null` cuando no existe gold verificado y predicción real completa, o el estrato no es evaluable.
+- `NOT_RUN` significa que no hubo ejecución; `BLOCKED` dependencia ausente; `INCOMPLETE` ejecución parcial; `FAIL` aserción efectivamente incumplida.
 - L0 validación de fixtures NO equivale a L2 calidad de IA ni E2E de producto.
 - Identificar claramente mocks, pruebas sintéticas y operaciones manuales.
 - Cualquier comparación A/B usa casos idénticos y versión del corpus congelada; registrar cambios en prompts, parámetros y SHA.
