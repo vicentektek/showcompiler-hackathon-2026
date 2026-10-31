@@ -19,7 +19,7 @@ test('Stagecraft structural rebuild keeps all actual transport, project and edit
    // Density selector belongs to the existing enhancement module, not static HTML.
    if(id!=='runqCueDensity')assert.match(html,new RegExp('id="'+id+'"'));
  }
- assert.match(ui,/cueBody\.replaceChildren\(sequenceFrame,inspectorFrame\)/);
+ assert.match(ui,/cueBody\.replaceChildren\(projectExplorer,sequenceFrame,inspectorFrame\)/);
  assert.match(ui,/dock\.append\(queue\)/);
  assert.match(ui,/dock\.append\(activeCues\)/);
  assert.match(ui,/dock\.append\(footer\)/);

@@ -118,7 +118,9 @@ function createStage(){
   sequence.append(filterWrap);
   const cueList=get('cueList');
   const inspector=get('cueInspector');
-  if(!cueList||!inspector)throw new Error('Expected cue sequence and inspector are missing');
+  const projectExplorer=get('rqProjectExplorer');
+  if(!cueList||!inspector||!projectExplorer)
+    throw new Error('Expected project explorer, cue sequence and inspector are missing');
   const sequenceFrame=el('div','rq5-sequence-frame');
   sequenceFrame.append(seqHeader);
   if(columns)sequenceFrame.append(columns);
@@ -160,7 +162,7 @@ function createStage(){
       queueMicrotask(syncSelectedTools);
   });
   syncSelectedTools();
-  cueBody.replaceChildren(sequenceFrame,inspectorFrame);
+  cueBody.replaceChildren(projectExplorer,sequenceFrame,inspectorFrame);
   const stageBody=el('div','rq5-stage-body');
   stageBody.append(cueBody);
   const footer=el('div','rq5-stage-bottom');

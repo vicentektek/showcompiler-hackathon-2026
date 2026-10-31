@@ -1,0 +1,348 @@
+/*
+ * RunQ — Design system tokens (production shell).
+ * Single source of truth for colors, spacing, density, type, borders.
+ * These tokens are consumed by the runq-shell and workspace components.
+ * Keep cue execution semantics and original element IDs untouched.
+ */
+
+/* ── Color identity (approved mockups) ── */
+:root {
+  /* Base surfaces */
+  --rq-bg: #14181F;
+  --rq-panel: #1A1F27;
+  --rq-panel-active: #202735;
+  --rq-surface-hover: #262E3A;
+  --rq-surface-pressed: #2E3747;
+
+  /* Borders & lines (discrete) */
+  --rq-border: #2A323F;
+  --rq-border-hover: #3A4250;
+  --rq-border-focus: #5B6EFF;
+  --rq-border-error: #B44A4A;
+  --rq-border-success: #4CAF50;
+
+  /* Text */
+  --rq-text: #E8ECF2;
+  --rq-text-muted: #9AA5B2;
+  --rq-text-dim: #6E7785;
+  --rq-text-inverse: #14181F;
+
+  /* Brand / accent */
+  --rq-accent-blue: #4A90E2;
+  --rq-accent-amber: #F5A623;
+  --rq-accent-green: #34C759;
+  --rq-accent-red: #E5484D;
+
+  --rq-accent-blue-soft: rgba(74,144,226,.16);
+  --rq-accent-amber-soft: rgba(245,166,35,.16);
+  --rq-accent-green-soft: rgba(52,199,89,.16);
+  --rq-accent-red-soft: rgba(229,72,77,.16);
+
+  /* Selection / states */
+  --rq-selection: #2E5C9E;
+  --rq-selection-soft: rgba(46,92,158,.18);
+  --rq-prepared: #3D9970;
+  --rq-prepared-soft: rgba(61,153,112,.16);
+
+  /* Critical */
+  --rq-stop-all: #E5484D;
+  --rq-stop-all-soft: rgba(229,72,77,.18);
+  --rq-danger: #E5484D;
+  --rq-warning: #F5A623;
+
+
+  /* ── Density profiles ── */
+  --rq-density-compact-row: 29px;
+  --rq-density-normal-row: 37px;
+  --rq-density-comfortable-row: 45px;
+
+  --rq-toolbar-height: 40px;
+  --rq-nav-width: 250px;
+  --rq-inspector-width: 360px;
+  --rq-bottom-height: 320px;
+
+  /* ── Type ── */
+  --rq-font: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --rq-font-mono: "Consolas", "SF Mono", monospace;
+  --rq-text-xs: 11px;
+  --rq-text-sm: 12px;
+  --rq-text-base: 13px;
+  --rq-text-lg: 15px;
+  --rq-text-xl: 17px;
+  --rq-line-tight: 1.25;
+  --rq-line-normal: 1.4;
+
+  /* ── Space ── */
+  --rq-space-0: 0;
+  --rq-space-1: 4px;
+  --rq-space-2: 8px;
+  --rq-space-3: 12px;
+  --rq-space-4: 16px;
+  --rq-space-5: 20px;
+  --rq-space-6: 24px;
+  --rq-space-8: 32px;
+
+  /* ── Border radius ── */
+  --rq-radius-sm: 5px;
+  --rq-radius: 7px;
+  --rq-radius-lg: 10px;
+
+  /* ── Shadow ── */
+  --rq-shadow: 0 6px 20px rgba(0,0,0,.35);
+  --rq-shadow-inset: inset 0 1px 2px rgba(0,0,0,.4);
+
+  /* ── Transitions ── */
+  --rq-transition: 150ms ease;
+}
+
+.density-compact {
+  --rq-density-row: var(--rq-density-compact-row);
+}
+.density-normal {
+  --rq-density-row: var(--rq-density-normal-row);
+}
+.density-comfortable {
+  --rq-density-row: var(--rq-density-comfortable-row);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--rq-bg);
+  color: var(--rq-text);
+  font-family: var(--rq-font);
+  font-size: var(--rq-text-base);
+  line-height: var(--rq-line-normal);
+  overflow: hidden;
+}
+
+/* ── Panels ── */
+.rq-panel {
+  background: var(--rq-panel);
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.rq-panel-active {
+  background: var(--rq-panel-active);
+  border-color: var(--rq-border-focus);
+}
+.rq-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rq-space-2);
+  padding: var(--rq-space-2) var(--rq-space-3);
+  border-bottom: 1px solid var(--rq-border);
+  flex-shrink: 0;
+}
+.rq-panel-title {
+  font-size: var(--rq-text-sm);
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--rq-text-muted);
+  text-transform: uppercase;
+}
+.rq-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--rq-space-2);
+}
+.rq-panel-footer {
+  flex-shrink: 0;
+  padding: var(--rq-space-2) var(--rq-space-3);
+  border-top: 1px solid var(--rq-border);
+  background: var(--rq-surface-hover);
+}
+
+/* ── Density rows ── */
+.rq-row {
+  height: var(--rq-density-row);
+  display: flex;
+  align-items: center;
+}
+.rq-cue-row {
+  height: var(--rq-density-row);
+  display: flex;
+  align-items: center;
+  gap: var(--rq-space-2);
+  padding: 0 var(--rq-space-2);
+  border-radius: var(--rq-radius-sm);
+  cursor: default;
+  user-select: none;
+}
+.rq-cue-row:hover {
+  background: var(--rq-surface-hover);
+}
+.rq-cue-row-selected {
+  background: var(--rq-selection-soft);
+  border: 1px solid var(--rq-selection);
+  box-sizing: border-box;
+}
+.rq-cue-row-prepared {
+  border-left: 3px solid var(--rq-prepared);
+  box-sizing: border-box;
+}
+
+/* ── Tables ── */
+.rq-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.rq-table th {
+  text-align: left;
+  font-size: var(--rq-text-xs);
+  font-weight: 700;
+  color: var(--rq-text-muted);
+  padding: var(--rq-space-1) var(--rq-space-2);
+  border-bottom: 1px solid var(--rq-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rq-table td {
+  font-size: var(--rq-text-base);
+  color: var(--rq-text);
+  padding: var(--rq-space-1) var(--rq-space-2);
+  border-bottom: 1px solid var(--rq-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: var(--rq-line-tight);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--rq-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #3A4250;
+  border-radius: 5px;
+  border: 2px solid var(--rq-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4C5464;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
+
+/* ── Global utilities ── */
+.rq-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.rq-btn {
+  font-family: inherit;
+  font-size: var(--rq-text-base);
+  font-weight: 600;
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius);
+  background: var(--rq-panel-active);
+  color: var(--rq-text);
+  cursor: pointer;
+  transition: background var(--rq-transition), border-color var(--rq-transition), color var(--rq-transition);
+  outline: none;
+}
+.rq-btn:hover:not(:disabled) {
+  background: var(--rq-surface-hover);
+  border-color: var(--rq-border-hover);
+}
+.rq-btn:focus-visible {
+  border-color: var(--rq-border-focus);
+}
+.rq-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.rq-btn-icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.rq-btn-icon:not(:disabled):hover {
+  background: var(--rq-surface-hover);
+}
+
+.rq-btn-primary {
+  background: var(--rq-accent-blue);
+  border-color: var(--rq-accent-blue);
+  color: #fff;
+}
+.rq-btn-primary:hover:not(:disabled) {
+  background: #3b7ede;
+  border-color: #3b7ede;
+}
+.rq-btn-success {
+  background: var(--rq-accent-green);
+  border-color: var(--rq-accent-green);
+  color: #fff;
+}
+.rq-btn-success:hover:not(:disabled) {
+  background: #2fb34e;
+}
+.rq-btn-danger {
+  background: var(--rq-accent-red);
+  border-color: var(--rq-accent-red);
+  color: #fff;
+}
+.rq-btn-danger:hover:not(:disabled) {
+  background: #d43f43;
+}
+.rq-btn-amber {
+  background: var(--rq-accent-amber);
+  border-color: var(--rq-accent-amber);
+  color: #14181F;
+}
+.rq-btn-amber:hover:not(:disabled) {
+  background: #e09422;
+}
+
+/* ── Context identity badges ── */
+.rq-ctx-studio { border-color: var(--rq-accent-blue); }
+.rq-ctx-studio .rq-badge { background: var(--rq-accent-blue-soft); color: #7bb6ff; }
+.rq-ctx-rehearsal { border-color: var(--rq-accent-amber); }
+.rq-ctx-rehearsal .rq-badge { background: var(--rq-accent-amber-soft); color: #ffc866; }
+.rq-ctx-directo { border-color: var(--rq-accent-green); }
+.rq-ctx-directo .rq-badge { background: var(--rq-accent-green-soft); color: #8ee49d; }
+
+.rq-badge {
+  font-size: var(--rq-text-xs);
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 10px;
+  letter-spacing: .05em;
+}

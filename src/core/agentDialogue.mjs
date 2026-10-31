@@ -48,7 +48,8 @@ export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=(
  const previous=lastUser&&ADD.test(lastUser.text)&&
   (CUES.test(lastUser.text)||END.test(lastUser.text))?lastUser:null;
  const askedForCreative=DELEGATE.test(request);
- const directAdd=ADD.test(request)&&CUES.test(request);
+ const namedCue=/\b(?:cue|se[nñ]al|pista)\s+(?:llamad[oa]|named|called)\s+\S/i.test(request);
+ const directAdd=ADD.test(request)&&CUES.test(request)&&!namedCue;
  const correction=/\b(?:mejor|en\s+vez\s+de|rather|instead|make\s+it|pon|que\s+sean)\b/i.test(request);
  const countFromFollowup=numberOfCues(request);
  const followUp=!!previous&&(askedForCreative||(correction&&countFromFollowup!==null));

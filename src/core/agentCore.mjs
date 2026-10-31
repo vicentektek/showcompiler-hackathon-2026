@@ -40,6 +40,19 @@ export function buildAgentContext(project,{
  const lines=parseScript(p.scriptText);
  const focus=Number(/^L([1-9]\d*)$/.exec(focusLineId??'')?.[1])||1;
  const first=Math.max(0,Math.min(focus-1-Math.floor(maxScriptLines/2),Math.max(0,lines.length-maxScriptLines)));
+ const speakerOf=text=>{
+  const m=/^([^:：()[\]{}]{1,48})[:：]\s*(.+)$/.exec(text);
+  return m&&!/^(?:ESCENA|SCENE|ACT|ACTO|ACOTACI[ÓO]N|STAGE|SFX|FX|SONIDO|SOUND|LIGHT|LX|CUE)\b/i.test(m[1].trim())
+   ?{speaker:m[1].trim(),speech:m[2].trim()}:null;
+ };
+ const dialogueBefore=cue=>{
+  const anchor=Number(/^L([1-9]\d*)$/.exec(cue.sourceLineIds[0]??'')?.[1])||0;
+  for(let n=anchor-1;n>=Math.max(1,anchor-12);n--){
+   const found=lines[n-1]&&speakerOf(lines[n-1].text);
+   if(found)return {lineId:lines[n-1].id,speaker:found.speaker.slice(0,48),text:found.speech.slice(0,160)};
+  }
+  return null;
+ };
  return {
   projectId:p.id,projectName:p.name,
   counts:{cues:p.cues.length,assets:p.assets.length,scriptLines:lines.length},
@@ -47,14 +60,36 @@ export function buildAgentContext(project,{
   cues:cues.slice(0,maxCues).map(c=>({
    id:c.id,number:c.number,label:c.label,trigger:c.trigger??'',
    notes:c.notes??'',sourceLineIds:[...c.sourceLineIds],
+   dialogueBefore:dialogueBefore(c),
    playback:c.playback??{},assetIds:[
     ...c.actions.filter(a=>a.type==='PLAY').map(a=>a.assetId),
     ...(c.audioTracks??[]).map(t=>t.assetId)
    ],unresolved:c.actions.some(a=>a.type==='PLAN_AUDIO')
   })),
   assets:p.assets.map(a=>({id:a.id,name:a.name,available:assetAvailable(a.id)})),
-  lines:lines.slice(first,first+maxScriptLines).map(l=>({id:l.id,text:l.text.slice(0,350)}))
+  lines:lines.slice(first,first+maxScriptLines).map(l=>{
+   const s=speakerOf(l.text);
+   return {id:l.id,text:l.text.slice(0,350),...(s?{speaker:s.speaker}:{})};
+  })
  };
+}
+/** Trim a context to the transport budget, dropping far script lines first. */
+export function fitAgentContext(context,maxChars=14000){
+ const size=value=>JSON.stringify(value).length;
+ let fitted=context;
+ if(size(fitted)<=maxChars)return fitted;
+ fitted={...fitted,lines:[...fitted.lines],truncated:{...fitted.truncated}};
+ const focus=fitted.cues.map(c=>Number(/^L([1-9]\d*)$/.exec(c.sourceLineIds[0]??'')?.[1])||0).find(Boolean)??1;
+ const num=l=>Number(/^L([1-9]\d*)$/.exec(l.id)?.[1])||0;
+ while(size(fitted)>maxChars&&fitted.lines.length>10){
+  fitted.lines.sort((a,b)=>Math.abs(num(a)-focus)-Math.abs(num(b)-focus));
+  fitted.lines.pop();fitted.truncated.script=true;
+ }
+ fitted.lines.sort((a,b)=>num(a)-num(b));
+ if(size(fitted)>maxChars)fitted.cues=fitted.cues.map(c=>({...c,notes:c.notes.slice(0,60),
+  dialogueBefore:c.dialogueBefore&&{...c.dialogueBefore,text:c.dialogueBefore.text.slice(0,60)}}));
+ if(size(fitted)>maxChars)fitted.lines=fitted.lines.map(l=>({...l,text:l.text.slice(0,120)}));
+ return fitted;
 }
 export function auditAgentProject(project,{assetAvailable=()=>null}={}){
  const p=normalizeShowProject(project),issues=[];
@@ -139,13 +174,19 @@ function diffCues(before,after){
 /** Simulate a bounded batch on independent show copies. Any failure aborts ALL. */
 export function prepareAgentPlan(project,operations){
  const base=normalizeShowProject(project),checked=validateAgentOperations(operations);
- let next=base;
+ let next=base,chain=null;
  for(const [index,op] of checked.entries()){
+  if(op.op!=='CREATE_CUE')chain=null;
   try{
    if(op.op==='UPDATE_CUE')next=stageCueConversationChange(next,op.cueId,op.changes).project;
    else if(op.op==='DELETE_CUE')next=deleteOperatorCue(next,op.cueId);
-   else if(op.op==='CREATE_CUE')
-    next=insertManualCue(next,{afterCueId:op.afterCueId,label:op.label}).project;
+   else if(op.op==='CREATE_CUE'){
+    // Models often anchor a batch to the same cue; chain them to keep the proposed order.
+    const chained=chain&&chain.anchor===op.afterCueId&&op.afterCueId!==null?chain.cueId:op.afterCueId;
+    const created=insertManualCue(next,{afterCueId:chained,label:op.label});
+    next=created.project;
+    chain={anchor:op.afterCueId,cueId:created.cueId};
+   }
    else if(op.op==='REORDER_CUE')
     next=reorderOperatorCue(next,op.cueId,op.targetCueId,op.position);
   }catch(error){

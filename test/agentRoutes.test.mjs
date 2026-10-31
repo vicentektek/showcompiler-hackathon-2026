@@ -97,8 +97,12 @@ test('Baseten fallback uses independent server-side key and never requests unsup
    called++;
    assert.equal(url,'https://inference.baseten.co/v1/chat/completions');
    const body=JSON.parse(request.body);
-   assert.equal(body.model,'meta-models/muse-spark-open-1026');
+   assert.equal(body.model,'meta-models/muse-spark-open');
    assert.equal(Object.hasOwn(body,'response_format'),false);
+   // Regression (real pilot 2026-10-31): reasoning exhausted a 2600-token cap -> empty reply.
+   assert.ok(body.max_tokens>=6000);
+   assert.match(body.messages[0].content,/REORDER_CUE requires cueId, targetCueId and position/);
+   assert.match(body.messages[0].content,/"numeric":-12,"text":null,"boolean":null/);
    assert.equal(request.headers.Authorization,'Bearer baseten-test-secret');
    return reply(proposal);
   }
@@ -110,5 +114,17 @@ test('Baseten fallback uses independent server-side key and never requests unsup
   assert.equal(response.status,200);
   assert.equal((await response.json()).provider,'BASETEN_MUSE_SPARK_OPEN');
   assert.equal(called,1);
+ });
+});
+
+test('regression: UPDATE_CUE with the label at operation level and empty edits is read as a label edit',async()=>{
+ await withServer({
+  getAgentKey:()=> 'test-key',
+  agentFetch:async()=>reply({status:'PLAN',message:'Rename it.',operations:[{op:'UPDATE_CUE',cueId:'cue-2',
+   afterCueId:null,targetCueId:null,position:null,label:'Night ambience',edits:[]}]})
+ },async root=>{
+  const response=await fetch(root+'/api/agent/interpret',params(root));
+  assert.equal(response.status,200);
+  assert.deepEqual((await response.json()).operations,[{op:'UPDATE_CUE',cueId:'cue-2',changes:{label:'Night ambience'}}]);
  });
 });

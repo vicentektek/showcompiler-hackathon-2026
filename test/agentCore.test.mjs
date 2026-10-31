@@ -128,3 +128,11 @@ test('deleting a cue previews indirect automation edits on surviving cues',()=>{
  assert.deepEqual(committed.project.cues.find(c=>c.id===survivor.id).automation.stopCueIds,[]);
  assert.deepEqual(undoAgentPlan(committed.project,committed.undo,{editable:true}),modified);
 });
+
+test('several CREATE_CUE ops anchored to the same cue keep the proposed order',()=>{
+ const project=fixture();
+ const last=project.cues.at(-1).id;
+ const plan=prepareAgentPlan(project,['Uno','Dos','Tres'].map(label=>
+  ({op:'CREATE_CUE',afterCueId:last,label})));
+ assert.deepEqual(plan.proposedProject.cues.slice(-3).map(c=>c.label),['Uno','Dos','Tres']);
+});

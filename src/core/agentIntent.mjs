@@ -62,7 +62,7 @@ export function interpretLocalAgentRequest(project,prompt,{assetAvailable=()=>nu
   const report=auditAgentProject(project,{assetAvailable});
   return {...reply('ANSWER','Audit: '+report.cueCount+' cues, '+report.summary.warnings+' warnings and '+report.summary.informational+' informational items.'),report};
  }
- if(/^(?:cu[aá]ntos|how many|resume|summary|resumen|estado|status)\b/i.test(lower)){
+ if(/^(?:(?:show|give\s+me|dame|muestra(?:me)?|mu[eé]strame)\s+(?:(?:el|la|the|a)\s+)?)?(?:cu[aá]ntos|how many|resume|summary|resumen|estado|status)\b/i.test(lower)){
   const c=buildAgentContext(project,{maxScriptLines:1,assetAvailable});
   return reply('ANSWER',c.projectName+': '+c.counts.cues+' cues, '+c.counts.assets+' media references and '+c.counts.scriptLines+' script lines.');
  }

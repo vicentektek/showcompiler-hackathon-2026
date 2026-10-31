@@ -54,6 +54,7 @@ let pendingAudioCueId = null;
 let audioInFlight = false;
 let bundleInFlight = false;
 let originalAudioFiles = new Map();
+let selectedExplorerAssetId = null;
 let selectedLibrarySource = null; // {assetId,file,generation}; never trust stale IDs across shows.
 /**
  * Read-only source bridge for the Stagecraft waveform view. It returns the
@@ -374,6 +375,9 @@ function renderWorkspaceShell() {
     button.setAttribute('aria-pressed', String(selected));
     button.classList.toggle('is-current', selected);
   }
+  document.dispatchEvent(new CustomEvent('runq:workspace-changed', {
+    detail: { workspace: activeWorkspace },
+  }));
   $('workspaceTitle').textContent = t('workspace.' + activeWorkspace);
   $('workspaceDescription').textContent = t('workspace.description.' + activeWorkspace);
   $('activeShowTitle').textContent = show.name;
@@ -783,6 +787,129 @@ function selectCueForInspection(cueId) {
   return true;
 }
 
+function renderProjectExplorer() {
+  const projectName = $('rqExplorerProjectName');
+  const projectMeta = $('rqExplorerProjectMeta');
+  const count = $('rqExplorerCount');
+  const files = $('rqExplorerFiles');
+  const details = $('rqExplorerDetails');
+  if (!projectName || !projectMeta || !count || !files || !details) return;
+
+  const lines = parseScript(show.scriptText);
+  projectName.textContent = show.name;
+  projectMeta.textContent = t('explorer.projectMeta', {
+    lines: lines.length,
+    cues: show.cues.length,
+    files: show.assets.length,
+  });
+  if (!show.assets.some(asset => asset.id === selectedExplorerAssetId)) {
+    selectedExplorerAssetId = show.assets[0]?.id ?? null;
+  }
+
+  const cuesByAsset = new Map(show.assets.map(asset => [asset.id, []]));
+  for (const cue of show.cues) {
+    const referencedAssets = new Set([
+      ...cue.actions.filter(action => action.type === 'PLAY').map(action => action.assetId),
+      ...(cue.audioTracks ?? []).map(track => track.assetId),
+    ]);
+    for (const assetId of referencedAssets) cuesByAsset.get(assetId)?.push(cue);
+  }
+  const linkedCues = assetId => cuesByAsset.get(assetId) ?? [];
+  const query = $('rqExplorerSearch').value.trim().toLocaleLowerCase();
+  const visibleAssets = show.assets.filter(asset =>
+    `${asset.name} ${asset.id}`.toLocaleLowerCase().includes(query));
+  count.textContent = t('explorer.fileCount', {
+    visible: visibleAssets.length,
+    total: show.assets.length,
+  });
+  files.replaceChildren();
+
+  if (!show.assets.length) {
+    files.append(node('p', 'empty rq-explorer-empty', t('explorer.noFiles')));
+  } else if (!visibleAssets.length) {
+    files.append(node('p', 'empty rq-explorer-empty', t('explorer.noMatches')));
+  } else {
+    const groups = [
+      { key: 'explorer.usedInCues', assets: visibleAssets.filter(asset => linkedCues(asset.id).length) },
+      { key: 'explorer.unassigned', assets: visibleAssets.filter(asset => !linkedCues(asset.id).length) },
+    ];
+    for (const group of groups) {
+      if (!group.assets.length) continue;
+      const section = node('section', 'rq-explorer-group');
+      const heading = node('h4', '', t(group.key));
+      section.append(heading);
+      for (const asset of group.assets) {
+        const uses = linkedCues(asset.id).length;
+        const ready = player.hasAsset(asset.id);
+        const state = t(ready ? 'explorer.available' : 'explorer.reloadRequired');
+        const useLabel = t(uses === 1 ? 'explorer.assetUseOne' : 'explorer.assetUse', { count: uses });
+        const button = node('button', 'rq-explorer-file');
+        button.type = 'button';
+        button.dataset.explorerAsset = asset.id;
+        button.setAttribute('aria-pressed', String(asset.id === selectedExplorerAssetId));
+        button.setAttribute('aria-label', `${asset.name} · ${state} · ${useLabel}`);
+        const extension = /\.([a-z0-9]{1,8})$/i.exec(asset.name)?.[1]?.toUpperCase() ?? 'AUDIO';
+        button.append(
+          node('span', 'rq-explorer-filetype', extension),
+          node('span', 'rq-explorer-filename', asset.name),
+          node('span', `rq-explorer-state${ready ? ' is-ready' : ' is-missing'}`, state),
+          node('span', 'rq-explorer-use-count', useLabel),
+        );
+        button.addEventListener('click', () => {
+          selectedExplorerAssetId = asset.id;
+          renderProjectExplorer();
+        });
+        section.append(button);
+      }
+      files.append(section);
+    }
+  }
+
+  details.replaceChildren();
+  const selected = show.assets.find(asset => asset.id === selectedExplorerAssetId);
+  if (!selected) {
+    details.append(node('p', 'empty', t('explorer.selectFile')));
+    return;
+  }
+  const selectedHeader = node('div', 'rq-explorer-selected-head');
+  selectedHeader.append(
+    node('span', 'rq-project-explorer-eyebrow', t('explorer.selected')),
+    node('strong', 'rq-explorer-selected-name', selected.name),
+    node('span', 'caption', `${selected.id} · ${t(player.hasAsset(selected.id) ? 'explorer.available' : 'explorer.reloadRequired')}`),
+  );
+  details.append(selectedHeader);
+  const linked = linkedCues(selected.id);
+  details.append(node('h4', 'rq-explorer-links-title', t('explorer.sourceCues')));
+  if (!linked.length) {
+    details.append(node('p', 'caption', t('explorer.noCueLinks')));
+  } else {
+    const cueLinks = node('div', 'rq-explorer-cue-links');
+    for (const cue of linked) {
+      const button = node('button', 'rq-explorer-cue-link',
+        `${String(cue.number).padStart(2, '0')} · ${cue.label}`);
+      button.type = 'button';
+      button.setAttribute('aria-label', t('explorer.selectCue', {
+        number: cue.number, label: cue.label,
+      }));
+      button.append(node('small', '', cue.sourceLineIds.join(', ')));
+      button.addEventListener('click', () => {
+        if (!selectCueForInspection(cue.id)) return;
+        const visible = [...$('cueList').querySelectorAll('[data-cue-select]')]
+          .some(row => row.dataset.cueSelect === cue.id);
+        if (!visible) {
+          $('cueSearchInput').value = '';
+          renderCueList({ resetScroll: true });
+        }
+        [...$('cueList').querySelectorAll('[data-cue-select]')]
+          .find(row => row.dataset.cueSelect === cue.id)
+          ?.scrollIntoView({ block: 'nearest' });
+      });
+      cueLinks.append(button);
+    }
+    details.append(cueLinks);
+  }
+}
+
 function renderCueList({ resetScroll = false } = {}) {
   const cueList = $('cueList');
   const priorScrollTop = cueList.scrollTop;
@@ -815,7 +942,13 @@ function renderCueList({ resetScroll = false } = {}) {
     const runtime = node('span', 'state', t('status.soundMissing'));
     runtime.dataset.cueState = cue.id;
     top.append(runtime);
-    const detail = node('span', 'cue-row-meta', cue.sourceLineIds.join(', ') + ' · ' + describeCueActions(cue.actions));
+    const actionText = describeCueActions(cue.actions);
+    const actionKind = cue.actions.some(a => a.type === 'PLAY') ? t('status.play') : t('status.unresolved');
+    const detail = node('span', 'cue-row-meta');
+    detail.append(
+      node('span', 'cue-row-state', actionKind),
+      node('span', 'cue-row-source', cue.sourceLineIds.join(', ') + ' · ' + actionText),
+    );
     select.append(top, detail);
     if (cue.trigger) select.append(node('span', 'cue-row-trigger', t('cue.trigger') + ': ' + cue.trigger));
     if (cue.id === operatorQueue.preparedCueId) {
@@ -1114,6 +1247,7 @@ function render() {
 
   renderCueList();
   renderCueInspector();
+  renderProjectExplorer();
   renderSetupReadiness();
   renderWorkspaceShell();
   refreshMetaMessage();
@@ -2261,6 +2395,10 @@ document.addEventListener('runq:open-contextual-ia',event=>{
 
 $('uiLocaleSelect').addEventListener('change', event => switchUiLocale(event.target.value));
 $('cueSearchInput').addEventListener('input', () => { renderCueList({ resetScroll:true }); refreshAudioControls(); });
+$('rqExplorerSearch').addEventListener('input', renderProjectExplorer);
+$('rqExplorerImportAudio').addEventListener('click', () => $('importAudioBatchBtn').click());
+$('rqExplorerOpenAudio').addEventListener('click', () =>
+  document.querySelector('[data-workspace-nav="audio"]')?.click());
 function editCueSequence(fn,{preserveQueue=false}={}) {
   if (inspectorPendingChanges && !confirmDiscardInspectorEdits()) return;
   const status = player.getStatus();

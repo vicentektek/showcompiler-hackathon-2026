@@ -158,6 +158,7 @@ test('default campaign performs preflight, writes review queue and never runs pa
    preflight:async()=>{offline++;return {passed:true};},
    paidRunner:async()=>{paid++;throw new Error('NO_PAID_ALLOWED');},
    reportsReader:async()=>({reports:[],warnings:[]}),
+   ledgerAuditor:async()=>({status:'NO_LEDGER',orphanKeys:[],reservations:0}),
    outputDir:tmp
   });
   assert.equal(offline,1);
@@ -195,7 +196,8 @@ test('report-only mode never calls preflight or providers',async()=>{
   const result=await runAiCampaign(options(['--report-only']),{
    preflight:async()=>{throw new Error('OFFLINE_NOT_REQUESTED');},
    paidRunner:async()=>{throw new Error('PAID_NOT_REQUESTED');},
-   reportsReader:async()=>({reports:[],warnings:[]}),outputDir:tmp
+   reportsReader:async()=>({reports:[],warnings:[]}),outputDir:tmp,
+   ledgerAuditor:async()=>({status:'NO_LEDGER',orphanKeys:[],reservations:0})
   });
   assert.equal(result.summary.stage,'DRY_RUN');
  }finally{await rm(tmp,{recursive:true,force:true});}

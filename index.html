@@ -25,13 +25,17 @@
   <link rel="stylesheet" href="/src/ui/runq-library-transport-v11.css">
   <link rel="stylesheet" href="/src/ui/runq-sound-library-v12.css">
   <link rel="stylesheet" href="/src/ui/runq-visual-freeze-v15.css">
+
+
   <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
   <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
   <script type="module" src="/src/ui/voice-live-ui.mjs"></script>
   <script type="module" src="/src/ui/rehearsal-auto-ui.mjs"></script>
   <script type="module" src="/src/ui/cue-conversation-ui.mjs"></script>
   <script type="module" src="/src/ui/runq-agent-ui.mjs"></script>
+
   <script src="/src/ui/app.mjs" type="module"></script>
+  <script src="/src/ui/runq-shell.mjs" type="module"></script>
   <script src="/src/ui/runq-menu.mjs" type="module"></script>
   <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
   <script src="/src/ui/runq-stagecraft-rebuild.mjs" type="module"></script>
@@ -585,6 +589,31 @@
             <span id="cueSearchStatus" class="caption" role="status" aria-live="polite"></span>
           </div>
           <div class="cue-workspace-body">
+            <aside id="rqProjectExplorer" class="rq-project-explorer" data-i18n-aria="explorer.aria" aria-label="Project and media explorer">
+              <header class="rq-project-explorer-head">
+                <span class="rq-project-explorer-eyebrow" data-i18n="explorer.eyebrow">PROJECT / MEDIA</span>
+                <strong id="rqExplorerProjectName">New show</strong>
+                <span id="rqExplorerProjectMeta" class="caption"></span>
+              </header>
+              <label class="sr-only" for="rqExplorerSearch" data-i18n="explorer.searchLabel">Search imported media</label>
+              <input id="rqExplorerSearch" class="rq-project-explorer-search" type="search" autocomplete="off"
+                data-i18n-placeholder="explorer.searchPlaceholder" placeholder="Search imported files">
+              <div class="rq-project-explorer-files">
+                <div class="rq-project-explorer-section-head">
+                  <strong data-i18n="explorer.mediaFiles">Media files</strong>
+                  <span id="rqExplorerCount" class="caption" role="status" aria-live="polite"></span>
+                </div>
+                <div id="rqExplorerFiles" class="rq-project-explorer-list" data-i18n-aria="explorer.filesAria" aria-label="Imported audio files"></div>
+              </div>
+              <section id="rqExplorerDetails" class="rq-project-explorer-details" aria-live="polite">
+                <p class="empty" data-i18n="explorer.selectFile">Select an imported file to see its cue links.</p>
+              </section>
+              <footer class="rq-project-explorer-actions">
+                <button id="rqExplorerImportAudio" type="button" class="btn accent small" data-i18n="explorer.importAudio">Import audio</button>
+                <button id="rqExplorerOpenAudio" type="button" class="btn subtle small" data-i18n="explorer.openLibrary">Open audio library</button>
+                <p class="caption" data-i18n="explorer.localOnly">Only files imported into this show appear here; browser security does not expose disk folders.</p>
+              </footer>
+            </aside>
             <div id="cueList" class="item-list" aria-label="Show cues"></div>
             <aside id="cueInspector" class="cue-inspector" aria-label="Selected cue details">
               <h3 data-i18n="workspace.inspector">Cue inspector</h3>

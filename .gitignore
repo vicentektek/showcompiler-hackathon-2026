@@ -63,6 +63,9 @@ web_modules/
 # Output of 'npm pack'
 *.tgz
 
+# Accidental editor/command leftovers never belong in version control.
+*.bak
+
 # Yarn Integrity file
 .yarn-integrity
 

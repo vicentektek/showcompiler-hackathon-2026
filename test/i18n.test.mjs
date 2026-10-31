@@ -98,6 +98,13 @@ test('parameters are interpolated safely and missing keys throw', () => {
   assert.throws(() => translate('en', 'unknown.translation'), RangeError);
 });
 
+test('cue row action labels exist in both supported locales', () => {
+  assert.equal(translate('en', 'status.play'), 'PLAY');
+  assert.equal(translate('en', 'status.unresolved'), 'UNRESOLVED AUDIO');
+  assert.equal(translate('es', 'status.play'), 'REPRODUCIR');
+  assert.equal(translate('es', 'status.unresolved'), 'AUDIO SIN RESOLVER');
+});
+
 test('unknown errors have localised safe fallback', () => {
   assert.equal(resolveErrorKey(new Error('Invalid show project: malformed')), 'errors.metaInvalidProject');
   assert.equal(resolveErrorKey({ uiKey: 'errors.onlyTxt' }), 'errors.onlyTxt');

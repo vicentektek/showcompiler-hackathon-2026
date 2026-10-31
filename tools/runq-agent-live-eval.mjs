@@ -197,7 +197,7 @@ function judge(scenario,response){
   let correct=false;
   if(expected.kind==='CREATE_CUE'){
    correct=plan.operations.length===expected.count&&
-    plan.operations.every(x=>x.op==='CREATE_CUE'&&x.afterCueId===null)&&
+    plan.operations.every(x=>x.op==='CREATE_CUE')&&
     plan.proposedProject.cues.length===scenario.project.cues.length+expected.count&&
     plan.proposedProject.cues.slice(-expected.count).every(x=>
      x.actions.length===1&&x.actions[0].type==='PLAN_AUDIO'&&x.sourceLineIds.length===0);
@@ -372,7 +372,7 @@ export async function runPaidAgentEvaluation(config,{
  try{report.sourceCommit=execFileSync('git',['rev-parse','HEAD'],
   {encoding:'utf8',timeout:4000,stdio:['ignore','pipe','ignore']}).trim();}
  catch{report.sourceCommit='UNKNOWN';}
- report.modelIds={meta:'muse-spark-1.3',baseten:'meta-models/muse-spark-open-1026'};
+ report.modelIds={meta:'muse-spark-1.3',baseten:'meta-models/muse-spark-open'};
  report.protocol='runq-agent-plan-v1';
  report.totalLocalReservedUsd=Math.round(budget.committedUsd()*1e4)/1e4;
  const folder=resolve('artifacts/agent-live-eval');

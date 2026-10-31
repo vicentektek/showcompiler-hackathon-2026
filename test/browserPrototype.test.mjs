@@ -53,6 +53,12 @@ test('untrusted script and cue labels do not use innerHTML', () => {
   assert.match(client, /textContent/);
 });
 
+test('cue row details append their source and action labels as DOM nodes', () => {
+  assert.match(client, /const detail = node\('span', 'cue-row-meta'\);\s*detail\.append\(/);
+  assert.match(client, /node\('span', 'cue-row-source', cue\.sourceLineIds\.join/);
+  assert.doesNotMatch(client, /node\('span', 'cue-row-meta',\s*node\(/);
+});
+
 test('HTTP server serves only its allowlisted local resources with restrictive headers', async (t) => {
   const server = createAppServer();
   await new Promise((resolve, reject) => {
