@@ -75,8 +75,9 @@ try{
   await page.waitForFunction(()=>!['Checking engine','Comprobando conexión'].includes(document.querySelector('#engineBadge')?.textContent?.trim()),null,{timeout:4000});
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
+  await page.locator('details.sfx-offline-example').evaluate(el=>{el.open=true;});
   await page.locator('#demoAudioBtn').click();
-  await page.getByText('Synthetic test sound loaded locally.',{exact:false}).waitFor();
+  await page.getByText('Local audio example loaded.',{exact:false}).waitFor();
   assert.match(await page.locator('#audioName').innerText(),/NOT AI/);
   assert.equal(await page.locator('#playBtn').isEnabled(),true);
   assert.equal(await page.locator('#exportBtn').isDisabled(),true,'Offline demo WAV is not an accepted remote generation; it must not be exportable as an AI take');
@@ -125,6 +126,7 @@ try{
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('#assetList [data-sound-edit]').count(),3);
   await page.locator('[data-rq10-sound-tab="generate"]').click();
+  await page.locator('details.sfx-offline-example').evaluate(el=>{el.open=true;});
   await page.locator('#demoAudioBtn').click();
   await page.locator('#playBtn').click();
   assert.equal(await page.locator('#operatorGoBtn').isDisabled(),true,
