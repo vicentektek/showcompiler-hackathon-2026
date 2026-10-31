@@ -33,6 +33,8 @@ The remainder of the script, unrelated cues, the full media library, audio bytes
 
 The Studio agent is not shown in Rehearsal or Direct. Its optional AI action requires one explicit consent; the disclosure states the context categories and that no audio files are sent. The server validates any supplied workspace/mode/selected-cue metadata against design-mode allowlists and cue IDs before provider access. Local deterministic commands do not call a provider. Model output is a strict `PLAN`, `ANSWER`, or `CLARIFY`; operations are revalidated, previewed, explicitly selected/applied, and undoable. Provider responses never mutate the show or execute transport.
 
+Local requests mentioning **this cue / selected cue / cue seleccionado** resolve against the current stable selected cue ID. Voice-trigger requests naming one cue propose only that cue; missing targets, ambiguous numeric lists/ranges and absent selection clarify instead of silently widening to all cues. Explicit whole-show trigger proposals retain their existing behavior. Even scoped suggestions check trigger collisions against the entire original show.
+
 ### Script proposals, sound and voice
 
 - Theatre analysis proposes source-linked suggestions for human review; approval is a separate action and does not play audio (`src/core/theatreCueAnalysis.mjs`, `src/core/workspace.mjs`).

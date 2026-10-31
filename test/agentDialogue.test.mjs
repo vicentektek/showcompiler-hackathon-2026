@@ -4,6 +4,8 @@ import {createNewShow} from '../src/core/workspace.mjs';
 import {insertManualCue} from '../src/core/manualCues.mjs';
 import {resolveAgentDialogue,boundedAgentConversation} from '../src/core/agentDialogue.mjs';
 import {prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '../src/core/agentCore.mjs';
+import {normalizeShowProject} from '../src/core/projectPersistence.mjs';
+import {proposeAgentVoiceTriggers} from '../src/core/agentVoice.mjs';
 
 function show(){
  let p=createNewShow({name:'Last cue',scriptText:'ANA: Final musical phrase is here\n(Closing)'});
@@ -64,4 +66,53 @@ test('English count before adjective is not replaced by a default of three',()=>
  assert.equal(result.status,'PLAN');
  assert.equal(result.operations.length,2);
  assert.deepEqual(result.operations.map(x=>x.label),['Pending cue 1','Pending cue 2']);
+});
+
+function voiceShow(){
+ let p=createNewShow({name:'Scoped voice',scriptText:[
+  'ANA: Tonight we will begin the original performance',
+  '(Opening)',
+  'LUIS: The door must close before we leave this room',
+  '(Door)',
+  'ANA: This is our last chance to make a decision',
+  '(Decision)',
+ ].join('\n')});
+ for(const label of ['Opening','Door','Decision'])p=insertManualCue(p,{label}).project;
+ return normalizeShowProject({...p,cues:p.cues.map((cue,i)=>({...cue,sourceLineIds:['L'+(i*2+2)]}))});
+}
+test('ES/EN explicit voice target proposes only that cue, never the whole show',()=>{
+ const p=voiceShow();
+ for(const prompt of ['Propón pies de voz para el cue 2','Propose a spoken trigger for cue 2']){
+  const reply=resolveAgentDialogue(p,prompt);
+  assert.equal(reply.status,'PLAN',prompt);
+  assert.deepEqual(reply.operations.map(op=>op.cueId),[p.cues[1].id],prompt);
+ }
+ assert.equal(proposeAgentVoiceTriggers(p).operations.length,3,'Explicit whole-show operation remains available');
+});
+test('absent or ambiguous voice targets never widen to a whole-show batch',()=>{
+ const p=voiceShow();
+ for(const prompt of ['Propón pies de voz para el cue 99','Assign voice triggers to cues 1 and 2',
+  'Assign voice triggers to cue 1 and cue 2','Assign voice triggers to cue 1 and 2',
+  'Propón pies de voz para cue 1-3']){
+  const reply=resolveAgentDialogue(p,prompt);
+  assert.equal(reply.status,'CLARIFY',prompt);
+  assert.deepEqual(reply.operations,[]);
+ }
+});
+test('selected-cue commands resolve by stable identity and require actual context',()=>{
+ const p=voiceShow();
+ for(const prompt of ['Propón pies de voz para el cue seleccionado','Propose a spoken trigger for this cue']){
+  const reply=resolveAgentDialogue(p,prompt,{selectedCueId:p.cues[2].id});
+  assert.equal(reply.status,'PLAN');
+  assert.deepEqual(reply.operations.map(op=>op.cueId),[p.cues[2].id]);
+  assert.equal(resolveAgentDialogue(p,prompt).status,'CLARIFY');
+ }
+});
+test('scoped voice selection still checks collisions across the complete show',()=>{
+ const p=voiceShow(),first=proposeAgentVoiceTriggers(p).suggestions[0];
+ const colliding=normalizeShowProject({...p,cues:p.cues.map((cue,i)=>i===1?{...cue,trigger:first.trigger}:cue)});
+ const result=proposeAgentVoiceTriggers(colliding,{cueIds:[p.cues[0].id]});
+ assert.equal(result.operations.length,0);
+ assert.equal(result.skipped[0].reason,'AMBIGUOUS_TRIGGER');
+ assert.throws(()=>proposeAgentVoiceTriggers(p,{cueIds:['absent']}),/INVALID_VOICE_SCOPE/);
 });

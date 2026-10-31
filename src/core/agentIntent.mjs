@@ -4,10 +4,21 @@ import {proposeAgentVoiceTriggers} from './agentVoice.mjs';
 import {parseLocalCueChat} from './cueConversation.mjs';
 const normalize=t=>t.trim().replace(/\s+/g,' ');
 const cueRef=String.raw`(?:cue|q)\s*[#º°.:_-]?\s*(\d{1,5})`;
-export function interpretLocalAgentRequest(project,prompt,{assetAvailable=()=>null}={}){
+export function interpretLocalAgentRequest(project,prompt,{assetAvailable=()=>null,selectedCueId=null}={}){
  if(typeof prompt!=='string'||!prompt.trim()||prompt.length>1600)
   throw new TypeError('INVALID_AGENT_PROMPT');
- const text=normalize(prompt),lower=text.toLocaleLowerCase();
+ let text=normalize(prompt);
+ const spanish=/\b(?:prop[oó]n|pon|asigna|genera|seleccionado|este)\b/i.test(text);
+ const scopeMessage=(es,en)=>spanish?es:en;
+ const selectedRef=/\b(?:cue\s+seleccionado|selected\s+cue|this\s+cue|este\s+cue)\b/gi;
+ if(selectedRef.test(text)){
+  const selected=project.cues.find(cue=>cue.id===selectedCueId);
+  if(!selected)return {status:'CLARIFY',operations:[],message:scopeMessage(
+   'Selecciona un cue existente antes de solicitar cambios.',
+   'Select an existing cue before requesting selected-cue changes.')};
+  text=text.replace(selectedRef,'cue '+selected.number);
+ }
+ const lower=text.toLocaleLowerCase();
  const reply=(status,message,operations=[])=>({status,message,operations});
  if(/^(?:no|don't|do not|sin)\s/i.test(text))
   return reply('CLARIFY','Negative instructions require clarification; no changes were prepared.');
@@ -29,7 +40,14 @@ export function interpretLocalAgentRequest(project,prompt,{assetAvailable=()=>nu
  }
  if(/^(?:pon|asigna|genera|prop[oó]n|assign|generate|propose)\b/i.test(text)&&
     /(?:pies(?:\s+de\s+voz)?|triggers?|spoken\s+cues?|voice\s+triggers?)/i.test(text)){
-  const r=proposeAgentVoiceTriggers(project);
+  const refs=[...text.matchAll(new RegExp(cueRef,'ig'))];
+  if(refs.length>1||/\b(?:cues|qs)\s*[#º°.:_-]?\s*\d/i.test(text)||
+   new RegExp(cueRef+'\\s*(?:,|and|y|&|to|a|-)\\s*\\d','i').test(text))
+   return reply('CLARIFY',scopeMessage('Indica un cue o solicita todo el espectáculo.',
+    'Choose one cue or explicitly request the whole show.'));
+  const target=refs.length?resolveAgentCue(project,Number(refs[0][1])):null;
+  if(refs.length&&!target)return reply('CLARIFY',scopeMessage('Cue no encontrado.','Cue not found.'));
+  const r=proposeAgentVoiceTriggers(project,{cueIds:target?[target.id]:null});
   return r.operations.length?{...reply('PLAN',
    r.operations.length+' script-grounded spoken triggers proposed; '+r.skipped.length+' cues need manual review.',
    r.operations),evidence:r.suggestions,skipped:r.skipped}:

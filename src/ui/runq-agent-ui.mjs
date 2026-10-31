@@ -256,6 +256,7 @@ async function sendRequest(forceAI=false,custom=null){
   }else{
    reply=resolveAgentDialogue(s.project,instruction,{
     history:conversation,assetAvailable:id=>assetReady(id,s),
+    selectedCueId:s.selectedCueId??null,
     selectedAssetId:$('rqAgentSelectedSound').value||null});
   }
   // One-shot model permission, including error paths.

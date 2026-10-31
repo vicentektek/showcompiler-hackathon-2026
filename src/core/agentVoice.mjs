@@ -19,13 +19,17 @@ function dialogue(text){
  return {speaker,words,speech};
 }
 /** Pure, explainable alternatives. Verbatim words, never fabricated source anchors. */
-export function proposeAgentVoiceTriggers(project,{onlyMissing=true,max=MAX_VOICE_BATCH}={}){
+export function proposeAgentVoiceTriggers(project,{onlyMissing=true,max=MAX_VOICE_BATCH,cueIds=null}={}){
  const p=normalizeShowProject(project),lines=parseScript(p.scriptText);
  if(!Number.isInteger(max)||max<1||max>MAX_VOICE_BATCH)
   throw new TypeError('INVALID_VOICE_BATCH');
+ if(cueIds!==null&&(!Array.isArray(cueIds)||!cueIds.length||
+   new Set(cueIds).size!==cueIds.length||cueIds.some(id=>!p.cues.some(cue=>cue.id===id))))
+  throw new TypeError('INVALID_VOICE_SCOPE');
  const used=p.cues.filter(c=>c.trigger?.trim()).map(c=>({id:c.id,text:c.trigger}));
  const selected=[],skipped=[];
  for(const cue of p.cues){
+  if(cueIds!==null&&!cueIds.includes(cue.id))continue;
   if(onlyMissing&&cue.trigger?.trim())continue;
   if(selected.length>=max){skipped.push({cueId:cue.id,reason:'BATCH_LIMIT'});continue;}
   const anchors=cue.sourceLineIds.map(sourceIndex).filter(Boolean);

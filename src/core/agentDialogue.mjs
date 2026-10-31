@@ -34,7 +34,7 @@ function boundedHistory(raw){
  return raw.slice(-8).filter(x=>x&&['user','assistant'].includes(x.role)&&
   typeof x.text==='string').map(x=>({role:x.role,text:sanitize(x.text)}));
 }
-export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=()=>null,selectedAssetId=null}={}){
+export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=()=>null,selectedAssetId=null,selectedCueId=null}={}){
  const show=normalizeShowProject(project);
  if(typeof prompt!=='string'||!prompt.trim()||prompt.length>1600)
   throw new TypeError('INVALID_AGENT_PROMPT');
@@ -43,7 +43,7 @@ export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=(
  if(hero)return hero;
  // Voice triggers are a separate guarded tool, never new empty closing cues.
  if(/(?:pies\s+(?:de\s+)?voz|spoken\s+triggers?|voice\s+triggers?)/i.test(request))
-  return interpretLocalAgentRequest(show,request,{assetAvailable});
+  return interpretLocalAgentRequest(show,request,{assetAvailable,selectedCueId});
  const locale=/\b(?:add|create|append|insert|end|closing|whatever|appropriate)\b/i.test(request)?'en':'es';
  const spanish=locale==='es';
  const previous=prior.filter(x=>x.role==='user').slice(-3).reverse()
@@ -95,7 +95,7 @@ export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=(
     'Names are creative suggestions, not claims from the script. No audio or spoken trigger is assigned.')),
    basis:'CREATIVE_OPERATOR_PROPOSAL',reversible:true};
  }
- return interpretLocalAgentRequest(show,request,{assetAvailable});
+ return interpretLocalAgentRequest(show,request,{assetAvailable,selectedCueId});
 }
 /** Only bounded, sanitized conversation turns may leave the browser after consent. */
 export function boundedAgentConversation(history){

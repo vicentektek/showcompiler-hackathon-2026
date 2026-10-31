@@ -92,6 +92,13 @@ try{
  assert.equal(await page.locator('#rqAgentMessages').textContent(),conversation,'Docking preserves the conversation');
  assert.equal(agentRequests.length,1,'Entering main AI does not submit a provider request');
  assert.equal(await prepared(),before);
+ await page.locator('#rqAgentPrompt').fill('Propón pies de voz para el cue seleccionado');
+ await page.locator('#rqAgentSubmit').click();
+ await page.locator('#rqAgentApply').waitFor({state:'visible'});
+ assert.equal(await page.locator('#rqAgentOps input').count(),1,
+  'Selected-cue voice request must never prepare a whole-show batch');
+ assert.equal(agentRequests.length,1,'Explicit selected-cue planning stays local');
+ await page.locator('#rqAgentProposal').locator('button').last().click();
  await page.locator('#rqAgentPrompt').fill('Pon pies de voz coherentes a todos los cues');
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentApply').waitFor({state:'visible'});
