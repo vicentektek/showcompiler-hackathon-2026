@@ -41,10 +41,12 @@ export function interpretLocalAgentRequest(project,prompt,{assetAvailable=()=>nu
  if(/^(?:pon|asigna|genera|prop[oó]n|assign|generate|propose)\b/i.test(text)&&
     /(?:pies(?:\s+de\s+voz)?|triggers?|spoken\s+cues?|voice\s+triggers?)/i.test(text)){
   const refs=[...text.matchAll(new RegExp(cueRef,'ig'))];
-  if(refs.length>1||/\b(?:cues|qs)\s*[#º°.:_-]?\s*\d/i.test(text)||
-   new RegExp(cueRef+'\\s*(?:,|and|y|&|to|a|-)\\s*\\d','i').test(text))
-   return reply('CLARIFY',scopeMessage('Indica un cue o solicita todo el espectáculo.',
-    'Choose one cue or explicitly request the whole show.'));
+  const scopeText=text.replace(/\b(?:all|every|each|todos?(?:\s+los)?|cada)\s+(?:cues?|qs?)\b/gi,'');
+  if(refs.length>1||(!refs.length&&/\b(?:cues?|qs?)\b/i.test(scopeText))||
+    /\b(?:cues|qs)\s*[#º°.:_-]?\s*\d/i.test(text)||
+    new RegExp(cueRef+'\\s*(?:,|and|y|&|to|a|-)\\s*\\S','i').test(text))
+   return reply('CLARIFY',scopeMessage('Indica un cue por su número visible, usa el cue seleccionado o solicita todo el espectáculo.',
+    'Choose one cue by visible number, use the selected cue, or explicitly request the whole show.'));
   const target=refs.length?resolveAgentCue(project,Number(refs[0][1])):null;
   if(refs.length&&!target)return reply('CLARIFY',scopeMessage('Cue no encontrado.','Cue not found.'));
   const r=proposeAgentVoiceTriggers(project,{cueIds:target?[target.id]:null});

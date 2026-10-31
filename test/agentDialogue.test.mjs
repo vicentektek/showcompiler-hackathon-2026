@@ -88,12 +88,19 @@ test('ES/EN explicit voice target proposes only that cue, never the whole show',
   assert.deepEqual(reply.operations.map(op=>op.cueId),[p.cues[1].id],prompt);
  }
  assert.equal(proposeAgentVoiceTriggers(p).operations.length,3,'Explicit whole-show operation remains available');
+ for(const prompt of ['Assign voice triggers to all cues','Propón pies de voz para todos los cues',
+  'Assign voice triggers to every cue','Propón pies de voz para cada cue']){
+  assert.equal(resolveAgentDialogue(p,prompt).operations.length,3);
+ }
 });
 test('absent or ambiguous voice targets never widen to a whole-show batch',()=>{
  const p=voiceShow();
  for(const prompt of ['Propón pies de voz para el cue 99','Assign voice triggers to cues 1 and 2',
   'Assign voice triggers to cue 1 and cue 2','Assign voice triggers to cue 1 and 2',
-  'Propón pies de voz para cue 1-3']){
+  'Propón pies de voz para cue 1-3','Propose a spoken trigger for cue two',
+  'Propón pies de voz para cue dos','Propose a spoken trigger for cue Door',
+  'Assign voice triggers to cues two and three','Assign voice triggers to cue 1 and two',
+  'Propose cue Door spoken triggers','Propose cues two and three voice triggers']){
   const reply=resolveAgentDialogue(p,prompt);
   assert.equal(reply.status,'CLARIFY',prompt);
   assert.deepEqual(reply.operations,[]);

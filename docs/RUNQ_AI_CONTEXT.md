@@ -39,6 +39,8 @@ The main Agent and contextual drawer now share a visible **selected cue / origin
 
 Sound-advice actions remain attached to their local conversation turn across follow-up questions. Opening one only prepares the Sound Lab prompt; generation has separate explicit spend/review controls. The action is bound to the show generation and exact cue snapshot and rejects stale advice after cue edits. These local action records/snapshots are never included in the bounded provider conversation.
 
+Local voice proposals use visible numeric cue references or the actual selected cue. Unrecognized references such as `cue two`, `cue dos`, cue labels or abbreviated mixed lists clarify instead of silently widening to the whole show. `all cues` / `every cue` / `todos los cues` / `cada cue` retain explicit whole-show behavior. The configured English Hero instruction has its own documented spoken-number grammar; this does not imply general spoken-number or label support in every command.
+
 ### Script proposals, sound and voice
 
 - Theatre analysis proposes source-linked suggestions for human review; approval is a separate action and does not play audio (`src/core/theatreCueAnalysis.mjs`, `src/core/workspace.mjs`).
