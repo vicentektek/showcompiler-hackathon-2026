@@ -33,5 +33,21 @@ It needs a local `.env` (see `.env.example`: `RUNQ_SFX_PILOT_ENABLED=1`, Modal e
 ## Verification
 `npm run check:syntax`, `npm test` (624 pass), `npm run test:interface` (all PASS, includes drag/persist/reset and drawer), `node tools/browser-e2e.mjs` (BROWSER_SMOKE_OK).
 
+## Approved reference version and how to recover it
+The operator approved this interface as the stable reference for future work.
+- Tag (annotated): `runq-interface-approved-2026-10-31`, on the commit that adds this section (child of `3c62e2d`, the last code/docs commit before the tag).
+- Branch: `feat/runq-interface-rework-2026-10-31`.
+- Pre-rework backup (local branch, not pushed): `backup/interface-before-rework-2026-10-31`.
+
+Recover exactly this version:
+```
+git fetch origin --tags
+git switch --detach runq-interface-approved-2026-10-31      # read-only inspection
+git switch -c work/from-approved-interface runq-interface-approved-2026-10-31   # to continue developing
+```
+Verify: `git describe --tags` and then `npm run check:syntax`, `npm test`, `npm run test:interface`, `node tools/browser-e2e.mjs`.
+Restore a single file from it: `git restore --source=runq-interface-approved-2026-10-31 -- <path>`.
+Never move or re-create the tag; make a new tag for later approved versions. This tag is a reference point, not a release, and `main` is untouched.
+
 ## Not verified
 Real audio output by ear, Spanish locale and very small viewports for the newest Live additions, hardware/multichannel. No professional live-show certification is claimed.
