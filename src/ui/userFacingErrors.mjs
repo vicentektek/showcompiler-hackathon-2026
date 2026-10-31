@@ -28,6 +28,7 @@ const MESSAGES = Object.freeze({
   HTTP_429: ['The AI service is busy or a usage limit has been reached. Try again later.', 'El servicio de IA está ocupado o se ha alcanzado un límite de uso. Inténtalo más tarde.'],
   NETWORK: ['Cannot reach the AI service. Check your connection.', 'No se puede conectar con el servicio de IA. Comprueba la conexión.'],
   AUDIO_FILE: ['This audio file could not be opened. Try another supported WAV.', 'No se ha podido abrir el audio. Prueba otro WAV compatible.'],
+  SOUND_GENERIC: ['The sound action could not be completed. If you just started generation, check its status before trying again.', 'No se ha podido completar la operación de sonido. Si acabas de generar, comprueba su estado antes de reintentar.'],
   GENERIC: ['This action could not be completed. Your show has not changed.', 'No se ha podido completar la acción. El espectáculo no ha cambiado.']
 });
 export function userFacingError(error, locale='en', area='ai') {
@@ -41,6 +42,6 @@ export function userFacingError(error, locale='en', area='ai') {
     else if (/(?:WAV|AUDIO).*(?:DECOD|CHANNEL|MB|SIZE|UNSUPPORTED|CORRUPT)/i.test(raw)) resolved='AUDIO_FILE';
     else if (/^(?:SFX_|META_|AGENT_|MODEL_API_KEY)/i.test(raw)) resolved='GENERIC';
   }
-  if (!resolved) resolved = area==='audio' ? 'AUDIO_FILE' : 'GENERIC';
+  if (!resolved) resolved = area==='audio' ? 'AUDIO_FILE' : area==='sound' ? 'SOUND_GENERIC' : 'GENERIC';
   return MESSAGES[resolved][locale==='es'?1:0];
 }
