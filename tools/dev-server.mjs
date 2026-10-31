@@ -44,6 +44,7 @@ export async function loadLocalSfxEnvironment({ filePath = join(projectRoot,'.en
 
 const allowed = new Map([
   ['/src/ui/runq-interface.css', ['src/ui/runq-interface.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-desktop.css', ['src/ui/runq-desktop.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-interface.mjs', ['src/ui/runq-interface.mjs', 'text/javascript; charset=utf-8']],
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],

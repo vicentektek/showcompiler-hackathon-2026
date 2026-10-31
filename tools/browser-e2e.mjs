@@ -79,7 +79,7 @@ try {
   assert.equal(await page.locator('.shell').getAttribute('data-rq14-surface'),'studio');
   assert.equal(await page.locator('#rq8Identity').count(),1);
   const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
-  assert.equal(studioColor,'rgb(16, 18, 22)','The interface uses the graphite Studio canvas');
+  assert.equal(studioColor,'rgb(23, 24, 26)','The interface uses the graphite Studio canvas');
   assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
     'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.
@@ -118,8 +118,8 @@ try {
   await capture('01-home-1366.png');
   const railBounds = await page.locator('.workspace-nav').boundingBox();
   const contentBounds = await page.locator('main').boundingBox();
-  assert.ok(railBounds && contentBounds && contentBounds.x > railBounds.x + railBounds.width - 2,
-    'Desktop workspace rail is beside, not above, the editor');
+  assert.ok(railBounds && contentBounds && contentBounds.y >= railBounds.y + railBounds.height - 2,
+    'Desktop page bar sits above the workspace like a software tab strip');
   await page.locator('.runq-menu').nth(2).locator('summary').click();
   await page.locator('.runq-menu').nth(2).locator('button').filter({hasText:'Script'}).click();
   assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-pressed'),'true');
