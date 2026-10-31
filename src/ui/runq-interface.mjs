@@ -14,7 +14,7 @@ function mount(){
     cues:['Studio','Studio','Da forma a la secuencia. Cada detalle, en su sitio.','Shape the sequence. Every detail in its place.'],
     script:['Guion','Script','El texto original, conectado a tus cues.','The original text, connected to your cues.'],
     audio:['Sonido','Sound','Encuentra, crea y prepara el sonido de tu espectáculo.','Find, create and prepare the sound of your show.'],
-    ai:['Propuestas IA','AI proposals','Explora ideas. Revisa y decide qué incorporar.','Explore ideas. Review and choose what to keep.'],
+    ai:['RUNQ AI','RUNQ AI','Explora ideas. Revisa y decide qué incorporar.','Explore ideas. Review and choose what to keep.'],
     setup:['Configuración','Setup','Ajusta los dispositivos y preferencias locales.','Configure devices and local preferences.'],
     preflight:['Comprobación','Preflight','Comprueba cues y medios de este espectáculo.','Check this show’s cues and media.'],
     rehearsal:['Ensayo','Rehearsal','Guion, voz y secuencia. Tú llevas el control.','Script, voice and sequence. You are in control.'],

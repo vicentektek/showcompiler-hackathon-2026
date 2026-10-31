@@ -5,12 +5,20 @@ Rolling state report for resuming the current work; not a claim that the full sp
 ## Repository
 
 - Branch: `feat/runq-ai-context-hardening-2026-10-31`
-- HEAD: `b2d08531616b50a64aebba75856ac2d1b7428d35` (changes are currently uncommitted)
+- Validated checkpoints: `143bd86` (context), `53e4047` (Rehearsal), `cd7d40d` (Last GO/Hero). The latest main-AI-workspace block is validated for its next coherent commit; consult `git log` for current HEAD.
 - Parent product work: verified RUNQ interface/Setup checkpoint; integrated portable-demo branch is an ancestor and exists in a separate worktree.
 - Pre-existing local file: `respaldo-runq-cambios.patch` is untracked and untouched. Do not stage it.
 - Initial full backup and targeted pre-edit backups: see `docs/RUNQ_AUTONOMOUS_SPRINT_2026-10-31.md`; all created outside Git and SHA-256 verified.
 
 ## Current change
+
+Latest state at 11:40: The Last GO and reviewed Hero cue creation are integrated, with reproducible original WAVs, save/export/reopen and real browser-engine playback. Rehearsal has a visible shared Assist/Autopilot selector and corrected labels. RUNQ AI is now a principal two-column workspace using the same contextual Agent instance; history, selected operations and provider/manual proposal forms are preserved. No network or automatic GO is added by navigation.
+
+Current gates: `npm run qa:codex` passed syntax and **650/650** offline tests. Interface, Agent, Last GO, expanded Rehearsal and general browser E2E passed. Last GO speech events are injected; this is not a real microphone/ASR or physical acoustic measurement. Before/after screenshots for six workspaces are local session evidence, excluded from Git.
+
+Next task: explicit dictated Agent editing and late-result cancellation. Paid provider campaigns remain operator-run under effective project restrictions; Baseten is excluded. Physical ASR/audio validation and Windows packaging still require separate evidence. No push, CI run or merge has been performed, so there is no new CI URL.
+
+### Earlier context-hardening block (historical)
 
 AI context hardening across the single-cue conversational editor and Studio Agent. The editor sends only bounded selected-cue data, linked script references, a small scene excerpt and linked audio titles after explicit one-shot consent; the Studio Agent now receives active design workspace/mode/selected cue identity, and its disclosure describes the bounded show context. The duplicate Cue Editor AI shortcut that was hidden by CSS was removed; the original visible editor remains the single entry point.
 
@@ -30,6 +38,6 @@ Changed code/test paths: `src/core/agentCore.mjs`, `src/core/cueConversation.mjs
 
 ## Resume order
 
-1. Rerun the interface browser suite after final code changes and do one final diff/status check.
+1. Continue explicit dictated editing and cancellation checks, then remaining Library/Live and candidate-release work.
 2. Keep generated QA reports local/ignored and the untracked patch intact.
 3. Continue only with bounded, verified tasks; use a human for hardware/acoustic acceptance. Do not run paid models, merge, or claim hardware acceptance.

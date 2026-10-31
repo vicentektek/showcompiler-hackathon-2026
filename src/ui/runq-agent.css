@@ -60,3 +60,36 @@
 .rq-agent-ai-options .rq-agent-provider{margin:8px 0 10px}
 .rq-agent-ai-options .rq-agent-consent{margin-top:5px}
 .rq-agent-ai-options:focus-within{border-color:#9ea988}
+
+.rq-agent-selected-sound{display:flex;flex-direction:column;gap:5px;font-size:11px}
+.rq-agent-selected-sound select{width:100%;min-width:0;min-height:32px}
+.rq-agent-workspace{min-width:0;margin:16px 0 24px}
+#rqAgentWorkspace #rqAgentDrawer{
+ position:static!important;width:100%!important;max-width:none!important;
+ height:clamp(460px,62vh,680px);min-height:460px;
+ display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.9fr);
+ grid-template-rows:auto minmax(120px,1fr) auto;
+ border-radius:8px!important;box-shadow:none!important;
+}
+#rqAgentWorkspace .rq-agent-head{grid-column:1/-1;background:#1e2a21!important}
+#rqAgentWorkspace .rq-agent-title strong{font-size:20px!important;letter-spacing:0!important}
+#rqAgentWorkspace .rq-agent-messages{
+ grid-column:1;grid-row:2;min-height:0;background:#131914!important;
+}
+#rqAgentWorkspace .rq-agent-compose{
+ grid-column:2;grid-row:2/4;min-width:0;overflow:auto;
+ background:#1a211a!important;border-left:1px solid #414c3c;
+}
+#rqAgentWorkspace .rq-agent-proposal{
+ grid-column:1;grid-row:3;max-height:260px!important;min-width:0;
+}
+#rqAgentWorkspace #rqAgentPrompt{min-height:110px!important}
+#rqAgentWorkspace #rqAgentClose[hidden]{display:none!important}
+@media(max-width:900px){
+ #rqAgentWorkspace #rqAgentDrawer{
+  display:flex;height:auto;min-height:0;overflow:visible;
+ }
+ #rqAgentWorkspace .rq-agent-messages{min-height:130px;max-height:260px}
+ #rqAgentWorkspace .rq-agent-compose{overflow:visible;border-left:0}
+ #rqAgentWorkspace .rq-agent-proposal{max-height:360px!important}
+}

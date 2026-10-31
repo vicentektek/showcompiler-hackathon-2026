@@ -132,6 +132,14 @@ try {
     for(const name of ['home','cues','script','audio','ai','setup','preflight','rehearsal','operation']){
       await route(name);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,`${name}: no page overflow at ${size.width}`);
+      if(name==='ai'){
+        assert.equal(await page.locator('#rqAgentWorkspace #rqAgentDrawer').count(),1);
+        assert.equal(await page.locator('#rqAgentDrawer').count(),1);
+        const prompt=await page.locator('#rqAgentPrompt').boundingBox();
+        assert.ok(prompt&&prompt.width>=240,`Main AI composer usable at ${size.width}`);
+        assert.equal(await page.locator('#rqAgentSubmit').isVisible(),true);
+        assert.equal(await page.locator('#proposalList').count(),1,'Proposal review remains available');
+      }
       if(['cues','rehearsal','operation'].includes(name)){
         assert.ok(await page.locator('#operatorGoBtn').isVisible());
         assert.ok(await page.locator('#operatorPanicBtn').isVisible());

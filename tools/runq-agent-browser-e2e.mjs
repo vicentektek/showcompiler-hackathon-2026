@@ -77,6 +77,21 @@ try{
   await mkdir('artifacts/runq-ui',{recursive:true});
   await page.screenshot({path:'artifacts/runq-ui/runq-v15-agent-studio.png'});
  }
+ const conversation=await page.locator('#rqAgentMessages').textContent();
+ const prepared=()=>page.evaluate(()=>{
+  let id;
+  document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:value=>{id=value.preparedCueId;}}}));
+  return id;
+ });
+ const before=await prepared();
+ await page.locator('[data-workspace-nav="ai"]').click();
+ assert.equal(await page.locator('#rqAgentWorkspace #rqAgentDrawer').count(),1);
+ assert.equal(await page.locator('#rqAgentDrawer').count(),1,'Main AI uses the existing agent instance');
+ assert.equal(await page.locator('#rqAgentDrawer').evaluate(element=>getComputedStyle(element).position),'static');
+ assert.equal(await page.locator('#rqAgentClose').isVisible(),false);
+ assert.equal(await page.locator('#rqAgentMessages').textContent(),conversation,'Docking preserves the conversation');
+ assert.equal(agentRequests.length,1,'Entering main AI does not submit a provider request');
+ assert.equal(await prepared(),before);
  await page.locator('#rqAgentPrompt').fill('Pon pies de voz coherentes a todos los cues');
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentApply').waitFor({state:'visible'});
@@ -84,6 +99,10 @@ try{
  await page.locator('#rqAgentOps input').first().uncheck();
  assert.equal(await page.locator('#rqAgentDiff li').count(),1,
   'Selective approval previews only the checked operation');
+ await page.locator('[data-workspace-nav="cues"]').click();
+ assert.equal(await page.locator('#rqAgentDrawer').isVisible(),false,'Leaving main AI does not leave an overlay open');
+ await page.locator('#rqAgentToggle').click();
+ assert.equal(await page.locator('#rqAgentDiff li').count(),1,'Contextual agent preserves the same reviewed proposal');
  const read=()=>page.evaluate(()=>{
   let snapshot;
   document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{snapshot=value;}}}));

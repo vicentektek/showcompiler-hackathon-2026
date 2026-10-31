@@ -59,3 +59,14 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - Integral Chrome test passed: original script, Hero preview/apply/undo, four cues and three WAVs after save/reload/reopen, armed synthetic speech jump/rewind, real browser WAV instances, manual Live GO and STOP ALL.
 - `npm run qa:codex`: 650/650 tests passed; Agent, interface and Last GO browser gates passed. Live ASR, acoustic/hardware output and dictated editing are still separate acceptance items; no paid calls were made.
 - Next independent product block: make RUNQ AI a functional main workspace instead of only a floating drawer, using the approved Studio/Script hierarchy and real existing controls.
+
+## 11:32 - 11:40 - RUNQ AI main workspace and visual/browser evidence
+
+- Preserved The Last GO/Hero integration in commit `cd7d40d`; continuing the sprint.
+- External backup `RUNQ-QA-Backups/pre-ai-main-workspace-20261031-113221`: five UI/test surfaces plus four navigation/locale files, SHA-256 verified. Captured the actual Last GO show before/after in Studio, AI, Sound, Script, Rehearsal and Live; screenshots remain session-local.
+- RUNQ AI now docks the existing project Agent in the main workspace: conversation and review on the left, explicit command/audio selection/permissions on the right. Navigation and headings consistently name RUNQ AI. Existing source-linked proposal review and provider/manual forms remain below, with their IDs/listeners preserved.
+- There is only one Agent instance. Dock/undock preserves history and checked operations; leaving AI closes the contextual overlay rather than covering another workspace. Rehearsal/Live remain isolated. Entering AI neither submits a request nor changes prepared GO.
+- Expanded Agent browser coverage verifies main-workspace planning, preserved selective review and conversation, static docking, unique IDs and no new provider submission. Expanded interface coverage verifies usable composer width, original proposal review and no overflow at 1920, 1440, 1093 and 768 pixels.
+- `npm run qa:codex`: syntax, 650/650 tests and offline cue/seminar contracts passed. `npm run test:interface`, `node tools/runq-agent-browser-e2e.mjs`, `npm run test:last-go`, `node tools/rehearsal-auto-browser-e2e.mjs` and `node tools/browser-e2e.mjs` passed.
+- One validation invocation used an absent `test:browser` script; corrected to the repository's actual direct browser command above. No dependency/tooling change was needed.
+- Next independent P0: explicit dictated Agent editing and cancellation of late voice/AI results, without automatic submission, apply or playback.

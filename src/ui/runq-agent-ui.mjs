@@ -139,6 +139,15 @@ function sync(){
  }
  const blocked=['rehearsal','operation'].includes(s.workspace);
  button.hidden=blocked;
+ const drawer=$('rqAgentDrawer'),host=$('rqAgentWorkspace');
+ const docked=s.workspace==='ai'&&host;
+ if(docked){
+  if(drawer.parentElement!==host)host.append(drawer);
+  drawer.hidden=false;button.setAttribute('aria-expanded','true');
+ }else if(host&&drawer.parentElement===host){
+  document.body.append(drawer);close();
+ }
+ $('rqAgentClose').hidden=Boolean(docked);
  const undoControl=$('rqAgentUndo');
  if(undoControl)undoControl.disabled=!s.undoAvailable||!s.canApply;
  if(blocked)close();
@@ -150,10 +159,14 @@ function sync(){
 }
 function positionDrawer(){
  const drawer=$('rqAgentDrawer');if(!drawer)return;
+ if(drawer.parentElement===$('rqAgentWorkspace'))return;
  const barBottom=document.querySelector('.topbar')?.getBoundingClientRect().bottom??70;
  drawer.style.top=Math.max(55,Math.min(window.innerHeight-160,barBottom+10))+'px';
 }
 function close(){
+ if(state()?.workspace==='ai'){
+  $('rqAgentPrompt')?.focus();return;
+ }
  $('rqAgentDrawer').hidden=true;
  $('rqAgentToggle')?.setAttribute('aria-expanded','false');
 }
@@ -299,8 +312,9 @@ function mount(){
  const head=make('header','rq-agent-head');
  const title=make('div','rq-agent-title');
  title.append(make('strong','','RUNQ AI · '+lang('Asistente global','Project agent')),
-  make('small','',lang('Solo Studio · Ningún GO automático','Studio only · No automatic GO')));
+  make('small','',lang('Solo diseño y revisión · Ningún GO automático','Design and review only · No automatic GO')));
  const closeBtn=make('button','btn subtle small','×');
+ closeBtn.id='rqAgentClose';
  closeBtn.type='button';closeBtn.setAttribute('aria-label',lang('Cerrar agente','Close agent'));
  head.append(title,closeBtn);
  const messages=make('div','rq-agent-messages');messages.id='rqAgentMessages';
