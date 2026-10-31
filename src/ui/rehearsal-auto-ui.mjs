@@ -31,6 +31,17 @@ function display(){
  const button=$('rqLiveArm'),mode=$('rqLiveMode').value;
  const auto=mode==='auto';
  button.hidden=!auto;
+ const quick=$('rqLiveAutoStart');
+ if(quick){
+  const starting=!listening&&$('rqLiveStart').disabled;
+  quick.disabled=starting||busy;
+  quick.dataset.state=starting?'starting':armed?'running':listening?'needs-arm':'idle';
+  quick.textContent=starting?t('Connecting microphone…','Conectando micrófono…'):
+   armed?t('■ STOP AUTOPILOT','■ DETENER AUTOPILOTO'):
+   listening&&auto?t('ARM AUTOPILOT','ARMAR AUTOPILOTO'):
+   listening?t('■ STOP LISTENING','■ DETENER ESCUCHA'):
+   auto?t('▶ START AUTOPILOT','▶ INICIAR AUTOPILOTO'):t('▶ START LISTENING','▶ EMPEZAR A ESCUCHAR');
+ }
  $('rqLivePanicBtn').hidden=!auto;
  $('rqLiveArmStatus').hidden=!auto;
  $('rqLiveAutoHelp').hidden=!auto;
@@ -64,28 +75,42 @@ function disarm(reason='operator'){
  if(armed)log(t('Disarmed: ','Desarmado: ')+reason);
  armed=false;epoch++;persistentWarning='';display();
 }
+// The operator confirms once per listening session; re-arming after a manual
+// disarm does not repeat the warning.
+let confirmedThisSession=false;
+// Set by the one-click START AUTOPILOT button; consumed by the next ready event.
+let pendingQuickArm=null;
+function confirmAutoPlay(){
+ if(confirmedThisSession)return true;
+ confirmedThisSession=window.confirm(t(
+  'REHEARSAL ONLY: allow voice-recognized cues to start SHOW AUDIO automatically? Cues may repeat, rewind and jump. No intermediate cues will play. STOP ALL disarms.',
+  'SOLO ENSAYO: ¿permitir que los pies reconocidos disparen AUDIO DEL SHOW automáticamente? Se podrán repetir cues, retroceder o saltar. Los cues intermedios NO sonarán. PARAR TODO desarma.'
+ ));
+ return confirmedThisSession;
+}
+function unlockAudio(){
+ // Dispatch synchronously within the operator click; Chrome can unlock the
+ // Web Audio output only during user activation, not when ASR arrives later.
+ return new Promise(resolve=>{
+  document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-arm-audio',{
+   detail:{respond:resolve},
+  }));
+ });
+}
 async function arm(){
  if(armed){disarm('operator');return;}
  if(!listening||busy||$('rqLiveMode').value!=='auto')return;
  const show=currentShow();
  if(!scenario||key(show)!==fingerprint){disarm('show changed');return;}
- const accepted=window.confirm(t(
-  'REHEARSAL ONLY: allow voice-recognized cues to start SHOW AUDIO automatically? Cues may repeat, rewind and jump. No intermediate cues will play. STOP ALL disarms.',
-  'SOLO ENSAYO: ¿permitir que los pies reconocidos disparen AUDIO DEL SHOW automáticamente? Se podrán repetir cues, retroceder o saltar. Los cues intermedios NO sonarán. PARAR TODO desarma.'
- ));
- if(!accepted)return;
- // Dispatch synchronously within the operator click; Chrome can unlock the
- // Web Audio output only during user activation, not when ASR arrives later.
+ if(!confirmAutoPlay())return;
+ await completeArm(unlockAudio());
+}
+async function completeArm(unlocked){
  const armEpoch=epoch;
- const unlocked=new Promise(resolve=>{
-  document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-arm-audio',{
-   detail:{respond:resolve},
-  }));
- });
  busy=true;display();
  const result=await unlocked;
  busy=false;
- if(epoch!==armEpoch||!listening||$('rqLiveMode').value!=='auto')return;
+ if(epoch!==armEpoch||!listening||$('rqLiveMode').value!=='auto'){display();return;}
  if(!result?.ok){
   persistentWarning=t('Cannot arm audio: ','No se puede armar audio: ')+(result?.reason??'OUTPUT_ERROR');
   display();
@@ -151,8 +176,32 @@ function ready(){
  log(scenario?t('Loaded cue triggers: ','Pies de voz disponibles: ')+scenario.cues.length:
   t('No valid spoken cue triggers configured','No hay pies hablados configurados'));
  display();
+ const quick=pendingQuickArm;pendingQuickArm=null;
+ if(quick&&Date.now()<quick.expires&&scenario&&$('rqLiveMode').value==='auto')void completeArm(quick.unlocked);
 }
-async function finalTurn(detail){
+function quickStart(){
+ if(listening){
+  if(armed||$('rqLiveMode').value!=='auto')$('rqLiveStop').click();
+  else void arm();
+  return;
+ }
+ const auto=$('rqLiveMode').value==='auto';
+ // One dialog covers both the microphone upload and, in autopilot mode, playback.
+ if(!confirmedThisSession){
+  confirmedThisSession=window.confirm(auto?t(
+   'REHEARSAL ONLY. This will (1) send your microphone audio to Meta Muse for up to 3 minutes and (2) let recognized cues start SHOW AUDIO automatically. Cues may repeat, rewind or jump. STOP ALL disarms. Continue?',
+   'SOLO ENSAYO. Esto (1) enviará el audio del micrófono a Meta Muse hasta 3 minutos y (2) permitirá que los pies reconocidos disparen AUDIO DEL SHOW automáticamente. Pueden repetirse, retroceder o saltar. PARAR TODO desarma. ¿Continuar?'
+  ):t(
+   'This will send your microphone audio to Meta Muse for up to 3 minutes to suggest cues. Nothing plays automatically. Continue?',
+   'Esto enviará el audio del micrófono a Meta Muse hasta 3 minutos para sugerir cues. Nada se reproduce automáticamente. ¿Continuar?'
+  ));
+ }
+ if(!confirmedThisSession)return;
+ $('rqLiveConsent').checked=true;
+ persistentWarning='';
+ pendingQuickArm=auto?{unlocked:unlockAudio(),expires:Date.now()+60000}:null;
+ $('rqLiveStart').click();
+}async function finalTurn(detail){
  if(!armed||!listening||busy)return;
  if(key(currentShow())!==fingerprint){
   disarm('show changed');
@@ -187,6 +236,12 @@ async function finalTurn(detail){
  busy=false;
  if(!armed||run!==epoch)return;
  if(!outcome?.ok){
+  // Nothing was started for these reasons, so stay armed for the next phrase.
+  const benign=['NOT_ARMED_OR_BUSY','TRANSPORT_BUSY','AUDIO_NOT_READY','UNKNOWN_CUE'];
+  if(benign.includes(outcome?.reason)){
+   const skipped=t('Cue skipped (not started): ','Cue omitido (no iniciado): ')+outcome.reason;
+   $('rqLiveCue').textContent=skipped;log(skipped);return;
+  }
   disarm(outcome?.reason??'GO_FAILED');
   status('GO failed. Autopilot disarmed: '+(outcome?.reason??''),
    'GO fallido. Autopiloto desarmado: '+(outcome?.reason??''));
@@ -213,6 +268,8 @@ async function finalTurn(detail){
 function mount(){
  if(!$('rqLiveMode'))return;
  $('rqLiveArm').addEventListener('click',()=>void arm());
+ $('rqLiveAutoStart')?.addEventListener('click',quickStart);
+ new MutationObserver(display).observe($('rqLiveStart'),{attributes:true,attributeFilter:['disabled']});
  $('rqLivePanicBtn').addEventListener('click',()=>{
   const emergency=$('stopAllBtn');
   if(emergency){emergency.click();disarm('STOP ALL');}
@@ -221,6 +278,7 @@ function mount(){
     'PARAR TODO no disponible · usa la parada de emergencia de Operación');}
  });
  $('rqLiveMode').addEventListener('change',()=>{
+  pendingQuickArm=null;
   disarm('mode changed');
   $('rqLiveCue').textContent=$('rqLiveMode').value==='auto'
    ?t('Autopilot disarmed. Start listening, then ARM.','Autopiloto desarmado. Inicia escucha y después ARMA.')
@@ -228,7 +286,9 @@ function mount(){
   localized();
  });
  document.addEventListener('runq:voice-live-ready',ready);
- document.addEventListener('runq:voice-live-stopping',()=>{listening=false;disarm('microphone stopped');});
+ document.addEventListener('runq:voice-live-stopping',()=>{
+  listening=false;pendingQuickArm=null;confirmedThisSession=false;disarm('microphone stopped');
+ });
  document.addEventListener('runq:rehearsal-auto-disarm',event=>disarm(event.detail?.reason??'operator'));
  document.addEventListener('runq:voice-live-final',event=>{
   if(!armed)return;
@@ -237,6 +297,7 @@ function mount(){
  });
  $('rqLiveFocus').addEventListener('change',()=>disarm('focus changed'));
  $('uiLocaleSelect')?.addEventListener('change',localized);
+ document.addEventListener('runq:locale-ready',localized);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)disarm('tab hidden');});
  const shell=document.querySelector('.shell');
  if(shell)new MutationObserver(()=>{

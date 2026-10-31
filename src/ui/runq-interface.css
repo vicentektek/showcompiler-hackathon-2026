@@ -1,0 +1,414 @@
+/* RUNQ interface. One presentation contract over the existing functional controls.
+   Graphite surfaces, blue inspection, amber NEXT, mint playback, red emergency. */
+:root#runqApp.rq16.rq8.rq14 {
+ --desk:#101216; --rail:#15181e; --panel:#1a1e25; --surface:#222730;
+ --line:#333a46; --ink:#eff1f5; --muted:#a7afbe; --accent:#95b4ff;
+ --rq15-ink:var(--ink);--rq15-muted:var(--muted);--rq15-focus:#b4caff;
+ color-scheme:dark;
+}
+:root#runqApp.rq16.rq8.rq14 body { margin:0;background:var(--desk)!important;font:13px/1.5 'Segoe UI',system-ui,sans-serif!important }
+:root#runqApp.rq16.rq8.rq14 .shell {
+ display:grid!important;grid-template-columns:196px minmax(0,1fr)!important;
+ grid-template-rows:60px 30px minmax(0,1fr)!important;
+ height:100dvh!important;min-height:0!important;max-width:none!important;
+ background:var(--desk)!important;color:var(--ink)!important;overflow:hidden!important;
+ font-family:'Segoe UI',system-ui,sans-serif!important;font-size:13px!important;
+}
+:root#runqApp.rq16.rq8.rq14 .shell>.topbar {
+ grid-column:1/-1!important;grid-row:1!important;padding:0 20px!important;gap:24px!important;
+ min-height:0!important;background:var(--rail)!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important;
+}
+:root#runqApp.rq16.rq8.rq14 .brand {min-width:152px!important}
+:root#runqApp.rq16.rq8.rq14 .brand-icon {background:#92adf5!important;color:#141923!important;width:30px!important;height:32px!important;border-radius:9px!important}
+:root#runqApp.rq16.rq8.rq14 .brand strong {font-size:21px!important;letter-spacing:-1px!important}
+:root#runqApp.rq16.rq8.rq14 .brand>div>span {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .project-identity {padding-left:24px!important;border-color:var(--line)!important;min-width:0!important}
+:root#runqApp.rq16.rq8.rq14 .project-identity>span {font-size:9px!important;letter-spacing:.14em!important;color:var(--muted)!important}
+:root#runqApp.rq16.rq8.rq14 .project-identity strong {font-size:13px!important;max-width:360px!important;color:var(--ink)!important}
+:root#runqApp.rq16.rq8.rq14 #saveState {font-size:10px!important;color:#8bceb4!important}
+:root#runqApp.rq16.rq8.rq14 .top-actions {gap:8px!important;min-width:0!important}
+:root#runqApp.rq16.rq8.rq14 .top-actions :is(button,select) {min-height:32px!important;font-size:11px!important;border-radius:6px!important}
+:root#runqApp.rq16.rq8.rq14 #saveBundleBtn {background:#9eb9ff!important;color:#101827!important;border-color:#9eb9ff!important}
+:root#runqApp.rq16.rq8.rq14 #saveProjectBtn {display:none!important} /* JSON remains in File. */
+:root#runqApp.rq16.rq8.rq14 #stopAllBtn {background:#42252d!important;border-color:#89515c!important;color:#ffced6!important;box-shadow:none!important}
+:root#runqApp.rq16.rq8.rq14 #rqAgentToggle {background:#242e43!important;border-color:#465776!important;color:#c8d6ff!important}
+:root#runqApp.rq16.rq8.rq14 .runq-menubar {grid-column:1/-1!important;grid-row:2!important;min-height:0!important;padding:0 16px!important;background:#15181e!important;border-bottom:1px solid var(--line)!important}
+:root#runqApp.rq16.rq8.rq14 .runq-menu>summary {font-size:11px!important;padding:5px 12px!important;color:var(--muted)!important}
+:root#runqApp.rq16.rq8.rq14 .runq-menu-status {font-size:10px!important;color:var(--muted)!important}
+:root#runqApp.rq16.rq8.rq14 .workspace-nav {
+ grid-column:1!important;grid-row:3!important;width:auto!important;min-width:0!important;
+ padding:20px 12px 12px!important;gap:5px!important;overflow:auto!important;
+ background:var(--rail)!important;border-right:1px solid var(--line)!important;
+ display:flex!important;flex-direction:column!important;
+}
+:root#runqApp.rq16.rq8.rq14 :is(.rq8-identity,.workspace-mode) {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq16-nav-group {display:block;color:#7d8798;font-size:9px;letter-spacing:.14em;font-weight:650;margin:12px 12px 7px}
+:root#runqApp.rq16.rq8.rq14 .rq16-nav-group:first-of-type {margin-top:0}
+:root#runqApp.rq16.rq8.rq14 .workspace-tab {
+ display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;
+ width:100%!important;min-height:40px!important;padding:9px 12px!important;margin:0!important;
+ font-size:13px!important;font-weight:500!important;text-align:left!important;line-height:1.4!important;
+ border:1px solid transparent!important;border-radius:7px!important;color:#b3bbca!important;background:transparent!important;box-shadow:none!important;
+}
+:root#runqApp.rq16.rq8.rq14 .workspace-tab::before {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .workspace-tab svg {width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+:root#runqApp.rq16.rq8.rq14 .workspace-tab:hover {background:#232832!important;color:#fff!important}
+:root#runqApp.rq16.rq8.rq14 .workspace-tab[aria-pressed=true] {background:#26324a!important;color:#c1d2ff!important;border-color:#3c4b68!important;box-shadow:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .workspace-tab[aria-pressed=true] {background:#393023!important;border-color:#655338!important;color:#f4d19c!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .workspace-tab[aria-pressed=true] {background:#203a32!important;border-color:#3a6050!important;color:#a2dfc8!important}
+:root#runqApp.rq16.rq8.rq14 .workspace-tab[data-workspace-nav=soundlab] {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq16-nav-footer {margin-top:auto;padding:24px 10px 6px;color:#8d98a9;font-size:10px;display:flex;align-items:center;gap:7px}
+.rq16-local-dot {width:5px;height:5px;flex:none;background:#81b5a2;border-radius:50%}
+:root#runqApp.rq16.rq8.rq14 .shell>main {
+ grid-column:2!important;grid-row:3!important;min-width:0!important;min-height:0!important;
+ display:flex!important;flex-direction:column!important;padding:0 20px 16px!important;gap:0!important;
+ background:var(--desk)!important;overflow:auto!important;
+}
+:root#runqApp.rq16.rq8.rq14 .rq7-workbench {flex:none!important;order:0!important;min-height:78px!important;padding:16px 0!important;margin:0!important;gap:12px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;justify-content:space-between!important}
+:root#runqApp.rq16.rq8.rq14 :is(.rq7-modes,.rq7-ribbon-status,.rq7-tasks,.workspace-intro) {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq8-ribbon-heading {border:0!important;padding:0!important;text-align:left!important;margin:0!important;display:flex!important;align-items:flex-start!important;gap:4px!important}
+:root#runqApp.rq16.rq8.rq14 .rq8-ribbon-heading strong {font-size:24px!important;line-height:1.15!important;letter-spacing:-.7px!important;color:var(--ink)!important}
+:root#runqApp.rq16.rq8.rq14 .rq8-ribbon-heading span {font-size:12px!important;color:var(--muted)!important}
+:root#runqApp.rq16.rq8.rq14 .rq16-context {font-size:9px;letter-spacing:.16em;color:#8a96a9;border:1px solid var(--line);padding:5px 9px;border-radius:4px}
+:root#runqApp.rq16.rq8.rq14 #statusMessage {order:1!important;flex:none!important;min-height:25px!important;padding:4px 9px!important;margin:0 0 10px!important;font-size:11px!important;line-height:1.4!important;border:0!important;border-left:2px solid #536b9e!important;background:#1b222d!important;color:#b8c5db!important;white-space:normal!important}
+:root#runqApp.rq16.rq8.rq14 .layout {order:2!important;flex:1 0 auto!important;min-height:0!important;width:100%!important;margin:0!important;gap:14px!important}
+:root#runqApp.rq16.rq8.rq14 .layout>.panel {background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:10px!important;color:var(--ink)!important;padding:16px!important;min-width:0!important}
+:root#runqApp.rq16.rq8.rq14 .panel :is(h2,h3,.subheading) {color:var(--ink)!important;letter-spacing:0!important}
+:root#runqApp.rq16.rq8.rq14 .panel-head h2 {font-size:16px!important}
+:root#runqApp.rq16.rq8.rq14 .step {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .panel :is(label,.caption,.help) {color:var(--muted)!important}
+:root#runqApp.rq16.rq8.rq14 .panel :is(input:not([type=checkbox]):not([type=range]),select,textarea) {background:#14181f!important;color:var(--ink)!important;border:1px solid #414b5c!important;border-radius:5px!important;font-family:inherit!important;font-size:12px!important}
+:root#runqApp.rq16.rq8.rq14 .panel :is(input,select) {min-height:30px}
+:root#runqApp.rq16.rq8.rq14 .btn {font-family:inherit!important;border-radius:5px!important;font-size:12px!important;font-weight:600!important;line-height:1.3!important;min-height:30px!important;padding:6px 10px!important}
+:root#runqApp.rq16.rq8.rq14 .panel .btn.subtle {color:#d2d8e4!important;background:#29303b!important;border-color:#434d5c!important}
+:root#runqApp.rq16.rq8.rq14 .panel .btn.primary {color:#111a2c!important;background:#9bb6fc!important;border-color:#a9c1ff!important}
+:root#runqApp.rq16.rq8.rq14 button:disabled {opacity:.45!important;cursor:not-allowed!important}
+:root#runqApp.rq16.rq8.rq14 :is(button,input,select,textarea,a,summary,[role=separator]):focus-visible {outline:2px solid #bdcfff!important;outline-offset:3px!important}
+:root#runqApp.rq16.rq8.rq14 :is(button,summary) {touch-action:manipulation}
+:root#runqApp.rq16.rq8.rq14 :is(#cueList,#cueInspector,.rq12-library,.script-view,main) {scrollbar-width:thin;scrollbar-color:#4b5362 #161a21}
+
+/* Project: an actual starting point, with no invented recent-project history. */
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=home] .layout {display:block!important;flex:none!important}
+:root#runqApp.rq16.rq8.rq14 .home-panel {border:0!important;background:transparent!important;padding:10px 0!important;max-width:1160px;margin:0 auto}
+:root#runqApp.rq16.rq8.rq14 .home-panel>.panel-head {display:none!important}
+.rq16-home-hero {display:grid;grid-template-columns:1.3fr 1fr;gap:50px;align-items:center;padding:32px 20px 42px}
+.rq16-eyebrow {font-size:10px;letter-spacing:.22em;color:#a2b8eb;font-weight:650}
+.rq16-home-copy h1 {font-size:clamp(32px,3.5vw,54px);line-height:1.12;font-weight:580;letter-spacing:-2px;white-space:pre-line;margin:20px 0;color:#f2f3f7}
+.rq16-home-copy p {font-size:15px;line-height:1.7;max-width:360px;color:var(--muted)}
+.rq16-home-motif {display:flex;flex-direction:column;gap:12px;transform:rotate(-5deg);padding:26px 25px;border:1px solid #30394a;background:linear-gradient(145deg,#202938,#151922);border-radius:14px;box-shadow:0 20px 50px #0003}
+.rq16-home-motif i {height:24px;width:var(--bar);margin-left:34px;background:linear-gradient(90deg,#6f8ec5,#52658644);border:1px solid #849acb55;position:relative;border-radius:4px}
+.rq16-home-motif i::before {content:attr(data-number);position:absolute;left:-30px;top:4px;font:10px ui-monospace,monospace;color:#7f8fa7}
+.rq16-home-motif i:nth-child(3) {background:linear-gradient(90deg,#98b8fb,#758dbd55);border-color:#a6c0ff}
+.rq16-home-motif i:nth-child(4) {background:linear-gradient(90deg,#739b8f,#506f6555);border-color:#82bca777}
+:root#runqApp.rq16.rq8.rq14 .home-tiles {display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;padding:0!important;counter-reset:home-tile}
+:root#runqApp.rq16.rq8.rq14 .home-tile {counter-increment:home-tile;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:10px!important;padding:20px!important;min-height:192px!important;background:#1b2029!important;border:1px solid #343d4b!important;border-radius:9px!important;color:var(--ink)!important;text-align:left!important}
+:root#runqApp.rq16.rq8.rq14 .home-tile::before {content:'0' counter(home-tile) ' ↗';color:#93a9d6;font:12px ui-monospace,monospace;margin-bottom:12px}
+:root#runqApp.rq16.rq8.rq14 .home-tile strong {font-size:15px!important;line-height:1.4!important}
+:root#runqApp.rq16.rq8.rq14 .home-tile span {font-size:12px!important;line-height:1.6!important;color:#a6b0c1!important}
+:root#runqApp.rq16.rq8.rq14 .home-tile.featured {border-color:#4e648d!important;background:#232e43!important}
+:root#runqApp.rq16.rq8.rq14 .home-tile:hover {background:#293344!important;border-color:#91aee5!important;transform:translateY(-2px)}
+:root#runqApp.rq16.rq8.rq14 .home-disclaimer {font-size:11px!important;color:#909bad!important;line-height:1.6!important;margin:20px 0!important}
+.rq16-current-project {display:flex;align-items:center;gap:18px;padding:20px 0;border-top:1px solid var(--line)}
+.rq16-current-project>span {font-size:9px;letter-spacing:.12em;color:var(--muted)}
+.rq16-current-project strong {font-size:13px;flex:1;overflow-wrap:anywhere}
+
+/* Studio: fixed chrome, two independently scrolling real panes, reachable GO. */
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .layout {display:flex!important;flex:1 1 0!important;min-height:320px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-show-workspace {display:flex!important;flex-direction:column!important;flex:1!important;height:100%!important;min-height:0!important;max-height:none!important;padding:0!important;overflow:hidden!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-desk {display:flex!important;flex-direction:column!important;flex:1 1 0!important;min-height:0!important;padding:0!important;overflow:hidden!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-stage-actions {display:flex!important;align-items:center!important;justify-content:space-between!important;flex:none!important;gap:10px!important;min-height:50px!important;padding:8px 12px!important;background:#1c2129!important;border:0!important;border-bottom:1px solid var(--line)!important;flex-wrap:wrap!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-stage-actions>.panel-head {padding:0!important;margin:0!important;border:0!important;min-height:0!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .cue-create-actions {gap:5px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] #cueAddBtn {width:auto!important;min-width:100px!important;font-size:12px!important;padding:6px 11px!important;color:#131e32!important;background:#a3bdff!important;border-color:#a3bdff!important}
+:root#runqApp.rq16.rq8.rq14 #cueAddBtn::before {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] #cueDeleteBtn {background:#39272e!important;color:#efb1bc!important;border-color:#6c4450!important}
+.rq16-editor-views {display:flex;gap:2px;align-items:center;background:#13171e;border:1px solid var(--line);border-radius:5px;padding:3px}
+.rq16-editor-views button {background:transparent;border:1px solid transparent;border-radius:3px;color:#929fb3;font-family:inherit;font-size:11px;padding:5px 9px;cursor:pointer}
+.rq16-editor-views button[aria-pressed=true] {background:#303c52;color:#d7e2ff;border-color:#465776}
+.rq16-editor-views .rq16-reset {border-left:1px solid #3a4353;border-radius:0;margin-left:3px;font-size:10px}
+:root#runqApp.rq16.rq8.rq14 .shell:not([data-active-workspace=cues]) #rq16EditorViews {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-sequence {flex:none!important;padding:8px 12px!important;background:#191d24!important;border-bottom:1px solid var(--line)!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-sequence-search {display:flex!important;align-items:center!important;gap:12px!important;flex-wrap:wrap!important}
+:root#runqApp.rq16.rq8.rq14 .cue-filter-bar {flex:1 1 180px!important;min-width:0!important}
+:root#runqApp.rq16.rq8.rq14 #cueSearchInput {width:100%!important;font-size:12px!important;min-height:32px!important}
+:root#runqApp.rq16.rq8.rq14 .runq-editor-shortcuts {gap:6px!important}
+:root#runqApp.rq16.rq8.rq14 .runq-editor-shortcuts .runq-inline-navigation {display:none!important} /* Canonical rail stays visible. */
+:root#runqApp.rq16.rq8.rq14 .runq-density-label {font-size:11px!important;gap:6px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-stage-body {display:flex!important;flex:1 1 0!important;min-height:0!important;padding:0!important;overflow:hidden!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-show-workspace .cue-workspace-body {
+ display:grid!important;grid-template-columns:minmax(0,var(--rq7-split,55%)) 8px minmax(0,1fr)!important;
+ grid-template-rows:minmax(0,1fr)!important;gap:0!important;position:relative!important;
+ width:100%!important;height:100%!important;min-height:0!important;flex:1!important;overflow:hidden!important;
+}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] :is(.rq5-sequence-frame,.rq5-inspector-frame) {min-width:0!important;min-height:0!important;height:100%!important;max-height:none!important;background:#171c23!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border:0!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-sequence-frame {grid-column:1!important;grid-row:1!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-inspector-frame {grid-column:3!important;grid-row:1!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq7-split-handle {display:block!important;position:relative!important;grid-column:2!important;grid-row:1!important;left:auto!important;top:auto!important;bottom:auto!important;width:8px!important;height:100%!important;background:#10151d!important;cursor:col-resize;touch-action:none;z-index:3}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq7-split-handle::after {content:'';position:absolute!important;inset:0 3px!important;width:2px!important;background:#343d4d!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq7-split-handle:is(:hover,:focus-visible)::after {background:#b1c8ff!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-show-workspace :is(.rq5-pane-heading,.rq5-inspector-heading) {min-height:37px!important;padding:8px 12px!important;background:#202630!important;color:#a9b6cb!important;border:0!important;border-bottom:1px solid var(--line)!important;font-size:10px!important;letter-spacing:.08em!important;flex:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-show-workspace .rq5-pane-heading .btn,:root#runqApp.rq16.rq8.rq14 .rq5-inspector-heading>.btn {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-inspector-heading #rq14InspectorAI {display:block!important;font-size:10px!important}
+:root#runqApp.rq16.rq8.rq14 .runq-cue-columns {background:#171c24!important;color:#8897ad!important;border-color:var(--line)!important;min-height:27px!important;font-size:9px!important}
+:root#runqApp.rq16.rq8.rq14 #cueList {background:#151a21!important;min-height:0!important;max-height:none!important;overflow:auto!important;flex:1!important;padding:0!important}
+:root#runqApp.rq16.rq8.rq14 .shell .cue-item {background:#1b212b!important;border:0!important;border-bottom:1px solid #2b3443!important;border-left:3px solid transparent!important;border-radius:0!important;box-shadow:none!important;min-height:50px!important;padding:8px 9px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-cue-density=standard] .cue-item {min-height:64px!important;padding-block:12px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-cue-density=comfortable] .cue-item {min-height:80px!important;padding-block:16px!important}
+:root#runqApp.rq16.rq8.rq14 .shell .cue-item:hover {background:#252e3b!important}
+:root#runqApp.rq16.rq8.rq14 .shell .cue-item.cue-selected {background:#293a57!important;border-left-color:#9bb9ff!important;box-shadow:inset 0 0 0 1px #536c96!important}
+:root#runqApp.rq16.rq8.rq14 .shell .cue-item.cue-prepared {border-left-color:#e4bb73!important}
+:root#runqApp.rq16.rq8.rq14 .cue-row-title {font-size:13px!important;font-weight:600!important;color:#edf1fa!important}
+:root#runqApp.rq16.rq8.rq14 .cue-row-index {font-size:12px!important;color:#a7b6d0!important}
+:root#runqApp.rq16.rq8.rq14 .cue-row-meta {font-size:10px!important;color:#9facc0!important}
+:root#runqApp.rq16.rq8.rq14 .cue-row-next {font-size:9px!important;color:#f1ca89!important;letter-spacing:.02em!important}
+:root#runqApp.rq16.rq8.rq14 .cue-row-state {font-size:9px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] #cueInspector {background:#1d232d!important;color:var(--ink)!important;flex:1 1 0!important;min-height:0!important;max-height:none!important;height:auto!important;overflow:auto!important;padding:14px!important}
+:root#runqApp.rq16.rq8.rq14 .inspector-title strong {font-size:16px!important;color:var(--ink)!important}
+:root#runqApp.rq16.rq8.rq14 .cue-inspector-origin {font-size:11px!important;line-height:1.5!important;color:#aab7cb!important;margin:8px 0!important}
+:root#runqApp.rq16.rq8.rq14 .cue-audition-studio {background:#252639!important;border:1px solid #4c4a65!important;border-left:2px solid #a7a0e0!important;border-radius:6px!important;padding:9px!important;margin:10px 0!important}
+:root#runqApp.rq16.rq8.rq14 .studio-kicker {font-size:9px!important;letter-spacing:.1em!important;color:#c8c1ed!important}
+:root#runqApp.rq16.rq8.rq14 .cue-preview-controls {gap:5px!important;flex-wrap:wrap!important;margin:6px 0!important}
+:root#runqApp.rq16.rq8.rq14 .cue-preview-controls .btn {font-size:10px!important;min-height:29px!important;padding:5px 8px!important}
+:root#runqApp.rq16.rq8.rq14 .studio-preview-status {font-size:10px!important;margin:5px 0!important}
+:root#runqApp.rq16.rq8.rq14 .studio-output-warning {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .studio-output-compact {display:block!important;font-size:10px!important;line-height:1.4!important;color:#c2bfd1!important;margin:5px 0 0!important}
+:root#runqApp.rq16.rq8.rq14 .studio-quick-gain {display:inline-flex!important;align-items:center!important;gap:8px!important;font-size:10px!important}
+:root#runqApp.rq16.rq8.rq14 .studio-quick-gain input {width:65px!important;min-height:26px!important;padding:3px 6px!important}
+:root#runqApp.rq16.rq8.rq14 .cue-inspector-tabs {position:sticky;top:-14px;z-index:2;background:#1d232d!important;border-color:#42516a!important;min-height:35px!important;margin:8px 0!important}
+:root#runqApp.rq16.rq8.rq14 .cue-inspector-tab {color:#b0bdd1!important;font-size:12px!important;padding:8px!important;background:transparent!important}
+:root#runqApp.rq16.rq8.rq14 .cue-inspector-tab[aria-selected=true] {background:#293a55!important;border-bottom-color:#aac2ff!important;color:#d7e3ff!important}
+:root#runqApp.rq16.rq8.rq14 :is(.cue-playback-editor,.cue-details-editor,.cue-action-editor) {background:#1a2029!important;border-color:#3c485c!important;color:var(--ink)!important;padding:10px!important}
+:root#runqApp.rq16.rq8.rq14 .cue-waveform-stage {border-color:#4b5b72!important;border-radius:5px!important}
+:root#runqApp.rq16.rq8.rq14 .cue-waveform-canvas {min-height:90px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues][data-editor-view=sequence] .cue-workspace-body,
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues][data-editor-view=inspector] .cue-workspace-body {grid-template-columns:minmax(0,1fr)!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues][data-editor-view=sequence] :is(.rq5-inspector-frame,.rq7-split-handle),
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues][data-editor-view=inspector] :is(.rq5-sequence-frame,.rq7-split-handle) {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues][data-editor-view=inspector] .rq5-inspector-frame {grid-column:1!important}
+
+/* One transport, original buttons, visible pending cue and current sounds. */
+:root#runqApp.rq16.rq8.rq14 .rq5-transport-dock {flex:none!important;background:#191f28!important;border-top:1px solid #46526a!important;padding:10px 12px!important}
+:root#runqApp.rq16.rq8.rq14 .operator-queue {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(300px,420px)!important;gap:6px 16px!important;padding:0!important;margin:0!important;min-height:76px!important;background:transparent!important;border:0!important}
+:root#runqApp.rq16.rq8.rq14 .operator-kicker {color:#ebc385!important;letter-spacing:.12em!important;font-size:9px!important}
+:root#runqApp.rq16.rq8.rq14 #preparedCueStatus {font-size:16px!important;line-height:1.3!important;color:#f1e2c7!important;margin:5px 0!important}
+:root#runqApp.rq16.rq8.rq14 #operatorTrigger {font-size:11px!important;color:#b5bfd0!important}
+:root#runqApp.rq16.rq8.rq14 #operatorProgress {font-size:10px!important;color:#8fbea9!important}
+:root#runqApp.rq16.rq8.rq14 .operator-queue-controls {gap:5px!important}
+:root#runqApp.rq16.rq8.rq14 #operatorGoBtn {font-size:20px!important;min-height:44px!important;background:#a3d9c3!important;border:1px solid #bdebd8!important;color:#152c24!important;letter-spacing:.06em!important}
+:root#runqApp.rq16.rq8.rq14 #operatorPanicBtn {font-size:12px!important;min-height:44px!important;background:#8d3545!important;border:1px solid #c36b7a!important;color:white!important;letter-spacing:.01em!important}
+:root#runqApp.rq16.rq8.rq14 :is(#operatorBackBtn,#operatorSkipBtn,#operatorResetBtn) {font-size:9px!important;min-height:25px!important;padding:4px 6px!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-stage-bottom {padding:4px 0 0!important;min-height:0!important;border:0!important;font-size:10px!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-stage-bottom>.rq5-eyebrow {display:none!important}
+:root#runqApp.rq16.rq8.rq14 #transportStatus {font-size:10px!important;color:#9eafc5!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-active-cues {margin:7px 0 0!important;background:#1a2e27!important;border-color:#416355!important;max-height:120px!important;overflow:auto!important}
+
+/* Original script, review and library remain complete, with calmer surfaces. */
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=script] .rq5-script-workspace {height:calc(100dvh - 230px)!important;min-height:350px!important}
+:root#runqApp.rq16.rq8.rq14 :is(.script-view,#scriptPreview) {background:#151b23!important;color:#dbe1ed!important;border-color:#354256!important}
+:root#runqApp.rq16.rq8.rq14 .script-line {font-size:13px!important;line-height:1.75!important;padding-block:7px!important}
+:root#runqApp.rq16.rq8.rq14 .script-line:nth-child(even) {background:#1b232e!important}
+:root#runqApp.rq16.rq8.rq14 .line-id {color:#aaa8e6!important;font-size:11px!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-script-scenes {background:#1c2430!important;border-color:#3b475a!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-scene-link {font-size:12px!important;padding:11px!important;color:#bdcbe1!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=ai] .rq5-ai-grid {grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr)!important;gap:18px!important}
+:root#runqApp.rq16.rq8.rq14 :is(.rq5-ai-review,.rq13-ai-inspector,.rq13-ai-disclosure,.meta-panel) {background:#1a202a!important;border-color:#384355!important;color:var(--ink)!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-ai-disclosure>summary {padding:13px!important;font-size:13px!important;background:#232c3b!important;color:#dbe4f6!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {height:calc(100dvh - 220px)!important;min-height:430px!important;padding:12px!important;gap:9px!important;border-radius:10px!important}
+:root#runqApp.rq16.rq8.rq14 .rq10-sound-heading {background:transparent!important;border:0!important;padding:0 0 9px!important}
+:root#runqApp.rq16.rq8.rq14 .rq10-sound-heading>div:first-child>strong {font-size:13px!important;letter-spacing:.03em!important}
+:root#runqApp.rq16.rq8.rq14 .rq10-sound-tabs {background:#151a23!important;border-color:#43526a!important;border-radius:6px!important}
+:root#runqApp.rq16.rq8.rq14 .rq10-sound-tabs button {font-size:12px!important;border-radius:4px!important}
+:root#runqApp.rq16.rq8.rq14 .rq10-sound-tabs button[aria-selected=true],:root#runqApp.rq16.rq8.rq14 .rq10-sound-tabs button[aria-pressed=true] {background:#354c74!important;color:#e3ebff!important}
+:root#runqApp.rq16.rq8.rq14 .rq10-output-warning {font-size:10px!important;background:#24252f!important;color:#c3bece!important;border-left-color:#a8a1d3!important;padding:5px 9px!important}
+:root#runqApp.rq16.rq8.rq14 .rq11-audition-transport {background:#242634!important;border-color:#514f69!important;border-radius:5px!important;padding:9px!important}
+:root#runqApp.rq16.rq8.rq14 .rq11-audition-identity>strong {font-size:12px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-grid {grid-template-columns:minmax(0,1fr) 280px!important;gap:10px!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-audio-library,:root#runqApp.rq16.rq8.rq14 .rq13-media-inspector {background:#181f29!important;border-color:#3b4658!important;border-radius:5px!important}
+:root#runqApp.rq16.rq8.rq14 :is(.rq12-library>.rq5-pane-heading,.rq13-inspector-heading,.rq12-library-toolbar) {background:#222b39!important;border-color:#3e4b61!important;color:#c7d2e7!important}
+:root#runqApp.rq16.rq8.rq14 .rq12-library-toolbar {gap:7px!important;padding:8px!important}
+:root#runqApp.rq16.rq8.rq14 .rq12-library-search input {font-size:12px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .asset-list-row {min-height:66px!important;background:#222b38!important;border-color:#3b4a60!important;border-radius:4px!important;padding:10px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .asset-list-row .tag {font-size:12px!important;line-height:1.45!important;color:#e2e9f6!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-media-inspector dl {font-size:12px!important;line-height:1.6!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-wave-dock {background:#1b2432!important;border-color:#40516e!important;border-radius:5px!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-audio-editor {background:#19212e!important;border-color:#40516e!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-wave-canvas {background:#111923!important;border-color:#435572!important}
+:root#runqApp.rq16.rq8.rq14 .rq10-integrated-lab {background:#1b2431!important;border-color:#455774!important}
+:root#runqApp.rq16.rq8.rq14 .sfx-lab :is(.sfx-card,.sfx-request-card,.sfx-review-card) {background:#202b3b!important;border-color:#475c7c!important}
+:root#runqApp.rq16.rq8.rq14 .setup-grid>div {background:#222b39!important;border-color:#3c4b62!important;padding:22px!important}
+:root#runqApp.rq16.rq8.rq14 .setup-grid strong {font-size:16px!important;color:#dce6f7!important}
+
+/* Rehearsal: script + sequence, followed by a compact voice workspace. */
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .layout {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)!important;flex:1 0 340px!important;min-height:340px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .layout>.panel {min-height:0!important;overflow:hidden!important;padding:12px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .operator-queue {grid-template-columns:minmax(0,1fr) minmax(220px,.9fr)!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] #preparedCueStatus {font-size:15px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] #operatorGoBtn {background:#e7c082!important;color:#302517!important;border-color:#f2d6a7!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] #rqvfPanel {order:3!important;margin:12px 0 0!important;max-height:none!important;min-height:0!important;flex:none!important;overflow:visible!important;padding:12px!important;background:#1f242c!important;border:1px solid #5b5241!important;border-radius:8px!important}
+:root#runqApp.rq16.rq8.rq14 .rqvf-primary-head {background:transparent!important;border-bottom:1px solid #49483f!important;padding:0 0 9px!important;gap:14px!important}
+:root#runqApp.rq16.rq8.rq14 #rqvfPrimaryTitle {font-size:12px!important;color:#f0d3a7!important;letter-spacing:.04em!important}
+:root#runqApp.rq16.rq8.rq14 #rqvfPrimarySubtitle {font-size:11px!important;color:#aaaeb7!important}
+:root#runqApp.rq16.rq8.rq14 #rqvfPrimaryState {font-size:10px!important;color:#e3c691!important}
+:root#runqApp.rq16.rq8.rq14 #rq8VoiceToggle {background:#30343c!important;border:1px solid #62616a!important;color:#dedee4!important;font-size:11px!important;border-radius:5px!important;padding:7px 10px!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-head {background:transparent!important;padding:8px 0!important;font-size:10px!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-main {gap:12px!important;align-items:center!important}
+:root#runqApp.rq16.rq8.rq14 #rqLiveAutoStart {background:#375f50!important;color:#e4f6ed!important;border-color:#6d9887!important;min-height:36px!important;font-size:12px!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-results {display:grid!important;grid-template-columns:1fr 1fr 1fr!important;gap:8px!important;margin-top:8px!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-results>div {grid-column:auto!important;min-height:74px!important;max-height:150px!important;overflow:auto!important;background:#17212c!important;border-color:#3c4c63!important;border-radius:5px!important;padding:9px!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-results small {font-size:9px!important;color:#96a9c4!important;letter-spacing:.05em!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-results output {font-size:12px!important}
+:root#runqApp.rq16.rq8.rq14 .rqvf-advanced {margin-top:10px!important;background:#1a2028!important;border-color:#3c4554!important;border-radius:5px!important}
+:root#runqApp.rq16.rq8.rq14 .rqvf-advanced>summary,:root#runqApp.rq16.rq8.rq14 .rqlive-more>summary {font-size:11px!important;padding:6px!important;color:#b3bfce!important}
+
+/* Live: larger transport, readable sequence, no authoring tools. */
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] {--desk:#0d1114;--panel:#151c21;--accent:#a1d9c3}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .layout {flex:1 1 0!important;min-height:400px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace {height:100%!important;min-height:0!important;padding:12px!important;border-color:#374a45!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .operator-queue {min-height:110px!important;grid-template-columns:minmax(0,1fr) minmax(360px,46%)!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] #preparedCueStatus {font-size:25px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] #operatorGoBtn {font-size:32px!important;min-height:70px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] #operatorPanicBtn {font-size:17px!important;min-height:70px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq14-stage-monitor {background:#182620!important;border-color:#405c4e!important;color:#dfede6!important}
+:root#runqApp.rq16.rq8.rq14 .rq14-now-title {font-size:22px!important}
+:root#runqApp.rq16.rq8.rq14 .rq14-events {background:#171d23!important;border-color:#344238!important;font-size:11px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-inspector-frame {background:#19212a!important}
+
+/* Desktop fits; smaller windows scroll deliberately instead of clipping tools. */
+@media(max-width:1200px) {
+ :root#runqApp.rq16.rq8.rq14 .shell {grid-template-columns:160px minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .shell>main {padding:0 12px 12px!important}
+ :root#runqApp.rq16.rq8.rq14 .workspace-nav {padding-inline:8px!important}
+ :root#runqApp.rq16.rq8.rq14 .workspace-tab {font-size:12px!important;gap:9px!important;padding-inline:10px!important}
+ :root#runqApp.rq16.rq8.rq14 .topbar {gap:12px!important;padding-inline:12px!important}
+ :root#runqApp.rq16.rq8.rq14 .project-identity {padding-left:12px!important}
+ :root#runqApp.rq16.rq8.rq14 .project-identity strong {max-width:240px!important}
+ :root#runqApp.rq16.rq8.rq14 .rq16-context {display:none}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-grid {grid-template-columns:minmax(0,1fr) 225px!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .operator-queue {display:flex!important;flex-direction:column!important}
+ :root#runqApp.rq16.rq8.rq14 .home-tiles {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ :root#runqApp.rq16.rq8.rq14 .home-tile {min-height:160px!important}
+}
+@media(max-height:720px) and (min-width:901px) {
+ :root#runqApp.rq16.rq8.rq14 .shell {grid-template-rows:50px 26px minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .rq7-workbench {min-height:62px!important;padding:10px 0!important}
+ :root#runqApp.rq16.rq8.rq14 .rq8-ribbon-heading strong {font-size:20px!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-stage-actions {min-height:41px!important;padding:5px 9px!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-sequence {padding:5px 9px!important}
+ :root#runqApp.rq16.rq8.rq14 .rq5-transport-dock {padding:7px 10px!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {height:calc(100dvh - 190px)!important;min-height:400px!important}
+}
+@media(max-width:900px) {
+ :root#runqApp.rq16.rq8.rq14 .shell {grid-template-columns:142px minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .brand {min-width:115px!important}
+ :root#runqApp.rq16.rq8.rq14 .project-identity {flex:1!important}
+ :root#runqApp.rq16.rq8.rq14 .project-identity strong {max-width:190px!important}
+ :root#runqApp.rq16.rq8.rq14 #saveBundleBtn {display:none!important} /* File > Export stays available. */
+ :root#runqApp.rq16.rq8.rq14 .rq8-ribbon-heading span {font-size:11px!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .layout {flex:none!important;min-height:0!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-show-workspace {height:auto!important;overflow:visible!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-desk {flex:none!important;overflow:visible!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-stage-body {height:auto!important;flex:none!important;overflow:visible!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-show-workspace .cue-workspace-body {display:flex!important;flex-direction:column!important;height:auto!important;overflow:visible!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-sequence-frame {height:290px!important;flex:none!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-inspector-frame {height:480px!important;flex:none!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq7-split-handle {display:none!important}
+ :root#runqApp.rq16.rq8.rq14 .operator-queue {grid-template-columns:minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .layout {grid-template-columns:minmax(0,1fr)!important;flex:none!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .layout>.panel {min-height:330px!important}
+ :root#runqApp.rq16.rq8.rq14 .rqlive-results {grid-template-columns:minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {height:auto!important;min-height:600px!important;overflow:visible!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-grid {display:flex!important;flex-direction:column!important;height:auto!important;overflow:visible!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-library {height:350px!important;flex:none!important}
+ :root#runqApp.rq16.rq8.rq14 .rq13-media-inspector {min-height:220px!important}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=ai] .rq5-ai-grid {grid-template-columns:minmax(0,1fr)!important}
+ .rq16-home-hero {grid-template-columns:minmax(0,1fr);padding:20px 0;gap:20px}
+ .rq16-home-motif {display:none}
+ .rq16-current-project {flex-wrap:wrap}
+}
+@media(max-width:600px) {
+ :root#runqApp.rq16.rq8.rq14 .shell {grid-template-columns:1fr!important;grid-template-rows:56px 28px auto minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .workspace-nav {grid-column:1!important;grid-row:3!important;flex-direction:row!important;padding:7px!important;gap:5px!important;overflow:auto!important;border-bottom:1px solid var(--line)!important}
+ :root#runqApp.rq16.rq8.rq14 .workspace-tab {width:auto!important;min-width:max-content!important;min-height:35px!important;gap:6px!important;padding:6px 9px!important}
+ :root#runqApp.rq16.rq8.rq14 :is(.rq16-nav-group,.rq16-nav-footer) {display:none!important}
+ :root#runqApp.rq16.rq8.rq14 .shell>main {grid-column:1!important;grid-row:4!important;padding-inline:10px!important}
+ :root#runqApp.rq16.rq8.rq14 .brand {min-width:0!important}
+ :root#runqApp.rq16.rq8.rq14 .brand strong {font-size:18px!important}
+ :root#runqApp.rq16.rq8.rq14 .project-identity {display:none!important}
+ :root#runqApp.rq16.rq8.rq14 .top-actions {margin-left:auto!important}
+ :root#runqApp.rq16.rq8.rq14 #rqAgentToggle {min-width:50px!important}
+ :root#runqApp.rq16.rq8.rq14 .home-tiles {grid-template-columns:minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .home-tile {min-height:140px!important}
+ :root#runqApp.rq16.rq8.rq14 .rq8-ribbon-heading strong {font-size:22px!important}
+ :root#runqApp.rq16.rq8.rq14 .rq8-ribbon-heading span {max-width:95%;line-height:1.5!important}
+ :root#runqApp.rq16.rq8.rq14 .rq16-editor-views button {padding-inline:6px}
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .operator-queue {grid-template-columns:minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .rqvf-primary-head {flex-wrap:wrap!important}
+}
+@media(prefers-reduced-motion:reduce) {
+ :root#runqApp.rq16.rq8.rq14 *, :root#runqApp.rq16.rq8.rq14 *::before {scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
+
+/* Disabled per-cue stop tools must not create a second empty row. Active ones remain. */
+:root#runqApp.rq16.rq8.rq14 .cue-operation-actions:not(:has(button:not(:disabled))) {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .cue-row-select {min-height:34px!important;padding:0 5px!important;font-family:inherit!important}
+:root#runqApp.rq16.rq8.rq14 .cue-item {grid-template-rows:auto!important;align-items:center!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-selected-tools:empty {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .cue-create-actions .btn:not(#cueAddBtn) {font-size:0!important;width:32px!important;padding:5px!important}
+:root#runqApp.rq16.rq8.rq14 .cue-create-actions .btn:not(#cueAddBtn)::before {font-size:16px!important}
+:root#runqApp.rq16.rq8.rq14 .cue-audition-studio {display:flex!important;flex-wrap:wrap!important;gap:5px 10px!important}
+:root#runqApp.rq16.rq8.rq14 .studio-kicker {flex:1 1 100%!important}
+:root#runqApp.rq16.rq8.rq14 .cue-preview-controls {flex:1 1 auto!important;margin:0!important}
+:root#runqApp.rq16.rq8.rq14 .studio-preview-status {flex:1 1 100%!important;margin:0!important}
+:root#runqApp.rq16.rq8.rq14 .studio-output-compact {flex:1 1 100%!important;margin:0!important}
+:root#runqApp.rq16.rq8.rq14 .studio-quick-gain {margin:0!important}
+:root#runqApp.rq16.rq8.rq14 .rq7-workbench {max-height:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-show-workspace :is(.rq5-pane-heading,.rq5-inspector-heading) button {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell:not([data-active-workspace=cues]) .rq7-split-handle {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .cue-workspace-body {grid-template-columns:minmax(0,1fr)!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .rq5-inspector-frame {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .rq5-script-workspace .panel-head .item-actions {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .rq5-script-workspace>.subheading {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-results>div {grid-row:auto!important}
+:root#runqApp.rq16.rq8.rq14 .rqlive-panel {background:transparent!important;padding:0!important;border:0!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {height:calc(100dvh - 220px)!important;display:grid!important;grid-template-rows:auto auto auto minmax(180px,1fr) 140px!important;align-content:stretch!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace>.line-actions {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-wave-dock {min-height:0!important;height:140px!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-wave-dock .rq5-audio-editor {min-height:0!important;height:110px!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-wave-dock .rq5-wave-canvas {height:90px!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-wave-dock .rq5-wave-canvas canvas {height:88px!important}
+:root#runqApp.rq16.rq8.rq14 .rq12-library>.rq5-pane-heading {min-height:28px!important;padding:6px 10px!important}
+:root#runqApp.rq16.rq8.rq14 .rq12-library>.rq5-pane-heading button {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq12-library-toolbar {min-height:40px!important;padding:5px 8px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .asset-list-row {min-height:58px!important;padding:8px!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-media-columns {background:#222b39!important;border-color:#3e4b61!important}
+:root#runqApp.rq16.rq8.rq14 .rq13-media-inspector {overflow:auto!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-audio-workspace>.runq-audio-actionbar {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {min-height:590px!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-audio-workspace:has([data-rq10-sound-view=generate]) {grid-template-rows:auto auto auto minmax(250px,1fr)!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] [data-rq10-sound-view=generate] {display:block!important;min-height:250px!important}
+:root#runqApp.rq16.rq8.rq14 [data-rq10-sound-view=generate]>.rq5-audio-library,
+:root#runqApp.rq16.rq8.rq14 .rq5-audio-workspace:has([data-rq10-sound-view=generate]) #rq11ExpandWave {display:none!important}
+:root#runqApp.rq16.rq8.rq14 [data-rq10-sound-view=generate]>.rq10-integrated-lab {width:100%!important;max-width:none!important;height:100%!important;overflow:auto!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-audio-workspace[data-rq11-expanded-wave=true]:not(:has([data-rq10-sound-view=generate])) {grid-template-rows:auto auto auto minmax(140px,1fr) 230px!important}
+:root#runqApp.rq16.rq8.rq14 [data-rq11-expanded-wave=true] .rq13-wave-dock {height:230px!important}
+:root#runqApp.rq16.rq8.rq14 [data-rq11-expanded-wave=true] .rq13-wave-dock .rq5-audio-editor {height:200px!important}
+:root#runqApp.rq16.rq8.rq14 [data-rq11-expanded-wave=true] .rq13-wave-dock .rq5-wave-canvas {height:180px!important}
+:root#runqApp.rq16.rq8.rq14 [data-rq11-expanded-wave=true] .rq13-wave-dock .rq5-wave-canvas canvas {height:178px!important}
+/* The inspector title is the cue itself. Duplicate tool bands added empty space. */
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-inspector-heading {display:none!important}
+:root#runqApp.rq16.rq8.rq14 .rq5-selected-tools {min-height:0!important;height:auto!important;padding:0!important;border:0!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .layout {flex-basis:420px!important;min-height:420px!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] #rqvfPanel #rqLivePanel {background:transparent!important;border:0!important;padding:0!important}
+@media(max-height:720px) and (min-width:901px) {
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] #cueInspector {padding:9px!important}
+ :root#runqApp.rq16.rq8.rq14 .inspector-title {padding:0!important;margin:0!important;min-height:25px!important}
+ :root#runqApp.rq16.rq8.rq14 .inspector-title strong {font-size:13px!important}
+ :root#runqApp.rq16.rq8.rq14 .cue-inspector-origin {margin:3px 0!important}
+ :root#runqApp.rq16.rq8.rq14 .cue-audition-studio {padding:5px!important;margin:5px 0!important;gap:3px!important}
+ :root#runqApp.rq16.rq8.rq14 .cue-inspector-tabs {margin:4px 0!important;min-height:30px!important;top:-9px}
+ :root#runqApp.rq16.rq8.rq14 .cue-inspector-tab {padding:5px!important}
+}
+@media(max-width:900px) {
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {display:flex!important;height:auto!important}
+ :root#runqApp.rq16.rq8.rq14 .rq13-wave-dock {height:auto!important;min-height:160px!important}
+}

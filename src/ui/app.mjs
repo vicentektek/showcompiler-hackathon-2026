@@ -1597,9 +1597,8 @@ function cuePlaybackEditor(cue) {
   loop.addEventListener('change', syncLoop);
   syncLoop();
   if(cue.actions.length===1 && cue.actions[0].type==='PLAY') {
-    const gainField=inputs.get('gainDb').closest('label');
     form.insertBefore(cueWaveformTrim(cue.actions[0].assetId, inputs,
-      {cueId:cue.id,trackId:'primary'}),gainField.nextSibling);
+      {cueId:cue.id,trackId:'primary'}),heading.nextSibling);
   }
   form.append(node('p', 'caption', t('audioProps.noAuto')));
   const save = node('button', 'btn primary small', t('audioProps.save'));
@@ -2565,7 +2564,10 @@ async function loadCompleteZip(inputBytes) {
   const before = show;
   const generation = projectGeneration;
   const previousPlayer = player;
-  const stage = createBrowserAudioBackend({ onStateChange: () => refreshAudioControls() });
+  const stage = createBrowserAudioBackend({ onStateChange: () => {
+    refreshAudioControls();
+    refreshPreviewStudio();
+  } });
   const decoded = new Map();
   let committed = false;
   bundleInFlight = true;
@@ -3173,6 +3175,9 @@ render();
 // instead of depending on a specific navigation event from alternative menus.
 // No provider submission or paid generation can occur during initialization.
 void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
+// Optional panels may mount before the saved locale has been restored.
+// Notify presentation listeners without replaying change handlers or requests.
+document.dispatchEvent(new Event('runq:locale-ready'));
 refreshMetaMessage();
 feedback(statusState.key, statusState.values, statusState.tone);
 refreshMetaStatus();

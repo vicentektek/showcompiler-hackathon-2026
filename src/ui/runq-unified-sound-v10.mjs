@@ -214,7 +214,7 @@ function mountUnifiedSound(){
       'Preescucha en la salida principal del ordenador. No es un bus PFL. PARAR TODO detiene también la escucha del laboratorio.',
       'Preview uses the main computer output, not a private PFL bus. STOP ALL also stops Sound Lab audition.'
     );
-    navAudio.textContent=copy('Sonido','Sound');
+    (navAudio.querySelector('[data-route-label]')??navAudio).textContent=copy('Sonido','Sound');
     navAudio.setAttribute('aria-label',copy('Sonido','Sound'));
     search.placeholder=copy('Buscar archivos de audio…','Search audio files…');
     search.setAttribute('aria-label',copy('Buscar en la biblioteca','Search the sound library'));

@@ -228,6 +228,7 @@ function mount(){
   $('rqvfReset').addEventListener('click',()=>reset());
   $('rqvfSource').addEventListener('change',()=>reset());
   $('uiLocaleSelect')?.addEventListener('change',()=>render());
+  document.addEventListener('runq:locale-ready',render);
   document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();render();}});
   const shell=document.querySelector('.shell');
   if(shell)new MutationObserver(()=>{

@@ -183,6 +183,7 @@ function mount(){
  $('rqMicStop').addEventListener('click',complete);
  $('rqMicTranscribe').addEventListener('click',()=>void transcribe());
  $('uiLocaleSelect')?.addEventListener('change',localize);
+ document.addEventListener('runq:locale-ready',localize);
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)complete();});
  window.addEventListener('pagehide',shutdown,{once:true});
  const shell=document.querySelector('.shell');

@@ -106,22 +106,28 @@ function mountWorkbench(){
     handle.setAttribute('role','separator');
     handle.setAttribute('aria-label','Resize cue list and inspector');
     handle.setAttribute('aria-orientation','vertical');
-    body.append(handle);
+    handle.setAttribute('aria-controls','cueList cueInspector');
+    handle.setAttribute('aria-valuemin','35');
+    handle.setAttribute('aria-valuemax','65');
+    inspectorFrame.before(handle);
+    const setSplit=value=>{
+      const pct=Math.max(35,Math.min(65,value));
+      body.style.setProperty('--rq7-split',pct+'%');
+      handle.setAttribute('aria-valuenow',String(pct));
+      try{localStorage.setItem('runq.v7.editorSplit',String(pct));}catch{}
+    };
     const restore=()=>{
+      let stored=55;
       try{
-        const stored=Number(localStorage.getItem('runq.v7.editorSplit'));
-        if(stored>=35&&stored<=72)body.style.setProperty('--rq7-split',stored+'%');
+        const saved=Number(localStorage.getItem('runq.v7.editorSplit'));
+        if(saved>=35&&saved<=72)stored=saved;
       }catch{}
+      setSplit(stored);
     };
     restore();
     const change=clientX=>{
       const rect=body.getBoundingClientRect();
-      const left=Math.max(325,Math.min(rect.width-285,clientX-rect.left));
-      const pct=Math.round(left/rect.width*100);
-      if(rect.width>650&&pct>=30&&pct<=75){
-        body.style.setProperty('--rq7-split',pct+'%');
-        try{localStorage.setItem('runq.v7.editorSplit',String(pct));}catch{}
-      }
+      if(rect.width>650)setSplit(Math.round((clientX-rect.left)/rect.width*100));
     };
     let dragging=false;
     handle.addEventListener('pointerdown',event=>{
@@ -131,17 +137,18 @@ function mountWorkbench(){
     handle.addEventListener('pointermove',event=>{if(dragging)change(event.clientX);});
     handle.addEventListener('pointerup',()=>{dragging=false;});
     handle.addEventListener('pointercancel',()=>{dragging=false;});
+    handle.addEventListener('lostpointercapture',()=>{dragging=false;});
     handle.addEventListener('dblclick',()=>{
-      body.style.removeProperty('--rq7-split');
-      try{localStorage.removeItem('runq.v7.editorSplit');}catch{}
+      setSplit(55);
     });
     handle.addEventListener('keydown',event=>{
-      if(workspace()!=='cues'||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+      if(workspace()!=='cues'||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
       event.preventDefault();
-      const rect=body.getBoundingClientRect();
-      const current=body.querySelector('.rq5-sequence-frame')?.getBoundingClientRect().width??rect.width*.58;
-      change(rect.left+current+(event.key==='ArrowRight'?24:-24));
+      const current=Number(handle.getAttribute('aria-valuenow'));
+      setSplit(event.key==='Home'?35:event.key==='End'?65:current+(event.key==='ArrowRight'?2:-2));
     });
+    const labelSplitter=()=>handle.setAttribute('aria-label',t('Ancho de la secuencia. Flechas para ajustar; doble clic para restablecer.','Sequence width. Arrow keys to resize; double-click to reset.'));
+    labelSplitter();$('uiLocaleSelect')?.addEventListener('change',labelSplitter);
   }
 
   // Directo: independent visual navigation over ALL real cue rows.

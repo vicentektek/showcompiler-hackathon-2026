@@ -48,3 +48,11 @@ test('browser modules are allowlisted and ARM unlocks sound output before any AS
  assert.ok(voice.includes('runq:voice-live-stopping'));
  assert.ok(auto.includes('document.hidden'));
 });
+
+test('one-click autopilot start, single confirmation and non-fatal busy GO replies',()=>{
+ const html=read('index.html'),ui=read('src/ui/rehearsal-auto-ui.mjs');
+ assert.ok(html.includes('id="rqLiveAutoStart"'));
+ assert.ok(ui.includes('confirmedThisSession'));
+ assert.ok(ui.includes("'TRANSPORT_BUSY'"));
+ assert.ok(ui.includes('pendingQuickArm'));
+});

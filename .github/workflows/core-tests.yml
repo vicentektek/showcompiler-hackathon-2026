@@ -82,6 +82,8 @@ jobs:
 
       - name: Install pinned browser smoke driver (CI-only, no lockfile)
         run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Interface responsive and transport regression (offline)
+        run: npm run test:interface
       - name: Voice Follow click and navigation Chrome smoke (offline)
         run: node tools/voice-follow-click-e2e.mjs
       - name: Rehearsal Autopilot Chrome E2E (real local WAV, synthetic speech, no provider)

@@ -301,6 +301,7 @@ function mount(){
   if(Number.isInteger(value)&&value>=1&&value<=100000){focusLine=value;focusManuallySelected=true;consumedIds.clear();}
  });
  $('uiLocaleSelect')?.addEventListener('change',()=>{localized();void devices();});
+ document.addEventListener('runq:locale-ready',localized);
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&active)void stop();});
  window.addEventListener('pagehide',()=>{if(active)void stop(true,'navigation');});
  const shell=document.querySelector('.shell');

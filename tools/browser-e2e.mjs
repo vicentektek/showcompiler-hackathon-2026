@@ -79,7 +79,7 @@ try {
   assert.equal(await page.locator('.shell').getAttribute('data-rq14-surface'),'studio');
   assert.equal(await page.locator('#rq8Identity').count(),1);
   const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
-  assert.equal(studioColor,'rgb(14, 25, 36)','V13 technical workstation must remain dark, not daylight');
+  assert.equal(studioColor,'rgb(16, 18, 22)','The interface uses the graphite Studio canvas');
   assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
     'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.
@@ -184,9 +184,14 @@ try {
   assert.ok(compactGeometry.right.x >= compactGeometry.left.right-2,'Compact inspector stays next to cue list');
   assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
     'Compact GO and STOP ALL remain visible without scrolling');
-  const visibleInspectorField=await page.locator('#cuePlaybackForm [name="gainDb"]').boundingBox();
-  assert.ok(visibleInspectorField && visibleInspectorField.y < 614,
-    'Compact inspector must show real editable audio settings without page scroll');
+  const pageScroll=await page.locator('main').evaluate(el=>el.scrollTop);
+  await page.locator('.cue-waveform-canvas').scrollIntoViewIfNeeded();
+  const visibleWave=await page.locator('.cue-waveform-canvas').boundingBox();
+  assert.ok(visibleWave && visibleWave.y < compactGeometry.go.top,
+    'Compact inspector exposes the waveform above transport with its own scroll');
+  assert.equal(await page.locator('main').evaluate(el=>el.scrollTop),pageScroll,
+    'Inspecting the waveform does not scroll GO away');
+  await page.locator('#cueInspector').evaluate(el=>{el.scrollTop=0;});
   await page.setViewportSize({width:1366,height:768});
   // Conversational cue editor: offline text -> draft -> correction -> apply -> undo.
   assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
@@ -452,7 +457,7 @@ try {
   await capture('09-rehearsal-manual.png');
   await page.locator('[data-workspace-nav="operation"]').click();
   assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor),
-    'rgb(10, 17, 25)','Stage must be a blackout console, distinct from Studio');
+    'rgb(13, 17, 20)','Stage must be a blackout console, distinct from Studio');
   await capture('03-operation-1366.png');
   assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);

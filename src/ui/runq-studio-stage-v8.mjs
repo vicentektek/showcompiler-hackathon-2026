@@ -49,10 +49,15 @@ function mountV8(){
   toggle.type='button';
   toggle.id='rq8VoiceToggle';
   toggle.className='rq8-voice-toggle';
-  toggle.setAttribute('aria-controls','rqLivePanel');
+  toggle.setAttribute('aria-controls','rqLiveSettings');
   head?.append(toggle);
   toggle.addEventListener('click',()=>{
     voice.dataset.rq8Voice=voice.dataset.rq8Voice==='expanded'?'compact':'expanded';
+    byId('rqLiveSettings').open=voice.dataset.rq8Voice==='expanded';
+    sync();
+  });
+  byId('rqLiveSettings').addEventListener('toggle',()=>{
+    voice.dataset.rq8Voice=byId('rqLiveSettings').open?'expanded':'compact';
     sync();
   });
 
