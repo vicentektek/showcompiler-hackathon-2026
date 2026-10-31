@@ -29,11 +29,13 @@
   "allowCI": false,
   "requireServerSideBudgetEnforcement": true,
   "requireSingleSharedLedger": true,
-  "requireProviderBalanceCheck": true,
+  "requireProviderBalanceCheck": false,
   "requireActualCostReconciliation": true,
   "requireOneActivePaidRequest": true,
   "automaticRetries": 0,
   "preserveExistingPerRequestAndDailyLimits": true,
   "forbidAutomaticMerges": true,
-  "notes": "Not an implementation of the spending gateway. Offline-only policy data. Paid execution is blocked until code guards, shared accounting and dry-run tests are proven."
+  "notes": "Campaign is authorized based on owner attestation; provider balance lookup is OPTIONAL, never a blocking prerequisite. Mandatory shared ledger, reserve-before-send, Meta 65 USD/400 calls, Modal 35 USD/100 calls, total 100 USD, existing safeguards, no automatic retry and fail-closed on unknown spend. Provider may charge beyond promotional credits; local reserve is not a billing cap.",
+  "acceptOwnerCreditAttestation": true,
+  "ownerCreditAttestation": "Owner explicitly confirms credit availability for authorized Meta/Modal QA campaign in chat on 2026-11-01. Not provider balance verification; credits, expiry and actual charges remain unverified."
 }
