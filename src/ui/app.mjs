@@ -2065,7 +2065,8 @@ function safeCueChatEditState(){
 document.addEventListener('runq:cue-chat-context',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
- respond({project:show,cueId:selectedCueId,language:uiLocale,canApply:safeCueChatEditState(),
+ respond({project:show,cueId:selectedCueId,language:uiLocale,workspace:activeWorkspace,
+  canApply:safeCueChatEditState(),
   undoAvailable:Boolean(cueChatUndo&&cueChatUndo.after===JSON.stringify(show))});
 });
 document.addEventListener('runq:cue-chat-apply',event=>{

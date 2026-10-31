@@ -12,9 +12,10 @@ The operator can describe edits to **one selected cue** in conversational Spanis
 - Structured model outputs are checked against a fixed allowlist: gain dB, fade in/out, start delay, trim IN/OUT, rate, pan, loop, repetitions, label, spoken trigger, notes. Existing RunQ validators still enforce all ranges and loop/fade incompatibilities.
 - The assistant produces a *staged* before/after diff. No project mutation occurs until the operator clicks **Apply changes**.
 - A correction like `Mejor que sean cuatro segundos` updates the proposal while retaining earlier pending edits. **Discard** cancels the proposal. **Undo** restores the last applied snapshot if nobody else modified the show.
+- The Cue Editor shows the active show, cue and nearest recognizable scene heading. With explicit one-shot consent, a complex request sends the cue plus a bounded context: up to five exact source lines, up to two adjacent lines, the heading, linked-audio status and up to five linked audio titles. The disclosure says no audio files are sent. It never sends the rest of the script or audio bytes; omitted source-line count is explicit.
 - Optional **Muse Voice dictation** records at most 10 seconds locally. Upload for transcription requires a separate one-shot explicit consent. The transcript lands in the prompt editor; it never automatically submits an edit.
 - Text and dictation language follow the currently selected interface (ES/EN), independent of rehearsal voice-follow.
-- The server keeps `MODEL_API_KEY`; the model sees only the selected cue's editable properties and the current text request, never the entire project, media files or credentials.
+- The server keeps `MODEL_API_KEY`; project and script context are treated as untrusted reference data, not instructions. The model sees only the selected cue's editable properties and the bounded context above, never the entire project, media files or credentials.
 - Unsafe situations (audition/GO/active audio, unsaved manual inspector changes, changed project or selection, invalid model values) reject the apply operation.
 
 ## Scope limits
@@ -34,7 +35,7 @@ This first version edits one cue at a time. Bulk edits, cue creation, audio gene
 
 - Offline unit: property staging, corrections, validation, preservation of source references and sound asset links.
 - Local HTTP mocked model: consent and same-origin, secret isolation, strict schema, no unapproved action and no retries.
-- Chrome E2E: free instruction → staged diff → correction → operator apply → undo → no audio GO.
+- Chrome E2E: bounded cue context and consent disclosure, distinct fade-in/fade-out draft, local proposal without provider traffic or GO, plus manual operation and audition isolation.
 - Real model inference and real microphone must be checked on Windows. No mocked provider test proves recognition quality or conversational model accuracy.
 
 ## Next work

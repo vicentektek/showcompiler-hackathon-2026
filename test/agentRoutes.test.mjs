@@ -66,6 +66,26 @@ test('model request fails closed if credentials are unavailable',async()=>{
   });
 });
 
+test('agent route rejects operation or forged focus context before provider access',async()=>{
+  let called=0;
+  await withServer({getAgentKey:()=> 'test-key',
+   agentFetch:async()=>{called++;return reply(proposal);}},async root=>{
+   for(const focus of [
+    {workspace:'operation'},
+    {mode:'rehearsal'},
+    {selectedCueId:'cue-999'},
+   ]){
+    const request=params(root);
+    request.body=JSON.stringify({...JSON.parse(request.body),
+     context:{...context,...focus}});
+    const response=await fetch(root+'/api/agent/interpret',request);
+    assert.equal(response.status,400);
+    assert.equal((await response.json()).error,'INVALID_AGENT_INPUT');
+   }
+   assert.equal(called,0);
+  });
+});
+
 test('model may not target cues absent from consented context',async()=>{
  const rogue={...proposal,operations:[{...proposal.operations[0],cueId:'cue-999'}]};
  await withServer({getAgentKey:()=> 'test-key',agentFetch:async()=>reply(rogue)},

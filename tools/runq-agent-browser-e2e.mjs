@@ -24,7 +24,7 @@ project=normalizeShowProject({...project,cues:project.cues.map((c,i)=>({
 }))});
 const server=createAppServer();
 await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
-let browser;const errors=[],remote=[];
+let browser;const errors=[],remote=[],agentRequests=[];
 try{
  const port=server.address().port;
  browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
@@ -33,7 +33,12 @@ try{
  page.on('dialog',dialog=>void dialog.accept());
  await page.route('**/*',route=>{
   const url=new URL(route.request().url());
-  if(url.hostname!=='127.0.0.1'||url.port!==String(port)||url.pathname==='/api/agent/interpret'){
+  if(url.hostname==='127.0.0.1'&&url.port===String(port)&&url.pathname==='/api/agent/interpret'){
+   agentRequests.push(route.request().postDataJSON());
+   return route.fulfill({status:200,contentType:'application/json',
+    body:JSON.stringify({status:'CLARIFY',message:'Offline E2E mock; no show changes.',operations:[]})});
+  }
+  if(url.hostname!=='127.0.0.1'||url.port!==String(port)){
    remote.push(url.href);return route.abort();
   }
   return route.continue();
@@ -48,6 +53,26 @@ try{
  assert.equal(await page.locator('#rqAgentDrawer').isVisible(),true);
  const surface=await page.locator('#rqAgentDrawer').evaluate(el=>getComputedStyle(el).backgroundColor);
  assert.equal(surface,'rgb(25, 39, 52)','V15 dark agent surface must be applied');
+ await page.locator('#rqAgentAiOptions summary').click();
+ const disclosure=await page.locator('#rqAgentConsentDisclosure').textContent();
+ assert.ok(disclosure.includes('120 original script lines'));
+ assert.ok(disclosure.includes('Audio files are never sent'));
+ assert.equal(await page.locator('#rqAgentConsent').isChecked(),false,
+  'Opening AI permissions never authorizes or submits a provider request');
+ await page.locator('#rqAgentPrompt').fill('Revisa el cue seleccionado');
+ await page.locator('#rqAgentConsent').check();
+ await page.locator('#rqAgentAskAI').click();
+ await page.waitForFunction(()=>{
+  const status=document.querySelector('#rqAgentStatus')?.textContent??'';
+  return status.includes('Consulta finalizada.')||status.includes('Completed. The show was not modified.');
+ });
+ assert.equal(agentRequests.length,1,'Explicit consent sends exactly one request to the offline mock');
+ assert.equal(agentRequests[0].context.workspace,'cues');
+ assert.equal(agentRequests[0].context.mode,'design-manual');
+ assert.equal(agentRequests[0].context.selectedCueId,project.cues[0].id);
+ assert.ok(agentRequests[0].context.cues.some(cue=>cue.id===project.cues[0].id));
+ assert.equal(Object.hasOwn(agentRequests[0].context,'audioFiles'),false,
+  'The consented context contains asset metadata, never audio file bytes');
  if(process.env.RUNQ_CAPTURE_UI==='1'){
   await mkdir('artifacts/runq-ui',{recursive:true});
   await page.screenshot({path:'artifacts/runq-ui/runq-v15-agent-studio.png'});
@@ -110,7 +135,7 @@ try{
  assert.equal(eventTypes.includes('CUE_STARTED'),false);
  assert.deepEqual(remote,[],'No provider calls during offline agent demonstration');
  assert.deepEqual(errors,[],'No browser runtime errors');
- console.log('RUNQ AGENT E2E PASS: script-linked voice proposals, human apply, undo, Stage/Ensayo isolation');
+ console.log('RUNQ AGENT E2E PASS: bounded active context, explicit consent, script-linked proposals, human apply, undo, Stage/Ensayo isolation');
 }finally{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));

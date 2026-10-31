@@ -10,7 +10,11 @@ import {insertManualCue,deleteOperatorCue,reorderOperatorCue} from './manualCues
 import {normalizeSpeech} from './voiceFollow.mjs';
 
 export const AGENT_MAX_OPERATIONS=30;
+export const AGENT_DESIGN_WORKSPACES=Object.freeze([
+ 'home','script','ai','cues','audio','soundlab','setup','preflight',
+]);
 const EDITABLE=new Set(['UPDATE_CUE','DELETE_CUE','CREATE_CUE','REORDER_CUE']);
+const DESIGN_WORKSPACES=new Set(AGENT_DESIGN_WORKSPACES);
 const isRecord=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const fingerprint=project=>JSON.stringify(normalizeShowProject(project));
 function validId(id){return typeof id==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(id);}
@@ -30,21 +34,31 @@ export function resolveAgentCue(project,reference){
  return null;
 }
 export function buildAgentContext(project,{
- cueIds=null,maxCues=80,maxScriptLines=120,focusLineId=null,assetAvailable=()=>null
+ cueIds=null,maxCues=80,maxScriptLines=120,focusLineId=null,assetAvailable=()=>null,
+ workspace='ai',mode='design-manual',selectedCueId=null,
 }={}){
  const p=normalizeShowProject(project);
  if(!Number.isSafeInteger(maxCues)||maxCues<1||maxCues>200||
-    !Number.isSafeInteger(maxScriptLines)||maxScriptLines<1||maxScriptLines>200)
+    !Number.isSafeInteger(maxScriptLines)||maxScriptLines<1||maxScriptLines>200||
+    !DESIGN_WORKSPACES.has(workspace)||mode!=='design-manual'||
+    (selectedCueId!==null&&typeof selectedCueId!=='string'))
   fail('INVALID_CONTEXT_LIMIT');
  const cues=cueIds===null?p.cues:p.cues.filter(c=>cueIds.includes(c.id));
+ const selectedCue=selectedCueId===null?null:cues.find(c=>c.id===selectedCueId);
+ if(selectedCueId!==null&&!selectedCue)fail('INVALID_SELECTED_CUE');
+ const boundedCues=cues.slice(0,maxCues);
+ if(selectedCue&&!boundedCues.some(c=>c.id===selectedCueId)){
+  boundedCues[maxCues-1]=selectedCue;
+  boundedCues.sort((a,b)=>a.number-b.number);
+ }
  const lines=parseScript(p.scriptText);
  const focus=Number(/^L([1-9]\d*)$/.exec(focusLineId??'')?.[1])||1;
  const first=Math.max(0,Math.min(focus-1-Math.floor(maxScriptLines/2),Math.max(0,lines.length-maxScriptLines)));
  return {
-  projectId:p.id,projectName:p.name,
+  projectId:p.id,projectName:p.name,workspace,mode,selectedCueId,
   counts:{cues:p.cues.length,assets:p.assets.length,scriptLines:lines.length},
   truncated:{cues:cues.length>maxCues,script:lines.length>maxScriptLines},
-  cues:cues.slice(0,maxCues).map(c=>({
+  cues:boundedCues.map(c=>({
    id:c.id,number:c.number,label:c.label,trigger:c.trigger??'',
    notes:c.notes??'',sourceLineIds:[...c.sourceLineIds],
    playback:c.playback??{},assetIds:[

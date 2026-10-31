@@ -3,7 +3,7 @@
  * explicit approval and reversible commit. Remote AI and dictation require
  * separate, one-shot consents. No GO or playback transport in this module.
  */
-import {stageCueConversationChange,parseLocalCueChat,validateCueChatModelReply}
+import {stageCueConversationChange,parseLocalCueChat,validateCueChatModelReply,buildCueChatContext}
  from '../core/cueConversation.mjs';
 import {userFacingError} from './userFacingErrors.mjs';
 const $=id=>document.getElementById(id);
@@ -98,7 +98,11 @@ function syncCue(){
   pending=null;history=[];lastField=null;shownCueId=state.cueId;undoAvailable=false;
   renderHistory();
  }
- $('rqChatContext').textContent=String(cue.number).padStart(2,'0')+' · '+cue.label;
+ const cueContext=buildCueChatContext(state.project,cue.id,state.workspace);
+ $('rqChatContext').textContent=[
+  cueContext.showName,String(cue.number).padStart(2,'0')+' · '+cue.label,
+  cueContext.sceneHeading?.text,
+ ].filter(Boolean).join(' · ');
  renderDraft();
  return {state,cue};
 }
@@ -137,6 +141,7 @@ async function submit(){
     prompt:val,language:es()?'es':'en',
     cue:{id:cue.id,number:cue.number,label:cue.label,
       trigger:cue.trigger??'',notes:cue.notes??'',playback:cue.playback??{}},
+    context:buildCueChatContext(state.project,cue.id,state.workspace),
     pendingChanges:Object.keys(prior).length?prior:null,lastField,
    };
    const response=await fetch('/api/cue-chat/interpret',{
@@ -218,8 +223,9 @@ function localized(){
  $('rqChatPromptLabel').textContent=t('¿Qué quieres cambiar?','What would you like to change?');
  $('rqChatPrompt').placeholder=t('Ej.: Baja el volumen a −9 dB y pon un fade in de 3 segundos.',
   'E.g. Set gain to -9 dB and a 3-second fade in.');
- $('rqChatAiConsentText').textContent=t('Autorizo enviar esta instrucción a Meta si necesita interpretación con IA',
-  'I authorize sending this instruction to Meta if AI interpretation is needed');
+ $('rqChatAiConsentText').textContent=t(
+  'Autorizo una consulta a Meta con mi instrucción, este cue, la escena, sus líneas vinculadas, hasta dos líneas cercanas, el estado y los títulos del audio asociado. No se envían archivos de audio.',
+  'I authorize one Meta request with my instruction, this cue, its scene, linked lines, up to two nearby script lines, linked audio status and linked audio titles. No audio files are sent.');
  $('rqChatSubmit').textContent=t('Proponer cambios','Propose changes');
  $('rqChatApply').textContent=t('Aplicar cambios','Apply changes');
  $('rqChatDiscard').textContent=t('Descartar','Discard');

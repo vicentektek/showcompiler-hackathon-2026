@@ -33,12 +33,29 @@ test('context builder exposes bounded, original source and stable identities',()
  const project=fixture();
  const context=buildAgentContext(project,{maxCues:2,maxScriptLines:3,focusLineId:'L5'});
  assert.equal(context.projectName,'Prueba agente');
+ assert.equal(context.workspace,'ai');
+ assert.equal(context.mode,'design-manual');
+ assert.equal(context.selectedCueId,null);
  assert.equal(context.cues.length,2);
  assert.equal(context.truncated.cues,true);
  assert.deepEqual(context.lines.map(x=>x.id),['L4','L5','L6']);
  assert.equal(resolveAgentCue(project,'cue 2').id,project.cues[1].id);
  assert.equal(resolveAgentCue(project,3).id,project.cues[2].id);
  assert.equal(resolveAgentCue(project,'cue 3000'),null);
+ const focused=buildAgentContext(project,{maxCues:2,maxScriptLines:3,
+  workspace:'script',selectedCueId:project.cues[1].id});
+ assert.equal(focused.workspace,'script');
+ assert.equal(focused.selectedCueId,project.cues[1].id);
+ let large=project;
+ for(let index=0;index<80;index++)
+  large=insertManualCue(large,{afterCueId:large.cues.at(-1).id,label:'Extra '+index}).project;
+ const lastCue=large.cues.at(-1);
+ const bounded=buildAgentContext(large,{selectedCueId:lastCue.id});
+ assert.equal(bounded.truncated.cues,true);
+ assert.ok(bounded.cues.some(cue=>cue.id===lastCue.id));
+ assert.equal(bounded.cues.length,80);
+ assert.throws(()=>buildAgentContext(project,{workspace:'operation'}),/INVALID_CONTEXT_LIMIT/);
+ assert.throws(()=>buildAgentContext(project,{selectedCueId:'unknown'}),/INVALID_SELECTED_CUE/);
 });
 test('local agent accepts narrow commands but refuses unsupported/negated requests',()=>{
  const p=fixture();

@@ -4,7 +4,7 @@ import {createNewShow,addAudioReference,assignAudioToCue} from '../src/core/work
 import {insertManualCue} from '../src/core/manualCues.mjs';
 import {
  stageCueConversationChange,applyCueConversationDraft,validateCueChatChanges,
- validateCueChatModelReply,parseLocalCueChat
+ validateCueChatModelReply,parseLocalCueChat,buildCueChatContext
 } from '../src/core/cueConversation.mjs';
 
 function sample(){
@@ -39,9 +39,33 @@ test('offline ES and EN audio commands parse without provider calls',()=>{
  assert.deepEqual(parseLocalCueChat('Pon un fade in de 3 segundos y el volumen a -9 dB'),
   {gainDb:-9,fadeInMs:3000});
  assert.deepEqual(parseLocalCueChat('Set fade out to 2 seconds'),{fadeOutMs:2000});
+ assert.deepEqual(parseLocalCueChat('Fade in 2 seconds and fade out 5 seconds'),
+  {fadeInMs:2000,fadeOutMs:5000});
  assert.deepEqual(parseLocalCueChat('Ponlo en bucle'),{loop:true});
  assert.deepEqual(parseLocalCueChat('Desactivar bucle'),{loop:false});
  assert.equal(parseLocalCueChat('Añade música y crea un vídeo'),null);
+});
+test('AI context is limited to the active cue, exact source lines, scene heading and linked audio',()=>{
+ const {project,cueId}=sample(),cue=project.cues[0];
+ const contextual={
+  ...project,name:'La última señal',
+  scriptText:'ESCENA 1. La estación\nSe oye un trueno.\nLa tormenta se acerca.\nSuena una puerta.\nNORA: No recuerdo tormentas en esta escena.\n',
+  cues:[{...cue,sourceLineIds:['L3']}],
+ };
+ const result=buildCueChatContext(contextual,cueId,'cues');
+ assert.deepEqual(result,{
+  showName:'La última señal',workspace:'cues',mode:'design-manual',
+  sceneHeading:{lineId:'L1',text:'ESCENA 1. La estación'},
+  sourceLineCount:1,sourceLinesOmitted:0,
+  sourceLines:[{lineId:'L3',text:'La tormenta se acerca.'}],
+  nearbyLines:[
+   {lineId:'L2',text:'Se oye un trueno.'},
+   {lineId:'L4',text:'Suena una puerta.'},
+  ],
+  audioStatus:'LINKED',
+  linkedAudio:['tormenta.wav'],
+ });
+ assert.equal(JSON.stringify(result).includes('No recuerdo tormentas'),false);
 });
 test('strict values and incompatible playback fail without partially mutating project',()=>{
  const {project,cueId}=sample();

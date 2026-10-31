@@ -4,6 +4,13 @@ import {createAppServer} from '../tools/dev-server.mjs';
 function candidate(){
  return {prompt:'Baja la tormenta a menos nueve decibelios y que entre durante tres segundos',
   language:'es',lastField:null,pendingChanges:null,
+  context:{showName:'La última señal',workspace:'cues',mode:'design-manual',
+   sceneHeading:{lineId:'L1',text:'ESCENA 1. La estación'},
+   sourceLineCount:1,sourceLinesOmitted:0,
+   sourceLines:[{lineId:'L3',text:'La tormenta se acerca.'}],
+   nearbyLines:[{lineId:'L2',text:'Se oye un trueno.'}],
+   audioStatus:'LINKED',
+   linkedAudio:['tormenta.wav']},
   cue:{id:'cue-1',number:4,label:'Tormenta',trigger:'La tormenta se acerca',
    notes:'',playback:{gainDb:0,fadeInMs:0}}};
 }
@@ -66,6 +73,21 @@ test('one exact Muse Spark request returns validated ES draft, excludes private 
  assert.equal(payload.response_format.type,'json_schema');
  assert.equal(payload.messages[1].role,'user');
  assert.ok(!payload.messages[1].content.includes('server-only-secret'));
+ const sent=JSON.parse(payload.messages[1].content);
+ assert.deepEqual(sent.selectedContext,candidate().context);
+});
+test('invalid or oversized context is rejected before contacting Meta',async()=>{
+ let calls=0;
+ await withServer({getCueChatKey:()=> 'key',cueChatFetch:async()=>{calls++;return metaResponse();}},async base=>{
+  const invalid={
+   ...candidate(),context:{...candidate().context,sourceLines:[
+    {lineId:'L1',text:'x'.repeat(501)}]},
+  };
+  const result=await submit(base,invalid);
+  assert.equal(result.status,400);
+  assert.equal(result.data.error,'INVALID_EDITOR_INPUT');
+ });
+ assert.equal(calls,0);
 });
 test('model clarification is never a patch, no retries',async()=>{
  let calls=0;

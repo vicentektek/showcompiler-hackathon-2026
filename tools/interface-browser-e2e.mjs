@@ -70,10 +70,10 @@ try {
   assert.equal(await handle.getAttribute('aria-valuenow'),'55');
   const initialPrepared=await prepared();
   const sourceText=await page.locator('#scriptPreview').textContent();
-  await page.locator('[data-editor-view="inspector"]').click();
+  await page.locator('button[data-editor-view="inspector"]').click();
   assert.equal(await sequence.isVisible(),false);
   assert.ok((await page.locator('#cueInspector').boundingBox()).width>900);
-  await page.locator('[data-editor-view="sequence"]').click();
+  await page.locator('button[data-editor-view="sequence"]').click();
   assert.equal(await page.locator('#cueInspector').isVisible(),false);
   await page.locator('#rq16ResetLayout').click();
   assert.equal(await prepared(),initialPrepared);
@@ -81,7 +81,7 @@ try {
   // Text edits remain staged when changing only the pane layout.
   const gain=page.locator('#cuePlaybackForm input[name="gainDb"]');
   await gain.fill('-6');
-  await page.locator('[data-editor-view="inspector"]').click();
+  await page.locator('button[data-editor-view="inspector"]').click();
   assert.equal(await gain.inputValue(),'-6');
   await page.locator('#rq16ResetLayout').click();
   await page.locator('#cuePlaybackForm button[type="submit"]').click();
@@ -93,6 +93,40 @@ try {
   console.log('PASS: focus, search and staged editing preserve NEXT and never play');
 
   await mkdir('artifacts/interface-review',{recursive:true});
+  await page.locator('button[data-editor-view="sequence"]').click();
+  await page.locator('[data-cue-select]').first().click();
+  await page.locator('button[data-editor-view="inspector"]').click();
+  await page.locator('#cueInspector .rq-chat-open').click();
+  await page.locator('#rqCueChatPanel').waitFor({state:'visible'});
+  const cueContext=await page.locator('#rqChatContext').textContent();
+  assert.ok(cueContext.includes('The Last Cue'));
+  assert.ok(cueContext.includes('SCENE 1 — THE LAST CUE'));
+  const consentText=await page.locator('#rqChatAiConsentText').textContent();
+  assert.ok(consentText.includes('linked lines'));
+  assert.ok(consentText.includes('nearby script lines'));
+  assert.ok(consentText.includes('linked audio status'));
+  assert.ok(consentText.includes('linked audio titles'));
+  assert.ok(consentText.includes('No audio files are sent'));
+  await page.screenshot({path:'artifacts/interface-review/cue-ai-context-1440.png',animations:'disabled'});
+  await page.locator('#rqChatPrompt').fill('Fade in 2 seconds and fade out 5 seconds');
+  await page.locator('#rqChatSubmit').click();
+  await page.locator('#rqChatProposal').waitFor({state:'visible'});
+  const proposedChanges=await page.locator('#rqChatDiff').textContent();
+  assert.ok(proposedChanges.includes('Fade in'));
+  assert.ok(proposedChanges.includes('Fade out'));
+  assert.ok(proposedChanges.includes('2 s'));
+  assert.ok(proposedChanges.includes('5 s'));
+  assert.deepEqual(providerPosts,[],'Local cue edits and contextual display never submit a provider request');
+  assert.equal(await page.evaluate(()=>window.audioStarts),0,'Conversational proposals never execute GO');
+  await page.locator('#rqChatDiscard').click();
+  await page.locator('#rqChatClose').click();
+  await page.locator('button[data-editor-view="inspector"]').click();
+  await page.waitForFunction(()=>{
+    const panel=document.querySelector('#rqCueChatPanel');
+    return panel?.hidden&&!document.querySelector('.rq5-inspector-frame')?.classList.contains('rq7-chat-active');
+  });
+  console.log('PASS: selected cue context, explicit disclosure and distinct fade-in/fade-out draft');
+
   for(const size of [{width:1920,height:1080},{width:1440,height:900},{width:1093,height:614},{width:768,height:900}]){
     await page.setViewportSize(size);
     for(const name of ['home','cues','script','audio','ai','setup','preflight','rehearsal','operation']){
@@ -105,7 +139,8 @@ try {
       if(name==='cues'&&size.width>=1000){
         const go=await page.locator('#operatorGoBtn').boundingBox();
         assert.ok(go.y+go.height<=size.height,`GO stays on screen at ${size.width}`);
-        assert.ok((await page.locator('#cueInspector').boundingBox()).height>=180);
+        const inspectorBox=await page.locator('#cueInspector').boundingBox();
+        assert.ok(inspectorBox&&inspectorBox.height>=180);
       }
       await page.screenshot({path:`artifacts/interface-review/${name}-${size.width}.png`,animations:'disabled'});
     }
@@ -175,6 +210,7 @@ try {
 
   // Explicit operator transport still executes; design operations above did not.
   await route('cues');
+  await page.locator('button[data-editor-view="sequence"]').click();
   await page.locator('#operatorGoBtn').click();
   await page.waitForFunction(()=>window.audioStarts===1);
   assert.notEqual(await prepared(),initialPrepared);
@@ -182,6 +218,7 @@ try {
   assert.ok(await page.evaluate(()=>window.audioStops)>0);
   const next=await prepared();
   await page.locator('[data-cue-select]').first().click();
+  await page.locator('button[data-editor-view="inspector"]').click();
   assert.equal(await page.locator('[data-preview-cue]').isEnabled(),true,'STOP after ZIP import must unlock audition without reselecting a different cue');
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('[data-preview-cue]').click();

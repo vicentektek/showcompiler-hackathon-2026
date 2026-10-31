@@ -5,6 +5,7 @@
  */
 import {normalizeShowProject} from './projectPersistence.mjs';
 import {normalizeCuePlayback} from './cuePlayback.mjs';
+import {parseScript} from './script.mjs';
 import {updateCuePlayback,updateCueOperatorDetails} from './workspace.mjs';
 
 export const CUE_CHAT_FIELDS=Object.freeze([
@@ -17,6 +18,51 @@ const BOOLEAN_FIELDS=new Set(['loop']);
 const TEXT_FIELDS=new Set(['label','trigger','notes']);
 const VAL_FIELDS=new Set(['gainDb','playbackRate','pan','repeatCount']);
 const whole=value=>typeof value==='number'&&Number.isSafeInteger(value);
+
+export function buildCueChatContext(project,cueId,workspace='cues'){
+ const current=normalizeShowProject(project),cue=current.cues.find(item=>item.id===cueId);
+ if(!cue||cue.status!=='DRAFT')throw new TypeError('CUE_NOT_EDITABLE');
+ if(workspace!=='cues')throw new TypeError('INVALID_CONTEXT');
+ const lines=parseScript(current.scriptText);
+ const firstSourceIndex=lines.findIndex(line=>cue.sourceLineIds.includes(line.id));
+ const headingPattern=/^\s*(?:(?:scene|scène|escena|acto|acte|act)\b.*)$/iu;
+ const sceneHeading=firstSourceIndex<0?null:[...lines.slice(0,firstSourceIndex+1)]
+  .reverse().find(line=>headingPattern.test(line.text));
+ const lineById=new Map(lines.map(line=>[line.id,line]));
+ const sourceLineIds=new Set(cue.sourceLineIds);
+ const sourceLines=cue.sourceLineIds.slice(0,5)
+  .map(lineId=>lineById.get(lineId))
+  .filter(Boolean)
+  .map(({id,text})=>({lineId:id,text:text.slice(0,500)}));
+ const nearbyLines=firstSourceIndex<0?[]:[
+  lines[firstSourceIndex-1],lines[firstSourceIndex+1],
+ ].filter(line=>line&&line.id!==sceneHeading?.id&&!sourceLineIds.has(line.id))
+  .map(({id,text})=>({lineId:id,text:text.slice(0,500)}));
+ const assetNames=new Map(current.assets.map(asset=>[asset.id,asset.name]));
+ const linkedAssetIds=[
+  ...cue.actions.filter(action=>action.type==='PLAY').map(action=>action.assetId),
+  ...(cue.audioTracks??[]).map(track=>track.assetId),
+ ];
+ const linkedAudio=[...new Set(cue.actions
+  .filter(action=>action.type==='PLAY')
+  .map(action=>action.assetId)
+  .concat((cue.audioTracks??[]).map(track=>track.assetId))
+  .map(assetId=>assetNames.get(assetId))
+  .filter(Boolean))].slice(0,5).map(name=>name.slice(0,200));
+ return {
+  showName:current.name.slice(0,160),
+  workspace,
+  mode:'design-manual',
+  sceneHeading:sceneHeading?{lineId:sceneHeading.id,text:sceneHeading.text.slice(0,500)}:null,
+  sourceLineCount:cue.sourceLineIds.length,
+  sourceLinesOmitted:Math.max(0,cue.sourceLineIds.length-sourceLines.length),
+  sourceLines,nearbyLines,
+  audioStatus:cue.actions.some(action=>action.type==='PLAN_AUDIO')
+   ?'UNRESOLVED':linkedAssetIds.length?'LINKED':'NO_AUDIO',
+  linkedAudio,
+ };
+}
+
 export function validateCueChatChanges(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw new TypeError('INVALID_CHANGES');
  const keys=Object.keys(input);

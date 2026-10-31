@@ -229,26 +229,12 @@ function install(){
  search?.addEventListener('input',()=>queueMicrotask(showSearchAction));
  if(searchCount)new MutationObserver(showSearchAction).observe(searchCount,{childList:true,characterData:true});
  searchAction.addEventListener('click',()=>emitAI({mode:'sound',prompt:search.value.trim()}));
- // Cue Inspector already owns an actual conversational editor. Contextual
- // shortcut clicks the ORIGINAL button; never creates a second AI workflow.
- const cueInspector=$('cueInspector');
- const cueAI=make('button','btn subtle small rq14-cue-ai',tr('Editar cue con IA','Edit cue with AI'));
- cueAI.type='button';cueAI.id='rq14CueAI';
- cueAI.addEventListener('click',()=>{
-  const existing=cueInspector?.querySelector('.rq-chat-open');
-  if(existing&&!existing.disabled)existing.click();
- });
- panel.querySelector('.rq5-inspector-heading')?.append(cueAI);
- function syncCueAI(){cueAI.disabled=!cueInspector?.querySelector('.rq-chat-open');}
- if(cueInspector)new MutationObserver(()=>queueMicrotask(syncCueAI)).observe(cueInspector,{childList:true});
- syncCueAI();
  // Localized mode controls; never changes transport behavior.
  function localize(){
   eventTitle.textContent=tr('EVENTOS RECIENTES','RECENT EVENTS');
   propose.textContent=tr('Proponer cues con IA','Suggest cues with AI');
   generate.textContent=tr('Generar sonido…','Generate sound…');
   searchAction.textContent=tr('Generar con IA','Generate with AI');
-  cueAI.textContent=tr('Editar cue con IA','Edit cue with AI');
   sync();setEventHistory();
  }
  $('uiLocaleSelect')?.addEventListener('change',()=>queueMicrotask(localize));

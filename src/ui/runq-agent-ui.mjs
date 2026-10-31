@@ -150,7 +150,8 @@ async function sendRequest(forceAI=false,custom=null){
  if(forceAI&&!$('rqAgentConsent').checked){
   const settings=$('rqAgentAiOptions');if(settings)settings.open=true;
   $('rqAgentConsent')?.focus();
-  notify(lang('Confirma el envío de esta instrucción antes de consultar IA.','Authorize sending this instruction before using AI.'),true);return;
+  notify(lang('Autoriza el envío de la instrucción y el contexto del show antes de consultar IA.',
+   'Authorize sending the instruction and show context before using AI.'),true);return;
  }
  const conversation=boundedAgentConversation(history);
  working=true;lastPrompt=instruction;showPlan(null);
@@ -163,6 +164,7 @@ async function sendRequest(forceAI=false,custom=null){
   if(forceAI){
    const focus=s.project.cues.find(c=>c.id===s.selectedCueId)?.sourceLineIds[0];
    const context=buildAgentContext(s.project,{focusLineId:focus??null,
+    workspace:s.workspace,mode:'design-manual',selectedCueId:s.selectedCueId??null,
     assetAvailable:id=>assetReady(id,s)});
    if(context.truncated.cues){
     throw new Error(lang('El proyecto supera el contexto seguro de 80 cues. Divide la tarea por escena.',
@@ -314,9 +316,13 @@ function mount(){
  const consentLabel=make('label','rq-agent-consent');
  const consent=make('input','');consent.type='checkbox';consent.id='rqAgentConsent';
  consentLabel.append(consent,make('span','',lang(
-  'Autorizo enviar esta instrucción y un contexto limitado del proyecto al proveedor de IA elegido (puede tener coste).',
-  'I authorize sending this instruction and limited show context to the selected AI provider (may incur a charge).')));
- aiOptions.append(providerLabel,consentLabel);
+  'Autorizo una consulta con la instrucción y el contexto acotado del show al proveedor elegido (puede tener coste).',
+  'I authorize one request with this instruction and bounded show context to the selected AI provider (may incur a charge).')));
+ const consentDetails=make('small','rq-agent-consent-disclosure',lang(
+  'Incluye hasta 80 cues, 120 líneas originales del guion, nombres/estado de medios y hasta 8 mensajes recientes. No se envían archivos de audio.',
+  'Includes up to 80 cues, 120 original script lines, media names/status and up to 8 recent messages. Audio files are never sent.'));
+ consentDetails.id='rqAgentConsentDisclosure';
+ aiOptions.append(providerLabel,consentLabel,consentDetails);
  const actions=make('div','rq-agent-actions');
  const local=make('button','btn accent small',lang('Proponer localmente','Plan locally'));
  local.id='rqAgentSubmit';local.type='button';
