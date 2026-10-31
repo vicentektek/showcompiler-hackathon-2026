@@ -335,6 +335,7 @@
   "workspace.matchCount": "{visible} of {total} cues",
   "workspace.noCueMatches": "No cues match this search. The prepared GO has not changed.",
   "workspace.home": "Home",
+  "a11y.skip": "Skip to content",
   "workspace.description.home": "Create a show, open a complete ZIP or start from an original audio demo.",
   "workspace.homeTitle": "Start your show",
   "workspace.homeNew": "Create a new show",

@@ -57,3 +57,6 @@ Sound > Create & edit was restyled after tag `runq-interface-approved-2026-10-31
 
 ## Brand palette and AI proposals restyle (post-approval)
 Applied the RUNQ brand identity (sage #A7B28F, charcoal #0F110E, off-white #EBE6DD, stone #686F68, deep green #1E2A21): blue accents in the stylesheets were remapped to sage, the top bar uses the Q mark (assets/runq-q.png; assets/runq-logo-full.png and runq-wordmark.png are available for splash/about), and src/ui/runq-brand.css restyles AI proposals (hero header, proposal cards with state chips, prominent generate button). Presentation only: no handler, id or AI/GO/STOP logic changed.
+
+## Accessibility pass (post-approval)
+Measured with Playwright on the demo show: text under 11 px, contrast under 4.5:1, targets under 24 px, 1 px focus ring and no skip link. Fixed in the accessibility section of src/ui/runq-brand.css (11 px floor, muted text #a2aa9d, 2 px sage focus ring, 24 px minimum targets) plus a skip link (a11y.skip in both locales, main#rqMain). Splitters already had role=separator. Not yet done: workspace nav still uses aria-pressed instead of tab roles; empty states and Project screen branding.

@@ -335,6 +335,7 @@
   "workspace.matchCount": "{visible} de {total} cues",
   "workspace.noCueMatches": "No hay cues que coincidan. El cue preparado para GO no ha cambiado.",
   "workspace.home": "Inicio",
+  "a11y.skip": "Saltar al contenido",
   "workspace.description.home": "Crea un espectáculo, abre un ZIP completo o prueba una demo de audio original.",
   "workspace.homeTitle": "Empieza tu espectáculo",
   "workspace.homeNew": "Crear espectáculo",

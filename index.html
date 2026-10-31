@@ -52,6 +52,7 @@
   <script src="/src/ui/runq-soundlab-ui.mjs" type="module"></script>
 </head>
 <body>
+  <a class="rq-skip-link" href="#rqMain" data-i18n="a11y.skip">Skip to content</a>
   <div class="shell" data-active-workspace="home">
     <header class="topbar">
       <div class="brand">
@@ -91,7 +92,7 @@
       <button type="button" class="workspace-tab" data-workspace-nav="operation" aria-pressed="false" data-i18n="workspace.operation">Operation</button>
       <div class="workspace-mode"><span data-i18n="workspace.mode">MODE</span><strong data-i18n="workspace.design">DESIGN · MANUAL</strong></div>
     </nav>
-    <main>
+    <main id="rqMain" tabindex="-1">
       <section class="intro workspace-intro">
         <div>
           <p class="eyebrow" data-i18n="intro.eyebrow">Build for Your World / Theatre and live events</p>
