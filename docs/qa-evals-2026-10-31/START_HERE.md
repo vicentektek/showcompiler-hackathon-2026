@@ -30,8 +30,8 @@ Leer con `git show` no modifica los archivos de trabajo. Para copiar documentos 
 1. Inspeccionar capacidades **reales** del checkout; congelar SHA y tests existentes.
 2. Implementar E0 + E1: fixtures sintéticos, contratos, generador determinista y runner offline, con reporte honesto.
 3. Ampliar E2–E7: adapters, escenarios de Builder, conversaciones, voz, audio, fallos; solo marcar PASS cuando se haya ejecutado.
-4. Preparar E8 **sin ejecutar modelos pagados** y E9 feedback loop; informar lo bloqueado.
-5. Automatizar en CI solo lo offline y determinista. Pilotos pagados requieren autorización específica por proveedor, presupuesto y lotes.
+4. E8: integrar la política [PAID_AUTONOMOUS_QA_POLICY.md](PAID_AUTONOMOUS_QA_POLICY.md), validar el gateway único y solo entonces ejecutar campañas Meta/Modal autorizadas; si no se cumplen sus precondiciones, bloquearlas. E9: feedback loop.
+5. Automatizar en CI solo lo offline y determinista. La autorización del usuario para Meta 65 USD / Modal 35 USD ya consta en la política; cada lote usa sus límites y flags explícitos. Sin reintentos automáticos.
 
 ## Ejecuciones reales verificadas por esta publicación
 Publicar documentos en GitHub **no ejecuta ninguna prueba sobre RUNQ**. No atribuirle por defecto los 100 casos, 102 conversaciones, 18 E2E ni validación de Muse Spark a la rama.
