@@ -95,5 +95,6 @@ test('Sound Lab initializes once at application startup independently of route s
   const lab=await load('src/sfx/lab.mjs');
   assert.match(lab,/if\(!state\.initialized\)/);
   assert.match(lab,/await checkConnection\(\);/);
-  assert.match(lab,/No se pudo consultar el generador local/);
+  assert.match(lab,/Cannot connect to the generator/);
+  assert.match(lab,/userFacingError/);
 });

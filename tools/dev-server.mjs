@@ -60,6 +60,7 @@ const allowed = new Map([
   ['/src/ui/voice-follow-ui.mjs', ['src/ui/voice-follow-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/cue-conversation-ui.mjs', ['src/ui/cue-conversation-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-agent-ui.mjs', ['src/ui/runq-agent-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/userFacingErrors.mjs', ['src/ui/userFacingErrors.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-agent.css', ['src/ui/runq-agent.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-visual-freeze-v15.css', ['src/ui/runq-visual-freeze-v15.css', 'text/css; charset=utf-8']],
   ['/src/core/agentDialogue.mjs', ['src/core/agentDialogue.mjs', 'text/javascript; charset=utf-8']],

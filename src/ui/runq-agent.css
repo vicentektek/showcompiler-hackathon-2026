@@ -52,3 +52,11 @@
  font-size:11px;color:#c8d4e4}
 .rq-agent-provider select{min-width:160px;max-width:58%;padding:6px 8px;border:1px solid #536785;
  border-radius:6px;background:#121d2b;color:#edf4fa;font:inherit}
+
+/* Optional provider settings stay out of the normal editing flow. */
+.rq-agent-ai-options{border:1px solid #40516a;border-radius:7px;background:#182333;padding:0 10px}
+.rq-agent-ai-options>summary{cursor:pointer;padding:8px 0;color:#c8d4e4;font-size:11px;font-weight:650}
+.rq-agent-ai-options[open]{padding-bottom:10px}
+.rq-agent-ai-options .rq-agent-provider{margin:8px 0 10px}
+.rq-agent-ai-options .rq-agent-consent{margin-top:5px}
+.rq-agent-ai-options:focus-within{border-color:#7da7f2}

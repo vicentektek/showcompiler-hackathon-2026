@@ -75,8 +75,23 @@ try{
   await page.waitForFunction(()=>!['Checking engine','Comprobando conexión'].includes(document.querySelector('#engineBadge')?.textContent?.trim()),null,{timeout:4000});
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   assert.equal(await page.locator('#waveCanvas').count(),1);
+  // Capture the actual new, credential-free end-user generation screen.
+  // These screenshots show an offline provider truthfully; they are never mocks
+  // of a successful external model generation.
+  if(process.env.RUNQ_CAPTURE_UI==='1'){
+    await mkdir('artifacts/runq-ui',{recursive:true});
+    await page.locator('#soundPrompt').fill('An old wooden door creaks open in a quiet theatre, then closes.');
+    await page.screenshot({path:'artifacts/runq-ui/11-sound-creation-english.png',fullPage:true});
+    await page.locator('#sfxConnectionDetails').evaluate(el=>{el.open=true;});
+    await page.screenshot({path:'artifacts/runq-ui/12-sound-connection-details.png',fullPage:true});
+    await page.locator('#sfxConnectionDetails').evaluate(el=>{el.open=false;});
+    await page.locator('#uiLocaleSelect').selectOption('es');
+    await page.screenshot({path:'artifacts/runq-ui/13-sound-creation-spanish.png',fullPage:true});
+    await page.locator('#uiLocaleSelect').selectOption('en');
+  }
+  await page.locator('details.sfx-offline-example').evaluate(el=>{el.open=true;});
   await page.locator('#demoAudioBtn').click();
-  await page.getByText('Synthetic test sound loaded locally.',{exact:false}).waitFor();
+  await page.getByText('Local audio example loaded.',{exact:false}).waitFor();
   assert.match(await page.locator('#audioName').innerText(),/NOT AI/);
   assert.equal(await page.locator('#playBtn').isEnabled(),true);
   assert.equal(await page.locator('#exportBtn').isDisabled(),true,'Offline demo WAV is not an accepted remote generation; it must not be exportable as an AI take');
@@ -125,6 +140,7 @@ try{
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('#assetList [data-sound-edit]').count(),3);
   await page.locator('[data-rq10-sound-tab="generate"]').click();
+  await page.locator('details.sfx-offline-example').evaluate(el=>{el.open=true;});
   await page.locator('#demoAudioBtn').click();
   await page.locator('#playBtn').click();
   assert.equal(await page.locator('#operatorGoBtn').isDisabled(),true,

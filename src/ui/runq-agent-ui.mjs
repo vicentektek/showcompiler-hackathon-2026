@@ -4,6 +4,7 @@
  */
 import {buildAgentContext,prepareAgentPlan} from '../core/agentCore.mjs';
 import {resolveAgentDialogue,boundedAgentConversation} from '../core/agentDialogue.mjs';
+import {userFacingError} from './userFacingErrors.mjs';
 const $=id=>document.getElementById(id);
 const es=()=>$('uiLocaleSelect')?.value==='es';
 const lang=(esText,enText)=>es()?esText:enText;
@@ -147,13 +148,15 @@ async function sendRequest(forceAI=false,custom=null){
   notify(lang('Escribe una instrucción de 3 a 1600 caracteres.','Enter 3–1600 characters.'),true);return;
  }
  if(forceAI&&!$('rqAgentConsent').checked){
-  notify(lang('Autoriza explícitamente esta consulta a Meta.','Explicitly authorize this Meta request.'),true);return;
+  const settings=$('rqAgentAiOptions');if(settings)settings.open=true;
+  $('rqAgentConsent')?.focus();
+  notify(lang('Confirma el envío de esta instrucción antes de consultar IA.','Authorize sending this instruction before using AI.'),true);return;
  }
  const conversation=boundedAgentConversation(history);
  working=true;lastPrompt=instruction;showPlan(null);
  $('rqAgentSubmit').disabled=true;$('rqAgentAskAI').disabled=true;
  addMessage('user',instruction);
- notify(forceAI?lang('Consultando proveedor de IA (una solicitud)...','Consulting AI provider (one request)...'):
+ notify(forceAI?lang('Preparando propuesta con IA…','Preparing an AI suggestion…'):
   lang('Analizando proyecto localmente...','Analyzing local project...'));
  try{
   let reply;
@@ -217,14 +220,13 @@ async function sendRequest(forceAI=false,custom=null){
     'Plan ready: review all changes before applying.'));
   }else{
    notify(reply.status==='NEEDS_AI'?
-    lang('Para solicitudes complejas puedes consultar la IA con consentimiento.',
-      'For complex tasks, consult AI with consent.'):
+    lang('Si lo necesitas, puedes pedir una propuesta con IA.',
+      'You can ask AI for another suggestion when needed.'):
     lang('Consulta finalizada. No se ha modificado el espectáculo.',
       'Completed. The show was not modified.'));
   }
  }catch(error){
-  addMessage('assistant',lang('No se pudo preparar la operación: ','Unable to prepare operation: ')+
-   String(error.message).slice(0,240));
+  addMessage('assistant',userFacingError(error,es()?'es':'en'));
   notify(lang('La operación ha fallado. No se han aplicado cambios.',
     'Request failed. No changes were applied.'),true);
  }finally{
@@ -244,7 +246,7 @@ function apply(){
   showPlan(null);
   notify(lang('Cambios aplicados. Puedes deshacer el último lote.',
    'Changes applied. You may undo the last batch.'));
- }else notify(lang('No se han aplicado cambios: ','Changes not applied: ')+(response?.error??'UNKNOWN'),true);
+ }else notify(userFacingError(response?.error,es()?'es':'en'),true);
 }
 function undo(){
  if(working)return;
@@ -253,7 +255,7 @@ function undo(){
  if(response?.ok){
   showPlan(null);addMessage('assistant',lang('Último lote deshecho.','Last batch undone.'));
   notify(lang('Operación revertida.','Operation reverted.'));
- }else notify(lang('No se puede deshacer: ','Cannot undo: ')+(response?.error??'UNKNOWN'),true);
+ }else notify(userFacingError(response?.error,es()?'es':'en'),true);
 }
 function mount(){
  if($('rqAgentDrawer'))return;
@@ -298,6 +300,10 @@ function mount(){
   const b=make('button','btn subtle small',text);b.type='button';
   b.addEventListener('click',()=>{input.value=cmd;void sendRequest(false,cmd);});examples.append(b);
  }
+ const aiOptions=make('details','rq-agent-ai-options');
+ aiOptions.id='rqAgentAiOptions';
+ const aiSummary=make('summary','',lang('Servicio de IA y permisos','AI service and permissions'));
+ aiOptions.append(aiSummary);
  const providerLabel=make('label','rq-agent-provider');
  providerLabel.append(make('span','',lang('Proveedor para consulta opcional','Provider for optional request')));
  const providerSelect=make('select','');providerSelect.id='rqAgentProvider';
@@ -307,12 +313,14 @@ function mount(){
  providerLabel.append(providerSelect);
  const consentLabel=make('label','rq-agent-consent');
  const consent=make('input','');consent.type='checkbox';consent.id='rqAgentConsent';
- consentLabel.append(consent,make('span','',lang('Autorizo una consulta externa al proveedor seleccionado con contexto acotado del proyecto (puede tener coste).',
-  'I authorize one external request to the selected provider with bounded project context (may incur cost).')));
+ consentLabel.append(consent,make('span','',lang(
+  'Autorizo enviar esta instrucción y un contexto limitado del proyecto al proveedor de IA elegido (puede tener coste).',
+  'I authorize sending this instruction and limited show context to the selected AI provider (may incur a charge).')));
+ aiOptions.append(providerLabel,consentLabel);
  const actions=make('div','rq-agent-actions');
  const local=make('button','btn accent small',lang('Proponer localmente','Plan locally'));
  local.id='rqAgentSubmit';local.type='button';
- const cloud=make('button','btn subtle small',lang('Consultar IA · 1 solicitud','Ask AI · 1 request'));
+ const cloud=make('button','btn subtle small',lang('Pedir ayuda a la IA','Ask AI'));
  cloud.id='rqAgentAskAI';cloud.type='button';
  const undoButton=make('button','btn subtle small',lang('Deshacer lote','Undo batch'));
  undoButton.id='rqAgentUndo';undoButton.type='button';
@@ -320,7 +328,7 @@ function mount(){
  const status=make('output','rq-agent-status',
   lang('Sin modificaciones pendientes.','No pending modifications.'));
  status.id='rqAgentStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
- composer.append(label,input,examples,providerLabel,consentLabel,actions,status);
+ composer.append(label,input,examples,aiOptions,actions,status);
  panel.append(head,messages,proposals,composer);
  document.body.append(panel);
  window.addEventListener('resize',positionDrawer);
