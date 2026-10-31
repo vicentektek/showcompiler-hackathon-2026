@@ -78,6 +78,7 @@ const allowed = new Map([
   ['/src/ui/runq-visual-freeze-v15.css', ['src/ui/runq-visual-freeze-v15.css', 'text/css; charset=utf-8']],
   ['/src/core/agentDialogue.mjs', ['src/core/agentDialogue.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/agentCore.mjs', ['src/core/agentCore.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/heroCue.mjs', ['src/core/heroCue.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/agentIntent.mjs', ['src/core/agentIntent.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/agentVoice.mjs', ['src/core/agentVoice.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/cue-conversation.css', ['src/ui/cue-conversation.css', 'text/css; charset=utf-8']],

@@ -49,3 +49,13 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - Before/after screenshots and approved mockups are stored only in the session files, not Git. Expanded browser regression proves actual local WAV engine starts for skip/rewind/repeat, duplicate-turn suppression, individual STOP, STOP ALL, manual GO override and navigation isolation. ASR inputs are synthetic, not a live recognition result.
 - `npm run qa:codex`: 638/638 tests, syntax and offline contracts passed. `npm run test:interface` and `node tools/rehearsal-auto-browser-e2e.mjs` passed.
 - Continuing immediately with the original Last GO material and the safe human-reviewed Hero configured-cue path.
+
+## 11:26 - 11:33 - The Last GO and Hero configured cue integration
+
+- Reused original source from commits `af4d0a8`, `381aa40`, `cd415c6`, `6352dd4` without changing other worktrees or representing those earlier contributions as new work.
+- External backup `RUNQ-QA-Backups/pre-hero-integration-20261031-112621`: eight integration surfaces; hashes and persisted manifest verified.
+- Added local/operator-only configured creation to the existing Agent transaction registry. Deliberate READY sound selection, exact dialogue provenance and unique trigger are required. Both preview and apply recheck readiness/source; model decoding cannot create configured cues. Preview includes audio, source and full trigger.
+- The original 31-line Last GO show now builds reproducibly and refuses to overwrite existing ZIP/WAV material. Added `demo:last-go` and `test:last-go`.
+- Integral Chrome test passed: original script, Hero preview/apply/undo, four cues and three WAVs after save/reload/reopen, armed synthetic speech jump/rewind, real browser WAV instances, manual Live GO and STOP ALL.
+- `npm run qa:codex`: 650/650 tests passed; Agent, interface and Last GO browser gates passed. Live ASR, acoustic/hardware output and dictated editing are still separate acceptance items; no paid calls were made.
+- Next independent product block: make RUNQ AI a functional main workspace instead of only a floating drawer, using the approved Studio/Script hierarchy and real existing controls.

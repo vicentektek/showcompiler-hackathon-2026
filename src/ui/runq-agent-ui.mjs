@@ -63,7 +63,9 @@ function showPlan(plan,baseProject=null,keepSelection=false){
     const old=selectedBatch.enabled[index];selectedBatch.enabled[index]=box.checked;
     const picked=selectedBatch.operations.filter((_,i)=>selectedBatch.enabled[i]);
     if(!picked.length){showPlan(null,null,true);return;}
-    try{showPlan(prepareAgentPlan(selectedBatch.project,picked),null,true);}
+    try{showPlan(prepareAgentPlan(selectedBatch.project,picked,{
+     assetAvailable:id=>assetReady(id,state()),
+    }),null,true);}
     catch(error){
      selectedBatch.enabled[index]=old;
      showPlan(proposed,null,true);
@@ -84,6 +86,13 @@ function showPlan(plan,baseProject=null,keepSelection=false){
    change.kind==='DELETED'?lang('Eliminar cue','Delete cue')+' '+change.cueId:
    lang('Modificar cue','Edit cue')+' '+change.cueId;
   item.append(make('strong','',summary));
+  if(change.kind==='CREATED'&&change.after.trigger){
+   const assetIds=change.after.actions.filter(action=>action.type==='PLAY').map(action=>action.assetId);
+   const assetNames=assetIds.map(id=>selectedBatch?.project.assets.find(asset=>asset.id===id)?.name??id);
+   item.append(make('small','',lang('Audio: ','Audio: ')+assetNames.join(', ')),
+    make('small','',lang('Fuente: ','Source: ')+change.after.sourceLineIds.join(', ')),
+    make('p','',lang('Pie hablado: ','Spoken trigger: ')+change.after.trigger));
+  }
   if(change.changes)for(const field of change.changes){
    const row=make('small','',field.field+': '+short(field.from)+' → '+short(field.to));
    item.append(row);
@@ -105,8 +114,26 @@ function sync(){
  if(sessionProjectId!==s.project.id){
   if(sessionProjectId!==null){
    history=[];showPlan(null);
+   if($('rqAgentSelectedSound'))$('rqAgentSelectedSound').value='';
    $('rqAgentMessages')?.replaceChildren();
    addMessage('assistant',lang('Nuevo espectáculo: conversación reiniciada.','New show: conversation reset.'));
+  }
+  const sound=$('rqAgentSelectedSound');
+  const soundOptions=s.project.assets.map(asset=>({
+   id:asset.id,name:asset.name,ready:assetReady(asset.id,s)===true,
+  }));
+  const soundKey=JSON.stringify(soundOptions);
+  if(sound&&sound.dataset.options!==soundKey){
+   const selected=sound.value;
+   sound.replaceChildren();
+   const none=make('option','',lang('Ningún sonido seleccionado','No sound selected'));none.value='';
+   sound.append(none);
+   for(const asset of soundOptions){
+    const option=make('option','',asset.name+(asset.ready?'':lang(' · no disponible',' · unavailable')));
+    option.value=asset.id;option.disabled=!asset.ready;sound.append(option);
+   }
+   sound.value=soundOptions.some(asset=>asset.id===selected&&asset.ready)?selected:'';
+   sound.dataset.options=soundKey;
   }
   sessionProjectId=s.project.id;
  }
@@ -179,7 +206,8 @@ async function sendRequest(forceAI=false,custom=null){
    reply=result;
   }else{
    reply=resolveAgentDialogue(s.project,instruction,{
-    history:conversation,assetAvailable:id=>assetReady(id,s)});
+    history:conversation,assetAvailable:id=>assetReady(id,s),
+    selectedAssetId:$('rqAgentSelectedSound').value||null});
   }
   // One-shot model permission, including error paths.
   const latest=state();
@@ -216,7 +244,7 @@ async function sendRequest(forceAI=false,custom=null){
    $('rqAgentMessages').append(action);
   }
   if(reply.status==='PLAN'){
-   const plan=prepareAgentPlan(s.project,reply.operations);
+   const plan=prepareAgentPlan(s.project,reply.operations,{assetAvailable:id=>assetReady(id,s)});
    showPlan(plan,s.project);
    notify(lang('Propuesta preparada: revisa los cambios antes de aplicar.',
     'Plan ready: review all changes before applying.'));
@@ -292,6 +320,11 @@ function mount(){
  const input=make('textarea','');input.id='rqAgentPrompt';input.rows=4;input.maxLength=1600;
  input.placeholder=lang('Ej.: elimina el cue 2; pon pies de voz; revisa el show...',
   'e.g. delete cue 2; assign spoken triggers; review the show...');
+ const soundLabel=make('label','rq-agent-selected-sound',lang(
+  'Sonido para crear un cue configurado (elección explícita)',
+  'Sound for a configured cue (explicit selection)'));
+ soundLabel.htmlFor='rqAgentSelectedSound';
+ const sound=make('select','');sound.id='rqAgentSelectedSound';soundLabel.append(sound);
  const examples=make('div','rq-agent-examples');
  for(const [text,cmd] of [
   [lang('Revisar show','Audit show'),lang('Revisa el show','Audit the show')],
@@ -334,7 +367,7 @@ function mount(){
  const status=make('output','rq-agent-status',
   lang('Sin modificaciones pendientes.','No pending modifications.'));
  status.id='rqAgentStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
- composer.append(label,input,examples,aiOptions,actions,status);
+ composer.append(label,input,soundLabel,examples,aiOptions,actions,status);
  panel.append(head,messages,proposals,composer);
  document.body.append(panel);
  window.addEventListener('resize',positionDrawer);

@@ -2123,7 +2123,7 @@ document.addEventListener('runq:agent-apply',event=>{
  const answer=result=>{if(typeof respond==='function')respond(result);};
  if(!safeAgentEditState()){answer({ok:false,error:'EDIT_BLOCKED_BY_SHOW_STATE'});return;}
  try{
-  const result=commitAgentPlan(show,plan,{editable:true});
+  const result=commitAgentPlan(show,plan,{editable:true,assetAvailable:id=>player.hasAsset(id)});
   show=result.project;
   if(result.structural){
    operatorQueue=startOperatorQueue(show.cues);lastGoCueId=null;

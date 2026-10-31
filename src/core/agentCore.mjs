@@ -8,12 +8,14 @@ import {normalizeShowProject} from './projectPersistence.mjs';
 import {stageCueConversationChange,validateCueChatChanges} from './cueConversation.mjs';
 import {insertManualCue,deleteOperatorCue,reorderOperatorCue} from './manualCues.mjs';
 import {normalizeSpeech} from './voiceFollow.mjs';
+import {validateHeroCueOperation} from './heroCue.mjs';
+import {assignAudioToCue} from './workspace.mjs';
 
 export const AGENT_MAX_OPERATIONS=30;
 export const AGENT_DESIGN_WORKSPACES=Object.freeze([
  'home','script','ai','cues','audio','soundlab','setup','preflight',
 ]);
-const EDITABLE=new Set(['UPDATE_CUE','DELETE_CUE','CREATE_CUE','REORDER_CUE']);
+const EDITABLE=new Set(['UPDATE_CUE','DELETE_CUE','CREATE_CUE','CREATE_CONFIGURED_CUE','REORDER_CUE']);
 const DESIGN_WORKSPACES=new Set(AGENT_DESIGN_WORKSPACES);
 const isRecord=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const fingerprint=project=>JSON.stringify(normalizeShowProject(project));
@@ -107,15 +109,24 @@ export function validateAgentOperations(operations){
    UPDATE_CUE:['op','cueId','changes'],
    DELETE_CUE:['op','cueId'],
    CREATE_CUE:['op','afterCueId','label'],
+   CREATE_CONFIGURED_CUE:['op','afterCueId','label','assetId','sourceLineId','trigger'],
    REORDER_CUE:['op','cueId','targetCueId','position'],
   }[raw.op];
   if(Object.keys(raw).some(k=>!allowed.includes(k)))fail('UNEXPECTED_OPERATION_FIELD');
-  if(raw.op==='CREATE_CUE'){
+  if(raw.op==='CREATE_CUE'||raw.op==='CREATE_CONFIGURED_CUE'){
    if(raw.afterCueId!==undefined&&raw.afterCueId!==null&&!validId(raw.afterCueId))
     fail('INVALID_CUE_ID');
    if(typeof raw.label!=='string'||!raw.label.trim()||raw.label.length>200)
     fail('INVALID_NEW_CUE_LABEL');
-   return {op:raw.op,afterCueId:raw.afterCueId??null,label:raw.label.trim()};
+   const created={op:raw.op,afterCueId:raw.afterCueId??null,label:raw.label.trim()};
+   if(raw.op==='CREATE_CONFIGURED_CUE'){
+    if(!validId(raw.assetId)||typeof raw.sourceLineId!=='string'||
+       !/^L[1-9]\d{0,3}$/.test(raw.sourceLineId)||
+       typeof raw.trigger!=='string'||!raw.trigger.trim()||raw.trigger.length>300)
+     fail('INVALID_HERO_FIELDS');
+    return {...created,assetId:raw.assetId,sourceLineId:raw.sourceLineId,trigger:raw.trigger};
+   }
+   return created;
   }
   if(!validId(raw.cueId))fail('INVALID_CUE_ID');
   if(raw.op==='UPDATE_CUE'){
@@ -136,7 +147,8 @@ function diffCues(before,after){
  const ids=new Set([...left.keys(),...right.keys()]);
  return [...ids].flatMap(id=>{
   const a=left.get(id),b=right.get(id);
-  if(!a)return [{kind:'CREATED',cueId:id,after:{number:b.number,label:b.label}}];
+  if(!a)return [{kind:'CREATED',cueId:id,after:{number:b.number,label:b.label,
+   trigger:b.trigger??'',sourceLineIds:[...b.sourceLineIds],actions:b.actions.map(action=>({...action}))}}];
   if(!b)return [{kind:'DELETED',cueId:id,before:{number:a.number,label:a.label}}];
   const changes=[];
   // The operator must see ALL changed persisted fields, including indirect
@@ -151,7 +163,7 @@ function diffCues(before,after){
  });
 }
 /** Simulate a bounded batch on independent show copies. Any failure aborts ALL. */
-export function prepareAgentPlan(project,operations){
+export function prepareAgentPlan(project,operations,{assetAvailable=()=>false}={}){
  const base=normalizeShowProject(project),checked=validateAgentOperations(operations);
  let next=base;
  for(const [index,op] of checked.entries()){
@@ -160,6 +172,13 @@ export function prepareAgentPlan(project,operations){
    else if(op.op==='DELETE_CUE')next=deleteOperatorCue(next,op.cueId);
    else if(op.op==='CREATE_CUE')
     next=insertManualCue(next,{afterCueId:op.afterCueId,label:op.label}).project;
+   else if(op.op==='CREATE_CONFIGURED_CUE'){
+    validateHeroCueOperation(next,op,{assetAvailable});
+    const added=insertManualCue(next,{afterCueId:op.afterCueId,label:op.label});
+    next=assignAudioToCue(added.project,added.cueId,op.assetId);
+    next=normalizeShowProject({...next,cues:next.cues.map(cue=>cue.id===added.cueId
+     ?{...cue,sourceLineIds:[op.sourceLineId],trigger:op.trigger}:cue)});
+   }
    else if(op.op==='REORDER_CUE')
     next=reorderOperatorCue(next,op.cueId,op.targetCueId,op.position);
   }catch(error){
@@ -174,13 +193,13 @@ export function prepareAgentPlan(project,operations){
   structural:checked.some(o=>o.op!=='UPDATE_CUE')};
 }
 /** Caller owns mode/audio guards; no hidden bypass for Stage/operation. */
-export function commitAgentPlan(current,plan,{editable=false}={}){
+export function commitAgentPlan(current,plan,{editable=false,assetAvailable=()=>false}={}){
  if(!editable)fail('AGENT_EDIT_NOT_ALLOWED');
  if(!isRecord(plan)||typeof plan.baseSnapshot!=='string'||
     typeof plan.afterSnapshot!=='string'||!Array.isArray(plan.operations))fail('INVALID_AGENT_PLAN');
  if(fingerprint(current)!==plan.baseSnapshot)fail('STALE_AGENT_PLAN');
  // Re-run all validators on the CURRENT document; never trust a cached proposedProject.
- const freshlyPrepared=prepareAgentPlan(current,plan.operations);
+ const freshlyPrepared=prepareAgentPlan(current,plan.operations,{assetAvailable});
  if(freshlyPrepared.afterSnapshot!==plan.afterSnapshot)fail('AGENT_PLAN_CHANGED');
  return {project:freshlyPrepared.proposedProject,
   undo:{before:normalizeShowProject(current),afterSnapshot:freshlyPrepared.afterSnapshot},

@@ -38,7 +38,7 @@ The Studio agent is not shown in Rehearsal or Direct. Its optional AI action req
 - Theatre analysis proposes source-linked suggestions for human review; approval is a separate action and does not play audio (`src/core/theatreCueAnalysis.mjs`, `src/core/workspace.mjs`).
 - Audio library files remain local. The sound-generation workflow has its own explicit provider/cost consent and is not part of GO/STOP.
 - Voice Follow and rehearsal matching are separate from AI cue editing. `src/core/voiceFollow.mjs` returns candidates/suggestions, not GO commands. `src/core/rehearsalAutopilot.mjs` is a guarded rehearsal decision state machine; synthetic transcript replay is not acoustic recognition proof.
-- The present checked-out source does not establish a validated Hero Operator voice-to-GO path or a complete The Last GO real-audio demonstration. Do not claim those as passed.
+- The integrated Hero command now proposes one configured MANUAL cue from an explicitly selected ready sound and exact original dialogue. Preview, apply and undo use the shared Agent transaction engine. The Last GO browser gate exercises ZIP persistence and the real WAV engine using injected completed speech turns; live recognition, dictated Hero editing and acoustic output are not yet certified. See `docs/demo/THE_LAST_GO_REPRODUCIBLE.md`.
 
 ## Safety and provenance invariants
 

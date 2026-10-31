@@ -6,6 +6,7 @@
  */
 import {interpretLocalAgentRequest} from './agentIntent.mjs';
 import {normalizeShowProject} from './projectPersistence.mjs';
+import {interpretHeroCueCommand} from './heroCue.mjs';
 
 const sanitize=text=>String(text??'').trim().slice(0,600);
 const NAMES=Object.freeze({
@@ -33,11 +34,13 @@ function boundedHistory(raw){
  return raw.slice(-8).filter(x=>x&&['user','assistant'].includes(x.role)&&
   typeof x.text==='string').map(x=>({role:x.role,text:sanitize(x.text)}));
 }
-export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=()=>null}={}){
+export function resolveAgentDialogue(project,prompt,{history=[],assetAvailable=()=>null,selectedAssetId=null}={}){
  const show=normalizeShowProject(project);
  if(typeof prompt!=='string'||!prompt.trim()||prompt.length>1600)
   throw new TypeError('INVALID_AGENT_PROMPT');
  const request=prompt.trim(),prior=boundedHistory(history);
+ const hero=interpretHeroCueCommand(show,request,{selectedAssetId,assetAvailable});
+ if(hero)return hero;
  // Voice triggers are a separate guarded tool, never new empty closing cues.
  if(/(?:pies\s+(?:de\s+)?voz|spoken\s+triggers?|voice\s+triggers?)/i.test(request))
   return interpretLocalAgentRequest(show,request,{assetAvailable});
