@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 const MAX_BYTES=2_200_000;
 const MAX_DURATION=10.5;
 const UPSTREAM='https://api.meta.ai/v1/asr/transcribe';
-const languageNames={es:'Spanish',en:'English'};
+const languageNames={es:['Spanish'],en:['English'],mixed:['Spanish','English']};
 
 function respond(response,headers,status,body){
  response.writeHead(status,{...headers,'Content-Type':'application/json; charset=utf-8'});
@@ -79,7 +79,7 @@ export function makeVoiceTranscribeRoute({getKey=()=>process.env.MODEL_API_KEY,f
    const form=new FormData();
    form.append('request',new Blob([JSON.stringify({
      model:'muse-voice-transcribe-1.0',audioEncoding:'WAV',
-     mode:'PUSH_TO_TALK',languageBias:[languageNames[lang]],
+     mode:'PUSH_TO_TALK',languageBias:languageNames[lang],
    })],{type:'application/json'}));
    form.append('audio',new Blob([wav],{type:'audio/wav'}),'speech.wav');
    const controller=new AbortController();

@@ -77,8 +77,8 @@ test('one GO schedules two independent tracks, stop-all cancels both',async()=>{
     'cue-1','track-1',{playback:{gainDb:-12,startDelayMs:1250,loop:true}}));
   await engine.go(s.cues[0]);
   assert.deepEqual(starts,[[5.02,0],[6.27,0]]);
-  assert.ok(Math.abs(gains[0].value-0.5)<1e-9);
-  assert.ok(Math.abs(gains[1].value-0.5*10**(-12/20))<1e-9);
+  assert.ok(Math.abs(gains[1].value-0.5)<1e-9);
+  assert.ok(Math.abs(gains[2].value-0.5*10**(-12/20))<1e-9);
   assert.equal(engine.isPlaying('cue-1'),true);
   engine.stopAll();
   assert.equal(stops.length,2);

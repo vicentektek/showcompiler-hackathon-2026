@@ -6,6 +6,7 @@
 import {suggestVoiceCue} from '../core/voiceFollow.mjs';
 import {makeLivePcmEncoder} from '../core/livePcm.mjs';
 import {makeProjectVoiceScenario} from '../core/voiceScenario.mjs';
+import {readOperatorPreferences} from '../core/operatorPreferences.mjs';
 
 const $=id=>document.getElementById(id);
 const local=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
@@ -18,6 +19,12 @@ let scenario=null,showFingerprint='',startedAt=0;
 let suggestedCueId=null,focusManuallySelected=false;
 let missingTurnCounter=0;
 const CHUNK_SAMPLES=2560,MAX_SECONDS=180;
+let operatorPreferences=readOperatorPreferences();
+function applyOperatorPreferences(value=operatorPreferences){
+ operatorPreferences=value;
+ $('rqLiveLang').value=value.voiceLanguage;
+ $('rqLiveMode').value=value.voiceMode;
+}
 function report(en,es){$('rqLiveStatus').textContent=local(en,es);}
 function safeResponse(res){return res.json().then(data=>{if(!res.ok)throw Error(data.error||'HTTP '+res.status);return data;});}
 async function endpoint(action,{method='GET',body,contentType,token=session}={}){
@@ -123,21 +130,10 @@ function controls(){
  $('rqLiveStart').disabled=busy;
  $('rqLiveStop').disabled=!busy||stopping;
  $('rqLiveLang').disabled=busy;
- $('rqLiveDevice').disabled=busy;
- $('rqLiveRefresh').disabled=busy;
+ $('rqLiveMode').disabled=busy;
  $('rqLiveConsent').disabled=busy;
  $('rqLiveFocus').disabled=busy;
  $('rqLiveMeter').value=active?$('rqLiveMeter').value:0;
-}
-async function devices(){
- if(!navigator.mediaDevices?.enumerateDevices)return;
- try{
-  const list=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
-  const select=$('rqLiveDevice'),old=select.value;
-  select.replaceChildren(new Option(local('System default','Predeterminado del sistema'),''));
-  list.forEach((d,i)=>select.add(new Option(d.label||local('Microphone ','Micrófono ')+(i+1),d.deviceId)));
-  if([...select.options].some(x=>x.value===old))select.value=old;
- }catch{ /* Browser may hide device names until permission granted. */ }
 }
 /** Resamples each input sample with a persistent phase to prevent chunk gaps. */
 function capture(event){
@@ -180,12 +176,11 @@ async function start(){
  transcriptHistory=[];$('rqLiveTranscript').replaceChildren();$('rqLivePartial').textContent='';
  const lang=$('rqLiveLang').value;
  try{
-  const device=$('rqLiveDevice').value;
+  const device=operatorPreferences.microphoneDeviceId;
   stream=await navigator.mediaDevices.getUserMedia({audio:{
    ...(device?{deviceId:{exact:device}}:{}),channelCount:1,
    echoCancellation:true,noiseSuppression:true,
   },video:false});
-  await devices();
   const show=inspectShow();
   const keywords=$('rqLiveContextHints').checked
    ?(show?.cues||[]).flatMap(c=>String(c.label||'').split(/[^\p{L}\p{N}'-]+/u))
@@ -256,9 +251,7 @@ function localized(){
  $('rqLiveStop').textContent=local('Stop listening','Detener escucha');
  $('rqLivePrepare').textContent=local('Set as NEXT','Preparar como NEXT');
  $('rqLiveDismiss').textContent=local('Ignore','Ignorar');
- $('rqLiveRefresh').textContent=local('Refresh microphones','Actualizar micrófonos');
  $('rqLiveLangLabel').textContent=local('Spoken language','Idioma hablado');
- $('rqLiveDeviceLabel').textContent=local('Input','Entrada');
  $('rqLiveContextHintsText').textContent=local('Optional: share up to 12 cue-name words to improve proper-name recognition.',
   'Opcional: compartir hasta 12 palabras de nombres de cues para mejorar su reconocimiento.');
  $('rqLiveConsentText').textContent=local('I authorize sending my microphone to Meta Muse for this session (max 3 min).',
@@ -277,7 +270,6 @@ function mount(){
  if(!$('rqLivePanel'))return;
  $('rqLiveStart').addEventListener('click',()=>void start());
  $('rqLiveStop').addEventListener('click',()=>void stop());
- $('rqLiveRefresh').addEventListener('click',()=>void devices());
  $('rqLivePrepare').addEventListener('click',()=>{
   if(!suggestedCueId)return;
   let ok=false;
@@ -300,7 +292,7 @@ function mount(){
   const value=Number($('rqLiveFocus').value);
   if(Number.isInteger(value)&&value>=1&&value<=100000){focusLine=value;focusManuallySelected=true;consumedIds.clear();}
  });
- $('uiLocaleSelect')?.addEventListener('change',()=>{localized();void devices();});
+ $('uiLocaleSelect')?.addEventListener('change',localized);
  document.addEventListener('runq:locale-ready',localized);
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&active)void stop();});
  window.addEventListener('pagehide',()=>{if(active)void stop(true,'navigation');});
@@ -308,7 +300,10 @@ function mount(){
  if(shell)new MutationObserver(()=>{
   if(shell.dataset.activeWorkspace!=='rehearsal'&&active)void stop();
  }).observe(shell,{attributes:true,attributeFilter:['data-active-workspace']});
- localized();refreshShow();void devices();controls();
+ applyOperatorPreferences();localized();refreshShow();controls();
+ document.addEventListener('runq:operator-preferences-changed',event=>{
+  if(event.detail?.preferences){applyOperatorPreferences(event.detail.preferences);controls();}
+ });
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});
 else mount();

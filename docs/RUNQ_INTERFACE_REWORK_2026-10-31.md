@@ -73,3 +73,18 @@ The tag is a local recovery point, not a release or professional live-show certi
 git switch --detach runq-interface-approved-2026-10-31-v2
 git switch -c work/from-approved-interface-v2 runq-interface-approved-2026-10-31-v2
 ```
+
+## Setup workspace refresh
+Setup is separate from show-specific **Preflight** and has focused pages for **Audio**, **Microphone**, **Operation**, **Rehearsal & voice**, **Interface**, **Data**, and **Diagnostics** in English and Spanish. Device, voice, keyboard, and density preferences are local to this browser and are not included in the show JSON/ZIP. Preflight remains an advisory check for the current show's cues and media; it does not certify speakers, physical routing, or venue conditions.
+
+Audio settings expose a master gain shared by cues, auditions, and the short test tone. Output selection is offered only when the browser supports its device chooser and `AudioContext.setSinkId()`; the system default remains usable when device selection is unsupported. Playback, pending GO, or audition blocks output/volume changes. The microphone input is shared with rehearsal Voice Follow and its optional phrase recorder. Setup enumerates available inputs without prompting; a local level test requests permission only after the operator starts it, produces no recording, and stops when leaving Setup or hiding the page. Language and Voice Follow policy are saved preferences only: they do not start listening or arm Auto GO.
+
+No PFL, separate monitor bus, hardware routing, or professional audio certification is claimed. GO, STOP, audition, and rehearsal transport behavior remain independent of Setup preferences.
+
+### Setup implementation and verification
+- `src/core/operatorPreferences.mjs` stores validated device, master-volume, spoken-language, and Voice Follow policy preferences in browser-local storage; show JSON/ZIP remains unchanged.
+- `src/ui/setup-ui.mjs` and `setup-ui.css` wire the seven Setup pages, keyboard-accessible tabs, output test/selection, shared microphone selection, explicit local level test, restore actions, cue density, export shortcut, and diagnostics.
+- Voice Follow and the optional rehearsal phrase recorder consume the same saved microphone and language preferences. Mixed Spanish/English transcription sends both language hints in its single explicitly authorized request; no provider call was added to setup or transport initialization.
+- The test tone uses the same master bus as cues and audition. It counts as an active audition, so settings cannot change during playback and STOP ALL cancels a test that is still starting.
+- Verification on this implementation: `npm run check:syntax`; `npm test` (634/634); `npm run test:interface`; `node tools/browser-e2e.mjs` (all passed). Browser checks use simulated audio/input devices and made zero provider submissions. Real-device permission, microphone level, and audible output still require operator verification.
+- If an already-running local dev server returns 404 for the new Setup modules, restart `npm run dev` so its static-resource allowlist is reloaded, then refresh the page.

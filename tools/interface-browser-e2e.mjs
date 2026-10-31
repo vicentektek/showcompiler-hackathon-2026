@@ -21,6 +21,14 @@ await page.route('**/*',route=>{
 });
 await page.addInitScript(()=>{
   window.audioStarts=0;window.audioStops=0;
+  window.microphoneRequests=0;window.microphoneStops=0;window.microphoneConstraints=[];
+  Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{
+    enumerateDevices:async()=>[{kind:'audioinput',label:'Mock microphone',deviceId:'mic-1'}],
+    getUserMedia:async constraints=>{
+      window.microphoneRequests++;window.microphoneConstraints.push(constraints);
+      return {getTracks:()=>[{stop(){window.microphoneStops++;}}]};
+    },
+  }});
   class MockAudioContext {
     constructor(){this.state='running';this.currentTime=1;this.destination={};}
     async resume(){} async close(){this.state='closed';}
@@ -28,6 +36,9 @@ await page.addInitScript(()=>{
     createGain(){return {gain:{value:1,cancelScheduledValues(){},setValueAtTime(v){this.value=v;},linearRampToValueAtTime(v){this.value=v;}},connect(){},disconnect(){}};}
     createStereoPanner(){return {pan:{value:0},connect(){},disconnect(){}};}
     createBufferSource(){return {buffer:null,onended:null,playbackRate:{value:1},connect(){},disconnect(){},start(){window.audioStarts++;},stop(){window.audioStops++;}};}
+    createOscillator(){return {frequency:{value:0},onended:null,connect(){},disconnect(){},start(){},stop(){this.onended?.();}};}
+    createMediaStreamSource(){return {connect(){},disconnect(){}};}
+    createAnalyser(){return {fftSize:0,getByteTimeDomainData(samples){samples.fill(128);}};}
   }
   window.AudioContext=MockAudioContext;
 });
@@ -84,7 +95,7 @@ try {
   await mkdir('artifacts/interface-review',{recursive:true});
   for(const size of [{width:1920,height:1080},{width:1440,height:900},{width:1093,height:614},{width:768,height:900}]){
     await page.setViewportSize(size);
-    for(const name of ['home','cues','script','audio','ai','setup','rehearsal','operation']){
+    for(const name of ['home','cues','script','audio','ai','setup','preflight','rehearsal','operation']){
       await route(name);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,`${name}: no page overflow at ${size.width}`);
       if(['cues','rehearsal','operation'].includes(name)){
@@ -102,7 +113,47 @@ try {
   assert.equal(await page.locator('#scriptPreview').textContent(),sourceText);
   assert.equal(await prepared(),initialPrepared);
   assert.equal(await page.evaluate(()=>window.audioStarts),0);
-  console.log('PASS: all eight workspaces at four sizes; original script, NEXT and audio untouched');
+  console.log('PASS: all nine workspaces at four sizes; original script, NEXT and audio untouched');
+
+  await route('setup');
+  assert.equal(await page.evaluate(()=>window.microphoneRequests),0,'Opening Setup must not request the microphone');
+  await page.locator('#setupTabAudio').click();
+  await page.keyboard.press('ArrowDown');
+  await page.waitForFunction(()=>document.querySelector('#setupTabMicrophone').getAttribute('aria-selected')==='true');
+  assert.equal(await page.locator('#setupTabMicrophone').getAttribute('aria-selected'),'true');
+  await page.locator('#setupTabAudio').click();
+  await page.locator('#setupMasterVolume').evaluate(element=>{
+    element.value='40';element.dispatchEvent(new Event('input',{bubbles:true}));
+    element.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('runq.operator.preferences.v1')).masterVolume===0.4);
+  await page.locator('#setupTestOutput').click();
+  await page.waitForFunction(()=>document.querySelector('#setupAudioStatus').textContent.includes('test tone'));
+  await page.locator('#setupTabMicrophone').click();
+  await page.locator('#rqLiveDevice').selectOption('mic-1');
+  await page.locator('#setupMicStart').click();
+  await page.waitForFunction(()=>window.microphoneRequests===1);
+  assert.deepEqual(await page.evaluate(()=>window.microphoneConstraints[0].audio.deviceId),{exact:'mic-1'});
+  await page.locator('#setupMicStop').click();
+  assert.equal(await page.evaluate(()=>window.microphoneStops),1);
+  await page.locator('#setupTabRehearsal').click();
+  await page.locator('#rqLiveLang').selectOption('mixed');
+  await page.locator('#rqLiveMode').selectOption('assist');
+  await page.waitForFunction(()=>{
+    const prefs=JSON.parse(localStorage.getItem('runq.operator.preferences.v1'));
+    return prefs.voiceLanguage==='mixed'&&prefs.voiceMode==='assist';
+  });
+  assert.equal(await page.locator('#rqLiveArm').getAttribute('aria-pressed'),'false');
+  await page.locator('#setupTabInterface').click();
+  await page.locator('#setupCueDensity').selectOption('comfortable');
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'),'comfortable');
+  await page.locator('#setupResetInterface').click();
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'),'standard');
+  await page.locator('#setupTabAudio').click();
+  await page.locator('#setupResetAudio').click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('runq.operator.preferences.v1')).masterVolume===1);
+  assert.equal(await page.evaluate(()=>window.microphoneRequests),1,'Microphone capture is only requested by its explicit test button');
+  console.log('PASS: Setup persists the shared output/input preferences and microphone capture remains explicit');
 
   await page.setViewportSize({width:1440,height:900});
   await route('audio');

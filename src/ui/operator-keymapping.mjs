@@ -20,8 +20,6 @@ const labels={
     duplicate:'GO and STOP ALL must use different keys.',restored:'Default keys restored.',
     none:'Unassigned',space:'Space bar',g:'G',enter:'Enter',esc:'Escape',
     f:'F',hint:'Keyboard GO:',
-    quickGo:'V7 safety: double-click cannot fire GO',
-    quickHelp:'Deprecated quick-GO setting is locked off. Select/inspect, Prepare NEXT and GO are always separate actions.',
   },
   es:{
     title:'Asignación de teclas',scope:'Preferencia de este equipo · no se guarda en el show',
@@ -34,8 +32,6 @@ const labels={
     restored:'Teclas predeterminadas restauradas.',none:'Sin asignar',
     space:'Barra espaciadora',g:'G',enter:'Intro',esc:'Escape',
     f:'F',hint:'GO por teclado:',
-    quickGo:'Seguridad V7: el doble clic nunca dispara GO',
-    quickHelp:'Función anterior desactivada. Consultar, preparar NEXT y ejecutar GO son siempre acciones distintas.',
   },
 };
 function locale(){return get('uiLocaleSelect')?.value==='es'?'es':'en';}
@@ -85,13 +81,10 @@ function refresh(){
   get('runqKeyboardEnabled').checked=settings.enabled;
   get('runqKeyboardInEditor').checked=settings.inEditor;
   get('runqKeyboardInOperation').checked=settings.inOperation;
-  get('runqDoubleClickGo').checked=false;
-  get('runqDoubleClickGo').disabled=true;
   for(const [id,key] of [
     ['runqKeymapTitle','title'],['runqKeymapScope','scope'],['runqKeymapHelp','help'],
     ['runqKeyboardEnabledLabel','enabled'],['runqKeyboardInEditorLabel','editor'],
     ['runqKeyboardInOperationLabel','operation'],
-    ['runqDoubleClickGoLabel','quickGo'],['runqDoubleClickGoHelp','quickHelp'],
     ['runqGoKeyLabel','go'],
     ['runqStopKeyLabel','stop'],['runqKeyboardReset','reset'],
   ])get(id).textContent=t(key);
@@ -157,10 +150,6 @@ document.addEventListener('keydown',event=>{
   button.click(); // The ONE existing click handler; no duplicate audio path.
 });
 document.addEventListener('keyup',event=>held.delete(event.code||event.key));
-// Deliberate stage-manager quick action. Keep cue editor double-click for edits;
-// no single-click, keyboard typing, toolbar or cue-inspector triggers.
-// V7 safety: double-click is only browsing/inspection, never Prepare + GO.
-// The old optional quick-GO listener is deliberately removed.
 window.addEventListener('blur',()=>held.clear());
 document.addEventListener('visibilitychange',()=>{if(document.hidden)held.clear();});
 const shell=document.querySelector('.shell');

@@ -79,7 +79,6 @@ function createStage(){
   const cueBody=panel.querySelector('.cue-workspace-body');
   const queue=panel.querySelector('.operator-queue');
   const preflight=panel.querySelector('.preflight-toolbar');
-  const report=get('preflightReport');
   const status=get('transportStatus');
   if(!head||!filter||!cueBody||!queue||!status)throw new Error('Required working cue editor controls are missing');
 
@@ -107,7 +106,6 @@ function createStage(){
   actions.append(label('controls'));
   actions.append(head);
   if(preflight)actions.append(preflight);
-  if(report)actions.append(report);
 
   const sequence=el('section','rq5-sequence');
   const seqHeader=el('div','rq5-pane-heading');

@@ -38,13 +38,15 @@ test('missing consent or credentials never calls Meta',async()=>{
  });
  assert.equal(calls,0);
 });
-test('ES/EN and one authorized mock Muse request, server does not expose secret',async()=>{
+test('ES/EN/mixed and one authorized mock Muse request, server does not expose secret',async()=>{
  const captured=[];
  await withServer({getVoiceKey:()=> 'test-private-key',voiceFetch:async(url,options)=>{
   captured.push({url,auth:options.headers.Authorization,form:options.body});
   return {ok:true,json:async()=>({transcript:captured.length===1?'Escuchad la tormenta':'Listen to the storm',audioDurationMs:1000,sessionId:'test'})};
  }},async base=>{
-  for(const [language,expected] of [['es','Escuchad la tormenta'],['en','Listen to the storm']]){
+  for(const [language,expected] of [
+   ['es','Escuchad la tormenta'],['en','Listen to the storm'],['mixed','Listen to the storm'],
+  ]){
    const res=await post(base,makeWav(),{'X-RunQ-Voice-Language':language});
    assert.equal(res.status,200);
    const data=await res.json();
@@ -54,14 +56,18 @@ test('ES/EN and one authorized mock Muse request, server does not expose secret'
   }
   assert.equal((await post(base,makeWav(),{'X-RunQ-Voice-Language':'xx'})).status,400);
  });
- assert.equal(captured.length,2);
+ assert.equal(captured.length,3);
  for(const request of captured){
   assert.equal(request.url,'https://api.meta.ai/v1/asr/transcribe');
   assert.equal(request.auth,'Bearer test-private-key');
   const settings=JSON.parse(await request.form.get('request').text());
   assert.equal(settings.model,'muse-voice-transcribe-1.0');
   assert.equal(settings.mode,'PUSH_TO_TALK');
-  assert.ok(['Spanish','English'].includes(settings.languageBias[0]));
+  assert.ok(
+   JSON.stringify(settings.languageBias)==='["Spanish"]'||
+   JSON.stringify(settings.languageBias)==='["English"]'||
+   JSON.stringify(settings.languageBias)==='["Spanish","English"]',
+  );
   const sound=Buffer.from(await request.form.get('audio').arrayBuffer());
   assert.equal(sound.readUInt32LE(24),16000);
  }

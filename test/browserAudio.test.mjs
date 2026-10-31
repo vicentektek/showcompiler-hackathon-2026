@@ -6,6 +6,8 @@ function fixture(options = {}) {
   const log = [];
   const sources = [];
   const gains = [];
+  let masterGain = null;
+  const oscillators = [];
   let unblockResume = null;
   const buffer = { duration: 3, numberOfChannels: 2 };
   const context = {
@@ -21,10 +23,21 @@ function fixture(options = {}) {
           setValueAtTime: (v, t) => { gain.gain.value = v; log.push(['gain', v, t]); },
           linearRampToValueAtTime: (v, t) => log.push(['fade', v, t]),
         },
-        connect: () => {}, disconnect: () => {},
+        connect: target => { gain.connectedTo = target; }, disconnect: () => {},
       };
-      gains.push(gain);
+      if (!masterGain) masterGain = gain;
+      else gains.push(gain);
       return gain;
+    },
+    createOscillator: () => {
+      const oscillator = {
+        frequency: { value: 0 }, onended: null,
+        connect: target => { oscillator.connectedTo = target; }, disconnect: () => {},
+        start: time => { oscillator.started = time; },
+        stop: time => { oscillator.stopped = time; oscillator.onended?.(); },
+      };
+      oscillators.push(oscillator);
+      return oscillator;
     },
     createBufferSource: () => {
       const source = {
@@ -38,10 +51,18 @@ function fixture(options = {}) {
       return source;
     },
   };
+  if (options.setSinkId) {
+    context.sinkId = '';
+    context.setSinkId = async id => {
+      log.push(['sink', id]);
+      if (options.setSinkIdError) throw options.setSinkIdError;
+      context.sinkId = id;
+    };
+  }
   const engine = new BrowserAudioEngine({ contextFactory: () => context, onStateChange: options.onStateChange ?? (() => {}) });
   const cue = (id='cue-1', assetId='audio-1') => ({ id, status:'DRAFT', actions:[{type:'PLAY',assetId}] });
   const file = { name:'music.wav', size: 1024, arrayBuffer: async () => new ArrayBuffer(1024) };
-  return { engine, log, sources, gains, context, cue, file, resumeNow: () => unblockResume?.() };
+  return { engine, log, sources, gains, masterGain: () => masterGain, oscillators, context, cue, file, resumeNow: () => unblockResume?.() };
 }
 
 test('loads and decodes actual file bytes using the browser audio adapter', async () => {
@@ -61,6 +82,7 @@ test('manual GO starts an approved draft cue at reduced output level', async () 
   assert.equal(x.sources[0].started,12.02);
   assert.equal(x.gains[0].gain.value,0.5);
   assert.equal(x.engine.activeCueCount(),1);
+  assert.strictEqual(x.gains[0].connectedTo, x.masterGain());
 });
 
 test('GO rejects missing audio, unapproved or unsupported actions', async () => {
@@ -203,6 +225,58 @@ test('audition rejects missing assets, concurrent playback and double audition',
   await x.engine.auditionAsset('audio-1');
   await assert.rejects(x.engine.auditionAsset('audio-1'),/Detén/);
   await assert.rejects(x.engine.loadFile(x.file,'audio-2'),/preescucha/);
+});
+
+test('master volume changes the shared output bus and cannot change during playback', async () => {
+  const x = fixture();
+  assert.equal(x.engine.setMasterVolume(0.35), 0.35);
+  assert.equal(x.masterGain().gain.value, 0.35);
+  await x.engine.loadFile(x.file, 'audio-1');
+  await x.engine.go(x.cue());
+  assert.strictEqual(x.gains[0].connectedTo, x.masterGain());
+  assert.throws(() => x.engine.setMasterVolume(0.8), /Stop playback/);
+  assert.throws(() => x.engine.setMasterVolume(2), RangeError);
+});
+
+test('output test tone uses the shared master bus without dispatching a cue', async () => {
+  const x = fixture();
+  assert.equal(await x.engine.testOutput(), true);
+  assert.equal(x.oscillators.length, 1);
+  assert.equal(x.oscillators[0].frequency.value, 440);
+  assert.strictEqual(x.oscillators[0].connectedTo, x.gains[0]);
+  assert.strictEqual(x.gains[0].connectedTo, x.masterGain());
+  assert.equal(x.sources.length, 0);
+  await x.engine.loadFile(x.file, 'audio-1');
+  await x.engine.go(x.cue());
+  await assert.rejects(x.engine.testOutput(), /Stop playback/);
+});
+test('output test tone blocks setting changes and STOP ALL cancels a pending test', async () => {
+  const x = fixture({ deferredResume: true });
+  const pending = x.engine.testOutput();
+  assert.throws(() => x.engine.setMasterVolume(0.5), /Stop playback/);
+  x.engine.stopAll();
+  x.resumeNow();
+  await assert.rejects(pending, /cancelled by STOP ALL/);
+  assert.equal(x.oscillators.length, 0);
+  assert.equal(x.engine.getAudioDiagnostics().auditionActive, false);
+});
+
+test('output selection is feature-gated and reports device failures', async () => {
+  const x = fixture({ setSinkId: true });
+  const selected = await x.engine.setOutputDevice('speaker-1');
+  assert.equal(selected.selectedOutputDeviceId, 'speaker-1');
+  assert.equal(selected.actualOutputDeviceId, 'speaker-1');
+  const unsupported = fixture();
+  await assert.rejects(unsupported.engine.setOutputDevice('speaker-1'), /does not support/);
+  const failed = fixture({ setSinkId: true, setSinkIdError: new Error('device gone') });
+  await assert.rejects(failed.engine.setOutputDevice('missing'), /device gone/);
+  assert.equal(failed.engine.getAudioDiagnostics().selectedOutputDeviceId, '');
+});
+test('system-default output can be restored when sink selection is unsupported', async () => {
+  const x = fixture();
+  const result = await x.engine.setOutputDevice('');
+  assert.equal(result.selectedOutputDeviceId, '');
+  assert.equal(result.outputSelectionSupported, false);
 });
 test('STOP ALL silences a running audition and cancels a pending one', async () => {
   const x=fixture();

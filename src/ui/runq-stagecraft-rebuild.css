@@ -93,9 +93,6 @@ main{padding:9px 14px 12px!important}
 .rq5-stage-actions .preflight-toolbar{margin:0!important;display:flex;align-items:center;gap:8px}
 .rq5-stage-actions .preflight-toolbar .caption{display:none}
 .rq5-stage-actions #checkPreflightBtn{min-height:29px;font-size:10px;padding:4px 8px}
-.rq5-stage-actions #preflightReport{
- max-height:120px;overflow-y:auto;width:100%;margin-top:6px;
-}
 .rq5-show-workspace .rq5-sequence{
  flex:none;min-height:0;padding:5px 11px 7px;border-bottom:1px solid #293640;
  background:#10171e;

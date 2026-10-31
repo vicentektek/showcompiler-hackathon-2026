@@ -359,7 +359,10 @@ try {
     'Decoding a read-only PCM waveform must never start audio');
   await capture('05-audio-1366.png');
   await page.locator('[data-workspace-nav="setup"]').click();
-  assert.ok((await page.locator('#setupReadinessSummary').innerText()).includes('3/3'));
+  assert.equal(await page.locator('#setupPageAudio').isVisible(),true);
+  assert.equal(await page.locator('#setupTabAudio').getAttribute('aria-selected'),'true');
+  await page.locator('[data-workspace-nav="preflight"]').click();
+  assert.ok((await page.locator('#preflightSummary').innerText()).includes('3/3'));
   await page.locator('[data-workspace-nav="cues"]').click();
   // Real cue-editor settings never execute audio merely by being saved.
   const inspector = page.locator('#cuePlaybackForm');

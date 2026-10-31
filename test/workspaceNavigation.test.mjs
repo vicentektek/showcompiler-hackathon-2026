@@ -7,7 +7,7 @@ const client = readFileSync(new URL('../src/ui/app.mjs', import.meta.url), 'utf8
 const css = readFileSync(new URL('../src/ui/style.css', import.meta.url), 'utf8');
 const en = JSON.parse(readFileSync(new URL('../src/ui/locales/en.json', import.meta.url), 'utf8'));
 const es = JSON.parse(readFileSync(new URL('../src/ui/locales/es.json', import.meta.url), 'utf8'));
-const workspaces = ['home', 'script', 'ai', 'cues', 'audio', 'setup', 'operation'];
+const workspaces = ['home', 'script', 'ai', 'cues', 'audio', 'setup', 'preflight', 'operation'];
 
 test('one navigable workspace shell preserves live top-level transport controls', () => {
   for (const name of workspaces) {
@@ -43,14 +43,31 @@ test('cue inspection and filtered list cannot mutate prepared operator queue', (
   assert.match(client, /function jumpToScriptLine\(lineId\) \{[\s\S]*?setWorkspace\('script'\)/);
 });
 
-test('backend capability and unreadiness are visibly disclosed in setup', () => {
-  assert.match(html, /id="setupReadinessSummary"/);
-  assert.match(html, /id="setupReadinessIssues"/);
-  assert.match(client, /function renderSetupReadiness\(\)/);
-  assert.match(client, /inspectShowReadiness\(show, assetId => player\.hasAsset\(assetId\)/);
-  assert.match(html, /Not configured · no commands sent/);
-  assert.match(en['workspace.engineNote'], /not wired/);
-  assert.match(es['workspace.autoNotWired'], /desactivados/);
+test('Setup stores local device preferences and keeps show preflight separate', () => {
+  const setup = readFileSync(new URL('../src/ui/setup-ui.mjs', import.meta.url), 'utf8');
+  assert.match(html, /data-workspaces="setup"/);
+  assert.match(html, /data-workspaces="preflight"/);
+  assert.match(html, /id="setupPageNav"[^]*data-setup-page-nav="audio"/);
+  for (const page of ['audio', 'microphone', 'operation', 'rehearsal', 'interface', 'data', 'diagnostics']) {
+    assert.match(html, new RegExp('data-setup-page="' + page + '"'));
+    assert.match(html, new RegExp('data-setup-page-nav="' + page + '"'));
+  }
+  assert.match(html, /id="setupChooseOutput"/);
+  assert.match(html, /id="setupMasterVolume"/);
+  assert.match(html, /id="setupMicStart"/);
+  assert.match(html, /id="rqLiveDevice"/);
+  assert.match(html, /id="setupExportShow"/);
+  assert.match(html, /id="preflightSummary"/);
+  assert.match(html, /id="preflightIssues"/);
+  assert.match(setup, /saveOperatorPreferences\(storage\(\),next\)/);
+  assert.match(setup, /selectAudioOutput/);
+  assert.match(setup, /getUserMedia\(/);
+  assert.match(setup, /runq:operator-preferences-changed/);
+  assert.match(setup, /runq:audio-control/);
+  assert.match(setup, /ArrowDown/);
+  assert.match(setup, /stopMicrophoneTest\(\)/);
+  assert.doesNotMatch(setup.slice(setup.indexOf('function mount()')), /getUserMedia\(/);
+  assert.match(client, /'setup', 'preflight'/);
 });
 
 test('English and Spanish workspaces have matching translation keys', () => {

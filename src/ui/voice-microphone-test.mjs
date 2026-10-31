@@ -1,21 +1,22 @@
 import { suggestVoiceCue } from '../core/voiceFollow.mjs';
 import { makeProjectVoiceScenario } from '../core/voiceScenario.mjs';
+import { readOperatorPreferences } from '../core/operatorPreferences.mjs';
 /**
- * RunQ microphone preflight: explicit consent, local capture only.
- * No speech service, external upload, cue preparation or GO.
+ * Optional rehearsal phrase recorder: local capture, plus separately authorized transcription.
+ * Never prepares or fires a cue.
  */
 const $=id=>document.getElementById(id);
 let stream=null,ctx=null,source=null,processor=null,mutedGain=null,timer=null;
 let recording=false,frames=[],samples=0,started=0;
 let lastTake=null,requestInFlight=false;
 const MAX_MS=10000;
+let operatorPreferences=readOperatorPreferences();
 const t=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
 function status(en,es){$('rqMicStatus').textContent=t(en,es)}
 function update(){
  const busy=Boolean(stream);
  $('rqMicStart').disabled=busy;
  $('rqMicStop').disabled=!busy;
- $('rqMicLang').disabled=busy;
  $('rqMicMeter').value=0;
  if(!busy)$('rqMicMeter').value=0;
 }
@@ -62,7 +63,7 @@ function complete(){
  $('rqMicListen').hidden=false;
  $('rqMicDownload').hidden=false;
  $('rqMicDownload').href=window.__runqMicTakeUrl;
- $('rqMicDownload').download='runq-microphone-'+$('rqMicLang').value+'.wav';
+ $('rqMicDownload').download='runq-microphone-'+operatorPreferences.voiceLanguage+'.wav';
  status('Recording saved locally. Listen to verify both languages. No audio uploaded.',
         'Grabación local lista. Escúchala para comprobar ambos idiomas. No se ha enviado audio.');
 }
@@ -79,7 +80,9 @@ async function begin(){
  $('rqMicTranscript').textContent='';
  try{
    if(!navigator.mediaDevices?.getUserMedia)throw Error('unsupported');
-   stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:false,noiseSuppression:false},video:false});
+   const audio={channelCount:1,echoCancellation:false,noiseSuppression:false};
+   if(operatorPreferences.microphoneDeviceId)audio.deviceId={exact:operatorPreferences.microphoneDeviceId};
+   stream=await navigator.mediaDevices.getUserMedia({audio,video:false});
    const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
    ctx=new AudioContextCtor();
    await ctx.resume();
@@ -123,7 +126,7 @@ async function transcribe(){
    method:'POST',headers:{
     'Content-Type':'audio/wav',
     'X-RunQ-Voice-Consent':'yes',
-    'X-RunQ-Voice-Language':$('rqMicLang').value,
+    'X-RunQ-Voice-Language':operatorPreferences.voiceLanguage,
    },body:lastTake,
   });
   const data=await response.json();
@@ -166,16 +169,13 @@ function localize(){
  $('rqMicTitle').textContent=t('MICROPHONE TEST · LOCAL','PRUEBA DE MICRÓFONO · LOCAL');
  $('rqMicStart').textContent=t('Record 10s','Grabar 10 s');
  $('rqMicStop').textContent=t('Stop','Detener');
- $('rqMicLangLabel').textContent=t('Spoken language','Idioma hablado');
- $('rqMicLang').options[0].textContent='Español';
- $('rqMicLang').options[1].textContent='English';
  $('rqMicPrivacy').textContent=t('Local recording and playback only. No automatic GO. Nothing sent to Meta.',
  'Grabación y escucha locales. Sin GO automático. No se envía nada a Meta.');
  $('rqMicDownload').textContent=t('Save WAV','Guardar WAV');
  $('rqMicTranscribe').textContent=t('Transcribe with Muse','Transcribir con Muse');
  $('rqMicConsentLabel').textContent=t('I authorize this one recording to be sent to Meta Muse for transcription.', 'Autorizo enviar esta grabación concreta a Meta Muse para transcribirla.');
- if(!stream&&!$('rqMicListen').src)status('Ready. Select a language and record a short phrase.',
- 'Preparado. Elige idioma y graba una frase corta.');
+ if(!stream&&!$('rqMicListen').src)status('Ready. Record a short phrase using the microphone configured in Setup.',
+ 'Preparado. Graba una frase con el micrófono configurado en Setup.');
 }
 function mount(){
  if(!$('rqMicStart'))return;
@@ -184,6 +184,9 @@ function mount(){
  $('rqMicTranscribe').addEventListener('click',()=>void transcribe());
  $('uiLocaleSelect')?.addEventListener('change',localize);
  document.addEventListener('runq:locale-ready',localize);
+ document.addEventListener('runq:operator-preferences-changed',event=>{
+  if(event.detail?.preferences)operatorPreferences=event.detail.preferences;
+ });
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)complete();});
  window.addEventListener('pagehide',shutdown,{once:true});
  const shell=document.querySelector('.shell');

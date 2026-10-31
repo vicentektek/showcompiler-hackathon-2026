@@ -19,7 +19,14 @@ test('factory exposes only application-facing transport methods', () => {
   assert.equal(backend.context, undefined);
   assert.equal(backend.pending, undefined);
   assert.equal(backend.capabilities.id, 'browser-webaudio');
-  assert.deepEqual(backend.getStatus(), { activeCueCount: 0, pendingGoCount: 0, auditionActive: false, auditionPending: false });
+  assert.deepEqual(backend.getStatus(), {
+    activeCueCount: 0, pendingGoCount: 0, auditionActive: false, auditionPending: false,
+    audio: {
+      contextState: 'not-created', selectedOutputDeviceId: '', actualOutputDeviceId: '',
+      outputSelectionSupported: false, masterVolume: 1, activeCueCount: 0,
+      pendingGoCount: 0, auditionActive: false, outputError: null,
+    },
+  });
 });
 
 test('invalid or incomplete future backend fails fast before UI usage', () => {
@@ -47,7 +54,14 @@ test('backend facade passes through manual GO, STOP and panic', async () => {
   await backend.loadFile({ name: 'cue.wav', size: 16, arrayBuffer: async () => new ArrayBuffer(16) }, 'asset-1');
   const cue = { id: 'cue-1', status: 'DRAFT', actions: [{ type: 'PLAY', assetId: 'asset-1' }] };
   await backend.go(cue);
-  assert.deepEqual(backend.getStatus(), { activeCueCount: 1, pendingGoCount: 0, auditionActive: false, auditionPending: false });
+  assert.deepEqual(backend.getStatus(), {
+    activeCueCount: 1, pendingGoCount: 0, auditionActive: false, auditionPending: false,
+    audio: {
+      contextState: 'running', selectedOutputDeviceId: '', actualOutputDeviceId: '',
+      outputSelectionSupported: false, masterVolume: 1, activeCueCount: 1,
+      pendingGoCount: 0, auditionActive: false, outputError: null,
+    },
+  });
   assert.equal(backend.stopCue('cue-1'), true);
   backend.stopAll();
   assert.deepEqual(events, ['go', 'stop']);

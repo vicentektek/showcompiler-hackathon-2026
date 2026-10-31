@@ -112,6 +112,15 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const backendFacade = await fetch(base + '/src/core/audioBackend.mjs');
   assert.equal(backendFacade.status, 200);
   assert.match(await backendFacade.text(), /createBrowserAudioBackend/);
+  const setupController = await fetch(base + '/src/ui/setup-ui.mjs');
+  assert.equal(setupController.status, 200);
+  assert.match(await setupController.text(), /startMicrophoneTest/);
+  const setupStyles = await fetch(base + '/src/ui/setup-ui.css');
+  assert.equal(setupStyles.status, 200);
+  assert.match(setupStyles.headers.get('content-type'), /text\/css/);
+  const preferences = await fetch(base + '/src/core/operatorPreferences.mjs');
+  assert.equal(preferences.status, 200);
+  assert.match(await preferences.text(), /normalizeOperatorPreferences/);
   const bundle = await fetch(base + '/src/core/showArchive.mjs');
   assert.equal(bundle.status, 200);
   assert.match(await bundle.text(), /exportPortableShow/);
@@ -160,7 +169,8 @@ test('script search, source links and preflight expose safe, actual UI controls'
   assert.match(html, /id="scriptSearchPrevBtn"/);
   assert.match(html, /id="scriptSearchNextBtn"/);
   assert.match(html, /id="checkPreflightBtn"/);
-  assert.match(html, /id="preflightReport"/);
+  assert.match(html, /id="preflightSummary"/);
+  assert.match(html, /id="preflightIssues"/);
   assert.match(client, /sourceButton\(cue\.sourceLineIds\[0\]\)/);
   assert.match(client, /sourceButton\(proposal\.sourceLineIds\[0\]\)/);
   assert.match(client, /inspectShowReadiness\(show, assetId/);

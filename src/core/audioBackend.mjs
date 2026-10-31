@@ -28,6 +28,7 @@ const REQUIRED_METHODS = Object.freeze([
   'loadFile', 'go', 'stopCue', 'stopAll', 'reset', 'dispose', 'hasAsset',
   'auditionAsset', 'previewCue', 'getPreviewStatus', 'stopAudition', 'isAuditioning',
   'isPlaying', 'isStopping', 'getStatus', 'getActiveCues', 'getWaveform',
+  'setOutputDevice', 'setMasterVolume', 'testOutput', 'getAudioDiagnostics',
 ]);
 
 export function validateAudioBackend(backend) {
@@ -51,6 +52,10 @@ export function createBrowserAudioBackend(options = {}) {
     loadFile: (file, assetId) => engine.loadFile(file, assetId),
     go: cue => engine.go(cue),
     armAudioOutput: () => engine.armAudioOutput(),
+    setOutputDevice: deviceId => engine.setOutputDevice(deviceId),
+    setMasterVolume: value => engine.setMasterVolume(value),
+    testOutput: () => engine.testOutput(),
+    getAudioDiagnostics: () => engine.getAudioDiagnostics(),
     auditionAsset: assetId => engine.auditionAsset(assetId),
     previewCue: (cue, options) => engine.previewCue(cue, options),
     getPreviewStatus: () => engine.getPreviewStatus(),
@@ -70,6 +75,7 @@ export function createBrowserAudioBackend(options = {}) {
       pendingGoCount: engine.pending.size,
       auditionActive: engine.auditionVoice !== null,
       auditionPending: engine.auditionPending,
+      audio: engine.getAudioDiagnostics(),
     }),
   }));
 }

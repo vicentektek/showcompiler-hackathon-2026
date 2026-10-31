@@ -8,7 +8,7 @@ const labels={
     new:"New show",openZip:"Open portable show",openJson:"Open project JSON",
     saveJson:"Save project JSON",saveZip:"Export complete show",
     editor:"Cue Editor",findCue:"Find cue",findScript:"Find in script",
-    home:"Home",script:"Script",ai:"AI & Review",audio:"Audio",setup:"Setup",
+    home:"Home",script:"Script",ai:"AI & Review",audio:"Audio",setup:"Setup",preflight:"Preflight",
     operation:"Operation",readiness:"Check readiness",
     guide:"Keyboard & safety guide",guideTitle:"RunQ operator guide",
     guideBody:"Inspecting or searching does not prepare or execute a cue. Only explicit Prepare changes the NEXT GO target. GO and STOP ALL remain in the operator transport. STOP ALL affects audio in the current browser prototype, not external equipment.",
@@ -19,7 +19,7 @@ const labels={
     new:"Nuevo espectáculo",openZip:"Abrir espectáculo ZIP",openJson:"Abrir proyecto JSON",
     saveJson:"Guardar proyecto JSON",saveZip:"Exportar espectáculo completo",
     editor:"Editor de cues",findCue:"Buscar cue",findScript:"Buscar en guion",
-    home:"Inicio",script:"Guion",ai:"IA y revisión",audio:"Audio",setup:"Montaje",
+    home:"Inicio",script:"Guion",ai:"IA y revisión",audio:"Audio",setup:"Configuración",preflight:"Preflight",
     operation:"Operación",readiness:"Comprobar preparación",
     guide:"Guía de teclado y seguridad",guideTitle:"Guía de operación RunQ",
     guideBody:"Seleccionar o buscar no prepara ni ejecuta ningún cue. Solo la acción Preparar cambia el próximo GO. GO y PARAR TODO siguen en el transporte del operador. PARAR TODO afecta al audio de este prototipo de navegador, no a equipos externos.",
@@ -34,10 +34,10 @@ const menus=[
   {name:"Edit",items:[["editor","view:cues"],["findCue","focus:cueSearchInput"],["findScript","focus:scriptSearchInput"]]},
   {name:"View",items:[
     ["home","view:home"],["editor","view:cues"],["script","view:script"],
-    ["ai","view:ai"],["audio","view:audio"],["setup","view:setup"],["operation","view:operation"]
+    ["ai","view:ai"],["audio","view:audio"],["setup","view:setup"],["readiness","view:preflight"],["operation","view:operation"]
   ]},
   {name:"Cues",items:[["editor","view:cues"],["findCue","focus:cueSearchInput"],["readiness","checkPreflightBtn"]]},
-  {name:"Tools",items:[["audio","view:audio"],["setup","view:setup"],["readiness","checkPreflightBtn"]]},
+  {name:"Tools",items:[["audio","view:audio"],["setup","view:setup"],["readiness","view:preflight"]]},
   {name:"Help",items:[["guide","guide"]]}
 ];
 const lang=()=>document.getElementById("uiLocaleSelect")?.value==="es"?"es":"en";

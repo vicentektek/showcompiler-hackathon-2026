@@ -19,6 +19,7 @@ import { buildDemoPackage } from '../core/demoShow.mjs';
 import { normalizeScriptLanguageHint } from '../core/scriptLanguage.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
+import { readOperatorPreferences } from '../core/operatorPreferences.mjs';
 import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
 import { createShowEventLog } from '../core/showEventLog.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
@@ -34,6 +35,7 @@ const maximumShownLines = 300;
 const metaWindowsPerRequest = 1; // Keep browser preview in sync with bounded server request.
 let uiStorage;
 try { uiStorage = window.localStorage; } catch { uiStorage = null; }
+let operatorPreferences = readOperatorPreferences(uiStorage);
 let uiLocale = readPreferredUiLocale(uiStorage);
 const t = (key, values) => translate(uiLocale, key, values);
 let statusState = { key: 'status.initial', values: {}, tone: 'info' };
@@ -119,25 +121,47 @@ document.addEventListener('runq:voice-follow-prepare-cue',event=>{
 
 let scriptFocusLineId = null;
 let scriptMatchIndex = 0;
-let preflightVisible = false;
 let editingCueId = null;
 let selectedCueId = null; // Selection inspects only; it never changes the GO queue.
 let draggingCueId = null; // HTML5 drag source; only meaningful inside editable Cues.
 let inspectorTab = 'audio';
 let inspectorPendingChanges = false;
 let activeWorkspace = 'home';
-const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'soundlab', 'setup', 'rehearsal', 'operation']);
+const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audio', 'soundlab', 'setup', 'preflight', 'rehearsal', 'operation']);
 let operatorQueue = startOperatorQueue(show.cues);
 let lastGoCueId = null;
 let auditionAcknowledged = false;
 const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 let player = createBrowserAudioBackend({
- onStateChange: () => { refreshAudioControls(); refreshPreviewStudio(); },
+ outputDeviceId: operatorPreferences.outputDeviceId,
+ masterVolume: operatorPreferences.masterVolume,
+ onStateChange: () => {
+  refreshAudioControls(); refreshPreviewStudio();
+  document.dispatchEvent(new Event('runq:audio-state-change'));
+ },
  onCueNaturalEnd:cueId=>{
   const cue=show.cues.find(c=>c.id===cueId);
   showEventLog.append('CUE_FINISHED',{cueId,label:cue?.label??'',source:'engine'});
  },
+});
+document.addEventListener('runq:audio-control', async event => {
+  const { action, value, respond } = event.detail ?? {};
+  if (typeof respond !== 'function') return;
+  try {
+    let result;
+    if (action === 'setOutputDevice') result = await player.setOutputDevice(value);
+    else if (action === 'setMasterVolume') result = player.setMasterVolume(value);
+    else if (action === 'testOutput') result = await player.testOutput();
+    else if (action === 'diagnostics') result = player.getAudioDiagnostics();
+    else throw new RangeError('Unknown audio settings action');
+    respond({ ok: true, result });
+  } catch (error) {
+    respond({ ok: false, error: String(error?.message ?? 'Audio operation failed') });
+  }
+});
+document.addEventListener('runq:operator-preferences-changed', event => {
+  if (event.detail?.preferences) operatorPreferences = event.detail.preferences;
 });
 let soundLabModulePromise = null;
 let previousAutoArmed=false;
@@ -400,28 +424,10 @@ function setWorkspace(workspace) {
     document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'workspace_exit'}}));
   activeWorkspace = workspace;
   renderWorkspaceShell();
+  document.dispatchEvent(new CustomEvent('runq:workspace-changed', { detail: { workspace } }));
   if(legacySoundLab)document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
   if (workspace === 'audio') void ensureSoundLabInitialized().catch(reportSoundLabBootstrapError);
   return true;
-}
-
-function renderSetupReadiness() {
-  const report = inspectShowReadiness(show, assetId => player.hasAsset(assetId), { audioLoading: audioInFlight });
-  $('setupReadinessSummary').textContent = t(report.ready ? 'preflight.ready' : 'preflight.blocked', {
-    ready: report.readyCues, total: report.totalCues,
-    blockers: report.blockerCount, warnings: report.warningCount,
-  });
-  const issues = $('setupReadinessIssues');
-  issues.replaceChildren();
-  if (!report.issues.length) issues.append(node('li', '', t('preflight.noIssues')));
-  for (const issue of report.issues.slice(0, 12)) {
-    const name = show.assets.find(asset => asset.id === issue.assetId)?.name ?? issue.assetId ?? '';
-    issues.append(node('li', issue.severity === 'BLOCKER' ? 'preflight-blocker' : 'preflight-warning',
-      t('preflight.issue.' + issue.code, { number: issue.cueNumber ?? '', id: issue.proposalId ?? '', name })));
-  }
-  if (report.issues.length > 12) {
-    issues.append(node('li', '', t('workspace.moreIssues', { count: report.issues.length - 12 })));
-  }
 }
 
 function node(tag, className, value) {
@@ -682,9 +688,6 @@ function sourceButton(lineId) {
 }
 
 function renderPreflight() {
-  const report = $('preflightReport');
-  report.hidden = !preflightVisible;
-  if (!preflightVisible) return;
   const audit = inspectShowReadiness(show, assetId => player.hasAsset(assetId), { audioLoading: audioInFlight });
   $('preflightSummary').textContent = t(audit.ready ? 'preflight.ready' : 'preflight.blocked', {
     ready: audit.readyCues, total: audit.totalCues,
@@ -693,10 +696,13 @@ function renderPreflight() {
   const issues = $('preflightIssues');
   issues.replaceChildren();
   if (audit.issues.length === 0) issues.append(node('li', '', t('preflight.noIssues')));
-  for (const issue of audit.issues) {
+  for (const issue of audit.issues.slice(0, 12)) {
     const name = show.assets.find(asset => asset.id === issue.assetId)?.name ?? issue.assetId ?? '';
     issues.append(node('li', issue.severity === 'BLOCKER' ? 'preflight-blocker' : 'preflight-warning',
       t('preflight.issue.' + issue.code, { number: issue.cueNumber ?? '', id: issue.proposalId ?? '', name })));
+  }
+  if (audit.issues.length > 12) {
+    issues.append(node('li', '', t('workspace.moreIssues', { count: audit.issues.length - 12 })));
   }
 }
 
@@ -1115,7 +1121,6 @@ function render() {
 
   renderCueList();
   renderCueInspector();
-  renderSetupReadiness();
   renderWorkspaceShell();
   refreshMetaMessage();
   refreshAudioControls();
@@ -2197,7 +2202,6 @@ function setNewShow(project, statusKey, values = {}) {
   showEventLog.append('SHOW_OPENED',{label:project.name,source:'project'});
   scriptFocusLineId = null;
   scriptMatchIndex = 0;
-  preflightVisible = false;
   editingCueId = null;
   selectedCueId = null;
   inspectorTab = 'audio';
@@ -2299,7 +2303,7 @@ $('cueDeleteBtn').addEventListener('click', () => {
 for (const button of document.querySelectorAll('[data-workspace-nav]')) {
   button.addEventListener('click', () => setWorkspace(button.dataset.workspaceNav));
 }
-$('setupOpenOperationBtn').addEventListener('click', () => setWorkspace('operation'));
+$('preflightOpenOperationBtn').addEventListener('click', () => setWorkspace('operation'));
 $('homeNewBtn').addEventListener('click', () => $('newShowBtn').click());
 $('homeOpenZipBtn').addEventListener('click', () => $('openBundleBtn').click());
 $('homeImportScriptBtn').addEventListener('click', () => $('scriptFileInput').click());
@@ -2321,8 +2325,7 @@ $('scriptSearchInput').addEventListener('keydown', event => {
 $('scriptSearchPrevBtn').addEventListener('click', () => moveScriptMatch(-1));
 $('scriptSearchNextBtn').addEventListener('click', () => moveScriptMatch(1));
 $('checkPreflightBtn').addEventListener('click', () => {
-  preflightVisible = !preflightVisible;
-  renderPreflight();
+  setWorkspace('preflight');
 });
 // Row selection/double-click remains inspection-only. The explicit ▶ row
 // control is a separate intentional GO gesture; it never mutates NEXT.
@@ -2565,9 +2568,13 @@ async function loadCompleteZip(inputBytes) {
   const before = show;
   const generation = projectGeneration;
   const previousPlayer = player;
-  const stage = createBrowserAudioBackend({ onStateChange: () => {
+  const stage = createBrowserAudioBackend({
+   outputDeviceId: operatorPreferences.outputDeviceId,
+   masterVolume: operatorPreferences.masterVolume,
+   onStateChange: () => {
     refreshAudioControls();
     refreshPreviewStudio();
+    document.dispatchEvent(new Event('runq:audio-state-change'));
   } });
   const decoded = new Map();
   let committed = false;

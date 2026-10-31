@@ -7,14 +7,24 @@ import { normalizeCuePlayback } from './cuePlayback.mjs';
 import { summarizeWaveform } from './audioWaveform.mjs';
 
 export class BrowserAudioEngine {
-  constructor({ contextFactory = () => new AudioContext(), onStateChange = () => {}, onCueNaturalEnd = () => {} } = {}) {
-    if (typeof contextFactory !== 'function' || typeof onStateChange !== 'function' || typeof onCueNaturalEnd !== 'function') {
+  constructor({
+    contextFactory = () => new AudioContext(), onStateChange = () => {}, onCueNaturalEnd = () => {},
+    outputDeviceId = '', masterVolume = 1,
+  } = {}) {
+    if (typeof contextFactory !== 'function' || typeof onStateChange !== 'function' ||
+        typeof onCueNaturalEnd !== 'function' || typeof outputDeviceId !== 'string' ||
+        !Number.isFinite(masterVolume) || masterVolume < 0 || masterVolume > 1) {
       throw new TypeError('Invalid audio engine configuration');
     }
     this.contextFactory = contextFactory;
     this.onStateChange = onStateChange;
     this.onCueNaturalEnd = onCueNaturalEnd;
+    this.outputDeviceId = outputDeviceId;
+    this.masterVolume = masterVolume;
     this.context = null;
+    this.masterGainNode = null;
+    this.outputReady = Promise.resolve();
+    this.outputError = null;
     this.buffers = new Map();
     this.waveforms = new Map();
     this.playing = new Map();
@@ -27,13 +37,129 @@ export class BrowserAudioEngine {
   }
 
   getContext() {
-    if (!this.context) this.context = this.contextFactory();
+    if (!this.context) {
+      const context = this.contextFactory();
+      const masterGainNode = context.createGain();
+      masterGainNode.gain.value = this.masterVolume;
+      masterGainNode.connect(context.destination);
+      this.context = context;
+      this.masterGainNode = masterGainNode;
+      this.outputError = null;
+      if (this.outputDeviceId) {
+        this.outputReady = typeof context.setSinkId === 'function'
+          ? Promise.resolve().then(() => context.setSinkId(this.outputDeviceId))
+            .catch(error => { this.outputError = error; })
+          : Promise.resolve().then(() => {
+            this.outputError = new Error('This browser cannot select an audio output device.');
+          });
+      } else {
+        this.outputReady = Promise.resolve();
+      }
+    }
     return this.context;
+  }
+
+  async ensureOutputReady() {
+    await this.outputReady;
+    if (this.outputError) throw new Error('Audio output is unavailable: ' + this.outputError.message);
+  }
+
+  canChangeAudioSettings() {
+    return !this.playing.size && !this.pending.size && !this.isAuditioning();
+  }
+
+  async setOutputDevice(deviceId) {
+    if (typeof deviceId !== 'string' || deviceId.length > 512) throw new TypeError('Invalid output device');
+    if (!this.canChangeAudioSettings()) throw new Error('Stop playback and audition before changing audio output.');
+    const context = this.getContext();
+    if (deviceId && typeof context.setSinkId !== 'function') {
+      throw new Error('This browser does not support selecting an audio output device.');
+    }
+    if (typeof context.setSinkId === 'function') await context.setSinkId(deviceId);
+    this.outputDeviceId = deviceId;
+    this.outputError = null;
+    this.outputReady = Promise.resolve();
+    this.notify();
+    return this.getAudioDiagnostics();
+  }
+
+  setMasterVolume(value) {
+    if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError('Master volume must be between 0 and 1.');
+    if (!this.canChangeAudioSettings()) throw new Error('Stop playback and audition before changing master volume.');
+    const context = this.getContext();
+    const gain = this.masterGainNode.gain;
+    const now = context.currentTime;
+    if (typeof gain.cancelScheduledValues === 'function') gain.cancelScheduledValues(now);
+    if (typeof gain.setTargetAtTime === 'function') gain.setTargetAtTime(value, now, 0.03);
+    else if (typeof gain.setValueAtTime === 'function') gain.setValueAtTime(value, now);
+    else gain.value = value;
+    this.masterVolume = value;
+    this.notify();
+    return value;
+  }
+
+  getAudioDiagnostics() {
+    const context = this.context;
+    return Object.freeze({
+      contextState: context?.state ?? 'not-created',
+      selectedOutputDeviceId: this.outputDeviceId,
+      actualOutputDeviceId: typeof context?.sinkId === 'string' ? context.sinkId : '',
+      outputSelectionSupported: typeof context?.setSinkId === 'function',
+      masterVolume: this.masterVolume,
+      activeCueCount: this.playing.size,
+      pendingGoCount: this.pending.size,
+      auditionActive: this.isAuditioning(),
+      outputError: this.outputError?.message ?? null,
+    });
+  }
+
+  async testOutput() {
+    if (!this.canChangeAudioSettings()) throw new Error('Stop playback and audition before testing the output.');
+    const context = this.getContext();
+    if (typeof context.createOscillator !== 'function') throw new Error('This browser cannot play an output test tone.');
+    this.auditionPending = true;
+    const epoch = this.transportEpoch;
+    this.notify();
+    let voice = null;
+    try {
+      if (typeof context.resume === 'function') await context.resume();
+      await this.ensureOutputReady();
+      if (epoch !== this.transportEpoch) throw new Error('Output test cancelled by STOP ALL.');
+      if (context.state === 'suspended') throw new Error('Browser audio output is suspended.');
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const startAt = context.currentTime + 0.02;
+      oscillator.frequency.value = 440;
+      gain.gain.value = 0.12;
+      oscillator.connect(gain);
+      gain.connect(this.masterGainNode);
+      voice = { source: oscillator, gain };
+      this.auditionVoice = voice;
+      oscillator.onended = () => {
+        try { oscillator.disconnect(); gain.disconnect(); } catch {}
+        if (this.auditionVoice === voice) this.auditionVoice = null;
+        this.notify();
+      };
+      oscillator.start(startAt);
+      oscillator.stop(startAt + 0.25);
+      return true;
+    } catch (error) {
+      if (voice) {
+        try { voice.gain.gain.value = 0; voice.source.stop(); } catch {}
+        try { voice.source.disconnect(); voice.gain.disconnect(); } catch {}
+        if (this.auditionVoice === voice) this.auditionVoice = null;
+      }
+      throw error;
+    } finally {
+      this.auditionPending = false;
+      this.notify();
+    }
   }
   /** Unlock output from the operator's explicit rehearsal ARM gesture. No sound. */
   async armAudioOutput(){
     const ctx=this.getContext();
     if(typeof ctx.resume==='function')await ctx.resume();
+    await this.ensureOutputReady();
     if(ctx.state==='suspended')throw new Error('Browser audio output is suspended');
     return true;
   }
@@ -259,6 +385,7 @@ export class BrowserAudioEngine {
     try {
       const ctx = this.getContext();
       if (typeof ctx.resume === 'function') await ctx.resume();
+      await this.ensureOutputReady();
       if (epoch !== this.transportEpoch) throw new Error('Preescucha cancelada por PARAR TODO.');
       if (ctx.state === 'suspended') throw new Error('El navegador ha bloqueado el audio.');
       const source = ctx.createBufferSource();
@@ -266,7 +393,7 @@ export class BrowserAudioEngine {
       source.buffer = this.buffers.get(assetId);
       gain.gain.value = 0.25;
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGainNode);
       voice = { source, gain, assetId };
       this.auditionVoice = voice;
       source.onended = () => {
@@ -376,6 +503,7 @@ export class BrowserAudioEngine {
     try {
       const ctx = this.getContext();
       if (typeof ctx.resume === 'function') await ctx.resume();
+      await this.ensureOutputReady();
       if (epoch !== this.transportEpoch || this.cancelledPending.has(cue.id)) {
         throw new Error('GO cancelado por STOP o PARAR TODO.');
       }
@@ -420,8 +548,8 @@ export class BrowserAudioEngine {
         const panner = playback.pan === 0 ? null : ctx.createStereoPanner();
         if (panner) panner.pan.value = playback.pan;
         source.connect(gain);
-        if (panner) { gain.connect(panner); panner.connect(ctx.destination); }
-        else gain.connect(ctx.destination);
+        if (panner) { gain.connect(panner); panner.connect(this.masterGainNode); }
+        else gain.connect(this.masterGainNode);
         return {source,gain,panner,duration,repeatCount:playback.repeatCount,
           loop:playback.loop,startAt,offsetSeconds,
           startDuration:source.loop || playback.endAtMs === null ? null : clipSeconds};

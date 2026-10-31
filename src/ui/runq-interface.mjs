@@ -15,14 +15,15 @@ function mount(){
     script:['Guion','Script','El texto original, conectado a tus cues.','The original text, connected to your cues.'],
     audio:['Sonido','Sound','Encuentra, crea y prepara el sonido de tu espectáculo.','Find, create and prepare the sound of your show.'],
     ai:['Propuestas IA','AI proposals','Explora ideas. Revisa y decide qué incorporar.','Explore ideas. Review and choose what to keep.'],
-    setup:['Comprobación','Preflight','Revisa el proyecto antes de ensayar o salir a escena.','Check your project before rehearsal or showtime.'],
+    setup:['Configuración','Setup','Ajusta los dispositivos y preferencias locales.','Configure devices and local preferences.'],
+    preflight:['Comprobación','Preflight','Comprueba cues y medios de este espectáculo.','Check this show’s cues and media.'],
     rehearsal:['Ensayo','Rehearsal','Guion, voz y secuencia. Tú llevas el control.','Script, voice and sequence. You are in control.'],
     operation:['Directo','Live','La secuencia preparada. El siguiente GO, siempre visible.','The sequence is ready. The next GO, always in view.']
   };
   // One navigation with text labels. Reorder the ORIGINAL route controls.
-  const icons={home:'M3 10 12 3l9 7v11h-6v-7H9v7H3Z',cues:'M4 5h16M4 12h16M4 19h10',script:'M5 3h14v18H5ZM8 7h8M8 11h8M8 15h5',audio:'M3 10v4m4-8v12m5-15v18m5-15v12m4-8v4',ai:'m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z',setup:'m5 12 4 4L19 6M3 3h18v18H3',rehearsal:'M9 3h6v11H9ZM5 10v3a7 7 0 0 0 14 0v-3M12 20v3',operation:'m8 4 13 8-13 8Z'};
+  const icons={home:'M3 10 12 3l9 7v11h-6v-7H9v7H3Z',cues:'M4 5h16M4 12h16M4 19h10',script:'M5 3h14v18H5ZM8 7h8M8 11h8M8 15h5',audio:'M3 10v4m4-8v12m5-15v18m5-15v12m4-8v4',ai:'m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z',setup:'m5 12 4 4L19 6M3 3h18v18H3',preflight:'M5 4h14v16H5ZM8 8h8M8 12h8M8 16h5',rehearsal:'M9 3h6v11H9ZM5 10v3a7 7 0 0 0 14 0v-3M12 20v3',operation:'m8 4 13 8-13 8Z'};
   nav.querySelectorAll('.rq7-nav-heading').forEach(node=>node.remove());
-  for(const group of [['project',['home']],['studio',['cues','script','audio','ai','setup']],['stage',['rehearsal','operation']]]){
+  for(const group of [['project',['home']],['studio',['cues','script','audio','ai','setup','preflight']],['stage',['rehearsal','operation']]]){
     const heading=make('span','rq16-nav-group');heading.dataset.group=group[0];nav.append(heading);
     for(const route of group[1]){
       const button=nav.querySelector(`[data-workspace-nav="${route}"]`);

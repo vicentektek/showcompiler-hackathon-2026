@@ -29,8 +29,10 @@
   <link rel="stylesheet" href="/src/ui/runq-desktop.css">
   <link rel="stylesheet" href="/src/ui/runq-soundlab.css">
   <link rel="stylesheet" href="/src/ui/runq-brand.css">
+  <link rel="stylesheet" href="/src/ui/setup-ui.css">
   <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
   <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
+  <script type="module" src="/src/ui/setup-ui.mjs"></script>
   <script type="module" src="/src/ui/voice-live-ui.mjs"></script>
   <script type="module" src="/src/ui/rehearsal-auto-ui.mjs"></script>
   <script type="module" src="/src/ui/cue-conversation-ui.mjs"></script>
@@ -89,6 +91,7 @@
       <button type="button" class="workspace-tab" data-workspace-nav="audio" aria-pressed="false" data-i18n="workspace.audio">Audio</button>
       <button type="button" class="workspace-tab" data-workspace-nav="soundlab" aria-pressed="false" data-i18n="workspace.soundlab">Sound Lab</button>
       <button type="button" class="workspace-tab" data-workspace-nav="setup" aria-pressed="false" data-i18n="workspace.setup">Setup</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="preflight" aria-pressed="false" data-i18n="workspace.preflight">Preflight</button>
       <button type="button" class="workspace-tab" data-workspace-nav="rehearsal" aria-pressed="false" data-i18n="workspace.rehearsal">Rehearsal</button>
       <button type="button" class="workspace-tab" data-workspace-nav="operation" aria-pressed="false" data-i18n="workspace.operation">Operation</button>
       <div class="workspace-mode"><span data-i18n="workspace.mode">MODE</span><strong data-i18n="workspace.design">DESIGN · MANUAL</strong></div>
@@ -132,24 +135,13 @@
             <div class="rqlive-cue-result"><small id="rqLiveCueTitle">CUE DETECTADO</small><output id="rqLiveCue" aria-live="polite"></output><div class="rqlive-cue-actions"><button type="button" class="btn accent small" id="rqLivePrepare" disabled>Set as NEXT</button><button type="button" class="btn subtle small" id="rqLiveDismiss" disabled>Ignore</button></div></div>
           </div>
           <details id="rqLiveSettings" class="rqlive-more">
-            <summary id="rqLiveSettingsSummary">Ajustes · idioma, micrófono, modo y pies hablados</summary>
+            <summary id="rqLiveSettingsSummary">Ajustes de sesión · línea de foco y privacidad</summary>
             <div class="rqlive-settings">
-              <label for="rqLiveLang"><span id="rqLiveLangLabel">Spoken language</span>
-                <select id="rqLiveLang"><option value="es">Español</option><option value="en">English</option><option value="mixed">Spanish + English</option></select>
-              </label>
-              <label for="rqLiveDevice"><span id="rqLiveDeviceLabel">Input</span><select id="rqLiveDevice"><option value="">Default microphone</option></select></label>
-              <button type="button" class="btn subtle small" id="rqLiveRefresh">Refresh microphones</button>
               <label for="rqLiveFocus"><span id="rqLiveFocusLabel">Script focus line</span>
                 <input id="rqLiveFocus" type="number" min="1" max="100000" step="1" value="1">
               </label>
             </div>
             <div class="rqlive-auto-mode" role="group" aria-label="Modo de disparo">
-              <label for="rqLiveMode"><span id="rqLiveModeLabel">Cue follow mode</span>
-                <select id="rqLiveMode">
-                  <option value="auto" selected>Rehearsal autopilot · automatic GO</option>
-                  <option value="assist">Assist · suggest NEXT</option>
-                </select>
-              </label>
               <button type="button" id="rqLiveArm" class="btn danger-outline small" aria-pressed="false" disabled>ARM AUTO GO</button>
             </div>
             <p id="rqLiveAutoHelp" class="rqlive-auto-help"></p>
@@ -197,9 +189,6 @@
         <section id="rqMicPanel" class="rqmic-panel" aria-labelledby="rqMicTitle">
           <div class="rqmic-head">
             <strong id="rqMicTitle">MICROPHONE TEST · LOCAL</strong>
-            <label for="rqMicLang"><span id="rqMicLangLabel">Spoken language</span>
-              <select id="rqMicLang"><option value="es">Español</option><option value="en">English</option></select>
-            </label>
             <button id="rqMicStart" class="btn accent small" type="button">Record 10s</button>
             <button id="rqMicStop" class="btn subtle small" type="button" disabled>Stop</button>
             <meter id="rqMicMeter" min="0" max="100" value="0" aria-label="Microphone input level"></meter>
@@ -572,12 +561,7 @@
           </div>
           <p class="help" data-i18n="cues.help">Create and edit cues freely. AI suggestions are optional; clicking a cue never starts sound.</p>
           <div class="preflight-toolbar">
-            <button id="checkPreflightBtn" type="button" class="btn subtle small" data-i18n="preflight.check">Check show readiness</button>
-            <span class="caption" data-i18n="preflight.notice">Advisory only · does not arm live mode</span>
-          </div>
-          <div id="preflightReport" class="preflight-report" hidden>
-            <strong id="preflightSummary"></strong>
-            <ul id="preflightIssues"></ul>
+            <button id="checkPreflightBtn" type="button" class="btn subtle small" data-i18n="preflight.check">Open show preflight</button>
           </div>
           <div class="operator-queue" aria-label="Manual cue transport">
             <div class="operator-next">
@@ -665,40 +649,108 @@
 
         <section class="panel setup-panel" data-workspaces="setup" aria-labelledby="setupHeading">
           <div class="panel-head"><div><span class="step">05</span><h2 id="setupHeading" data-i18n="workspace.setup">Setup</h2></div></div>
-          <p class="help" data-i18n="workspace.setupInfo">Real browser audio through the current system output. No device patching, independent preview bus or native hardware integration.</p>
-          <div class="setup-grid">
-            <div><span data-i18n="workspace.backend">AUDIO ENGINE</span><strong>Web Audio · local browser</strong></div>
-            <div><span data-i18n="workspace.output">OUTPUT</span><strong data-i18n="workspace.systemOutput">System default · shared with audition</strong></div>
-            <div><span data-i18n="workspace.lights">LIGHT / VIDEO</span><strong data-i18n="workspace.unavailable">Not configured · no commands sent</strong></div>
-            <div><span data-i18n="workspace.automation">AUTO FOLLOW</span><strong data-i18n="workspace.unwired">Not connected to playback</strong></div>
+          <div class="setup-layout">
+            <nav id="setupPageNav" class="setup-page-nav" role="tablist" aria-orientation="vertical" aria-label="Setup sections">
+              <button type="button" role="tab" aria-selected="true" aria-controls="setupPageAudio" id="setupTabAudio" data-setup-page-nav="audio" data-i18n="setup.nav.audio">Audio</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageMicrophone" id="setupTabMicrophone" data-setup-page-nav="microphone" tabindex="-1" data-i18n="setup.nav.microphone">Microphone</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageOperation" id="setupTabOperation" data-setup-page-nav="operation" tabindex="-1" data-i18n="setup.nav.operation">Operation</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageRehearsal" id="setupTabRehearsal" data-setup-page-nav="rehearsal" tabindex="-1" data-i18n="setup.nav.rehearsal">Rehearsal &amp; voice</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageInterface" id="setupTabInterface" data-setup-page-nav="interface" tabindex="-1" data-i18n="setup.nav.interface">Interface</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageData" id="setupTabData" data-setup-page-nav="data" tabindex="-1" data-i18n="setup.nav.data">Data</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageDiagnostics" id="setupTabDiagnostics" data-setup-page-nav="diagnostics" tabindex="-1" data-i18n="setup.nav.diagnostics">Diagnostics</button>
+            </nav>
+            <div class="setup-pages">
+              <section id="setupPageAudio" class="setup-page" role="tabpanel" aria-labelledby="setupTabAudio" data-setup-page="audio">
+                <h3 data-i18n="setup.audio.title">Audio and playback</h3>
+                <p class="caption" data-i18n="setup.audio.note">GO, audition and the test tone share the browser output and master volume. Changes are blocked while audio is active.</p>
+                <div class="setup-form-row">
+                  <div><strong data-i18n="setup.audio.output">Output device</strong><p id="setupOutputValue" class="caption" data-i18n="setup.audio.defaultOutput">System default</p></div>
+                  <div class="setup-actions">
+                    <button id="setupChooseOutput" type="button" class="btn subtle" data-i18n="setup.audio.choose">Choose output</button>
+                    <button id="setupDefaultOutput" type="button" class="btn subtle" data-i18n="setup.audio.useDefault">Use system default</button>
+                    <button id="setupTestOutput" type="button" class="btn accent" data-i18n="setup.audio.test">Play test tone</button>
+                  </div>
+                </div>
+                <label class="setup-range-row" for="setupMasterVolume"><span><strong data-i18n="setup.audio.masterVolume">Master volume</strong><small data-i18n="setup.audio.masterInfo">Affects every cue and audition through this browser audio engine.</small></span><input id="setupMasterVolume" type="range" min="0" max="100" step="1" value="100"><output id="setupMasterVolumeValue">100%</output></label>
+                <div class="setup-reset-row"><button id="setupResetAudio" type="button" class="btn subtle small" data-i18n="setup.restoreAudio">Restore audio defaults</button><output id="setupAudioStatus" role="status" aria-live="polite"></output></div>
+              </section>
+              <section id="setupPageMicrophone" class="setup-page" role="tabpanel" aria-labelledby="setupTabMicrophone" data-setup-page="microphone" hidden>
+                <h3 data-i18n="setup.mic.title">Microphone input</h3>
+                <p class="caption" data-i18n="setup.mic.note">Microphone permission is requested only when you start the local test. Captured test audio is never saved or uploaded.</p>
+                <div class="setup-form-row">
+                  <label for="rqLiveDevice"><strong data-i18n="setup.mic.input">Input device</strong><select id="rqLiveDevice"><option value="" data-i18n="setup.mic.default">System default microphone</option></select></label>
+                  <button id="rqLiveRefresh" type="button" class="btn subtle" data-i18n="setup.mic.refresh">Refresh inputs</button>
+                </div>
+                <div class="setup-mic-test">
+                  <div class="setup-actions"><button id="setupMicStart" type="button" class="btn accent" data-i18n="setup.mic.start">Test microphone</button><button id="setupMicStop" type="button" class="btn subtle" disabled data-i18n="setup.mic.stop">Stop test</button></div>
+                  <meter id="setupMicMeter" min="0" max="100" value="0" aria-label="Microphone input level"></meter>
+                  <output id="setupMicStatus" role="status" aria-live="polite" data-i18n="setup.mic.idle">Microphone not active.</output>
+                </div>
+                <div class="setup-reset-row"><button id="setupResetMicrophone" type="button" class="btn subtle small" data-i18n="setup.restoreMicrophone">Restore microphone defaults</button><output id="setupMicrophoneStatus" role="status" aria-live="polite"></output></div>
+              </section>
+              <section id="setupPageOperation" class="setup-page" role="tabpanel" aria-labelledby="setupTabOperation" data-setup-page="operation" hidden>
+                <h3 data-i18n="setup.operation.title">Operator controls</h3>
+                <p class="caption" data-i18n="setup.operation.note">Shortcuts stay on this device. Prepare, selection and GO remain separate actions.</p>
+                <section class="runq-keymap" aria-labelledby="runqKeymapTitle">
+                  <div class="runq-keymap-heading"><h3 id="runqKeymapTitle">Keyboard mapping</h3><span id="runqKeymapScope" class="caption">Local device preference · not saved in shows</span></div>
+                  <p id="runqKeymapHelp" class="caption">GO triggers prepared NEXT, not the inspected cue. Typing and held keys cannot trigger GO.</p>
+                  <label class="runq-keymap-check"><input id="runqKeyboardEnabled" type="checkbox" checked><span id="runqKeyboardEnabledLabel">Enable keyboard shortcuts</span></label>
+                  <div class="runq-keymap-columns">
+                    <label class="runq-keymap-check"><input id="runqKeyboardInEditor" type="checkbox" checked><span id="runqKeyboardInEditorLabel">Active in Cue Editor</span></label>
+                    <label class="runq-keymap-check"><input id="runqKeyboardInOperation" type="checkbox" checked><span id="runqKeyboardInOperationLabel">Active in Operation</span></label>
+                  </div>
+                  <div class="runq-keymap-columns">
+                    <label><span id="runqGoKeyLabel">GO / Next cue</span><select id="runqGoKey" aria-labelledby="runqGoKeyLabel"></select></label>
+                    <label><span id="runqStopKeyLabel">STOP ALL (emergency)</span><select id="runqStopKey" aria-labelledby="runqStopKeyLabel"></select></label>
+                  </div>
+                  <div class="runq-keymap-foot"><button type="button" id="runqKeyboardReset" class="btn subtle small">Restore default keys</button><output id="runqKeyboardFeedback" class="caption" role="status" aria-live="polite"></output></div>
+                </section>
+              </section>
+              <section id="setupPageRehearsal" class="setup-page" role="tabpanel" aria-labelledby="setupTabRehearsal" data-setup-page="rehearsal" hidden>
+                <h3 data-i18n="setup.rehearsal.title">Rehearsal and voice</h3>
+                <p class="caption" data-i18n="setup.rehearsal.note">Saved preferences do not start listening or arm Auto GO. Session consent and arming remain in Rehearsal.</p>
+                <div class="setup-fields">
+                  <label for="rqLiveLang"><span id="rqLiveLangLabel" data-i18n="setup.rehearsal.language">Spoken language</span><select id="rqLiveLang"><option value="es">Español</option><option value="en">English</option><option value="mixed">Spanish + English</option></select></label>
+                  <label for="rqLiveMode"><span id="rqLiveModeLabel" data-i18n="setup.rehearsal.mode">Cue follow policy</span><select id="rqLiveMode"><option value="auto" selected>Rehearsal autopilot · automatic GO</option><option value="assist">Assist · suggest NEXT</option></select></label>
+                </div>
+                <button id="setupResetRehearsal" type="button" class="btn subtle small" data-i18n="setup.restoreRehearsal">Restore rehearsal defaults</button>
+                <output id="setupRehearsalStatus" role="status" aria-live="polite"></output>
+              </section>
+              <section id="setupPageInterface" class="setup-page" role="tabpanel" aria-labelledby="setupTabInterface" data-setup-page="interface" hidden>
+                <h3 data-i18n="setup.interface.title">Interface</h3>
+                <p class="caption" data-i18n="setup.interface.note">Language is available in the top bar. Theme is fixed to the current dark RUNQ appearance.</p>
+                <div class="setup-fields">
+                  <label for="setupCueDensity"><span data-i18n="setup.interface.density">Cue list density</span><select id="setupCueDensity"><option value="compact" data-i18n="setup.interface.compact">Compact</option><option value="standard" data-i18n="setup.interface.normal">Normal</option><option value="comfortable" data-i18n="setup.interface.comfortable">Comfortable</option></select></label>
+                </div>
+                <button id="setupResetInterface" type="button" class="btn subtle small" data-i18n="setup.restoreInterface">Restore interface defaults</button>
+                <output id="setupInterfaceStatus" role="status" aria-live="polite"></output>
+              </section>
+              <section id="setupPageData" class="setup-page" role="tabpanel" aria-labelledby="setupTabData" data-setup-page="data" hidden>
+                <h3 data-i18n="setup.data.title">Show data and portability</h3>
+                <p data-i18n="setup.data.note">The project exists in this browser session. Export a complete ZIP to preserve the show and its original audio; device preferences are not included.</p>
+                <p><span data-i18n="setup.data.activeShow">Active show</span>: <strong id="setupDataShowName"></strong> · <span id="setupDataSaveState"></span></p>
+                <button id="setupExportShow" type="button" class="btn accent" data-i18n="setup.data.export">Save complete show ZIP</button>
+                <output id="setupDataStatus" role="status" aria-live="polite"></output>
+              </section>
+              <section id="setupPageDiagnostics" class="setup-page" role="tabpanel" aria-labelledby="setupTabDiagnostics" data-setup-page="diagnostics" hidden>
+                <h3 data-i18n="setup.diagnostics.title">Diagnostics</h3>
+                <dl class="setup-diagnostics">
+                  <div><dt data-i18n="setup.diagnostics.engine">Audio engine</dt><dd id="setupDiagnosticEngine"></dd></div>
+                  <div><dt data-i18n="setup.diagnostics.output">Output route</dt><dd id="setupDiagnosticOutput"></dd></div>
+                  <div><dt data-i18n="setup.diagnostics.microphone">Microphone permission</dt><dd id="setupDiagnosticMic"></dd></div>
+                  <div><dt data-i18n="setup.diagnostics.recent">Recent setup events</dt><dd id="setupDiagnosticErrors"></dd></div>
+                </dl>
+                <button id="setupRefreshDiagnostics" type="button" class="btn subtle small" data-i18n="setup.diagnostics.refresh">Refresh diagnostics</button>
+              </section>
+            </div>
           </div>
-          <section class="runq-keymap" aria-labelledby="runqKeymapTitle">
-            <div class="runq-keymap-heading">
-              <h3 id="runqKeymapTitle">Keyboard mapping</h3>
-              <span id="runqKeymapScope" class="caption">Local device preference · not saved in shows</span>
-            </div>
-            <p id="runqKeymapHelp" class="caption">Space triggers the prepared NEXT cue, never the selected cue. Editable controls and held keys do not trigger GO.</p>
-            <label class="runq-keymap-check"><input id="runqKeyboardEnabled" type="checkbox" checked><span id="runqKeyboardEnabledLabel">Enable keyboard shortcuts</span></label>
-            <div class="runq-keymap-columns">
-              <label class="runq-keymap-check"><input id="runqKeyboardInEditor" type="checkbox" checked><span id="runqKeyboardInEditorLabel">Active in Cue Editor</span></label>
-              <label class="runq-keymap-check"><input id="runqKeyboardInOperation" type="checkbox" checked><span id="runqKeyboardInOperationLabel">Active in Operation</span></label>
-            </div>
-            <label class="runq-keymap-check runq-quick-go"><input id="runqDoubleClickGo" type="checkbox"><span id="runqDoubleClickGoLabel">Operation: double-click cue to SET NEXT + GO immediately (opt-in)</span></label>
-            <p id="runqDoubleClickGoHelp" class="caption">Disabled by default. Double-click only the cue row in Operation. A single click never starts sound. No extra confirmation during the performance.</p>
-            <div class="runq-keymap-columns">
-              <label><span id="runqGoKeyLabel">GO / Next cue</span><select id="runqGoKey" aria-labelledby="runqGoKeyLabel"></select></label>
-              <label><span id="runqStopKeyLabel">STOP ALL (emergency)</span><select id="runqStopKey" aria-labelledby="runqStopKeyLabel"></select></label>
-            </div>
-            <div class="runq-keymap-foot">
-              <button type="button" id="runqKeyboardReset" class="btn subtle small">Restore default keys</button>
-              <span id="runqKeyboardFeedback" class="caption" role="status" aria-live="polite"></span>
-            </div>
-          </section>
-          <div class="separator"></div>
-          <h3 data-i18n="workspace.readiness">Show readiness</h3>
-          <strong id="setupReadinessSummary" role="status" aria-live="polite"></strong>
-          <ul id="setupReadinessIssues" class="setup-issues"></ul>
-          <button type="button" id="setupOpenOperationBtn" class="btn accent" data-i18n="workspace.goOperation">Open operation workspace</button>
+        </section>
+        <section class="panel preflight-workspace" data-workspaces="preflight" aria-labelledby="preflightHeading">
+          <div class="panel-head"><div><span class="step">06</span><h2 id="preflightHeading" data-i18n="workspace.preflight">Preflight</h2></div></div>
+          <p class="help" data-i18n="preflight.notice">Show-specific advisory check. It does not arm playback or verify the physical sound system.</p>
+          <strong id="preflightSummary" role="status" aria-live="polite"></strong>
+          <ul id="preflightIssues" class="setup-issues"></ul>
+          <button type="button" id="preflightOpenOperationBtn" class="btn accent" data-i18n="workspace.goOperation">Open operation workspace</button>
         </section>
       </div>
     </main>

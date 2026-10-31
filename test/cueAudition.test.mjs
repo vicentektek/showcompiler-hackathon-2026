@@ -52,7 +52,7 @@ test('cue audition plays two actual PCM sources without GO or show queue state',
   const state=x.engine.getPreviewStatus();
   assert.equal(state.cueId,'cue-1');
   assert.equal(state.trackId,null);
-  assert.ok(x.gains[0].gain.value<.25);
+  assert.ok(x.gains[1].gain.value<.25);
   assert.deepEqual(x.ended,[]);
   x.sources[0].end();assert.equal(x.engine.isAuditioning(),true);
   x.sources[1].end();assert.equal(x.engine.isAuditioning(),false);
@@ -86,7 +86,7 @@ test('preview of one extra stem excludes main and preserves fade and trimmed reg
   assert.equal(x.engine.getPreviewStatus().trackId,'track-1');
   assert.deepEqual(x.ended,[]);
   x.engine.stopAll();
-  assert.equal(x.gains[0].gain.value,0);
+  assert.equal(x.gains[1].gain.value,0);
   assert.equal(x.engine.isAuditioning(),false);
 });
 

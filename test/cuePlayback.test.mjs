@@ -114,7 +114,7 @@ test('legacy GO retains old -6 dB level and rejects invalid playback before star
   const x=audioFixture();
   await x.engine.loadFile(x.file,'asset-1');
   await x.engine.go(x.cue());
-  assert.equal(x.gains[0].gain.value,0.5);
+  assert.equal(x.gains[1].gain.value,0.5);
   x.engine.stopAll();
   await assert.rejects(x.engine.go(x.cue({loop:true,repeatCount:4})),/Invalid cue playback/);
   assert.equal(x.sources.length,1);
@@ -126,7 +126,7 @@ test('emergency stop silences a scheduled delayed cue before its future start', 
   await x.engine.go(x.cue({startDelayMs:5000,loop:true}));
   assert.equal(x.sources[0].startTime,10.02);
   x.engine.stopAll();
-  assert.equal(x.gains[0].gain.value,0);
+  assert.equal(x.gains[1].gain.value,0);
   assert.equal(x.sources[0].stopTime,5);
   x.sources[0].end();
   assert.deepEqual(x.ended,[]);
