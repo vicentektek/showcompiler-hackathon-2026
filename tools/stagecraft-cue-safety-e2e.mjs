@@ -119,9 +119,8 @@ try {
   assert.equal(await page.evaluate(()=>window.__started.length),beforeOperation);
   assert.equal(await page.locator('#preparedCueStatus').innerText(),originalPrepared);
   await page.locator('[data-workspace-nav="setup"]').click();
-  assert.equal(await page.locator('#runqDoubleClickGo').isChecked(),false);
-  assert.equal(await page.locator('#runqDoubleClickGo').isDisabled(),true,
-    'V7 locks the unsafe double-click Prepare+GO shortcut');
+  assert.equal(await page.locator('#runqDoubleClickGo').count(),0,
+    'There is no configurable double-click Prepare+GO shortcut');
   await page.locator('[data-workspace-nav="operation"]').click();
   await page.locator('#operatorGoBtn').click(); // GO #1 (trimmed)
   await page.waitForFunction(()=>document.querySelectorAll('#runqActiveCuesList [data-running-cue]').length===1);

@@ -66,10 +66,10 @@ try{
   await page.locator('[data-workspace-nav="cues"]').click();
   const rows=page.locator('#cueList [data-cue-select]');
   assert.equal(await rows.count(),3);
-  // Regression 1: selected cue transport buttons must NOT be CSS-hidden.
+  // Stopped cues keep their controls but hide the all-disabled action row.
   await rows.first().click();
   const selected=page.locator('#cueList .cue-item.cue-selected');
-  assert.equal(await selected.locator('.cue-operation-actions').isVisible(),true);
+  assert.equal(await selected.locator('.cue-operation-actions').isVisible(),false);
   assert.equal(await selected.locator('.cue-operation-actions button').count(),2,
     'STOP and FADE remain, while NEXT is the dedicated left-row icon');
   assert.equal(await selected.locator('[data-cue-quick-next]').count(),1);
@@ -84,13 +84,15 @@ try{
   await rows.first().click();
   await page.waitForFunction(()=>document.querySelector('.rq5-selected-tools')?.dataset.cueId==='cue-1');
   assert.equal(await page.locator('.rq5-selected-tools button').count(),firstTools);
-  assert.equal(await selected.locator('.cue-operation-actions').isVisible(),true);
+  assert.equal(await selected.locator('.cue-operation-actions').isVisible(),false);
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
   // Space while a cue row has focus must trigger prepared NEXT, NOT select+GO.
   // Enter still handles keyboard selection in the native row button.
   await rows.first().focus();
   await page.keyboard.press('Space');
   await page.waitForFunction(()=>window.__testAudioStarts===1);
+  assert.equal(await selected.locator('.cue-operation-actions').isVisible(),true,
+    'STOP and FADE become visible while the selected cue is running');
   await page.evaluate(()=>document.activeElement?.blur());
   // Held-key repeats cannot fire the next prepared cue.
   await page.keyboard.down('Space');
@@ -108,6 +110,7 @@ try{
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),2);
   // Setup shows local persistent remapping, not show/cue fields.
   await page.locator('[data-workspace-nav="setup"]').click();
+  await page.locator('#setupTabOperation').click();
   assert.equal(await page.locator('#runqGoKey').inputValue(),'Space');
   assert.equal(await page.locator('#runqStopKey').inputValue(),'None');
   await page.locator('#runqGoKey').selectOption('KeyG');
@@ -128,6 +131,7 @@ try{
   // Preference survives refresh; original show transport isn't persisted by keymap.
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('[data-workspace-nav="setup"]').click();
+  await page.locator('#setupTabOperation').click();
   assert.equal(await page.locator('#runqGoKey').inputValue(),'KeyG');
   assert.equal(await page.locator('#runqStopKey').inputValue(),'Escape');
   await page.locator('#runqKeyboardReset').click();

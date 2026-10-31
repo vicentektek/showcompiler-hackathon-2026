@@ -59,12 +59,13 @@ try{
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),'audio');
   assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1,
-    'Library remains present as the permanent left column');
+    'The original library remains mounted without duplicated asset state');
   assert.equal(await page.locator('[data-workspace-nav="soundlab"]').isVisible(),false,
     'Sound Lab is no longer a duplicate navigation route');
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   assert.equal(await page.locator('.rq10-integrated-lab').isVisible(),true);
-  assert.equal(await page.locator('.rq5-audio-library').isVisible(),true);
+  assert.equal(await page.locator('.rq5-audio-library').isVisible(),false,
+    'Creation mode dedicates the full-width workspace to the reviewed waveform');
   assert.equal(await page.locator('.rq5-audio-editor').isVisible(),false);
   await page.waitForTimeout(900);
   console.log('SFX_BROWSER_DIAGNOSTIC',JSON.stringify({
@@ -149,6 +150,7 @@ try{
   assert.equal(await page.locator('#operatorGoBtn').isEnabled(),true,
     'STOP ALL releases the preview lease so prepared GO can run');
   const beforeReviewStarts=await page.evaluate(()=>window.__labStarted);
+  await page.locator('[data-rq10-sound-tab="library"]').click();
   await page.locator('#assetList [data-sound-edit]').first().click();
   await page.locator('#rq10CreateLibraryCue').waitFor({state:'visible'});
   assert.equal(await page.locator('#rq10CreateLibraryCue').isEnabled(),true);
