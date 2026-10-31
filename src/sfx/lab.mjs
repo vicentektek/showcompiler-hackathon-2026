@@ -330,7 +330,7 @@ function currentJobId(){
 async function action(operation){
   if(state.working)return;
   busy(true);
-  try{await operation();}catch(error){inform(userFacingError(error,isSpanish()?'es':'en','audio'),true);}
+  try{await operation();}catch(error){inform(userFacingError(error,isSpanish()?'es':'en','sound'),true);}
   finally{busy(false);}
 }
 function applyPreset(){
