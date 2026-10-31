@@ -35,3 +35,18 @@ Leer con `git show` no modifica los archivos de trabajo. Para copiar documentos 
 
 ## Ejecuciones reales verificadas por esta publicación
 Publicar documentos en GitHub **no ejecuta ninguna prueba sobre RUNQ**. No atribuirle por defecto los 100 casos, 102 conversaciones, 18 E2E ni validación de Muse Spark a la rama.
+
+
+## Agente personalizado de Copilot para campañas pagadas
+
+Se ha creado **[RUNQ Paid QA](../../.github/agents/runq-paid-qa.agent.md)** en \`.github/agents/runq-paid-qa.agent.md\`. Este archivo sí es un agente de VS Code Copilot reconocido por su interfaz, independiente de \`AGENTS.md\`.
+
+Para utilizarlo en el checkout activo con modificaciones sin confirmar:
+
+1. Recuperar la rama \`docs/runq-evals-exhaustive-2026-10-31\` con \`git fetch origin docs/runq-evals-exhaustive-2026-10-31\` (no cambia checkout).
+2. Inspeccionar \`git status\` y comprobar si \`.github/agents/runq-paid-qa.agent.md\` existe localmente; **no sobrescribirlo si existe**.
+3. Importar ese archivo en la ruta de workspace \`.github/agents/runq-paid-qa.agent.md\`, conservando el contenido literal, y verificar que el editor lo reconoce.
+4. En VS Code Copilot Chat escoger el agente **RUNQ Paid QA** en el selector de agentes. La política económica está integrada en el agente y las referencias están en esta rama; importar también la documentación necesaria de forma no destructiva.
+5. Verificar gates, créditos y pruebas offline antes de ejecutar un \`--live\`. La existencia del archivo **no lanza pruebas por sí misma ni convierte el presupuesto en garantía de facturación**.
+
+El agente dedicado puede realizar lotes pagados sin confirmación por solicitud únicamente dentro de los topes de 100 USD, Meta 65 USD y Modal 35 USD, y cuando el gasto está controlado por el gateway compartido.
