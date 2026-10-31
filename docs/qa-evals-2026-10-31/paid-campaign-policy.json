@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "runq-hackathon-ai-qa-2026-10-31",
+  "status": "authorized-with-preconditions",
+  "authorizationSource": "User authorization 2026-10-31; see PAID_AUTONOMOUS_QA_POLICY.md",
+  "currency": "USD",
+  "campaignCeilingUsd": 100,
+  "providerCeilingsUsd": {
+    "meta": 65,
+    "modal": 35,
+    "baseten": 0,
+    "fireworks": 0,
+    "voice": 0
+  },
+  "campaignRequestCeilings": {
+    "meta": 400,
+    "modal": 100,
+    "baseten": 0,
+    "fireworks": 0,
+    "voice": 0
+  },
+  "allowedRunners": [
+    "runq-systematic-lab",
+    "runq-agent-live-eval",
+    "runq-modal-sfx-qa"
+  ],
+  "requireExplicitLiveFlags": true,
+  "allowAgentInvocation": true,
+  "allowCI": false,
+  "requireServerSideBudgetEnforcement": true,
+  "requireSingleSharedLedger": true,
+  "requireProviderBalanceCheck": true,
+  "requireActualCostReconciliation": true,
+  "requireOneActivePaidRequest": true,
+  "automaticRetries": 0,
+  "preserveExistingPerRequestAndDailyLimits": true,
+  "forbidAutomaticMerges": true,
+  "notes": "Not an implementation of the spending gateway. Offline-only policy data. Paid execution is blocked until code guards, shared accounting and dry-run tests are proven."
+}
