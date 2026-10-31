@@ -5,12 +5,20 @@ Rolling state report for resuming the current work; not a claim that the full sp
 ## Repository
 
 - Branch: `feat/runq-ai-context-hardening-2026-10-31`
-- Validated checkpoints: `143bd86` (context), `53e4047` (Rehearsal), `cd7d40d` (Last GO/Hero). The latest main-AI-workspace block is validated for its next coherent commit; consult `git log` for current HEAD.
+- Validated checkpoints: `143bd86` (context), `53e4047` (Rehearsal), `cd7d40d` (Last GO/Hero), `b908470` (main AI), `ac9e106` (dictation), `0975476` (Stage/Library gates), `8cce4ac` (Live layout). Windows source is validated for its coherent commit; consult `git log` for current HEAD.
 - Parent product work: verified RUNQ interface/Setup checkpoint; integrated portable-demo branch is an ancestor and exists in a separate worktree.
 - Pre-existing local file: `respaldo-runq-cambios.patch` is untracked and untouched. Do not stage it.
 - Initial full backup and targeted pre-edit backups: see `docs/RUNQ_AUTONOMOUS_SPRINT_2026-10-31.md`; all created outside Git and SHA-256 verified.
 
 ## Current change
+
+Current state at 12:26: the dependency-free Windows EXE/browser package compiles and passes verification from an independently extracted ZIP, including 165 payload hashes, actual bundled Node/HTTP, Last GO WAV decoding, reviewed Hero apply, complete ZIP export/reload/reopen, GO/STOP ALL and process/port shutdown. The launcher is unsigned, not an installer or native audio engine. Build outputs remain external; the final delivery will be rebuilt after source commit so its recorded revision matches validated committed source.
+
+`npm run qa:codex` now passes **661/661** tests, existing and Windows syntax checks, illustrative cue QA and the nine-script seminar contract. The extracted-package gate passes. Previous local Agent QA passed **600/600**, with zero provider calls; this does not measure Muse, Modal or Fireworks. Responsive interface, dictation, Last GO and transport browser gates are being repeated for candidate acceptance.
+
+Next: commit Windows, build the final delivery, create a fresh stable local candidate ref and record actual evidence. No main merge, push, public release or new CI execution has occurred. Paid campaign authorization is recognized, but current coding-agent execution constraints leave billable live commands and keys to the operator; Baseten remains excluded. Physical microphone, hearing, device routing and paid model quality are not measured by these gates.
+
+### Historical checkpoints (11:40 onward)
 
 Latest state at 11:40: The Last GO and reviewed Hero cue creation are integrated, with reproducible original WAVs, save/export/reopen and real browser-engine playback. Rehearsal has a visible shared Assist/Autopilot selector and corrected labels. RUNQ AI is now a principal two-column workspace using the same contextual Agent instance; history, selected operations and provider/manual proposal forms are preserved. No network or automatic GO is added by navigation.
 
@@ -44,6 +52,6 @@ Changed code/test paths: `src/core/agentCore.mjs`, `src/core/cueConversation.mjs
 
 ## Resume order
 
-1. Continue explicit dictated editing and cancellation checks, then remaining Library/Live and candidate-release work.
+1. Complete the validated Windows commit, final external delivery and local candidate reference; then perform only the outstanding operator-only acoustic/ASR and authorized provider measurements.
 2. Keep generated QA reports local/ignored and the untracked patch intact.
 3. Continue only with bounded, verified tasks; use a human for hardware/acoustic acceptance. Do not run paid models, merge, or claim hardware acceptance.

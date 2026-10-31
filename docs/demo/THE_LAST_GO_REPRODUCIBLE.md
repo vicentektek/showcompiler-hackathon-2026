@@ -56,3 +56,7 @@ npm run qa:codex
 The Last GO browser gate verifies original source, explicit sound choice, preview/apply/undo, ZIP save/reload/reopen, four cues and three WAVs, armed synthetic speech jump/rewind, actual browser audio instances, manual Live GO and STOP ALL. No paid requests.
 
 The dictation browser gate separately uses silent synthetic PCM and controlled offline ASR/AI responses. It verifies transcript-only Hero editing, human apply/undo, and late-result rejection after Stage, STOP ALL, identical project reopen and editor close. It is not microphone/ASR or paid-model quality evidence.
+
+## Windows delivery
+
+The verified [Windows browser-demo package](WINDOWS_BROWSER_PACKAGE.md) bundles this original show and its WAVs with an unsigned EXE launcher and the existing browser runtime. Its separate extracted-package gate verifies actual startup, complete-show export/reload/reopen, GO/STOP ALL and clean server shutdown; it does not certify native audio or physical microphone recognition.
