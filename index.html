@@ -341,8 +341,8 @@
                   <label class="sfx-prompt-main"><span data-sfx-en="Describe your sound" data-sfx-es="Describe el sonido que quieres generar">Describe your sound</span><textarea id="soundPrompt" rows="5" maxlength="1000" required placeholder="An old wooden door creaks open and closes. No music."></textarea></label>
 <div class="sfx-row-fields"><label><span data-sfx-en="Sound type" data-sfx-es="Tipo">Sound type</span><select id="soundKind"><option value="SFX" data-sfx-en="Sound effect" data-sfx-es="Efecto puntual">Sound effect</option><option value="ENVIRONMENT" data-sfx-en="Ambience" data-sfx-es="Ambiente continuo">Ambience</option></select></label><label><span data-sfx-en="Duration (seconds)" data-sfx-es="Duración (segundos)">Duration (seconds)</span><input id="duration" type="number" min="1" max="12" value="8" step="1" required></label></div>
 <details class="sfx-advanced" id="sfxAdvanced"><summary data-sfx-en="Examples and sound options" data-sfx-es="Ejemplos y opciones avanzadas">Examples and sound options</summary><div class="sfx-advanced-content">
-<label>Ejemplos<span class="sfx-inline"><select id="acceptancePreset"><option value="">Seleccionar ejemplo…</option><option value="door">Puerta antigua</option><option value="storm">Tormenta</option><option value="audience">Público de teatro</option></select><button class="btn subtle" id="loadPresetBtn" type="button">Usar ejemplo</button></span></label>
-<div class="sfx-row-fields"><label>Referencia al guion (opcional)<input id="sourceLine" type="text" pattern="L[1-9][0-9]*" maxlength="30" placeholder="L12"></label><label>Semilla<input id="seed" type="number" min="0" max="2147483647" value="104729" step="1" required></label></div>
+<label><span data-sfx-es="Ejemplos" data-sfx-en="Examples">Examples</span><span class="sfx-inline"><select id="acceptancePreset"><option value="">Seleccionar ejemplo…</option><option value="door">Puerta antigua</option><option value="storm">Tormenta</option><option value="audience">Público de teatro</option></select><button class="btn subtle" id="loadPresetBtn" type="button" data-sfx-en="Use example" data-sfx-es="Usar ejemplo">Use example</button></span></label>
+<div class="sfx-row-fields"><label><span data-sfx-es="Referencia al guion (opcional)" data-sfx-en="Script reference (optional)">Script reference (optional)</span><input id="sourceLine" type="text" pattern="L[1-9][0-9]*" maxlength="30" placeholder="L12"></label><label><span data-sfx-es="Semilla" data-sfx-en="Variation seed">Variation seed</span><input id="seed" type="number" min="0" max="2147483647" value="104729" step="1" required></label></div>
 </div></details><details class="sfx-advanced sfx-connection-details" id="sfxConnectionDetails">
                     <summary data-sfx-en="AI connection and usage details" data-sfx-es="Detalles de conexión y uso de IA">AI connection and usage details</summary>
                     <div class="sfx-advanced-content">
@@ -352,28 +352,28 @@
                   </details>
                   <label class="sfx-checkline"><input id="confirmRequest" type="checkbox"><span id="confirmRequestLabel">I authorize this sound generation.</span></label>
                   <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled data-sfx-en="Generate sound" data-sfx-es="Generar sonido">Generate sound</button><span id="generationHint" class="sfx-muted">Checking generator…</span></div>
-                </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret"><summary>Interpretar una acotación de guion <span class="sfx-muted">· opcional</span></summary><div class="sfx-script-body">
-                  <p id="scriptSfxHeading" class="sfx-muted">Interpreta el guion y ajusta la propuesta; no genera sonido automáticamente.</p>
-                  <label>Acotación del guion<textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
+                </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret"><summary><span data-sfx-es="Interpretar una acotación de guion" data-sfx-en="Create from a script direction">Create from a script direction</span> <span class="sfx-muted" data-sfx-es="· opcional" data-sfx-en="· optional">· optional</span></summary><div class="sfx-script-body">
+                  <p id="scriptSfxHeading" class="sfx-muted" data-sfx-es="Interpreta el guion y ajusta la propuesta; no genera sonido automáticamente." data-sfx-en="Interpret the direction and refine the suggestion before generating audio.">Interpret the direction and refine the suggestion before generating audio.</p>
+                  <label><span data-sfx-es="Acotación del guion" data-sfx-en="Script direction">Script direction</span><textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
                   <div class="sfx-row-fields">
-                    <label>Referencia<input id="scriptSfxLine" value="L1" pattern="L[1-9][0-9]*" maxlength="12"></label>
-                    <label>Interpretación<select id="scriptSfxMode"><option value="STRICT">Estricto · sin inventar</option><option value="CREATIVE">Creativo · inferencias visibles</option></select></label>
+                    <label><span data-sfx-es="Referencia" data-sfx-en="Reference">Reference</span><input id="scriptSfxLine" value="L1" pattern="L[1-9][0-9]*" maxlength="12"></label>
+                    <label><span data-sfx-es="Interpretación" data-sfx-en="Interpretation">Interpretation</span><select id="scriptSfxMode"><option value="STRICT">Estricto · sin inventar</option><option value="CREATIVE">Creativo · inferencias visibles</option></select></label>
                   </div>
-                  <div class="sfx-buttons"><button id="scriptSfxCompile" class="btn" type="button">Interpretar acotación</button><span id="scriptSfxStatus" class="sfx-muted" role="status">Sin analizar · 0 créditos</span></div>
+                  <div class="sfx-buttons"><button id="scriptSfxCompile" class="btn" type="button" data-sfx-en="Interpret direction" data-sfx-es="Interpretar acotación">Interpret direction</button><span id="scriptSfxStatus" class="sfx-muted" role="status">Ready to interpret</span></div>
                   <div id="scriptSfxResults" class="sfx-proposal-results" hidden>
-                    <label>Sonido detectado<select id="scriptSfxSelect"></select></label>
+                    <label><span data-sfx-es="Sonido detectado" data-sfx-en="Detected sound">Detected sound</span><select id="scriptSfxSelect"></select></label>
                     <p id="scriptSfxEvidence" class="sfx-evidence sfx-small" aria-live="polite"></p>
                     <div class="sfx-row-fields">
-                      <label>Fuente<input id="scriptSfxSource" maxlength="300"></label>
-                      <label>Acción<input id="scriptSfxAction" maxlength="300"></label>
+                      <label><span data-sfx-es="Fuente" data-sfx-en="Sound source">Sound source</span><input id="scriptSfxSource" maxlength="300"></label>
+                      <label><span data-sfx-es="Acción" data-sfx-en="Action">Action</span><input id="scriptSfxAction" maxlength="300"></label>
                     </div>
                     <div class="sfx-row-fields">
-                      <label>Intensidad<select id="scriptSfxIntensity"><option value="">Sin definir</option><option value="LOW">Suave</option><option value="MEDIUM">Media</option><option value="HIGH">Alta</option><option value="VERY_HIGH">Muy alta</option></select></label>
-                      <label>Duración (s)<input id="scriptSfxDuration" type="number" min="1" max="12" step="1"></label>
+                      <label><span data-sfx-es="Intensidad" data-sfx-en="Intensity">Intensity</span><select id="scriptSfxIntensity"><option value="">Sin definir</option><option value="LOW">Suave</option><option value="MEDIUM">Media</option><option value="HIGH">Alta</option><option value="VERY_HIGH">Muy alta</option></select></label>
+                      <label><span data-sfx-es="Duración (s)" data-sfx-en="Duration (s)">Duration (s)</span><input id="scriptSfxDuration" type="number" min="1" max="12" step="1"></label>
                     </div>
-                    <div class="sfx-row-fields"><label>Material / textura<input id="scriptSfxMaterial" maxlength="300" placeholder="No especificado"></label><label>Espacio acústico<select id="scriptSfxSpace"><option value="UNSPECIFIED">Sin especificar</option><option value="INDOOR">Interior</option><option value="OUTDOOR">Exterior</option><option value="CORRIDOR">Pasillo</option><option value="LARGE_HALL">Sala grande</option><option value="UNDERGROUND">Subterráneo</option></select></label></div><label>Prompt revisable<textarea id="scriptSfxPrompt" rows="4" maxlength="1000"></textarea></label>
-                    <div class="sfx-buttons"><button type="button" class="btn subtle" id="scriptSfxRestore">Restaurar</button><button type="button" class="btn primary-secondary" id="scriptSfxTransfer">Usar en generación (sin enviar)</button></div>
-                    <p class="sfx-muted sfx-small">No realiza solicitudes a Modal. Transferir rellena el formulario y mantiene la confirmación de coste desmarcada.</p>
+                    <div class="sfx-row-fields"><label><span data-sfx-es="Material / textura" data-sfx-en="Material / texture">Material / texture</span><input id="scriptSfxMaterial" maxlength="300" placeholder="No especificado"></label><label><span data-sfx-es="Espacio acústico" data-sfx-en="Acoustic space">Acoustic space</span><select id="scriptSfxSpace"><option value="UNSPECIFIED">Sin especificar</option><option value="INDOOR">Interior</option><option value="OUTDOOR">Exterior</option><option value="CORRIDOR">Pasillo</option><option value="LARGE_HALL">Sala grande</option><option value="UNDERGROUND">Subterráneo</option></select></label></div><label><span data-sfx-es="Prompt revisable" data-sfx-en="Editable sound description">Editable sound description</span><textarea id="scriptSfxPrompt" rows="4" maxlength="1000"></textarea></label>
+                    <div class="sfx-buttons"><button type="button" class="btn subtle" id="scriptSfxRestore" data-sfx-en="Restore" data-sfx-es="Restaurar">Restore</button><button type="button" class="btn primary-secondary" id="scriptSfxTransfer" data-sfx-en="Use this sound description" data-sfx-es="Usar esta descripción">Use this sound description</button></div>
+                    <p class="sfx-muted sfx-small" data-sfx-es="Usar la propuesta rellena el formulario sin iniciar una generación." data-sfx-en="Using this suggestion fills the form without starting a generation.">Using this suggestion fills the form without starting a generation.</p>
                   </div>
                 </div></details>
 
@@ -390,13 +390,13 @@
                 <details class="sfx-advanced sfx-technical-jobs">
                   <summary data-sfx-en="History and technical details" data-sfx-es="Historial y detalles técnicos">History and technical details</summary>
                   <div class="sfx-advanced-content">
-                    <label>ID de solicitud<input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
+                    <label><span data-sfx-es="ID de solicitud" data-sfx-en="Request ID">Request ID</span><input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
                     <p id="jobTechnicalDetails" class="sfx-muted sfx-small sfx-technical-details"></p>
                     <div class="sfx-buttons">
-                      <button class="btn" id="openJobBtn" type="button">Abrir registro</button>
-                      <button class="btn" id="refreshBtn" type="button">Actualizar estado</button>
-                      <button class="btn" id="loadGeneratedBtn" type="button">Cargar WAV</button>
-                      <button class="btn danger-outline" id="cancelBtn" type="button">Solicitar cancelación</button>
+                      <button class="btn" id="openJobBtn" type="button" data-sfx-en="Open record" data-sfx-es="Abrir registro">Open record</button>
+                      <button class="btn" id="refreshBtn" type="button" data-sfx-en="Refresh status" data-sfx-es="Actualizar estado">Refresh status</button>
+                      <button class="btn" id="loadGeneratedBtn" type="button" data-sfx-en="Load audio" data-sfx-es="Cargar WAV">Load audio</button>
+                      <button class="btn danger-outline" id="cancelBtn" type="button" data-sfx-en="Cancel generation" data-sfx-es="Solicitar cancelación">Cancel generation</button>
                     </div>
                   </div>
                 </details>
@@ -418,15 +418,15 @@
               <div class="sfx-notice sfx-muted">Preview uses the computer's default output, not an isolated PFL bus. Start at low volume. GO, NEXT and the running show are untouched.</div>
               <div class="sfx-export"><div><h3>Commit the accepted source</h3><p>The original verified WAV is preserved. IN/OUT remain review metadata and can become non-destructive cue settings after manual assignment.</p></div><div class="sfx-buttons"><button class="btn" id="exportBtn" type="button" disabled>Download original WAV</button><button class="btn primary-secondary" id="importLibraryBtn" type="button" disabled>Import accepted WAV to library</button><button class="btn accent" id="importCueBtn" type="button" disabled>Import + create cue</button></div></div>
               <section class="rq10-local-actions" id="rq10LibraryEditActions" aria-labelledby="rq10LibraryActionsTitle">
-                <div><strong id="rq10LibraryActionsTitle">Aplicar edición a un cue</strong>
-                  <p>Solo para originales ya importados. Los ajustes IN/OUT y fades se guardan en el cue; el archivo original nunca se altera.</p>
+                <div><strong id="rq10LibraryActionsTitle" data-sfx-es="Aplicar edición a un cue" data-sfx-en="Apply audio edits to a cue">Apply audio edits to a cue</strong>
+                  <p data-sfx-es="Solo para originales ya importados. Los ajustes IN/OUT y fades se guardan en el cue; el archivo original nunca se altera." data-sfx-en="Trim and fade settings are saved to the cue. Your original audio stays unchanged.">Trim and fade settings are saved to the cue. Your original audio stays unchanged.</p>
                 </div>
                 <div class="rq10-local-buttons">
-                  <button id="rq10CreateLibraryCue" type="button" class="btn accent" disabled>Crear cue con este audio</button>
-                  <label for="rq10TargetCue" class="rq10-target-label">Cue existente
+                  <button id="rq10CreateLibraryCue" type="button" class="btn accent" disabled data-sfx-en="Create cue with this audio" data-sfx-es="Crear cue con este audio">Create cue with this audio</button>
+                  <label for="rq10TargetCue" class="rq10-target-label"><span data-sfx-es="Cue existente" data-sfx-en="Existing cue">Existing cue</span>
                     <select id="rq10TargetCue"><option value="">Seleccionar destino…</option></select>
                   </label>
-                  <button id="rq10AssignLibraryCue" type="button" class="btn subtle" disabled>Asignar y aplicar ajustes</button>
+                  <button id="rq10AssignLibraryCue" type="button" class="btn subtle" disabled data-sfx-en="Assign and apply edits" data-sfx-es="Asignar y aplicar ajustes">Assign and apply edits</button>
                 </div>
               </section>
               <div role="status" aria-live="polite" class="sfx-feedback" id="feedback">Ready to work with sound.</div>
