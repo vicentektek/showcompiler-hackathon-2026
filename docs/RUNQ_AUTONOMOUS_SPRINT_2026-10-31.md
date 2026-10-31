@@ -112,3 +112,11 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - Source/binaries are distinct: generated ZIPs, EXE, Node license inputs and extraction folders stay external. Output refuses overwrites. SOURCE_REVISION records the checkout base; rebuild the final delivery after committing validated Windows source.
 - Continuing directly with full offline QA, final browser gates and the stable local candidate. Physical hearing, real microphone/ASR and paid provider accuracy remain separate operator-only gates; Baseten remains excluded.
 - Acceptance update: `npm run qa:codex` passed **661/661** tests plus both syntax gates and offline cue/seminar contracts. `npm run test:windows-package -- <extracted root>` passed real browser export/reload/reopen with four cues/three WAVs and verified both smoke-test and interactive Node PIDs no longer exist after shutdown.
+
+## 12:27 - candidate source preservation and final regression
+
+- Verified a fresh external SHA-256 backup of all 11 pending files before the Windows checkpoint; preserved the local patch without staging it. Committed the ten validated source/test/docs files at `79702d1`.
+- Repeated interface, dictated-command safety, Last GO, expanded Assist/Autopilot, Stage cue safety, general browser, Agent and Voice Follow gates: all passed. Voice Follow reports only its existing optional favicon 404, not a runtime error.
+- Rebuilt from committed Windows source, extracted independently and reran actual EXE/Node/Chrome verification successfully. PowerShell's `npm.ps1` removed flag names from an initial attempted invocation; the build rejected it before writing. Native `npm.cmd` forwarding is now tested and documented.
+- Prepare a fresh local `feat/runq-release-candidate-2026-10-31` ref at the final handoff HEAD; do not checkout/overwrite other worktrees, merge main, push or make a public release. Rebuild final attached Windows delivery at that candidate revision and reverify it.
+- Remaining real microphone/acoustic/room/device acceptance and authorized paid provider measurements cannot be substituted with fixtures. They remain operator-only under effective execution constraints. The sprint is not represented as professionally certified or real-model-quality measured.

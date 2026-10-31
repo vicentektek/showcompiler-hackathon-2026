@@ -5,7 +5,7 @@ Rolling state report for resuming the current work; not a claim that the full sp
 ## Repository
 
 - Branch: `feat/runq-ai-context-hardening-2026-10-31`
-- Validated checkpoints: `143bd86` (context), `53e4047` (Rehearsal), `cd7d40d` (Last GO/Hero), `b908470` (main AI), `ac9e106` (dictation), `0975476` (Stage/Library gates), `8cce4ac` (Live layout). Windows source is validated for its coherent commit; consult `git log` for current HEAD.
+- Validated checkpoints: `143bd86` (context), `53e4047` (Rehearsal), `cd7d40d` (Last GO/Hero), `b908470` (main AI), `ac9e106` (dictation), `0975476` (Stage/Library gates), `8cce4ac` (Live layout), `79702d1` (Windows). Consult `git log` for the current documentation/candidate HEAD.
 - Parent product work: verified RUNQ interface/Setup checkpoint; integrated portable-demo branch is an ancestor and exists in a separate worktree.
 - Pre-existing local file: `respaldo-runq-cambios.patch` is untracked and untouched. Do not stage it.
 - Initial full backup and targeted pre-edit backups: see `docs/RUNQ_AUTONOMOUS_SPRINT_2026-10-31.md`; all created outside Git and SHA-256 verified.
@@ -16,7 +16,19 @@ Current state at 12:26: the dependency-free Windows EXE/browser package compiles
 
 `npm run qa:codex` now passes **661/661** tests, existing and Windows syntax checks, illustrative cue QA and the nine-script seminar contract. The extracted-package gate passes. Previous local Agent QA passed **600/600**, with zero provider calls; this does not measure Muse, Modal or Fireworks. Responsive interface, dictation, Last GO and transport browser gates are being repeated for candidate acceptance.
 
-Next: commit Windows, build the final delivery, create a fresh stable local candidate ref and record actual evidence. No main merge, push, public release or new CI execution has occurred. Paid campaign authorization is recognized, but current coding-agent execution constraints leave billable live commands and keys to the operator; Baseten remains excluded. Physical microphone, hearing, device routing and paid model quality are not measured by these gates.
+The Windows source was committed at `79702d1` after a verified external backup of all 11 pending files, including the unstaged patch. The build from that committed source and its independent extracted-package test passed. The malformed PowerShell `npm.ps1` flag forwarding was caught before output; `npm.cmd` preserves the flags and the documented rebuild command is corrected.
+
+Local candidate reference: `feat/runq-release-candidate-2026-10-31`, to be created from the validated documentation handoff HEAD without switching worktrees. Rebuild the final attached ZIP from that reference, report its actual checksum and verify the extracted EXE again. No main merge, push, public release or new CI execution has occurred. Paid campaign authorization is recognized, but current coding-agent execution constraints leave billable live commands and keys to the operator; Baseten remains excluded. Physical microphone, hearing, device routing and paid model quality are not measured by these gates.
+
+### Candidate acceptance evidence
+
+- PASS: `npm run qa:codex` (661/661 Windows tests, existing/Windows syntax, illustrative cue QA, seminar contract).
+- PASS repeated: `npm run test:interface`, `npm run test:dictation`, `npm run test:last-go`, `node tools/rehearsal-auto-browser-e2e.mjs`, `node tools/stagecraft-cue-safety-e2e.mjs`, `node tools/browser-e2e.mjs`, `node tools/runq-agent-browser-e2e.mjs`, `node tools/voice-follow-click-e2e.mjs`.
+- PASS earlier: keymap, audio batch and SFX Lab browser gates; `npm run qa:agent:mass` (600/600 local scenarios, not real-model accuracy).
+- PASS: committed-source Windows build via `npm.cmd run demo:windows -- ...` and `npm run test:windows-package -- <independently extracted root>`. Original Last GO script/audio, reviewed Hero, complete four-cue/three-WAV browser reopen and clean PID/port shutdown were exercised.
+- Screenshots: approved-mockup-informed before/current AI views and loaded Studio/Library/Script/Rehearsal/Live captures remain external. The early empty Studio frame is explicitly not valid loaded-show evidence.
+- Windows delivery instructions: [Windows browser package](demo/WINDOWS_BROWSER_PACKAGE.md); reproducible original demo: [The Last GO](demo/THE_LAST_GO_REPRODUCIBLE.md).
+- Genuine outstanding acceptance: human acoustic/device/room/ASR checks and operator-run Meta/Modal/Fireworks measurements under existing budgets. No Baseten, key read, ledger reset or paid call was performed by this coding session. CI URL: none; no remote run was requested or created.
 
 ### Historical checkpoints (11:40 onward)
 
@@ -52,6 +64,6 @@ Changed code/test paths: `src/core/agentCore.mjs`, `src/core/cueConversation.mjs
 
 ## Resume order
 
-1. Complete the validated Windows commit, final external delivery and local candidate reference; then perform only the outstanding operator-only acoustic/ASR and authorized provider measurements.
+1. Use the fresh local candidate and verified attached Windows ZIP for operator acoustic/ASR and authorized provider measurements; retain script/source provenance and explicit approvals.
 2. Keep generated QA reports local/ignored and the untracked patch intact.
 3. Continue only with bounded, verified tasks; use a human for hardware/acoustic acceptance. Do not run paid models, merge, or claim hardware acceptance.

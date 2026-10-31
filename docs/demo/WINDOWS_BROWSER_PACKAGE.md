@@ -17,13 +17,15 @@ Requires Windows x64, .NET Framework 4.5+ and a current browser supporting the e
 Use Node >=20 and the existing Windows .NET Framework compiler. Obtain the **complete license** and official `win-x64/node.exe` SHA-256 for the exact installed Node version from the public Node distribution. The observed Node 22.16.0 SHA-256 was `c5ff4c736112dd483c750fd4149d30c8a116db1a49b8b3ec88be4b65e6c86c19`; do not reuse it for another version.
 
 ```powershell
-npm run demo:windows -- --output "C:\RUNQ-Deliverables\fresh-build" --node-license "C:\RUNQ-Inputs\NODE-LICENSE.txt" --node-sha256 "<official SHA-256>"
+npm.cmd run demo:windows -- --output "C:\RUNQ-Deliverables\fresh-build" --node-license "C:\RUNQ-Inputs\NODE-LICENSE.txt" --node-sha256 "<official SHA-256>"
 Expand-Archive -LiteralPath "C:\RUNQ-Deliverables\fresh-build\RUNQ-Windows.zip" -DestinationPath "C:\RUNQ-Deliverables\fresh-build\extracted package"
 npm run test:windows-package -- "C:\RUNQ-Deliverables\fresh-build\extracted package\RUNQ-Windows"
 npm run qa:codex
 ```
 
 The output must be fresh and outside the repository; existing destinations are refused. The builder copies only server-public assets, relative server dependencies, the published libarchive.js package with its license, the verified Node executable/full license and the original demonstration. No project `.env`, ledger, Git folder, local reports, backup patch or private worktree snapshot is copied.
+
+Use `npm.cmd` for the flagged build command in PowerShell: the local `npm.ps1` invocation consumed the `--` separator and stripped option names. The builder correctly refused that malformed invocation before writing output. Direct `node tools\windows\build-windows-package.mjs --output ... --node-license ... --node-sha256 ...` also preserves the flags.
 
 `FILE_HASHES.json` covers 165 payload files in this build; the ZIP's separately reported SHA-256 covers the manifest as well. `SOURCE_REVISION.txt` records the checkout base: build a delivery after committing validated source. Archive timestamps can differ between builds, so compare the reported hash of the actual delivered ZIP rather than assuming a byte-reproducible compressed archive.
 
