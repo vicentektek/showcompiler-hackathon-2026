@@ -7,8 +7,8 @@ const GRIP = 8;
 const PANELS = [
   { id: 'live-cues', ws: 'operation', sel: '.cue-workspace-body', mode: 'grid', axis: 'col', at: 0, fixed: 'before', min: 320, minOther: 360 },
   { id: 'live-events', ws: 'operation', sel: '#rq14Events', mode: 'size', min: 60, max: 420 },
-  { id: 'live-dock', ws: 'operation', sel: '.rq5-transport-dock', mode: 'size', min: 150, max: 700 },
-  { id: 'live-script', ws: 'operation', sel: '.layout', mode: 'grid', axis: 'col', at: 0, tracks: 2, fixed: 'before', min: 220, minOther: 480 },
+  { id: 'live-active', ws: 'operation', sel: '#runqActiveCues', mode: 'size', min: 70, max: 700 },
+  { id: 'live-script', ws: 'operation', sel: '.layout > .panel[data-workspaces~="script"]', mode: 'width', min: 220, max: 720 },
   { id: 'rehearsal-script', ws: 'rehearsal', sel: '.layout', mode: 'grid', axis: 'col', at: 0, fixed: 'before', min: 280, minOther: 420 },
   { id: 'rehearsal-stage', ws: 'rehearsal', sel: '.cue-workspace-body', mode: 'grid', axis: 'row', at: 0, fixed: 'after', min: 100, minOther: 140 },
   { id: 'rehearsal-voice', ws: 'rehearsal', sel: '#rqvfPanel', mode: 'size', min: 140, max: 640 },
@@ -39,7 +39,7 @@ function mount() {
     const el = shell.querySelector(cfg.sel);
     if (!el) continue;
     const handle = document.createElement('div');
-    handle.className = 'rq-grip rq-grip-' + (cfg.mode === 'size' ? 'row' : cfg.axis);
+    handle.className = 'rq-grip rq-grip-' + (cfg.mode === 'size' ? 'row' : cfg.mode === 'width' ? 'col' : cfg.axis);
     handle.setAttribute('role', 'separator');
     handle.setAttribute('aria-orientation', (cfg.mode === 'size' || cfg.axis === 'row') ? 'horizontal' : 'vertical');
     handle.tabIndex = 0;
@@ -50,7 +50,7 @@ function mount() {
   }
 
   const active = (e) => shell.dataset.activeWorkspace === e.cfg.ws;
-  const axisOf = (c) => (c.mode === 'size' ? 'row' : c.axis);
+  const axisOf = (c) => (c.mode === 'size' ? 'row' : c.mode === 'width' ? 'col' : c.axis);
 
   function clear(e) {
     e.el.style.removeProperty('grid-template-columns');
@@ -79,6 +79,7 @@ function mount() {
 
   function currentSize(e) {
     const { cfg, el } = e;
+    if (cfg.mode === 'width') return el.getBoundingClientRect().width;
     if (cfg.mode === 'size') return el.getBoundingClientRect().height;
     const t = tracks(el, cfg.axis);
     return t[cfg.fixed === 'before' ? cfg.at : cfg.at + 1] ?? 0;
@@ -86,7 +87,7 @@ function mount() {
 
   function limits(e) {
     const { cfg, el } = e;
-    if (cfg.mode === 'size') return [cfg.min, cfg.max];
+    if (cfg.mode === 'size' || cfg.mode === 'width') return [cfg.min, cfg.max];
     const r = el.getBoundingClientRect();
     const total = cfg.axis === 'col' ? r.width : r.height;
     return [cfg.min, Math.max(cfg.min, total - cfg.minOther)];
@@ -126,7 +127,7 @@ function mount() {
   }
 
   for (const e of entries) {
-    const dir = e.cfg.mode === 'size' ? -1 : (e.cfg.fixed === 'before' ? 1 : -1);
+    const dir = e.cfg.mode === 'size' ? -1 : e.cfg.mode === 'width' ? 1 : (e.cfg.fixed === 'before' ? 1 : -1);
     e.handle.addEventListener('pointerdown', (ev) => {
       if (ev.button !== 0) return;
       ev.preventDefault();

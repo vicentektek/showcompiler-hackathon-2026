@@ -295,6 +295,7 @@ function refreshAudioControls() {
       (cue.audioTracks ?? []).every(track => player.hasAsset(track.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
+    label.closest('.cue-item')?.classList.toggle('cue-playing', playing || stopping);
     label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
   const prepared = show.cues.find(cue => cue.id === operatorQueue.preparedCueId);
