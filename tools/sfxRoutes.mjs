@@ -115,6 +115,7 @@ function sendFailure(response, error, headers) {
 export function makeSfxRoute({
   sfxStore = createSfxJobStore({
     directory: join(dirname(globalLedgerDefaultPath()), 'shared-modal-jobs-v1'),
+    maxDailyStarts: 10,
   }),
   sfxConfig = configuration,
   sfxPilotClient = null,

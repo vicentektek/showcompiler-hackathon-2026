@@ -304,3 +304,30 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
   the exact prerequisites above, not a missing general spending authorization.
   No new paid request, uncertain retry, Baseten/Fireworks use, main merge or
   public release has occurred.
+
+## 16:21 onward - operator-started audio automation and measured pilot evidence
+
+- Implemented `tools/runq-modal-live-batch.mjs`: nine NEW serial ES/EN briefs,
+  original fixed IDs, private durable receipts, bounded status checks, WAV
+  hash/duration/RMS/peak/clipping/silence metrics, safe resume without duplicate
+  submission and explicit pending human listening. One operator command starts
+  the batch; no agent-paid request or automatic cue approval/playback.
+- Changed only the production daily request count from 3 to 10 for the first
+  ten-take pilot; one active job, configured USD0.50/day and global100/Modal35
+  remain. Sources were SHA256 backed up under `modal-automation-20261031-1621`.
+- Real first-pair WAV local analysis: duration4s, stereo44100Hz, SHA29846843908b2e76c188c337176f1b95fa002f4aefeec61e1043d846f6590028;
+  RMS -33.7274dBFS, peak1, two saturated PCM samples and near-silent fraction
+  0.890607. Not whole-file silence; isolated-click silence is not necessarily
+  accidental. No artistic adequacy, distortion-free result or paid invoice claimed.
+- Corrected a Meta evaluation repeat hazard: random run IDs previously permitted
+  sending the identical fixture set again. Actual-input fingerprints now protect
+  new shared reservations, and earlier derived rows block their original case
+  IDs. The verified first twenty remain excluded; seed changes do not evade this.
+- Focused automation/policy/Agent tests27/27; full offline gate and committed
+  handoff follow. The actual operator pilot remains 21 Meta calls and one completed
+  Modal WAV, not the target500. No provider response, secret, audio or ledger is
+  added to Git. Updated backend uses a separate5192 preview, preserving5190/5191.
+- Final full `qa:codex`691/691, failures/skips0; final focused runner/Agent18/18,
+  AI review and history browser regression PASS, no provider calls. Actual
+  HTTP200 confirmed for5190/5191/5192; updated5192 SFX config is enabled at
+  USD0.05/request, USD0.50/day. No user's project or transport was changed.

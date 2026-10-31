@@ -17,6 +17,7 @@
     "test:dictation": "node --check src/ui/command-dictation.mjs && node tools/command-dictation-browser-e2e.mjs",
     "test:ai-review": "node --check src/ui/runq-agent-ui.mjs && node tools/ai-review-browser-e2e.mjs",
     "test:sfx-history": "node --check src/sfx/lab.mjs && node --check tools/sfx-history-browser-e2e.mjs && node tools/sfx-history-browser-e2e.mjs",
+    "qa:modal:live": "node tools/runq-modal-live-batch.mjs",
     "demo:windows": "node tools/windows/build-windows-package.mjs",
     "test:windows-package": "node tools/windows/windows-package-e2e.mjs",
     "check:windows-syntax": "node --check tools/windows/build-windows-package.mjs && node --check tools/windows/start-package.mjs && node --check tools/windows/windows-package-e2e.mjs",

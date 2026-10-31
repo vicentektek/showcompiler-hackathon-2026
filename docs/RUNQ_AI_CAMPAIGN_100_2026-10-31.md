@@ -63,6 +63,34 @@ Interrupted two-ledger writes remain reserved conservatively and never retry.
 
 ### Supervised first-pair procedure
 
+After the first pair, `npm run qa:modal:live -- --live --ack-paid
+--credit-verified --port 5192` runs nine NEW serial sound cases through the
+updated local server. `--credit-verified` is an operator attestation after
+checking the actual workspace; it does not authenticate or manufacture credit.
+The production default daily count is now 10 (previously 3), preserving the
+configured USD 0.50 daily estimate, one active job, Modal USD 35 and global
+USD 100 ceilings. With the original USD 0.05 pilot plus nine at USD 0.05, the
+maximum current-day estimate is USD 0.50. Unknown or other existing jobs can
+still block the batch; no quota or ledger is reset to make it fit.
+
+The runner stores fixed input hashes and request IDs under ignored
+`.runq-local/modal-quality-v1`, never prints keys or raw upstream responses,
+polls each original job at most 30 times, validates WAV hash/duration/PCM, and
+records RMS, peak, saturated-sample and near-silent fractions. Original WAVs
+are saved locally; completed receipts are hash-checked on resume. Uncertain
+submissions never resubmit, and stale batch locks fail closed. Re-running
+resumes existing jobs/cases, not another nine generations. These are nine
+pilot cases, NOT the requested 100 Modal generations or a 500-case campaign.
+Artistic adequacy, distortion and cue/playback integration remain separate
+human/browser checks; PCM saturation is not an artistic score.
+
+The Meta Agent runner now excludes previously reported case IDs (including the
+operator's first 20) and fingerprints actual prompt/context/contracts for new
+reservations. Changing the seed or random project IDs does not authorize a
+repeat. `--start-index` selects a later fixture range; identical-content cases
+are still skipped. A new UUID or seed is not independent quality coverage.
+Old/unrecognized history fails closed rather than assuming it is safe to retry.
+
 The owner supervises an explicit first pair: one new Muse Spark request and one
 new Stable Audio submission through the budget-guarded local product routes.
 The owner verifies vendor credit/limits and initiates each paid action in their

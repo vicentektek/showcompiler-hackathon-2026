@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {acquireAgentEvalBudget} from '../tools/agentLiveBudget.mjs';
 import {parseAgentLiveOptions,getAgentLiveScenario,
- judgeAgentLiveReply,runPaidAgentEvaluation,summarizeAgentLiveResults} from '../tools/runq-agent-live-eval.mjs';
+ judgeAgentLiveReply,runPaidAgentEvaluation,summarizeAgentLiveResults,
+ fingerprintAgentLiveCase,readRecordedAgentCases} from '../tools/runq-agent-live-eval.mjs';
 
 test('paid experiment is off by default and requires BOTH explicit flags',()=>{
  const dry=parseAgentLiveOptions(['--cases','20','--providers','meta']);
@@ -37,6 +38,31 @@ test('20-case product plan includes both languages for every scenario category',
  for(let index=0;index<10;index++){
   assert.notEqual(getAgentLiveScenario(index).language,getAgentLiveScenario(index+10).language);
  }
+});
+test('case identity ignores random project IDs but changes with actual input, not the run seed',()=>{
+ const first=getAgentLiveScenario(0),second=getAgentLiveScenario(0);
+ assert.equal(fingerprintAgentLiveCase(first),fingerprintAgentLiveCase(second));
+ assert.notEqual(fingerprintAgentLiveCase(first),fingerprintAgentLiveCase({...second,prompt:'Different task'}));
+ const config=parseAgentLiveOptions(['--cases','20','--start-index','20']);
+ assert.equal(config.startIndex,20);
+ assert.throws(()=>parseAgentLiveOptions(['--cases','20','--start-index','381']));
+});
+test('completed and uncertain recorded cases remain excluded; older rows block by case ID',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-recorded-cases-'));
+ try{
+  const fingerprint=fingerprintAgentLiveCase(getAgentLiveScenario(0));
+  await writeFile(join(dir,'eval-123-456.json'),JSON.stringify({
+   version:2,realProviderEvaluations:true,results:[
+    {id:'paid-0001',provider:'meta',caseFingerprint:fingerprint,httpStatus:0},
+    {id:'paid-0002',provider:'meta',httpStatus:200},
+   ],
+  }));
+  const history=await readRecordedAgentCases(dir);
+  assert.equal(history.fingerprints.has(fingerprint),true);
+  assert.equal(history.legacyIds.has('paid-0002'),true);
+  await writeFile(join(dir,'eval-124-457.json'),'{}');
+  await assert.rejects(()=>readRecordedAgentCases(dir),/UNRECONCILED_EVAL_HISTORY/);
+ }finally{await rm(dir,{recursive:true,force:true});}
 });
 test('campaign judge rejects fabricated summaries, false mutation claims and non-plan operations',()=>{
  const summary=getAgentLiveScenario(5);

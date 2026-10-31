@@ -13,10 +13,10 @@ import {createNewShow} from '../src/core/workspace.mjs';
 import {insertManualCue} from '../src/core/manualCues.mjs';
 import {normalizeShowProject} from '../src/core/projectPersistence.mjs';
 import {buildAgentContext,prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '../src/core/agentCore.mjs';
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile,readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
 import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
 import {execFileSync} from 'node:child_process';
@@ -42,7 +42,7 @@ const dialogue=[
 ].join('\n');
 function opts(argv){
  const o={live:false,ackPaid:false,cases:20,providers:['meta'],
-  budgetUsd:CAMPAIGN_POLICY.capsUsd.meta,reserveUsd:0.15,seed:20261029};
+  budgetUsd:CAMPAIGN_POLICY.capsUsd.meta,reserveUsd:0.15,seed:20261029,startIndex:0};
  const used=new Set();
  for(let i=0;i<argv.length;i++){
   const flag=argv[i];
@@ -50,12 +50,12 @@ function opts(argv){
   used.add(flag);
   if(flag==='--live'){o.live=true;continue;}
   if(flag==='--ack-paid'){o.ackPaid=true;continue;}
-  if(!['--cases','--providers','--budget-usd','--reserve-usd','--seed'].includes(flag))
+  if(!['--cases','--providers','--budget-usd','--reserve-usd','--seed','--start-index'].includes(flag))
    throw new TypeError('UNKNOWN_FLAG');
   const raw=argv[++i];
   if(!raw||raw.startsWith('--'))throw new TypeError('MISSING_FLAG_VALUE');
   const key={'--cases':'cases','--providers':'providers','--budget-usd':'budgetUsd',
-   '--reserve-usd':'reserveUsd','--seed':'seed'}[flag];
+   '--reserve-usd':'reserveUsd','--seed':'seed','--start-index':'startIndex'}[flag];
   o[key]=key==='providers'?raw.split(','):Number(raw);
  }
  if(o.live!==o.ackPaid||!Number.isSafeInteger(o.cases)||o.cases<2||o.cases>400||
@@ -65,6 +65,7 @@ function opts(argv){
     o.cases%o.providers.length!==0||o.cases/o.providers.length<1||
     !Number.isFinite(o.budgetUsd)||o.budgetUsd<0.10||o.budgetUsd>CAMPAIGN_POLICY.capsUsd.meta||
     !Number.isFinite(o.reserveUsd)||o.reserveUsd<0.15||o.reserveUsd>5||
+    !Number.isSafeInteger(o.startIndex)||o.startIndex<0||o.startIndex+o.cases>400||
     !Number.isSafeInteger(o.seed)||o.seed<1||o.seed>2147483647)
    throw new TypeError('INVALID_AGENT_LIVE_EVAL_CONFIG');
  return o;
@@ -130,6 +131,35 @@ function getScenario(index){
  }
  return {id:'paid-'+String(index+1).padStart(4,'0'),kind,project,prompt,
   conversation,expected,language,seedIndex:index};
+}
+function caseFingerprint(scenario){
+ const cues=scenario.project.cues;
+ return createHash('sha256').update(JSON.stringify({
+  script:scenario.project.scriptText,cues:cues.map(c=>({
+   label:c.label,sourceLineIds:c.sourceLineIds,trigger:c.trigger??'',
+  })),prompt:scenario.prompt,conversation:scenario.conversation,language:scenario.language,
+  expected:{...scenario.expected,cueId:scenario.expected.cueId
+   ?cues.findIndex(c=>c.id===scenario.expected.cueId)+1:null},
+ })).digest('hex');
+}
+async function recordedCases(folder){
+ const fingerprints=new Set(),legacyIds=new Set();
+ let names;
+ try{names=await readdir(folder);}
+ catch(error){if(error.code==='ENOENT')return {fingerprints,legacyIds};throw error;}
+ for(const name of names.filter(n=>/^eval-\d+-\d+\.json$/.test(n))){
+  const bytes=await readFile(resolve(folder,name));
+  if(bytes.length>4_000_000)throw new Error('EVAL_HISTORY_TOO_LARGE');
+  const report=JSON.parse(bytes.toString('utf8'));
+  if(report.version!==2||report.realProviderEvaluations!==true||!Array.isArray(report.results))
+   throw new Error('UNRECONCILED_EVAL_HISTORY');
+  for(const row of report.results.filter(r=>r.provider==='meta')){
+   if(/^[a-f0-9]{64}$/.test(row.caseFingerprint??''))fingerprints.add(row.caseFingerprint);
+   else if(/^paid-\d{4}$/.test(row.id??''))legacyIds.add(row.id);
+   else throw new Error('UNRECONCILED_CASE_ID');
+  }
+ }
+ return {fingerprints,legacyIds};
 }
 function judge(scenario,response){
  if(!response||typeof response!=='object'||!Array.isArray(response.operations)||
@@ -245,12 +275,15 @@ function commitIdentity(){
 }
 export async function runPaidAgentEvaluation(config,{serverFactory=createAppServer,fetchImpl=fetch,
  commitIdentityFn=commitIdentity,
+ historyDirectory=resolve('artifacts/agent-live-eval'),
  sharedLedgerFactory=acquireGlobalSpendLedger,budgetFactory=acquireAgentEvalBudget}={}){
  if(config?.live!==true||config.ackPaid!==true)throw new TypeError('EXPLICIT_PAID_OPT_IN_REQUIRED');
  config=opts(['--live','--ack-paid','--cases',String(config.cases),
   '--providers',config.providers?.join(',')??'','--budget-usd',String(config.budgetUsd),
-  '--reserve-usd',String(config.reserveUsd),'--seed',String(config.seed)]);
+  '--reserve-usd',String(config.reserveUsd),'--seed',String(config.seed),
+  '--start-index',String(config.startIndex??0)]);
  const sourceCommit=commitIdentityFn();
+ const history=await recordedCases(historyDirectory);
  const shared=await sharedLedgerFactory();
  let sharedStatus;
  let budget,server;
@@ -263,7 +296,7 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
  // This private test server uses the reservation already held by THIS runner;
  // the normal application routes reserve independently via campaignFetch.
  server=serverFactory({agentFetch:fetch});
- const rows=[];
+ const rows=[],skipped=[];
  let stopReason='COMPLETE';
  const disabledProviders=new Set();
  try{
@@ -272,20 +305,29 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   });
   const origin='http://127.0.0.1:'+server.address().port;
   const count=config.cases/config.providers.length;
-  outer:for(let index=0;index<count;index++){
+  outer:for(let index=config.startIndex;index<config.startIndex+count;index++){
    const scenario=getScenario(index);
+   const fingerprint=caseFingerprint(scenario);
+   if(history.fingerprints.has(fingerprint)||history.legacyIds.has(scenario.id)){
+    skipped.push({id:scenario.id,reason:'ALREADY_RECORDED_NO_RETRY'});continue;
+   }
    const context=buildAgentContext(scenario.project,{
     maxCues:80,maxScriptLines:120});
    for(const provider of config.providers){
     if(disabledProviders.has(provider))continue;
+    const requestId='agent-case-'+fingerprint;
+    const reservation=await shared.reserve({requestId,runId,provider,estimatedMaximumUsd:config.reserveUsd});
+    if(!reservation.accepted){
+     if(reservation.reason==='DUPLICATE_ID'){
+      skipped.push({id:scenario.id,reason:'ALREADY_RESERVED_NO_RETRY'});
+      history.fingerprints.add(fingerprint);continue;
+     }
+     stopReason='CAMPAIGN_'+reservation.reason;break outer;
+    }
     if(!await budget.reserve(config.reserveUsd)){
      stopReason='CUMULATIVE_BUDGET_CAP_REACHED';break outer;
     }
-    const requestId=runId+'-'+scenario.id;
-    const reservation=await shared.reserve({requestId,runId,provider,estimatedMaximumUsd:config.reserveUsd});
-    if(!reservation.accepted){
-     stopReason='CAMPAIGN_'+reservation.reason;break outer;
-    }
+    history.fingerprints.add(fingerprint);
     const start=performance.now();
     let status=0,result={correct:false,valid:false,resolved:false,reason:'REQUEST_FAILED'};
     try{
@@ -305,7 +347,7 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
      }
     }catch(error){result.reason=(error.name??'NETWORK_ERROR').slice(0,60);}
     const latencyMs=Math.round(performance.now()-start);
-    const row={id:scenario.id,category:scenario.kind,provider,requestId,runId,
+    const row={id:scenario.id,caseFingerprint:fingerprint,category:scenario.kind,provider,requestId,runId,
      promptVersion:'agent-design-context-rcv3',language:scenario.language,
      expectedProvenance:'synthetic independent product contract',
      reservedMaximumUsd:reservation.amountUsd,actualBilledUsd:null,
@@ -334,17 +376,20 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   sharedStatus=shared.status();
  }
  const report=summarize(rows,config);report.stopReason=stopReason;
+ report.skippedCases=skipped;
+ report.startIndex=config.startIndex;
+ if(rows.length===0&&skipped.length)report.stopReason='NO_NEW_CASES';
  report.sourceCommit=sourceCommit;
  report.totalLocalReservedUsd=Math.round(budget.committedUsd()*1e4)/1e4;
  report.campaign=sharedStatus;
- const folder=resolve('artifacts/agent-live-eval');
+ const folder=historyDirectory;
  await mkdir(folder,{recursive:true});
  const run='eval-'+Date.now()+'-'+process.pid;
  await writeFile(folder+'/'+run+'.json',JSON.stringify(report,null,2)+'\n');
  await writeFile(folder+'/'+run+'.md',format(report));
  console.log('RUNQ AGENT LIVE QA: '+rows.length+'/'+config.cases+
   ' requests, reserved ledger $'+report.totalLocalReservedUsd+
-  ', stop '+stopReason+'; report '+folder+'/'+run+'.md');
+  ', stop '+report.stopReason+'; report '+folder+'/'+run+'.md');
  return report;
  }finally{
   try{if(budget)await budget.close();}
@@ -352,7 +397,8 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
  }
 }
 export {opts as parseAgentLiveOptions,getScenario as getAgentLiveScenario,
- judge as judgeAgentLiveReply,summarize as summarizeAgentLiveResults};
+ judge as judgeAgentLiveReply,summarize as summarizeAgentLiveResults,
+ caseFingerprint as fingerprintAgentLiveCase,recordedCases as readRecordedAgentCases};
 const invoked=process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href;
 if(invoked){
  try{
