@@ -17,7 +17,7 @@ import {prepareAgentPlan,validateAgentOperations,buildAgentContext} from '../src
 const INPUT='fixtures/qa/show-assistant-gauntlet-v2.json';
 const OUTPUT='artifacts/qa-show-assistant-gauntlet-v2';
 const ALLOWED=new Set(['A','S','P','C']);
-function validId(x){return typeof x==='string'&&/^[a-z][a-z0-9-]{2,70}$/.test(x);}
+function validId(x){return typeof x==='string'&&/^[a-z][a-z0-9_-]{2,70}$/.test(x);}
 export async function loadGauntlet(path=INPUT){
  const data=JSON.parse(await readFile(resolve(path),'utf8'));
  assert.equal(data.version,2);
