@@ -370,7 +370,7 @@
 :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .rq5-script-workspace>.subheading {display:none!important}
 :root#runqApp.rq16.rq8.rq14 .rqlive-results>div {grid-row:auto!important}
 :root#runqApp.rq16.rq8.rq14 .rqlive-panel {background:transparent!important;padding:0!important;border:0!important}
-:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {height:calc(100dvh - 220px)!important;display:grid!important;grid-template-rows:auto auto auto minmax(180px,1fr) 140px!important;align-content:stretch!important}
+:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace {height:calc(100dvh - 130px)!important;display:grid!important;grid-template-rows:auto auto auto minmax(180px,1fr) 140px!important;align-content:stretch!important}
 :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-workspace>.line-actions {display:none!important}
 :root#runqApp.rq16.rq8.rq14 .rq13-wave-dock {min-height:0!important;height:140px!important}
 :root#runqApp.rq16.rq8.rq14 .rq13-wave-dock .rq5-audio-editor {min-height:0!important;height:110px!important}
@@ -403,6 +403,7 @@
 .rqlive-session-mode span {font-size:11px;color:var(--text-muted,#aaaeb7)}
 .rqlive-session-mode select {width:100%;min-height:34px}
 @media(max-height:720px) and (min-width:901px) {
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=audio] .rq5-audio-library {overflow-y:auto!important}
  :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] #cueInspector {padding:9px!important}
  :root#runqApp.rq16.rq8.rq14 .inspector-title {padding:0!important;margin:0!important;min-height:25px!important}
  :root#runqApp.rq16.rq8.rq14 .inspector-title strong {font-size:13px!important}

@@ -9,6 +9,17 @@
 .rq5-audio-workspace .audio-batch-heading{
  display:flex;align-items:start;justify-content:space-between;
 }
+.rq5-audio-workspace .audio-batch-drop-zone.is-file-drag{
+ border-color:#99f5db;background:#21443f;outline:2px dashed #99f5db;outline-offset:2px;
+}
+.rq5-audio-workspace .audio-batch-drop-zone{
+ margin:6px 12px;flex:none;padding:7px;border:1px dashed #547e88;border-radius:3px;
+ color:#bbdcd9;font-size:10px;line-height:1.45;
+}
+.rq5-audio-workspace .audio-batch-drop-zone p{margin:0}
+.rq12 .rq12-library-toolbar>.audio-batch-drop-zone{
+ flex:1 1 180px;min-width:0;margin:0;
+}
 .rq5-audio-workspace .audio-batch-heading strong{
  color:#a7ecdf;letter-spacing:.12em;font:800 11px/1.45 ui-monospace,Consolas,monospace;
 }

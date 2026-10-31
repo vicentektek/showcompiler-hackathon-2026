@@ -299,6 +299,7 @@ function refreshAudioControls() {
   $('loadAudioBtn').disabled = audioInFlight || auditioning || bundleInFlight;
   $('importAudioBatchBtn').disabled = audioInFlight || bundleInFlight || auditioning || active>0 || pending>0;
   $('importAudioZipBtn').disabled = $('importAudioBatchBtn').disabled;
+  $('audioBatchDropZone').setAttribute('aria-busy',String(audioInFlight||bundleInFlight));
   $('openBundleBtn').disabled = bundleInFlight || audioInFlight;
   $('saveBundleBtn').disabled = bundleInFlight || audioInFlight;
   for (const button of document.querySelectorAll('[data-asset-audition]')) {
@@ -2962,6 +2963,28 @@ $('audioBatchZipInput').addEventListener('change',event=>{
   const files=[...(event.target.files??[])];
   event.target.value='';
   void importAudioLibraryBatch(files,{zip:true});
+});
+const audioDropZone=$('audioBatchDropZone');
+audioDropZone.addEventListener('dragover',event=>{
+  if(!Array.from(event.dataTransfer?.types??[]).includes('Files'))return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect='copy';
+  audioDropZone.classList.add('is-file-drag');
+});
+audioDropZone.addEventListener('dragleave',event=>{
+  if(event.relatedTarget instanceof Node&&audioDropZone.contains(event.relatedTarget))return;
+  audioDropZone.classList.remove('is-file-drag');
+});
+audioDropZone.addEventListener('drop',event=>{
+  const files=Array.from(event.dataTransfer?.files??[]);
+  if(!files.length&&!Array.from(event.dataTransfer?.types??[]).includes('Files'))return;
+  event.preventDefault();
+  audioDropZone.classList.remove('is-file-drag');
+  if(!files.length){reportAudioImport(t('audioBatch.dropEmpty'));return;}
+  if(audioInFlight||bundleInFlight){reportAudioImport(t('audioBatch.busy'));return;}
+  void importAudioLibraryBatch(files,{
+    zip:files.length===1&&/\.(zip|rar|7z)$/i.test(files[0].name),
+  });
 });
 
 $('loadAudioBtn').addEventListener('click', () => pickAudioFile());

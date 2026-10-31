@@ -520,6 +520,8 @@
   "audioBatch.explanation": "Importa WAV/MP3/etc. por lotes, o archivos comprimidos ZIP, RAR y 7z con carpetas.",
   "audioBatch.selectMany": "Seleccionar varios audios",
   "audioBatch.selectZip": "Importar ZIP / RAR / 7z",
+  "audioBatch.dropHint": "Arrastra audios aquí, o un único archivo ZIP / RAR / 7z normal. Con teclado: usa los botones de selección.",
+  "audioBatch.dropEmpty": "No se recibieron archivos legibles. Selecciona audios o un archivo comprimido normal; no se importan carpetas arrastradas.",
   "audioBatch.safety": "Abre ZIP, RAR y 7z locales sin subir archivos. Los paquetes completos de espectáculo se abren desde Abrir show; los audios existentes no se sustituyen.",
   "audioBatch.progress": "Procesando {current} de {total}: {name}",
   "audioBatch.complete": "Importación terminada · {added} nuevos · {restored} recuperados · {skipped} omitidos",

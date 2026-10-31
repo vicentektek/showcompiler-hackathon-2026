@@ -132,13 +132,32 @@ try{
   },null,{timeout:20000});
   const sevenResult=await page.locator('#audioBatchStatus').innerText();
   assert.ok(!sevenResult.includes('Unable to complete'),sevenResult);
+  const drop=async(name,bytes)=>{
+    const zone=page.locator('#audioBatchDropZone');
+    assert.equal(await zone.isVisible(),true);
+    assert.equal(await zone.evaluate((el,{name,base64})=>{
+      const data=new DataTransfer();
+      data.items.add(new File([Uint8Array.from(atob(base64),c=>c.charCodeAt(0))],name));
+      return el.dispatchEvent(new DragEvent('drop',{dataTransfer:data,bubbles:true,cancelable:true}));
+    },{name,base64:Buffer.from(bytes).toString('base64')}),false);
+  };
+  await drop('dropped-sounds.zip',zip([['Act III/drop.wav','RIFF drop'],['readme.txt','Offline fixture']]));
+  await page.waitForFunction(()=>document.querySelector('#audioBatchStatus')?.textContent.includes('1 new'));
+  assert.equal(await page.locator('#assetList [data-asset-audition]').count(),5);
+  await page.locator('#uiLocaleSelect').selectOption('es');
+  assert.ok((await page.locator('#audioBatchDropHint').textContent()).includes('Arrastra audios'));
+  await page.locator('#uiLocaleSelect').selectOption('en');
+  await drop('dropped-show.zip',zip([['project.json','{}'],['manifest.json','{}']]));
+  await page.waitForFunction(()=>document.querySelector('#audioBatchStatus')?.textContent.includes('Audio ZIP:'));
+  assert.equal(await page.locator('#assetList [data-asset-audition]').count(),5,
+    'Dropping a show archive must never replace the show or import its internal audio');
   // A show ZIP should never be mistaken for a set of audio library files.
   await page.locator('#audioBatchZipInput').setInputFiles({
     name:'show.zip',mimeType:'application/zip',
     buffer:zip([['project.json','{}'],['manifest.json','{}']]),
   });
   await page.waitForFunction(()=>document.querySelector('#audioBatchStatus')?.textContent.includes('Audio ZIP:'));
-  assert.equal(await page.locator('#assetList [data-asset-audition]').count(),4);
+  assert.equal(await page.locator('#assetList [data-asset-audition]').count(),5);
   assert.deepEqual(errors,[]);
   console.log('AUDIO BATCH CHROME PASS — multi-select, partial failure, no overwrite, ordinary deflated ZIP, restored placeholder, rejected show archive.');
 }finally{

@@ -35,6 +35,8 @@ function mountSoundLibrary(){
   drawer.className='rq12-import-panel';
   advanced.append(toggle,drawer);
   toolbar.append(advanced);
+  const dropZone=byId('audioBatchDropZone');
+  if(dropZone)toolbar.append(dropZone);
 
   // The report MUST be detached BEFORE the batch import section is moved
   // into a closed <details>. Otherwise import results become invisible although

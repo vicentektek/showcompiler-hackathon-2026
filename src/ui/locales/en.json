@@ -520,6 +520,8 @@
   "audioBatch.explanation": "Import WAV/MP3/etc. in batches or compressed ZIP, RAR and 7z archives with folders.",
   "audioBatch.selectMany": "Select multiple sounds",
   "audioBatch.selectZip": "Import ZIP / RAR / 7z",
+  "audioBatch.dropHint": "Drop audio files here, or one ordinary ZIP / RAR / 7z archive. Keyboard: use the selection buttons.",
+  "audioBatch.dropEmpty": "No readable files were dropped. Select audio files or one ordinary archive; folder handles are not imported.",
   "audioBatch.safety": "Opens ZIP, RAR and 7z locally; no upload. Open complete show packages with Open Show; loaded sounds are not overwritten.",
   "audioBatch.progress": "Processing {current} of {total}: {name}",
   "audioBatch.complete": "Import finished · {added} new · {restored} restored · {skipped} skipped",

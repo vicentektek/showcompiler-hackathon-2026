@@ -49,3 +49,13 @@ npm run dev
 Abrir http://127.0.0.1:5186 y visitar **Biblioteca de audio**. Probar multiselección de 5 WAV reales y un ZIP comprimido con subcarpetas. Revisar que los nombres, duraciones y ondas aparecen; guardar como ZIP completo y volver a abrir para comprobar persistencia del audio.
 
 No fusionar con `main` ni declarar audio certificado hasta validar el hardware de Windows y las distintas configuraciones de sonido.
+
+## Continuación RC v3 - 31 octubre 2026
+
+La biblioteca incluye una zona de arrastre **visible en la lista principal**, sin abrir «Más opciones». Recibe varios archivos de audio, o un único ZIP/RAR/7z de biblioteca, y reutiliza el importador anterior y sus límites. Los selectores nativos siguen disponibles con teclado.
+
+- Un drop solo incorpora/recupera archivos; no asigna cues, prepara GO, reproduce ni contacta proveedores.
+- Después de abrir JSON sin bytes, arrastrar los WAV originales por su nombre recupera sus IDs y enlaces. Repetir el drop omite las fuentes ya cargadas, sin sustituirlas.
+- Un drop durante reproducción, preview o importación se rechaza con un estado visible, sin detener ni cambiar la salida existente.
+- Archivos incompatibles se informan individualmente. Un paquete de espectáculo se rechaza en esta zona; debe abrirse desde «Abrir show». No se recorren carpetas arrastradas.
+- `npm run test:last-go` prueba WAVs originales decodificados, JSON sin audio, drop real mediante `DataTransfer`, recuperación no destructiva y protección durante GO. `node tools/stagecraft-audio-batch-e2e.mjs` cubre además archivos comprimidos y ES/EN con hardware simulado.

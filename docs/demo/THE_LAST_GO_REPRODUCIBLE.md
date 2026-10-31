@@ -53,9 +53,26 @@ node tools/rehearsal-auto-browser-e2e.mjs
 npm run qa:codex
 ```
 
-The Last GO browser gate verifies original source, explicit sound choice, preview/apply/undo, ZIP save/reload/reopen, four cues and three WAVs, armed synthetic speech jump/rewind, actual browser audio instances, manual Live GO and STOP ALL. No paid requests.
+The Last GO browser gate now starts with original TXT import and multiple original WAV import. It uses one explicitly OFFLINE model-shaped response and three individual human approvals, locally reviewed original-dialogue voice feet, Hero preview/apply/undo, graphical 50–1000 ms review, a genuine 950 ms looping region and persisted fades. It verifies four cues/three WAVs through ZIP save/reopen and JSON without audio, then restores missing media through the visible actual file-drop surface, refusing overwrites or drops during playback. Original spoken dialogue matches the proposed terminal feet exactly after speech normalization. Synthetic final turns verify skip/rewind, duplicate suppression, a new repeat after cooldown, independent STOP with the bell still running, panic/disarm and manual Live GO/NEXT/back. No paid requests; fixture provider badges are not live inference evidence.
 
 The dictation browser gate separately uses silent synthetic PCM and controlled offline ASR/AI responses. It verifies transcript-only Hero editing, human apply/undo, and late-result rejection after Stage, STOP ALL, identical project reopen and editor close. It is not microphone/ASR or paid-model quality evidence.
+
+## Brief manual/acoustic acceptance (10–15 minutes)
+
+Use the preserved original show, a safe speaker/headphone output and low initial volume. Record Windows/browser version, chosen input/output, operator, timestamp, observed results and measured latencies externally. Do not mark a step passed merely because a status badge changes.
+
+| Step | Action | Required observation |
+|---|---|---|
+| 1 | Open original complete show and read L6/L7, L14/L15, L23/L24. | Original text, three ready WAVs, no automatic playback. |
+| 2 | Audition `01_atmosphere.wav`, then stop audition. | Real audible output on the **same** bus as GO, not isolated PFL. |
+| 3 | Review/apply the Hero instruction above with deliberately selected sound. | L20 and exact sound visible before approval; fourth cue inserted; no playback from applying/undoing. |
+| 4 | Edit first cue IN=0.05s, OUT=1s, fade-in=0.1s, LOOP on; save. Set bell fade-out=0.15s. | Waveform/settings retained. Manual GO audibly loops; STOP of the loop leaves an independently started bell running; STOP ALL silences both. |
+| 5 | Choose Assist and the actual Setup microphone. Start recognition only through its individually approved configured/budgeted path. Speak original dialogue. | Report whether a **physical** microphone/API was used. Assist only suggests; record final-transcript latency and missed/false matches. If provider/account gates remain unresolved, mark this physical step pending, not simulated PASS. |
+| 6 | Explicitly arm Autopilot. Speak opening, L20 Hero, then bell; repeat the same take and a fresh take after >2.5s. | Skip/rewind only the intended cue; duplicate final turn never replays. A new take may repeat after guard. Stop all, then speak again: no automatic restart. Manual GO disarms. |
+| 7 | Enter Directo; inspect/search, NEXT/back, then explicit GO and STOP ALL. | Navigation never plays. GO uses prepared item, STOP ALL audibly silences and invalidates delayed work. |
+| 8 | Export complete ZIP, reload/reopen. Also save JSON through File menu and reopen it. | ZIP retains original script/cues/audio/edits. JSON shows missing audio and blocks GO. Drop original WAVs into visible Library zone: restores three IDs without changing cues; repeat drop skips loaded sources. |
+
+Report measured microphone-to-final, final-to-audible-start and STOP ALL-to-silence timings with measurement method/sample count. No acoustic accuracy, routing, ASIO or professional certification is inferred from the automated gate. Successful original-library editing is **not** Modal-generated provenance; a real generated take still needs its own authorized job, acceptance and validated bytes before cue creation.
 
 ## Windows delivery
 
