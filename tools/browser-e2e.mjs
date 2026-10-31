@@ -79,7 +79,7 @@ try {
   assert.equal(await page.locator('.shell').getAttribute('data-rq14-surface'),'studio');
   assert.equal(await page.locator('#rq8Identity').count(),1);
   const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
-  assert.equal(studioColor,'rgb(23, 24, 26)','The interface uses the graphite Studio canvas');
+  assert.equal(studioColor,'rgb(22, 24, 24)','The interface uses the RUNQ charcoal Studio canvas');
   assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
     'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.

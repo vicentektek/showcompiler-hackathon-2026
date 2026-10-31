@@ -6,9 +6,9 @@
 :root{
  --rq7-base:#11161c;--rq7-rail:#151c24;--rq7-pane:#1b222b;
  --rq7-header:#232c36;--rq7-line:#33404d;--rq7-text:#e9eff5;
- --rq7-sub:#b3c2cf;--rq7-muted:#99abbb;
- --rq7-next:#d7f18f;--rq7-selected:#b6a3f0;
- --rq7-preview:#83d8e7;--rq7-play:#79d6a5;
+ --rq7-sub:#b3c2cf;--rq7-muted:#7a8369;
+ --rq7-next:#d7f18f;--rq7-selected:#9da887;
+ --rq7-preview:#97a182;--rq7-play:#79d6a5;
  --rq7-warning:#f0be6d;--rq7-stop:#f59da2;
 }
 .rq7 body{background:var(--rq7-base)!important}
@@ -24,7 +24,7 @@
  gap:12px!important;
 }
 .rq7 .brand-icon{
- width:30px!important;height:30px!important;border:1px solid #53677a!important;
+ width:30px!important;height:30px!important;border:1px solid #505544!important;
  border-radius:3px!important;background:#26323d!important;
  color:var(--rq7-next)!important;font-size:17px!important;
 }
@@ -56,7 +56,7 @@
  color:var(--rq7-next)!important;
 }
 .rq7 .rq7-nav-heading{
- display:block;padding:8px 3px 4px;color:#8d9faf;
+ display:block;padding:8px 3px 4px;color:#737a62;
  font:800 8px/1.2 ui-monospace,Consolas,monospace;
  letter-spacing:.12em;text-align:center;border-top:1px solid #2a3541;
 }
@@ -97,13 +97,13 @@
  background:#293527;
 }
 .rq7 .rq7-task-button[aria-pressed="true"],.rq7 .rq7-sound-tab[aria-pressed="true"]{
- color:#d9e9fa;background:#334354;border-color:#596d82;
+ color:#a4af8c;background:#373b2f;border-color:#555b49;
 }
 .rq7 .rq7-mode-button:hover,.rq7 .rq7-task-button:hover,.rq7 .rq7-sound-tab:hover{
  background:#34414f;color:#fff;
 }
 .rq7 .rq7-ribbon-status{margin-left:auto;min-width:0;overflow:hidden;
- white-space:nowrap;text-overflow:ellipsis;color:#9eafbe;font:650 10px ui-monospace,Consolas,monospace}
+ white-space:nowrap;text-overflow:ellipsis;color:#7c856b;font:650 10px ui-monospace,Consolas,monospace}
 .rq7 .rq7-sound-tabs{
  display:flex;align-items:center;gap:5px;
  padding:5px 12px;margin:0 0 7px;
@@ -112,7 +112,7 @@
 }
 .rq7 .rq7-sound-tabs[hidden]{display:none!important}
 .rq7 .rq7-sound-caption{
- color:#8c9eac;font:750 10px ui-monospace,Consolas,monospace;
+ color:#717860;font:750 10px ui-monospace,Consolas,monospace;
  margin-right:7px;letter-spacing:.08em;
 }
 .rq7 .workspace-intro .countbox{border-radius:3px!important;box-shadow:none!important}
@@ -131,7 +131,7 @@
  padding-bottom:7px;letter-spacing:0;
 }
 .rq7 .panel-head h2{font-size:14px!important}
-.rq7 .panel .step{background:#263641;color:#b8ccdb;border-radius:2px}
+.rq7 .panel .step{background:#263641;color:#8f997b;border-radius:2px}
 .rq7 .panel .item,.rq7 .panel .countbox,.rq7 .panel .info{
  border-radius:3px!important;box-shadow:none!important;
 }
@@ -200,7 +200,7 @@
  width:100%!important;max-width:none!important;
  height:min(43vh,390px)!important;max-height:54%!important;min-height:240px!important;
  border-radius:0!important;box-shadow:none!important;
- border:0!important;border-top:2px solid #506a72!important;
+ border:0!important;border-top:2px solid #4b5040!important;
  background:#1c2a35!important;flex:none!important;
 }
 .rq7 .rq7-chat-active #cueInspector{
@@ -234,7 +234,7 @@
  cursor:pointer;white-space:nowrap;
 }
 .rq7 .rq7-nav-action:disabled{opacity:.45;cursor:not-allowed}
-.rq7 .rq7-nav-action:not(:disabled):hover{background:#374756!important}
+.rq7 .rq7-nav-action:not(:disabled):hover{background:#383c30!important}
 .rq7 .rq7-nav-action.rq7-following{color:var(--rq7-next)!important;border-color:#8ba565!important}
 .rq7 .rq7-live-jump{display:flex;align-items:center;gap:3px;flex:none}
 .rq7 .rq7-live-jump input{
@@ -251,12 +251,12 @@
 }
 .rq7 .rq7-inspector-title{
  padding:9px 12px;border-bottom:1px solid var(--rq7-line);
- color:#9fb2c2;font:800 10px ui-monospace,Consolas,monospace;
+ color:#7f876d;font:800 10px ui-monospace,Consolas,monospace;
 }
 .rq7 .rq7-inspector-content{padding:12px;font-size:12px;color:#dce7ee}
 .rq7 .rq7-info-name{display:block;font-size:15px;color:#f4f7fb;line-height:1.4}
 .rq7 .rq7-info-fields{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px 5px;margin:12px 0}
-.rq7 .rq7-info-fields dt{margin:0;color:#99adbd}
+.rq7 .rq7-info-fields dt{margin:0;color:#7c846a}
 .rq7 .rq7-info-fields dd{margin:0;overflow-wrap:anywhere}
 .rq7 .rq7-info-note{border-left:2px solid var(--rq7-next);padding:7px 9px;
  background:#26332d;font-size:11px;line-height:1.5;color:#d0dbc6}

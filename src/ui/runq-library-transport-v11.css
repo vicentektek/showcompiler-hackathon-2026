@@ -15,7 +15,7 @@
 .rq11 .rq11-audition-transport{
  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
  min-height:50px;padding:6px 10px!important;
- background:#172b3a;border:1px solid #4c6a7f;
+ background:#262821;border:1px solid #535947;
  border-radius:5px;color:#edf6fb;
  flex:none;
 }
@@ -27,7 +27,7 @@
  color:#edf5fb;font-size:12px;overflow:hidden;
  text-overflow:ellipsis;white-space:nowrap;
 }
-.rq11 .rq11-audition-identity span{font-size:10px;color:#a7bfce}
+.rq11 .rq11-audition-identity span{font-size:10px;color:#879074}
 .rq11 .rq11-audition-actions{display:flex;align-items:center;gap:6px}
 .rq11 .rq11-audition-actions .btn{
  min-height:33px!important;height:33px!important;
@@ -52,12 +52,12 @@
 }
 .rq11 .rq11-expand-wave{
  min-height:30px!important;padding:4px 10px!important;
- background:#283e51!important;color:#e6f2f9!important;
- border-color:#49677d!important;font-size:10px!important;
+ background:#35392d!important;color:#e6f2f9!important;
+ border-color:#525746!important;font-size:10px!important;
 }
 .rq11 .rq11-audition-note{
  min-height:0;margin:0 0 4px!important;
- color:#adc0cf;font-size:9px;
+ color:#889074;font-size:9px;
 }
 .rq10.rq11 .shell[data-active-workspace="audio"] .rq5-audio-grid{
  grid-template-columns:minmax(295px,1.15fr) minmax(365px,1fr)!important;
@@ -110,7 +110,7 @@
 .rq11 .rq5-audio-library .asset-list-row>.rq11-media-meta{
  grid-column:1!important;grid-row:2!important;
  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
- font-size:9px;color:#9db6c8;
+ font-size:9px;color:#838c70;
 }
 .rq11 .rq5-audio-library .asset-list-row>[data-asset-audition]{
  grid-column:2!important;grid-row:1 / span 2!important;
@@ -119,10 +119,10 @@
  grid-column:3!important;grid-row:1 / span 2!important;
 }
 .rq11 .rq5-audio-library .asset-list-row.rq11-source-selected{
- background:#30495e!important;border-color:#7eaac8!important;
- box-shadow:inset 3px 0 #81c1e8;
+ background:#3e4235!important;border-color:#838c70!important;
+ box-shadow:inset 3px 0 #98a282;
 }
-.rq11 .rq5-audio-library .asset-list-row:hover{border-color:#6990ab!important}
+.rq11 .rq5-audio-library .asset-list-row:hover{border-color:#707760!important}
 .rq11 .rq5-audio-editor .rq5-wave-controls{
  gap:7px!important;padding:8px!important;
 }
@@ -143,7 +143,7 @@
 }
 .rq11 .rq5-audio-editor .rq5-wave-canvas canvas{
  width:100%;height:100%!important;min-height:0!important;
- border-color:#3f5364!important;
+ border-color:#414638!important;
 }
 .rq11 .rq5-audio-editor .rq5-wave-stats{
  padding:7px!important;margin:5px 10px!important;gap:6px!important;

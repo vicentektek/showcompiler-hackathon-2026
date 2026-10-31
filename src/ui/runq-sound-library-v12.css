@@ -30,17 +30,17 @@
 }
 .rq12 .shell[data-active-workspace="audio"] .rq11-audition-transport{
  flex:none;min-height:46px!important;padding:5px 9px!important;
- background:#1a3040!important;border:1px solid #46667e!important;
+ background:#2a2d24!important;border:1px solid #535847!important;
 }
 .rq12 .rq11-audition-identity>strong{
  max-width:600px;font-size:11px!important;
 }
 .rq12 .rq11-audition-identity>span{font-size:9px!important}
 .rq12 .rq12-preview-status{
- border:1px solid #547089;padding:5px 7px;
+ border:1px solid #5a604d;padding:5px 7px;
  border-radius:3px;white-space:nowrap;
  font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;
- color:#a8c9de;background:#142737;
+ color:#919b7c;background:#24261f;
 }
 .rq12 .shell[data-active-workspace="audio"] .rq5-audio-grid{
  display:grid!important;
@@ -62,7 +62,7 @@
 .rq12 .rq12-library{position:relative!important;display:flex!important;flex-direction:column!important}
 .rq12 .rq12-library>.rq5-pane-heading{
  flex:none!important;min-height:35px!important;
- background:#263b4e!important;padding:6px 10px!important;
+ background:#33362c!important;padding:6px 10px!important;
  font-size:11px!important;color:#ecf5fb!important;
 }
 .rq12 .rq12-library>.rq5-pane-heading .btn{
@@ -77,7 +77,7 @@
 .rq12 .rq12-library-toolbar{
  flex:none;display:flex;align-items:center;flex-wrap:nowrap;
  gap:5px;min-height:43px;padding:6px 8px;
- background:#182b3a;border-bottom:1px solid #3c5468;
+ background:#262821;border-bottom:1px solid #44493a;
 }
 .rq12 .rq12-library-toolbar>.btn{
  min-height:31px!important;height:31px!important;
@@ -90,7 +90,7 @@
  color:#f0fdf9!important;
 }
 .rq12 .rq12-library-toolbar #importAudioZipBtn{
- background:#29465c!important;border-color:#4f7994!important;
+ background:#3c4034!important;border-color:#616753!important;
  color:#e4f2fd!important;
 }
 .rq12 .rq12-library-toolbar>.btn:not(:disabled):hover{
@@ -101,14 +101,14 @@
  list-style:none;cursor:pointer;user-select:none;
  display:flex;align-items:center;justify-content:center;
  min-height:31px;padding:5px 10px;
- border:1px solid #4b667b;border-radius:4px;
- background:#23394b;color:#dceaf4;
+ border:1px solid #515645;border-radius:4px;
+ background:#31342a;color:#dceaf4;
  font-size:11px;font-weight:700;
 }
 .rq12 .rq12-import-advanced>summary::-webkit-details-marker{display:none}
 .rq12 .rq12-import-advanced[open]>summary,
 .rq12 .rq12-import-advanced>summary:hover{
- background:#34546d;color:white;border-color:#8cb8d1;
+ background:#474c3d;color:white;border-color:#899275;
 }
 .rq12 .rq12-import-advanced>summary:focus-visible{
  outline:2px solid #f3c36b;outline-offset:2px;
@@ -118,9 +118,9 @@
  left:8px;right:8px;top:83px;
  max-height:min(58dvh,450px);overflow-y:auto;
  padding:14px!important;
- border:1px solid #68839b;border-radius:5px;
- background:#182c3d;box-shadow:0 16px 40px #02070dce;
- scrollbar-color:#617d94 #1b2f40;
+ border:1px solid #666c57;border-radius:5px;
+ background:#282b22;box-shadow:0 16px 40px #02070dce;
+ scrollbar-color:#616753 #2a2d24;
 }
 .rq12 .rq12-import-advanced:not([open]) .rq12-import-panel{display:none!important}
 .rq12 .rq12-import-panel .subheading{
@@ -134,23 +134,23 @@
 .rq12 .rq12-import-panel #assetName{flex:1;min-width:160px}
 .rq12 .rq12-import-panel>.audio-batch-import{
  margin:0!important;padding:8px!important;gap:3px!important;
- background:#213649!important;border:1px solid #47657b!important;
+ background:#303329!important;border:1px solid #515645!important;
  box-shadow:none!important;
 }
 .rq12 .rq12-import-panel .audio-batch-actions{display:none!important}
 .rq12 .rq12-import-panel .audio-batch-heading{margin:0!important}
 .rq12 .rq12-import-panel .audio-batch-heading strong{
- font-size:10px!important;color:#d0e6f4!important;
+ font-size:10px!important;color:#a0aa89!important;
 }
 .rq12 .rq12-import-panel .audio-batch-heading p{font-size:10px!important}
 .rq12 .rq12-library>.audio-batch-report{
  flex:none;margin:3px 7px!important;padding:5px 8px!important;
- max-height:70px;overflow:auto;border-color:#587c81;
+ max-height:70px;overflow:auto;border-color:#545a48;
 }
 .rq12 .rq12-library>.audio-batch-report[hidden]{display:none!important}
 .rq12 .rq12-library>.audio-batch-report:not([hidden]){
  display:block!important;visibility:visible!important;
- background:#193b45!important;border-left:3px solid #69c9b8!important;
+ background:#2d3027!important;border-left:3px solid #69c9b8!important;
  color:#def7ed!important;min-height:31px!important;
 }
 .rq12 .rq12-library>.audio-batch-report:not([hidden]) #audioBatchStatus{
@@ -169,7 +169,7 @@
 }
 .rq12 .rq12-library-counter{
  white-space:nowrap;flex:none;
- color:#a9c7d9;font-size:10px;font-weight:700;
+ color:#8e977a;font-size:10px;font-weight:700;
  font-variant-numeric:tabular-nums;
 }
 .rq12 .rq12-library #assetList{
@@ -178,7 +178,7 @@
  min-height:105px!important;max-height:none!important;
  height:100%!important;
  overflow-y:auto!important;overscroll-behavior:contain;
- scrollbar-color:#6e91a9 #111e2c!important;scrollbar-width:thin;
+ scrollbar-color:#6f765f #111e2c!important;scrollbar-width:thin;
  padding:6px!important;margin:0!important;gap:4px!important;
  background:#111e2b!important;
 }
@@ -188,17 +188,17 @@
  grid-template-rows:minmax(18px,auto) 14px!important;
  min-height:48px!important;padding:6px 7px!important;
  gap:1px 5px!important;cursor:pointer;
- border:1px solid #374f63!important;border-radius:4px!important;
- background:#203243!important;
+ border:1px solid #414538!important;border-radius:4px!important;
+ background:#2c2f26!important;
 }
 .rq12 .rq12-library #assetList .asset-list-row:hover,
 .rq12 .rq12-library #assetList .asset-list-row:focus-visible{
- background:#29435a!important;border-color:#75a0bd!important;
+ background:#3b3f32!important;border-color:#7c846a!important;
  outline:none!important;
 }
 .rq12 .rq12-library #assetList .asset-list-row.rq11-source-selected{
- background:#2a485e!important;border-color:#88bfe2!important;
- box-shadow:inset 3px 0 #88bfe2!important;
+ background:#3e4235!important;border-color:#949e7f!important;
+ box-shadow:inset 3px 0 #949e7f!important;
 }
 .rq12 .rq12-library #assetList .asset-list-row>.tag{
  display:block!important;grid-column:1!important;grid-row:1!important;
@@ -208,7 +208,7 @@
 }
 .rq12 .rq12-library #assetList .asset-list-row>.rq11-media-meta{
  grid-column:1!important;grid-row:2!important;
- align-self:center;font-size:9px!important;color:#a6c0d3!important;
+ align-self:center;font-size:9px!important;color:#8a9376!important;
 }
 .rq12 .rq12-library #assetList .asset-list-row>.btn{
  min-width:0!important;width:100%!important;min-height:32px!important;
@@ -224,7 +224,7 @@
 }
 .rq12 .rq12-library #assetList .asset-list-row>.rq12-row-edit{
  grid-column:3!important;grid-row:1 / span 2!important;
- background:#2b465b!important;border-color:#577c96!important;
+ background:#3c4033!important;border-color:#626954!important;
  color:#ebf6fc!important;
 }
 .rq12 .rq12-library #assetList .asset-list-row>.btn:not(:disabled):hover{
@@ -237,7 +237,7 @@
  outline:2px solid #f3c36b!important;outline-offset:2px!important;
 }
 .rq12 .rq5-audio-editor .rq5-wave-note{
- background:#1c3041!important;border-left-color:#5e9dbc!important;
+ background:#2b2d24!important;border-left-color:#7b8369!important;
 }
 .rq12 .rq5-audio-editor .rq5-wave-status{
  margin:6px 10px!important;font-size:10px!important;
@@ -308,14 +308,14 @@
 }
 .rq13 .shell[data-active-workspace="audio"] .rq5-audio-grid>.rq13-media-inspector{
   grid-column:2!important;grid-row:1!important;
-  border:1px solid #405467;border-radius:4px;
+  border:1px solid #43483a;border-radius:4px;
   background:#172534;color:#ddebf5;
   display:flex;flex-direction:column;overflow-y:auto;
   min-height:0!important;min-width:0!important;
 }
 .rq13 .rq13-inspector-heading{
   flex:none;padding:9px 11px;min-height:35px;
-  border-bottom:1px solid #465a6e;background:#253646;
+  border-bottom:1px solid #484d3e;background:#2e3127;
   font:700 11px/1.4 ui-monospace,Consolas,monospace;
   letter-spacing:.05em;color:#c8d8e4;
 }
@@ -326,14 +326,14 @@
 }
 .rq13 .rq13-media-inspector dt,
 .rq13 .rq13-media-inspector dd{
-  border-bottom:1px solid #2b4152;margin:0!important;
+  border-bottom:1px solid #36392e;margin:0!important;
   padding:8px 3px!important;overflow-wrap:anywhere;
 }
-.rq13 .rq13-media-inspector dt{color:#a7bbcb}
+.rq13 .rq13-media-inspector dt{color:#858e72}
 .rq13 .rq13-media-inspector dd{color:#e5f2fa;font-variant-numeric:tabular-nums}
 .rq13 .rq13-inspector-actions{
   margin-top:auto!important;padding:10px;
-  border-top:1px solid #3c5061;
+  border-top:1px solid #404436;
 }
 .rq13 .rq13-inspector-actions .btn{
   width:100%;min-height:34px;font-size:11px;
@@ -352,14 +352,14 @@
 .rq13 .rq13-wave-dock{
   display:flex;flex-direction:column;flex:0 0 auto;
   min-height:135px;max-height:203px;
-  border:1px solid #3f5669;background:#111d29;
+  border:1px solid #45493b;background:#111d29;
   border-radius:4px;overflow:hidden;
 }
 .rq13 .rq13-wave-dock[hidden]{display:none!important}
 .rq13 .rq13-wave-heading{
-  display:block;padding:5px 10px;background:#263847;
+  display:block;padding:5px 10px;background:#2e3228;
   color:#c5d5e2;font:700 10px ui-monospace,Consolas,monospace;
-  letter-spacing:.05em;border-bottom:1px solid #3f5365;
+  letter-spacing:.05em;border-bottom:1px solid #424739;
 }
 .rq13 .rq13-wave-dock>.rq5-audio-editor{
   display:grid!important;min-width:0!important;width:100%!important;
@@ -372,15 +372,15 @@
 .rq13 .rq13-wave-dock .rq5-audio-editor>.rq5-pane-heading{
   grid-column:1!important;grid-row:1!important;
   padding:4px 8px!important;min-height:30px;
-  background:#182b3a!important;font-size:10px!important;
-  border-bottom:1px solid #304b5e!important;
+  background:#262821!important;font-size:10px!important;
+  border-bottom:1px solid #3e4235!important;
 }
 .rq13 .rq13-wave-dock .rq5-wave-controls{
   grid-column:1!important;grid-row:2!important;
   display:flex!important;flex-wrap:wrap!important;
   align-items:start!important;gap:5px!important;
   min-width:0;max-height:91px;overflow:auto!important;
-  padding:5px 8px!important;background:#142536!important;
+  padding:5px 8px!important;background:#23261e!important;
 }
 .rq13 .rq13-wave-dock .rq5-wave-controls label{
   flex:1 1 85px!important;min-width:75px!important;
@@ -432,12 +432,12 @@
 .rq13 .rq13-media-columns{
   display:grid;grid-template-columns:minmax(0,1fr) 32px 55px;
   gap:5px;padding:5px 10px!important;
-  background:#243646;border-bottom:1px solid #3d576b;
+  background:#2e3127;border-bottom:1px solid #464b3c;
   font:700 10px ui-monospace,Consolas,monospace;
-  letter-spacing:.04em;color:#bacbdb;flex:none;
+  letter-spacing:.04em;color:#8f997b;flex:none;
 }
 .rq13 .rq13-media-columns span:nth-child(n+2){text-align:center}
-.rq13 .rq13-wave-dock .rq5-audio-editor .rq5-wave-status{color:#9db4c5!important}
+.rq13 .rq13-wave-dock .rq5-audio-editor .rq5-wave-status{color:#818a6e!important}
 .rq13 .shell[data-active-workspace="audio"] .rq5-audio-grid .rq10-integrated-lab .sfx-wavepanel{
   min-height:175px!important;
 }

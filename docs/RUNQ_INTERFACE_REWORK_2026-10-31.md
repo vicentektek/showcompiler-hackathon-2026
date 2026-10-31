@@ -54,3 +54,6 @@ Real audio output by ear, Spanish locale and very small viewports for the newest
 
 ## Sound design screen restyle (post-approval)
 Sound > Create & edit was restyled after tag `runq-interface-approved-2026-10-31` (the tag is unchanged). New files: `src/ui/runq-soundlab.css` (studio layout: create + result on the left, listen & edit on the right, hero header, gradient step badges and generate button, animated empty waveform) and `src/ui/runq-soundlab-ui.mjs` (one-click example prompts and a character counter; it only fills the prompt, never starts a generation). No generation, authorisation or provider logic changed.
+
+## Brand palette and AI proposals restyle (post-approval)
+Applied the RUNQ brand identity (sage #A7B28F, charcoal #0F110E, off-white #EBE6DD, stone #686F68, deep green #1E2A21): blue accents in the stylesheets were remapped to sage, the top bar uses the Q mark (assets/runq-q.png; assets/runq-logo-full.png and runq-wordmark.png are available for splash/about), and src/ui/runq-brand.css restyles AI proposals (hero header, proposal cards with state chips, prominent generate button). Presentation only: no handler, id or AI/GO/STOP logic changed.
