@@ -18,7 +18,7 @@ function micros(n,{zero=false}={}){
  if(typeof n!=='number'||!Number.isFinite(n)||n<0||(!zero&&n===0)||n>1000)
   throw new TypeError('INVALID_AMOUNT');
  const value=Math.round(n*1e6);
- if(!Number.isSafeInteger(value)||Math.abs(value/1e6-n)>1e-9)
+ if(!Number.isSafeInteger(value)||(n>0&&value===0)||Math.abs(value/1e6-n)>1e-9)
   throw new TypeError('UNSUPPORTED_CURRENCY_PRECISION');
  return value;
 }

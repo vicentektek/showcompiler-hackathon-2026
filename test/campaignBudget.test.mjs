@@ -47,6 +47,30 @@ test('budget authorization cannot fake dashboard credit verification or tolerate
  assert.throws(()=>upgradeCampaignBudget(legacy(),{authorizedAt:'invalid'}));
  assert.equal(CAMPAIGN_POLICY.totalCapUsd,100);
 });
+test('positive sub-microusd amounts cannot become free reservations or corrupt the shared ledger',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-campaign-precision-'));
+ const file=join(dir,'global.json');
+ let ledger;
+ try{
+  await writeFile(file,JSON.stringify(updated()));
+  const original=await readFile(file);
+  ledger=await acquireGlobalSpendLedger({file});
+  for(const estimatedMaximumUsd of [Number.MIN_VALUE,1e-12,1e-10,1e-9,0.0000005]){
+   await assert.rejects(()=>ledger.reserve({
+    requestId:'precision-test',runId:'run-test',provider:'meta',estimatedMaximumUsd,
+   }),/UNSUPPORTED_CURRENCY_PRECISION/);
+   assert.deepEqual(await readFile(file),original);
+  }
+  assert.equal((await ledger.reserve({requestId:'smallest-valid',runId:'run-test',
+   provider:'meta',estimatedMaximumUsd:0.000001})).accepted,true);
+  const state=JSON.parse(await readFile(file,'utf8'));
+  assert.equal(state.reservations.at(-1).amountMicros,1);
+  assert.equal(checkLedgerAuthorization(state).reservedMicros,692181);
+ }finally{
+  if(ledger)await ledger.close();
+  await rm(dir,{recursive:true,force:true});
+ }
+});
 test('failed reservation preserves pre-existing temporary evidence and does not charge the ledger',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'runq-campaign-temp-'));
  const file=join(dir,'global.json'),temp=file+'.tmp-'+process.pid;

@@ -280,3 +280,27 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
   The new global spending authorization remains granted. Fresh live batches
   still need authentic account verification and the retained operator-run
   execution controls; physical microphone/room listening also remains pending.
+
+## Final monetary boundary and latest preview handoff
+
+- Continued exact-threshold testing discovered that positive sub-micro-USD
+  estimates could round to an invalid zero reservation. Reproduced the missing
+  rejection before fixing the shared currency guard. Number.MIN_VALUE, 1e-12,
+  1e-10, 1e-9 and half a micro-USD now fail before any ledger write; exactly
+  one micro-USD remains valid and charged. No production request used this path.
+- Source/test backup `campaign-positive-microusd-20261031` verified with SHA-256.
+  Final focused budget/scoring/review contracts **21/21**; final
+  `npm run qa:codex` **682/682**, failures/skips 0. Earlier browser gates remain
+  valid: no browser/audio/voice/UI code changed after their successful runs.
+- Opened the updated preview at **http://127.0.0.1:5191/**; root and local-history
+  API returned HTTP 200 with the two unchanged READY_FOR_REVIEW historical takes
+  and no active generation. The earlier **5190** preview remains HTTP 200 and
+  untouched. Refresh only the new backend after committing the final guard; do
+  not reload either browser's project or alter transport.
+- Different ports have different browser storage. To continue an existing show,
+  explicitly save its complete ZIP from 5190 and open that ZIP at 5191. The
+  new preview is development, not a replaced RC v2/v3 or a newly certified EXE.
+- Fresh paid batches and physical microphone/acoustic acceptance remain pending
+  the exact prerequisites above, not a missing general spending authorization.
+  No new paid request, uncertain retry, Baseten/Fireworks use, main merge or
+  public release has occurred.

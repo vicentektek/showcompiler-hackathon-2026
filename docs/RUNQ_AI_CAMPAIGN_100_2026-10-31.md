@@ -41,6 +41,11 @@ Possible overlap is intentionally counted twice unless a reliable correlation
 proves otherwise; this is a conservative ceiling, NOT measured billing.
 Keep all ledgers, backups, prompts, audio and derived reports private/local.
 
+Reservations use integer micro-USD. Positive amounts below supported precision
+are rejected before writing or submitting; they cannot round into a zero-cost
+reservation. An exclusive temporary-file collision preserves earlier evidence
+and fails closed without charging or deleting an unowned file.
+
 Meta production design routes reserve before outbound inference; Modal reserves
 before submission and preserves its existing shared job journal. The consent,
 cost acknowledgement, model revision, daily/active job limits and explicit
