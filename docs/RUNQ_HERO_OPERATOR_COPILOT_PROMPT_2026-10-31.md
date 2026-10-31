@@ -18,6 +18,24 @@ RUNQ es un software de preparación y operación de espectáculos (teatro y gala
 
 **Prioridad de producto:** terminar un recorrido profesional real, con pruebas de aceptación y material de grabación auténtico, antes de añadir más proveedores, vistas o funcionalidades. La UI se está rediseñando en paralelo: mantén interfaces estables entre núcleo, agente, ASR y presentación para no bloquear ni romper esos cambios. Tampoco alteres innecesariamente el Autopiloto ya validado por el usuario.
 
+## MATERIALES EXISTENTES Y UBICACIONES EXACTAS — LEER ANTES DE IMPLEMENTAR
+
+**Inventario verificado:** `docs/RUNQ_THE_LAST_GO_ASSET_INVENTORY_2026-10-31.md` (en esta rama). No hagas suposiciones sobre voces, ZIP, ni commits de otras ramas.
+
+**Ya disponibles en la rama `docs/runq-hero-operator-handoff-2026-10-31`:**
+- `fixtures/demo/runq-the-last-go-en.txt` — guion original de **31 líneas**. No alteres líneas; las referencias L6/L14/L20/L23 son posiciones reales del TXT.
+- `tools/video/build-the-last-go.mjs` — construye sin llamadas de pago el show EN de tres cues y tres WAV usando `src/core/demoShow.mjs` y `src/core/showArchive.mjs`, y verifica su roundtrip. Ejecutar `node tools/video/build-the-last-go.mjs`. Salida esperada: `production/runq-video-kit/RUNQ_THE_LAST_GO_EN.showcompiler.zip` y carpeta `sfx/`. No afirmar que ya existe el ZIP resultante antes de ejecutarlo.
+- `tools/video/prepare-natural-voice-takes.py` — prepara cinco tomas de ASR a partir de `James_L06.wav`, `Maya_L14.wav`, `Ella_L23.wav`, que deben estar descargados por separado. Ejecutar solo con archivos reales y compatibles: `python tools/video/prepare-natural-voice-takes.py --source-dir RUTA_A_LOS_TRES_WAV`.
+- `src/core/heroCue.mjs` y `test/heroCue.test.mjs` — intérprete y tests; ahora el fixture está junto al test, por lo que ejecuta `node --test test/heroCue.test.mjs` y registra su resultado.
+- Los tres WAV de efectos no son assets versionados en la rama: se sintetizan **offline** mediante el generador. Las propuestas iniciales del ZIP son manuales, nunca inferencia Meta.
+
+**También en GitHub, pero en la otra rama `docs/runq-video-production-kit-2026-10-29`:**
+`docs/video/demo-pack/README.md`, `CUE_AND_VOICE_MATRIX.md`, `demo_manifest.json`, `STORYBOARD_AND_CAPTURE.md`, `PRODUCTION_RUNBOOK.md`, `OBS_CAPTURE_SETUP.md`, `NARRATION_EN_V3_FILM_SCRIPT.md`, `tools/video/run-demo-director.mjs` y `tools/video/obs-control.mjs`. Se puede leer en esa rama; recuperar selectivamente únicamente lo necesario, sin mezclar ramas completas.
+
+**Material que no está en GitHub como WAV individual:** voces de actores, orden Hero Arian y narración Benedict. Fuentes Descript: Arian Hero https://share.descript.com/view/LzKKWM9L27v ; actores https://web.descript.com/f1e6a0c1-d10a-4b30-86cb-c5f2915ce530 ; Benedict https://web.descript.com/c9b27c2d-b505-40b1-a327-b1f8b6df9d5d . No confundas links con archivos locales. Existen respaldos en la Biblioteca de ChatGPT, no materializados en esta rama. NO sustituir clips por voces inventadas ni simular ASR o reproducir un audio sin verificarlo.
+
+**Gates de preparación material:** registrar resultado de tests offline; generar ZIP real y comprobar WAV; obtener tres WAV de actores separados y verificar códec/transcripción; completar dictado y flujo Hero; probar Autopiloto y control manual en Windows; grabar solo tras validar.
+
 **PRIMERO LEE**: AGENTS.md, docs/RUNQ_HERO_OPERATOR_IMPLEMENTATION_2026-10-31.md, src/core/heroCue.mjs, test/heroCue.test.mjs, src/core/agentCore.mjs, src/core/agentDialogue.mjs, src/core/agentIntent.mjs, src/core/manualCues.mjs, src/ui/runq-agent-ui.mjs, src/ui/cue-conversation-ui.mjs, src/ui/app.mjs, tools/agentRoutes.mjs, src/core/showArchive.mjs, docs/REHEARSAL_AUTOPILOT.md y tests existentes. Mira también la rama docs/runq-video-production-kit-2026-10-29 para los materiales de The Last GO.
 
 **IMPORTANTE**: el código del nuevo intérprete y sus pruebas está en la rama docs/runq-hero-operator-handoff-2026-10-31; no está integrado. Comprueba el HEAD local, git status, worktrees, PRs, cambios sin seguimiento y rama realmente candidata antes de tocar nada. Preserva todo. Trabaja en tu propia rama/worktree desde la versión integrada más reciente, incorpora SOLO los archivos necesarios (cherry-pick selectivo o copia), nunca merge masivo. No tocar main, no fusionar automáticamente, no perder archivos locales.
