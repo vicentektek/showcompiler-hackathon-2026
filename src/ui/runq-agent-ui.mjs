@@ -110,15 +110,37 @@ function cancelPending(reason='cancelled'){
  notify(lang('Consulta cancelada. Los resultados tardíos no se aplicarán.',
   'Request cancelled. Late results will not be applied.'));
 }
-function addMessage(role,text){
+function addMessage(role,text,sound=null){
  const box=$('rqAgentMessages');if(!box)return;
- history.push({role,text:String(text).slice(0,2400)});
+ const s=sound?state():null;
+ const cue=s?.project.cues.find(item=>item.id===sound?.cueId);
+ history.push({role,text:String(text).slice(0,2400),...(cue?{sound:{
+  ...sound,projectId:s.project.id,generation:s.generation,cueSnapshot:JSON.stringify(cue),
+ }}:{})});
  if(history.length>28)history=history.slice(-28);
  box.replaceChildren();
  for(const entry of history){
   const item=make('article','rq-agent-message '+entry.role);
   item.append(make('small','',entry.role==='user'?lang('TÚ','YOU'):'RUNQ AI'),
    make('p','',entry.text));
+  if(entry.sound){
+   const action=make('button','btn accent small',
+    lang('Preparar alternativa en Sound Lab','Prepare alternative in Sound Lab'));
+   action.type='button';
+   action.addEventListener('click',()=>{
+    const latest=state(),target=latest?.project.cues.find(cue=>cue.id===entry.sound.cueId);
+    if(!latest||!target||latest.project.id!==entry.sound.projectId||
+      latest.generation!==entry.sound.generation||JSON.stringify(target)!==entry.sound.cueSnapshot){
+     notify(userFacingError('PROJECT_CHANGED',es()?'es':'en'),true);return;
+    }
+    document.dispatchEvent(new CustomEvent('runq:navigate-to-cue',{detail:{cueId:target.id}}));
+    document.dispatchEvent(new CustomEvent('runq:open-contextual-ia',{detail:{
+     mode:'sound',lineId:entry.sound.lineId,prompt:entry.sound.prompt,
+    }}));
+    close();
+   });
+   item.append(action);
+  }
   box.append(item);
  }
  box.scrollTop=box.scrollHeight;
@@ -326,7 +348,7 @@ async function sendRequest(forceAI=false,custom=null){
    throw new Error(lang('El proyecto o el modo cambió durante el análisis. Repite la consulta.',
     'Show or workspace changed while planning. Submit again.'));
   }
-  addMessage('assistant',reply.message);
+  addMessage('assistant',reply.message,reply.sound??null);
   if(reply.report){
    const counts=new Map();
    for(const item of reply.report.issues)counts.set(item.code,(counts.get(item.code)??0)+1);
@@ -337,21 +359,6 @@ async function sendRequest(forceAI=false,custom=null){
    for(const item of reply.skipped)counts.set(item.reason,(counts.get(item.reason)??0)+1);
    addMessage('assistant',lang('Pendientes de revisión: ','Needs review: ')+
     [...counts].map(([reason,n])=>reason+': '+n).join(' · '));
-  }
-  if(reply.sound){
-   const action=make('button','btn accent small',
-    lang('Preparar alternativa en Sound Lab','Prepare alternative in Sound Lab'));
-   action.type='button';
-   action.addEventListener('click',()=>{
-    document.dispatchEvent(new CustomEvent('runq:navigate-to-cue',{
-     detail:{cueId:reply.sound.cueId}
-    }));
-    document.dispatchEvent(new CustomEvent('runq:open-contextual-ia',{
-     detail:{mode:'sound',lineId:reply.sound.lineId,prompt:reply.sound.prompt}
-    }));
-    close();
-   });
-   $('rqAgentMessages').append(action);
   }
   if(reply.status==='PLAN'){
    const plan=prepareAgentPlan(s.project,reply.operations,{assetAvailable:id=>assetReady(id,s)});

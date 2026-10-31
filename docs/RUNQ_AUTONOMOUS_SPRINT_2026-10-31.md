@@ -151,3 +151,11 @@ This is a rolling engineering log, not a release sign-off. Continue only on a ve
 - Shared Agent labels, example commands, permissions and dictation disclosure now update ES/EN; original script and existing conversation remain unchanged.
 - New `npm run test:ai-review` exercises genuine original WAVs/source, navigation, Hero selective review/apply/undo, four-window review geometry, fixture-only loading/401 failure, one-shot consent, metadata-only missing audio and locale labels. Existing Agent, nine-workspace responsive and dictation late-result gates pass. Captures are external/local, and the new offline gate is wired into existing PR CI without claiming a remote run occurred.
 - Continuing whole-demo lifecycle and remaining concrete conversational/media workflow defects; paid provider/account charges and physical microphone/acoustic measurements remain distinctly unmeasured.
+
+## 14:08 - retained conversational sound handoff
+
+- Main AI review checkpoint committed at `04e6f3b`; continued immediately.
+- New original-show browser reproduction failed: requesting a sound alternative then asking a follow-up summary erased the Sound Lab action (one action became zero). This was a real multiturm handoff defect, not a model evaluation.
+- Verified a new external SHA backup of committed Agent UI and failing browser fixture. Store the local action with its conversation turn, render it consistently, bind it to project generation/exact cue snapshot and reject stale advice explicitly after cue edits.
+- Sound actions only prepare the existing Sound Lab prompt/source and preserve original cues/audio; they never send a generation request. The outgoing conversation remains strictly `{role,text}`; no local action metadata or snapshot goes to the provider.
+- Expanded `test:ai-review` covers follow-up retention, navigation without inference, stale-advice refusal and undo. Continue full Last GO lifecycle with genuine original script/WAVs and distinguish provider fixtures from live API/physical measurements.

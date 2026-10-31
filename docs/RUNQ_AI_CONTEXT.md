@@ -37,6 +37,8 @@ Local requests mentioning **this cue / selected cue / cue seleccionado** resolve
 
 The main Agent and contextual drawer now share a visible **selected cue / original source / actual audio readiness** strip. View Script, Open Cue Editor and Open Library only navigate; they do not prepare GO, audition or contact a provider. Missing media remain visibly unavailable and cannot be selected as READY sounds. The Agent exposes preparing/review/error/applied states, one-shot consent, selected-operation counts and an independently scrollable review surface. Apply stays disabled during requests/capture or blocked show state. Its ES/EN interface labels/disclosures update without translating original script or conversation.
 
+Sound-advice actions remain attached to their local conversation turn across follow-up questions. Opening one only prepares the Sound Lab prompt; generation has separate explicit spend/review controls. The action is bound to the show generation and exact cue snapshot and rejects stale advice after cue edits. These local action records/snapshots are never included in the bounded provider conversation.
+
 ### Script proposals, sound and voice
 
 - Theatre analysis proposes source-linked suggestions for human review; approval is a separate action and does not play audio (`src/core/theatreCueAnalysis.mjs`, `src/core/workspace.mjs`).

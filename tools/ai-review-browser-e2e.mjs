@@ -73,6 +73,28 @@ try{
  await route('ai');await page.locator('#rqAgentOpenLibrary').click();
  assert.equal((await read()).workspace,'audio');
  await route('ai');
+ await page.locator('#rqAgentPrompt').fill('Improve sound for cue 1');
+ await page.locator('#rqAgentSubmit').click();
+ const soundAction=page.getByRole('button',{name:'Prepare alternative in Sound Lab',exact:true});
+ assert.equal(await soundAction.count(),1);
+ await page.locator('#rqAgentPrompt').fill('Show summary');
+ await page.locator('#rqAgentSubmit').click();
+ assert.equal(await soundAction.count(),1,
+  'A conversational follow-up must not erase the reviewed Sound Lab action');
+ await soundAction.click();
+ assert.equal((await read()).workspace,'audio');
+ assert.ok((await page.locator('#soundPrompt').inputValue()).includes(built.project.cues[0].label));
+ assert.equal((await read()).active.length,0);
+ assert.equal(requests.length,0,'Preparing a sound alternative never submits a generation');
+ await route('ai');
+ await page.locator('#rqAgentPrompt').fill('Set cue 1 gain to -6 dB');
+ await page.locator('#rqAgentSubmit').click();
+ await page.locator('#rqAgentProposal').waitFor({state:'visible'});
+ await page.locator('#rqAgentApply').click();
+ await soundAction.click();
+ assert.equal((await read()).workspace,'ai','Stale sound advice must not navigate after its cue changes');
+ assert.ok((await page.locator('#rqAgentStatus').textContent()).includes('show has changed'));
+ await page.locator('#rqAgentUndo').click();
  await page.locator('#rqAgentSelectedSound').selectOption(built.project.assets[0].id);
  await page.locator('#rqAgentPrompt').fill('Insert a cue before cue three. Name it Decision Tension. Use the selected sound. Set the voice trigger to line twenty.');
  await page.locator('#rqAgentSubmit').click();
@@ -111,6 +133,8 @@ try{
  assert.equal(await page.locator('#rqAgentDrawer').getAttribute('aria-busy'),'false');
  assert.ok((await page.locator('#rqAgentMessages').textContent()).includes('credentials'));
  assert.equal(requests.length,1);
+ assert.ok(requests[0].conversation.every(turn=>Object.keys(turn).sort().join(',')==='role,text'),
+  'Local sound actions and their cue snapshots must never be added to provider conversation');
  if(captures)await page.screenshot({path:path.join(captures,'ai-v3-error.png'),animations:'disabled'});
  await page.locator('#uiLocaleSelect').selectOption('es');
  assert.equal(await page.locator('#rqAgentViewSource').textContent(),'Ver guion');
