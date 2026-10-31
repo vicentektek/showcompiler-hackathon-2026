@@ -3,6 +3,32 @@
 **Estado:** intérprete offline y 9 tests unitarios preparados; **integración RUNQ, ASR real, UX y export/import aún pendientes**.  
 **Rama de entrega:** docs/runq-hero-operator-handoff-2026-10-31 (desde integration/runq-demo-2026-10-30). Esta rama NO es la candidata final ni debe mezclarse automáticamente con las ramas visuales.
 
+## Visión de producto, problema y motivo de esta implementación
+
+**RUNQ es una estación de preparación y operación de espectáculos en directo, enfocada inicialmente en teatro, galas y ensayos.** Convierte un guion en una secuencia de señales (cues) reproducibles y controlables. Integra herramientas profesionales de biblioteca y edición de audio, referencias verificables al texto original, propuestas asistidas por IA, ensayos con reconocimiento de pies y transporte manual para el operador.
+
+**Problema real:** el técnico de sonido suele leer el guion, identificar acotaciones, localizar archivos, construir cues, asociar pies y ajustar su orden/propiedades manualmente. Durante un ensayo los actores repiten, retroceden, saltan escenas o cambian los pies, lo que obliga al operador a localizar y reconfigurar señales continuamente. El producto debe reducir operaciones repetitivas **sin quitar al técnico la decisión final sobre reproducción y seguridad**.
+
+**Por qué implementamos Hero Operator ahora:** necesitamos una demostración del Meta Global AI Developer Hackathon 2026 que haga visible una mejora tangible del flujo real, no una sucesión de botones ni una colección de funciones inacabadas. Crear en una sola orden hablada un cue con **posición, nombre, sonido existente y pie original de guion** es una prueba más expresiva de utilidad operativa que cambiar solamente un fade. Permite mostrar creación contextual, comprensión de la petición, resolución de recursos, trazabilidad, revisión y ejecución posterior en el espectáculo. Es, además, una capacidad reutilizable para otros proyectos, no un truco exclusivo de The Last GO.
+
+### Narrativa que queremos enseñar al jurado (objetivo del vídeo ~3 minutos; duración por verificar)
+1. **Entender:** importar The Last GO desde TXT, mantener las 31 líneas L#, realizar y revisar **una sugerencia auténtica de Meta Muse Spark** sobre acotaciones y sonido (según presupuesto/permiso).
+2. **Construir:** reproducir/importar WAV reales y editar cues; el operador dicta la orden Hero y RUNQ transcribe mediante **Muse Voice real** (autorizado). **Un parser local determinista**, no Muse Spark, interpreta esta frase concreta; mostrar la propuesta, revisar cambios, aceptar o descartar.
+3. **Ensayar:** en la copia adecuada, un personaje pronuncia el pie y el Autopiloto preparado ejecuta el cue correcto; mostrar también salto de escena sin cues intermedios si está verificado. Mantener el show base de tres cues intacto para la demostración principal del Autopiloto.
+4. **Operar:** mostrar NEXT / GO / STOP ALL realmente funcionando. Si existen y pasan pruebas, incluir órdenes explícitas por voz de operador como "Arm Auto GO", "GO" y "STOP ALL" desde el modo autorizado; si no, mostrar sus controles manuales sin fingir voz.
+5. **Confiar:** demostrar que toda sugerencia de edición es revisable, los cambios son reversibles, la salida de audio no contamina el micrófono y un cue no se dispara por el simple hecho de crearlo.
+
+**Éxito real:** una persona que nunca ha utilizado RUNQ debe entender qué problema elimina, qué trabajo hace la IA, qué hace el intérprete local, por qué el operador continúa al mando y cómo verificar visual y auditivamente el resultado. No optimizar únicamente para capturas: el flujo debe funcionar también en un show nuevo y tras exportar/importar.
+
+### Criterios que deben dirigir las decisiones de Copilot
+- Priorizar **funcionamiento completo y demostrable de The Last GO** frente a ampliar alcance o añadir proveedores, nuevas pestañas y rediseños.
+- Separar lógica estable de cues/agente y presentación UI: necesitamos poder modernizar el aspecto sin rehacer el motor.
+- Mantener distinción entre **voz del operador (órdenes explícitas)**, **voz del actor (pies de guion)** y **audio de salida del show**; cada uno tiene reglas y permisos diferentes.
+- Evitar confundir IA generativa con reglas locales: **Meta Muse Spark** propone a partir del guion; **Muse Voice** transcribe voz; **HeroCue** transforma una transcripción validada mediante reglas deterministas; el motor de RUNQ valida, almacena y reproduce bajo control autorizado.
+- Una demo con datos preparados solo se etiqueta como preparada. No falsificar inferencias, ASR, latencias, comandos hablados ni disparos GO. Conservar evidencias reproducibles y distinguir pruebas offline de pruebas reales.
+- **No rehacer el Autopiloto que funciona**, no alterar contratos del motor audio ni arriesgar la build candidata por intentar dar una imagen más espectacular.
+- Limitar el cambio a esta capacidad transversal; completar sus tests, QA y accesibilidad básica antes de añadir nuevas órdenes complejas.
+
 ## Alcance de la demo
 Orden inglesa exacta de Arian:
 > Insert a cue before cue three. Name it Decision Tension. Use the selected sound. Set the voice trigger to line twenty.
