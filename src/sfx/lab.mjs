@@ -157,7 +157,7 @@ function clearReviewedAudio(){
   stopSoundLabAudition();
   state.audio=null;state.sourceBytes=null;state.fileOrigin=null;state.libraryAssetId=null;state.peaks=null;
   state.inSeconds=0;state.outSeconds=0;state.fadeInSeconds=0;state.fadeOutSeconds=0;
-  text('audioName','Ningún WAV cargado');
+  text('audioName',ux('Ningún audio cargado','No audio loaded'));
   text('waveDuration','00:00.000');
   $('sfxWaveEmpty')?.removeAttribute('hidden');
   $('waveCanvas')?.classList.remove('sfx-has-audio');
@@ -262,6 +262,11 @@ function updateFades(fadeIn,fadeOut){
 }
 function updateSfxEditorLocale(){
  const es=$('uiLocaleSelect')?.value==='es';
+ // Product labels are translated without replacing their input/select children.
+ for(const element of document.querySelectorAll('[data-sfx-en][data-sfx-es]')){
+   element.textContent=es?element.dataset.sfxEs:element.dataset.sfxEn;
+ }
+ showCost(state.settings);
  text('sfxDragLabel',es?'Acción al arrastrar':'Waveform gesture');
  const modes=$('sfxDragMode').options;
  modes[0].textContent=es?'Seleccionar IN/OUT':'Select IN/OUT';
@@ -430,6 +435,11 @@ function bindEvents(){
     });
   });
   $('confirmRequest').addEventListener('change',updateControls);
+  $('uiLocaleSelect')?.addEventListener('change',()=>{
+    updateSfxEditorLocale();
+    if(state.job)viewJob(state.job);
+    updateControls();
+  });
   $('sfxReconnectBtn')?.addEventListener('click',()=>void checkConnection());
   for(const id of ['soundPrompt','duration','seed','soundKind','sourceLine']){
     $(id).addEventListener('input',()=>{$('confirmRequest').checked=false;updateControls();});
@@ -647,7 +657,7 @@ async function checkConnection(){
       showCost(settings);
       text('engineBadge',state.enabled?ux('IA disponible','AI ready'):ux('IA sin conexión','AI unavailable'));
       $('engineBadge')?.classList.toggle('active',state.enabled);
-      text('sfxProviderDiagnostics',connectionProblem(settings));
+      text('sfxProviderDiagnostics',state.enabled?ux('Conexión local configurada.','Local AI connection configured.'):connectionProblem(settings));
       inform(state.enabled
         ? ux('Puedes crear un sonido nuevo.','Ready to create a new sound.')
         : ux('La generación no está disponible. Puedes importar y editar sonidos mientras tanto.',
