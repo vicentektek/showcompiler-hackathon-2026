@@ -283,7 +283,7 @@ function updateTrim(inSeconds,outSeconds){
     $('inPoint').value=String(Number(bounds.inSeconds.toFixed(3)));
     $('outPoint').value=String(Number(bounds.outSeconds.toFixed(3)));
     updateFades(state.fadeInSeconds,state.fadeOutSeconds);
-    inform(`Reviewed region ${formatTime(state.inSeconds)} → ${formatTime(state.outSeconds)}. The source WAV is unchanged.`);
+    inform(ux('Región seleccionada: ','Selected region: ')+formatTime(state.inSeconds)+' → '+formatTime(state.outSeconds)+ux('. El original no cambia.','. The original is unchanged.'));
   }catch{inform('Select at least 10 ms of sound.',true);}
 }
 async function ensureContext(){
@@ -320,7 +320,7 @@ export async function openLibraryAudioSource(file,assetId){
   if(file.size<=0||file.size>20_000_000)
     throw new RangeError('Source audio must be at most 20 MB');
   await loadAudio(await file.arrayBuffer(),file.name,'library',assetId);
-  inform('Original seleccionado. Edita IN/OUT y fades; los cambios son no destructivos. Puedes crear un cue o asignarlo a uno existente.');
+  inform(ux('Audio seleccionado. Ajusta el recorte y los fundidos sin alterar el original.','Audio selected. Adjust the trim and fades without changing the original.'));
 }
 function currentJobId(){
   const id=$('requestId').value.trim();
@@ -339,7 +339,7 @@ function applyPreset(){
   $('soundKind').value=preset.kind;$('soundPrompt').value=preset.prompt;
   $('duration').value=String(preset.durationSeconds);$('seed').value=String(preset.seed);
   $('confirmRequest').checked=false;updateControls();
-  inform('Acceptance case loaded locally. No request has been sent.');
+  inform(ux('Ejemplo cargado. Puedes editar la descripción antes de generar.','Example loaded. You can edit the description before generating.'));
 }
 const scriptProposalState={proposals:[],selected:0};
 function showScriptProposal(){
@@ -370,7 +370,7 @@ function bindScriptCompiler(){
       $('scriptSfxResults').hidden=proposals.length===0;
       $('scriptSfxStatus').textContent=proposals.length?ux(proposals.length+' propuesta(s) preparadas',proposals.length+' suggestion(s) ready'):ux('No se han encontrado sonidos explícitos','No explicit sounds found');
       if(proposals.length)showScriptProposal();
-    }catch(error){$('scriptSfxResults').hidden=true;$('scriptSfxStatus').textContent='Revisa la acotación: '+error.message;}
+    }catch(error){$('scriptSfxResults').hidden=true;$('scriptSfxStatus').textContent=ux('Revisa la acotación y vuelve a intentarlo.','Review the script direction and try again.');}
   });
   $('scriptSfxSelect').addEventListener('change',()=>{scriptProposalState.selected=Number($('scriptSfxSelect').value);showScriptProposal();});
   $('scriptSfxMode').addEventListener('change',()=>{
@@ -378,14 +378,14 @@ function bindScriptCompiler(){
     try{
       scriptProposalState.proposals=scriptProposalState.proposals.map(p=>recompileProposal(p,{mode:$('scriptSfxMode').value}));
       showScriptProposal();
-    }catch(error){$('scriptSfxStatus').textContent=error.message;}
+    }catch(error){$('scriptSfxStatus').textContent=ux('Revisa los datos de la propuesta.','Review the suggestion fields.');}
   });
   for(const [id,key] of [['scriptSfxSource','soundSource'],['scriptSfxAction','action'],['scriptSfxMaterial','material'],['scriptSfxSpace','acousticSpace'],['scriptSfxIntensity','intensity'],['scriptSfxDuration','suggestedDurationSeconds']]){
     $(id).addEventListener('change',()=>{
       const index=scriptProposalState.selected,p=scriptProposalState.proposals[index];if(!p)return;
       try{const value=key==='suggestedDurationSeconds'?Number($(id).value):key==='intensity'?($(id).value||null):$(id).value;
         scriptProposalState.proposals[index]=applyProposalEdits(p,{[key]:value});
-        showScriptProposal();}catch(error){$('scriptSfxStatus').textContent=error.message;}
+        showScriptProposal();}catch(error){$('scriptSfxStatus').textContent=ux('No se pudieron aplicar esos cambios.','Those changes could not be applied.');}
     });
   }
   $('scriptSfxPrompt').addEventListener('input',()=>{
@@ -396,19 +396,19 @@ function bindScriptCompiler(){
   $('scriptSfxRestore').addEventListener('click',()=>{
     const i=scriptProposalState.selected,p=scriptProposalState.proposals[i];if(!p)return;
     scriptProposalState.proposals[i]=recompileProposal(p,{mode:$('scriptSfxMode').value});showScriptProposal();
-    $('scriptSfxStatus').textContent='Propuesta restaurada';
+    $('scriptSfxStatus').textContent=ux('Propuesta restaurada','Suggestion restored');
   });
   $('scriptSfxTransfer').addEventListener('click',()=>{
     const p=scriptProposalState.proposals[scriptProposalState.selected];if(!p)return;
-    if(p.category==='MUSIC'){$('scriptSfxStatus').textContent='Música requiere un proveedor compatible; no se transfiere al piloto SFX';return;}
+    if(p.category==='MUSIC'){$('scriptSfxStatus').textContent=ux('La música requiere un proveedor compatible.','Music requires a compatible AI provider.');return;}
     const finalPrompt=$('scriptSfxPrompt').value.trim();
-    if(!finalPrompt||finalPrompt.length>1000){$('scriptSfxStatus').textContent='El prompt debe tener entre 1 y 1000 caracteres';return;}
+    if(!finalPrompt||finalPrompt.length>1000){$('scriptSfxStatus').textContent=ux('Describe el sonido en un máximo de 1000 caracteres.','Describe the sound in up to 1000 characters.');return;}
     $('soundKind').value=p.category==='ENVIRONMENT'?'ENVIRONMENT':'SFX';
     $('sourceLine').value=p.scriptReference??'';
     $('soundPrompt').value=finalPrompt;
     $('duration').value=String(p.suggestedDurationSeconds??8);
     $('confirmRequest').checked=false;updateControls();
-    $('scriptSfxStatus').textContent='Transferido al formulario. No se ha enviado ninguna solicitud.';
+    $('scriptSfxStatus').textContent=ux('Descripción preparada. Puedes revisarla antes de generar.','Sound description ready. Review it before generating.');
     $('sfxScriptDetails').open=false;
     $('soundPrompt').focus();
   });
@@ -461,41 +461,41 @@ function bindEvents(){
     if(STATUS_WITH_AUDIO.has(job.status)){
       const result=await request('/jobs/'+encodeURIComponent(job.requestId)+'/audio');
       await loadAudio(await result.arrayBuffer(),'Generado · '+job.requestId+'.wav','remote');
-      inform('WAV cargado. Pulsa Play para escucharlo antes de aceptarlo.');
+      inform(ux('Sonido cargado. Escúchalo antes de aceptarlo.','Sound ready. Preview it before accepting.'));
     }else{
       inform(ux('Estado: ','Status: ')+jobLabel(job.status)+ux('. Puedes comprobarlo de nuevo.','. Check again when ready.'));
     }
   }));
   $('openJobBtn').addEventListener('click',()=>void action(async()=>{
     viewJob(await(await request('/jobs/'+encodeURIComponent(currentJobId()))).json());
-    inform('Loaded the persistent local record. No provider call was made.');
+    inform(ux('Resultado anterior cargado.','Previous result loaded.'));
   }));
   $('refreshBtn').addEventListener('click',()=>void action(async()=>{
     const response=await request('/jobs/'+encodeURIComponent(currentJobId())+'/refresh',{method:'POST',data:{}});
-    viewJob(await response.json());inform('Remote status checked once. No sound was played.');
+    viewJob(await response.json());inform(ux('Estado de la generación actualizado.','Generation status updated.'));
   }));
   $('cancelBtn').addEventListener('click',()=>void action(async()=>{
     if(!confirm('Request cancellation? Charges may already have occurred and cancellation is not guaranteed.'))return;
     const response=await request('/jobs/'+encodeURIComponent(currentJobId())+'/cancel',{method:'POST',data:{}});
-    viewJob(await response.json());inform('Cancellation requested; verify the final state manually.');
+    viewJob(await response.json());inform(ux('Cancelación solicitada. Comprueba el estado final.','Cancellation requested. Check the final status.'));
   }));
   $('loadGeneratedBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.job||!STATUS_WITH_AUDIO.has(state.job.status))throw new Error('Generated WAV is not ready');
     const result=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/audio');
     await loadAudio(await result.arrayBuffer(),'Generated · '+state.job.requestId+'.wav','remote');
-    inform('Verified generated WAV loaded. Listen before accepting.');
+    inform(ux('Audio generado cargado. Escúchalo antes de aceptar.','Generated audio loaded. Listen before accepting.'));
   }));
   $('acceptBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.job||state.job.status!=='READY_FOR_REVIEW'||state.auditionedRemoteRequestId!==state.job.requestId)throw new Error('Listen to this generated take before accepting it');
-    if(!confirm('Accept this listened take for local download and library import?'))return;
+    // Accept is an explicit user action. Listening and READY_FOR_REVIEW are still required.
     const response=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{method:'POST',data:{decision:'ACCEPT'}});
-    viewJob(await response.json());inform('Take accepted. The verified original can now be imported; no cue was changed.');
+    viewJob(await response.json());inform(ux('Sonido aceptado. Puedes añadirlo a la biblioteca o crear un cue.','Sound accepted. Add it to the library or create a cue.'));
   }));
   $('rejectBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.job||state.job.status!=='READY_FOR_REVIEW')throw new Error('Take is not available for review');
     if(!confirm('Reject this generated take? It will not be importable.'))return;
     const response=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/review',{method:'POST',data:{decision:'REJECT'}});
-    viewJob(await response.json());inform('Take rejected. No asset or cue was created.');
+    viewJob(await response.json());inform(ux('Sonido descartado. No se ha creado ningún cue.','Sound discarded. No cue was created.'));
   }));
   $('demoAudioBtn').addEventListener('click',()=>void action(async()=>{
     const bytes=makeOfflineImpactDemoWav();await loadAudio(bytes.buffer,'Offline synthesized impact · NOT AI','local');
@@ -505,7 +505,7 @@ function bindEvents(){
     const file=$('localWav').files?.[0];if(!file)return;
     if(file.size>8_000_000)throw new Error('File is larger than 8 MB');
     await loadAudio(await file.arrayBuffer(),file.name,'local');
-    inform('Local WAV loaded. It was not uploaded and cannot masquerade as a generated result.');
+    inform(ux('Archivo local cargado. No se ha enviado a ningún proveedor de IA.','Local audio loaded. It was not sent to an AI provider.'));
   }));
   $('playBtn').addEventListener('click',()=>void action(async()=>{
     if(!state.audio)return;
@@ -548,10 +548,10 @@ function bindEvents(){
     };
     source.start(0,state.inSeconds,state.outSeconds-state.inSeconds);
     if(state.fileOrigin==='remote')state.auditionedRemoteRequestId=state.loadedRemoteRequestId;
-    updateControls();inform('Previewing the reviewed region through the default audio output.');
+    updateControls();inform(ux('Escuchando la selección por la salida de audio predeterminada.','Previewing through the default audio output.'));
     }catch(error){stopSoundLabAudition();throw error;}
   }));
-  $('stopBtn').addEventListener('click',()=>{stopSoundLabAudition();inform('Preview stopped.');});
+  $('stopBtn').addEventListener('click',()=>{stopSoundLabAudition();inform(ux('Escucha detenida.','Preview stopped.'));});
   for(const id of ['inPoint','outPoint'])$(id).addEventListener('change',()=>{
     if(state.audio)updateTrim(Number($('inPoint').value),Number($('outPoint').value));
   });
@@ -579,7 +579,7 @@ function bindEvents(){
     const url=URL.createObjectURL(new Blob([state.sourceBytes],{type:'audio/wav'}));
     try{const anchor=document.createElement('a');anchor.href=url;anchor.download='runq-sfx-'+state.job.requestId+'.wav';anchor.click();}
     finally{setTimeout(()=>URL.revokeObjectURL(url),1500);}
-    inform('Original verified PCM16 WAV downloaded. The reviewed IN/OUT did not alter it.');
+    inform(ux('Audio original descargado sin modificar.','Original audio downloaded without changes.'));
   }));
   $('importLibraryBtn').addEventListener('click',()=>void action(async()=>{
     if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')throw new Error('Accepted generated source is not available for integrated import');
@@ -636,12 +636,12 @@ function connectionProblem(settings){
   const checks=settings?.configurationChecks;
   if(!checks)return 'El proveedor no está listo. Comprueba la configuración del servidor.';
   const messages={
-    pilotEnabled:'El piloto está desactivado',
-    endpointConfigured:'Falta la dirección del proveedor',
-    proxyTokenIdConfigured:'Falta el identificador del proxy',
-    proxyTokenSecretConfigured:'Falta el secreto del proxy',
-    costPolicyValid:'Falta una política de coste válida',
-    modelRevisionValid:'Falta una revisión válida del modelo',
+    pilotEnabled:ux('Servicio no activado','Service not enabled'),
+    endpointConfigured:ux('Falta configurar el servicio','Provider connection not configured'),
+    proxyTokenIdConfigured:ux('Falta configurar el acceso','Provider access not configured'),
+    proxyTokenSecretConfigured:ux('Falta configurar el acceso','Provider access not configured'),
+    costPolicyValid:ux('Faltan límites de gasto','Spending limits not configured'),
+    modelRevisionValid:ux('Falta seleccionar un modelo compatible','Compatible model not selected'),
   };
   const missing=Object.entries(messages).filter(([key])=>checks[key]===false).map(([,label])=>label);
   return missing.length?missing.join(' · '):'El proveedor no está listo. Comprueba su configuración.';
