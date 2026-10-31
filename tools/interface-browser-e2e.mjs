@@ -155,6 +155,14 @@ try {
   await page.locator('.cue-workspace-body > .rq-grip-col').dblclick();
   assert.ok(Math.abs(parseFloat(await liveCols())-liveBefore)<2,'Double-click restores the default width');
   assert.equal(await prepared(),next,'Resizing never changes the prepared cue');
+  // Live script follow panel: opt-in, read-only, follows NEXT's source line.
+  assert.equal(await page.locator('.layout>.panel[data-workspaces~="script"]').isVisible(),false,'Live hides the script by default');
+  await page.locator('.rq-live-script-toggle').click();
+  assert.equal(await page.locator('#scriptPreview').isVisible(),true,'Live script toggle shows the script');
+  await page.waitForFunction(()=>document.querySelectorAll('.rq-live-next-line').length===1);
+  assert.equal(await prepared(),next,'Showing the script never changes the prepared cue');
+  await page.locator('.rq-live-script-toggle').click();
+  assert.equal(await page.locator('#scriptPreview').isVisible(),false);
   console.log('PASS: draggable panels resize, persist and reset without touching NEXT');
 
   await page.locator('#uiLocaleSelect').selectOption('es');

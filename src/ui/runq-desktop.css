@@ -191,3 +191,23 @@
 .rq-grip:focus-visible{outline:none}
 body.rq-resizing-col,body.rq-resizing-col *{cursor:col-resize!important;user-select:none!important}
 body.rq-resizing-row,body.rq-resizing-row *{cursor:row-resize!important;user-select:none!important}
+
+/* LIVE: opt-in script follow panel, growable running-cues area, resizable dock */
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]{display:none!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout{display:grid!important;grid-template-columns:minmax(260px,380px) minmax(0,1fr)!important;gap:6px!important;align-items:stretch!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]{display:flex!important;flex-direction:column;min-height:0;min-width:0;height:100%;padding:8px!important;overflow:hidden}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script]>:is(label,#showName,.line-actions,#runqScriptContext,.subheading,.script-search-row){display:none!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script] .panel-head{flex:none;margin:0 0 6px;padding:0 0 6px}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .layout>.panel[data-workspaces~=script] .panel-head .item-actions{display:none!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .rq5-script-scenes{display:none!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] #scriptPreview{flex:1!important;min-height:0!important;max-height:none!important;overflow:auto!important;background:#141517!important;display:block!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .script-line{font-size:13px!important;line-height:1.5;padding:3px 8px!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14.rq-live-script .shell[data-active-workspace=operation] .script-line.rq-live-next-line{background:#3a3016!important;box-shadow:inset 3px 0 0 #e0a23a}
+.rq-live-script-toggle{margin-left:8px;flex:none}
+.rq-live-script-toggle[aria-pressed=true]{background:#1f3d66!important;border-color:#5b9bff!important;color:#fff!important}
+.shell:not([data-active-workspace=operation]) .rq-live-script-toggle{display:none!important}
+
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-transport-dock{max-height:340px!important;min-height:150px;overflow:visible!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-active-cues{flex:1 1 auto!important;min-height:62px!important;max-height:none!important;overflow:auto!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-active-list{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:5px!important;max-height:none!important;overflow:visible!important}
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-active-empty{grid-column:1/-1}

@@ -7,6 +7,8 @@ const GRIP = 8;
 const PANELS = [
   { id: 'live-cues', ws: 'operation', sel: '.cue-workspace-body', mode: 'grid', axis: 'col', at: 0, fixed: 'before', min: 320, minOther: 360 },
   { id: 'live-events', ws: 'operation', sel: '#rq14Events', mode: 'size', min: 60, max: 420 },
+  { id: 'live-dock', ws: 'operation', sel: '.rq5-transport-dock', mode: 'size', min: 150, max: 700 },
+  { id: 'live-script', ws: 'operation', sel: '.layout', mode: 'grid', axis: 'col', at: 0, tracks: 2, fixed: 'before', min: 220, minOther: 480 },
   { id: 'rehearsal-script', ws: 'rehearsal', sel: '.layout', mode: 'grid', axis: 'col', at: 0, fixed: 'before', min: 280, minOther: 420 },
   { id: 'rehearsal-stage', ws: 'rehearsal', sel: '.cue-workspace-body', mode: 'grid', axis: 'row', at: 0, fixed: 'after', min: 100, minOther: 140 },
   { id: 'rehearsal-voice', ws: 'rehearsal', sel: '#rqvfPanel', mode: 'size', min: 140, max: 640 },
@@ -67,7 +69,7 @@ function mount() {
       return;
     }
     const prop = cfg.axis === 'col' ? 'grid-template-columns' : 'grid-template-rows';
-    const n = tracks(el, cfg.axis).length;
+    const n = cfg.tracks ?? tracks(el, cfg.axis).length;
     const fixedIdx = cfg.fixed === 'before' ? cfg.at : cfg.at + 1;
     const flexIdx = cfg.fixed === 'before' ? cfg.at + 1 : cfg.at;
     const list = Array.from({ length: n }, (_, i) =>
@@ -99,6 +101,8 @@ function mount() {
       return;
     }
     const t = tracks(el, cfg.axis);
+    // Optional panels (e.g. the Live script) collapse the grid; no grip while only one track exists.
+    if (t.length < 2) { handle.hidden = true; return; }
     const cs = getComputedStyle(el);
     const gap = parseFloat(cfg.axis === 'col' ? cs.columnGap : cs.rowGap) || 0;
     const pad = parseFloat(cfg.axis === 'col' ? cs.paddingLeft : cs.paddingTop) || 0;
@@ -170,6 +174,56 @@ function mount() {
   entries.forEach((e) => ro.observe(e.el));
   window.addEventListener('resize', () => entries.forEach(place));
   sync();
+  mountLiveScript(() => entries.forEach(place));
+}
+
+// Live: optional read-only script panel that follows the prepared cue's source line. Never prepares or fires cues.
+const SCRIPT_KEY = 'runq.live.script.v1';
+function mountLiveScript(relayout) {
+  const bar = document.querySelector('.cue-filter-bar');
+  const preview = document.getElementById('scriptPreview');
+  const cueList = document.getElementById('cueList');
+  if (!bar || !preview || document.querySelector('.rq-live-script-toggle')) return;
+  const es = () => document.documentElement.lang === 'es' || /es/i.test(localStorage.getItem('runq.ui.locale') || '');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'rq-live-script-toggle';
+  btn.title = 'Mostrar el guion junto a los cues / Show the script beside the cues';
+  const label = () => { btn.textContent = es() ? 'Guion' : 'Script'; };
+  label();
+  let on = false;
+  try { on = localStorage.getItem(SCRIPT_KEY) === '1'; } catch { /* storage unavailable */ }
+
+  const follow = () => {
+    if (!on) return;
+    const next = document.querySelector('.cue-prepared');
+    const ref = /L\d+(?=\s*·)/.exec(next?.textContent || '')?.[0];
+    preview.querySelectorAll('.rq-live-next-line').forEach((n) => n.classList.remove('rq-live-next-line'));
+    if (!ref) return;
+    const line = [...preview.querySelectorAll('[data-script-line-id]')].find((n) =>
+      n.dataset.scriptLineId === ref || n.querySelector('.line-id,.line-number')?.textContent.trim() === ref);
+    if (!line) return;
+    line.classList.add('rq-live-next-line');
+    const box = preview.getBoundingClientRect();
+    const r = line.getBoundingClientRect();
+    if (r.top < box.top + 40 || r.bottom > box.bottom - 40) {
+      preview.scrollTop += r.top - box.top - box.height / 3;
+    }
+  };
+  const set = (v) => {
+    on = v;
+    btn.setAttribute('aria-pressed', String(on));
+    document.documentElement.classList.toggle('rq-live-script', on);
+    try { localStorage.setItem(SCRIPT_KEY, on ? '1' : '0'); } catch { /* storage unavailable */ }
+    requestAnimationFrame(() => { relayout(); follow(); });
+  };
+  btn.addEventListener('click', () => set(!on));
+  bar.appendChild(btn);
+  set(on);
+  const mo = new MutationObserver(() => requestAnimationFrame(follow));
+  mo.observe(preview, { childList: true });
+  if (cueList) mo.observe(cueList, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  document.getElementById('uiLocaleSelect')?.addEventListener('change', () => setTimeout(label, 50));
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
