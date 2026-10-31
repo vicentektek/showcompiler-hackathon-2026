@@ -1,0 +1,27 @@
+# PROMPT PARA COPILOT — RUNQ HERO OPERATOR (31 OCT 2026)
+
+Actúa como arquitecto senior de RUNQ, especializado en motores de audio de espectáculos, agentes de IA, reconocimiento de voz, UX operativa y seguridad. Tu tarea es IMPLEMENTAR Y VERIFICAR la creación completa de un cue a partir de una orden hablada, sin modificar el Autopiloto ni interferir con el rediseño visual paralelo. Prioriza el demo The Last GO del Meta Global AI Developer Hackathon 2026.
+
+**PRIMERO LEE**: AGENTS.md, docs/RUNQ_HERO_OPERATOR_IMPLEMENTATION_2026-10-31.md, src/core/heroCue.mjs, test/heroCue.test.mjs, src/core/agentCore.mjs, src/core/agentDialogue.mjs, src/core/agentIntent.mjs, src/core/manualCues.mjs, src/ui/runq-agent-ui.mjs, src/ui/cue-conversation-ui.mjs, src/ui/app.mjs, tools/agentRoutes.mjs, src/core/showArchive.mjs, docs/REHEARSAL_AUTOPILOT.md y tests existentes. Mira también la rama docs/runq-video-production-kit-2026-10-29 para los materiales de The Last GO.
+
+**IMPORTANTE**: el código del nuevo intérprete y sus pruebas está en la rama docs/runq-hero-operator-handoff-2026-10-31; no está integrado. Comprueba el HEAD local, git status, worktrees, PRs, cambios sin seguimiento y rama realmente candidata antes de tocar nada. Preserva todo. Trabaja en tu propia rama/worktree desde la versión integrada más reciente, incorpora SOLO los archivos necesarios (cherry-pick selectivo o copia), nunca merge masivo. No tocar main, no fusionar automáticamente, no perder archivos locales.
+
+**Orden literal en inglés que debe funcionar**:
+"Insert a cue before cue three. Name it Decision Tension. Use the selected sound. Set the voice trigger to line twenty."
+
+**Comportamiento esperado**: en COPIA del show inglés The Last GO (3 cues), usuario elige un WAV READY de la biblioteca; operador habla; RUNQ transcribe con Muse Voice autorizado; texto queda editable; parser local prepara un PLAN sin llamadas a Muse Spark; preview muestra Q03 nuevo "Decision Tension", antiguo Q03 pasa a Q04, PLAY sobre asset seleccionado, sourceLineIds ["L20"] y trigger exacto de ELLA en L20 ("And what happens if we skip straight to the decision?"). Operador acepta o rechaza; Undo restaura snapshot completo. No GO, no ARM, no efectos secundarios ni atribución falsa a modelo.
+
+**Plan de desarrollo**:
+1. Añade operación estricta CREATE_CONFIGURED_CUE al contrato del agente, con afterCueId de ID estable, label, assetId, sourceLineId, trigger. No cambiar el significado de CREATE_CUE ni la forma de las operaciones antiguas.
+2. Validación fail-closed al generar preview Y en commit: posición válida, audio importado realmente listo/decodificado, ID pertenece al mismo show, línea original exacta, trigger distintivo y no duplicado, DRAFT editable, snapshot coherente. Crear el cue, asignar audio y pie de una sola vez; no permitir creación parcial. Revalidar si cambia archivo o proyecto. Undo atómico.
+3. Ampliar el diff para que el operador vea nombre, posición, audio, trigger, L20, estado y renumeración de otros cues. Mantener todos los cambios revisables antes de Apply. Cancelar sin mutación.
+4. Conectar heroCue.mjs en el intérprete LOCAL del agente. Si devuelve CLARIFY, no consultar APIs ni aplicar nada. Para otras frases, conservar rutas actuales. Muse Spark remoto en tools/agentRoutes.mjs hoy no permite esta operación; no fingir ni ampliar su alcance salvo que haga falta para una prueba adicional aprobada.
+5. Añadir al agente Studio selector de WAV READY y Record/Stop/Transcribe, con reutilización segura de /api/voice/transcribe, audio PCM adecuado, consentimiento y EN por toma. El resultado ASR se introduce en campo editable y espera pulsación de Plan; NUNCA auto-plan, auto-apply ni GO. El micrófono no puede chocar con voz de ensayo. Modo teclado debe funcionar sin llamadas externas.
+6. No modificar la lógica del Autopiloto, transporte GO/STOP/STOP ALL, audio engine, engine clock, rediseño, estilos globales ni repositorio principal. Encapsular el binding DOM del agente para permitir moverlo de pestaña y rediseñar su panel después.
+7. Implementar tests H01–H12 de la especificación, más negativo de cancelación durante ASR, selección caducada y regreso de show. Reutilizar el fixture original de 31 líneas. Probar importación/exportación ZIP en copia; preservar el show original de tres cues para Autopiloto.
+8. Ejecutar node --test test/heroCue.test.mjs, npm run check:syntax, npm test, e2e Chrome pertinentes, y documentar QA real (con sonido y ASR solo cuando el operador autorice). No llamar a proveedores pagados en CI ni en tests offline. No incluir secretos, voces privadas ni logs internos en Git.
+9. Termina con PR DRAFT dirigida a la rama real candidata, resumen de cambios, comandos y resultados exactos, screenshot/capturas de UI si las puedes verificar, límites conocidos y pendientes para pruebas Windows/micrófono. Nunca auto-merge ni declares E2E aprobado por superar solo unit tests.
+
+**Criterio de éxito**: instrucción dictada -> transcripción verdadera -> PLAN local -> revisión detallada -> Apply -> cue Q03 con audio y pie L20 -> Undo / ZIP roundtrip, sin tocar la versión de 3 cues ni afectar Autopiloto. Si la voz falla, dejar funcional la ruta de teclado y conservar como plan B la orden previa de Arian para cambiar fade.
+
+Resuelve todo lo que sea verificable con tus herramientas sin pedir confirmaciones innecesarias; detente únicamente ante permisos de API de pago, cambios destructivos o conflictos que pongan en riesgo la versión candidata.
