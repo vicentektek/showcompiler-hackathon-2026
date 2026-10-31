@@ -23,13 +23,13 @@ Los máximos de 400/100 son límites superiores de campaña, no exigencias de ga
 
 1. Leer AGENTS.md, el estado de Git y la campaña previa existente. No cambiar de rama ni resetear trabajo sin respaldar los archivos modificados/no rastreados.
 2. Inventariar **todos** los ledgers de la campaña anterior: .runq-local/meta-eval-budget.json, .runq-local/agent-live-eval-budget.json, cualquier ledger Modal/SFX y los registros de pagos del proveedor. Incluir reservas anteriores realizadas bajo la misma autorización. Una copia nueva del repo no significa saldo nuevo.
-3. Verificar saldo de créditos en Meta y Modal y los términos de cobro. Si el saldo es desconocido, **no ejecutar** hasta verificarlo. Registrar manualmente el saldo o evidencia localmente, sin secretos.
+3. El propietario ya ha confirmado que tiene créditos para esta campaña. **No hace falta verificar saldos en Meta o Modal, ni exigir capturas.** Registrar localmente `creditBasis: owner_attestation` y `providerBalanceVerified: false`; el desconocimiento del saldo no bloquea los tests. No suponer un importe de créditos, fechas de vencimiento ni cobertura gratuita del gasto.
 4. Implementar **un único libro mayor persistente compartido por todos los runners de pago de la campaña** y por todas las copias/worktrees que puedan ejecutar peticiones. Debe bloquear concurrentemente, registrar reserva ANTES de cada envío, registrar resultado o incertidumbre después y conservar el historial de reservas sin reembolsar operaciones de resultado dudoso.
 5. Verificar total reservado acumulado <= 100 USD, sublímite Meta <= 65 USD, Modal <= 35 USD y contadores Meta <= 400 y Modal <= 100. Rechazar cualquier proveedor no listado y cualquier presupuesto ausente/inválido.
 6. Usar como límite efectivo el menor entre las cuotas globales, cuotas del proveedor, límites diarios/por solicitud vigentes, límites reales de crédito y controles de la API. **No elevar de forma tácita los límites SFX de Modal**; distinguir campaña QA de generación interactiva.
 7. Pruebas offline negativas: ledger ausente/corrupto, lock concurrente, saldo insuficiente, reserva excedida, 429/401/402, timeout, desconexión, Ctrl+C, fallo después de enviar, reinicio, dos worktrees, cambios de proveedor, nuevos días. Ante incertidumbre, no repetir ni recuperar reserva automáticamente.
 8. Publicar **solo código, tests y reportes sanitizados**. Los ledgers, claves, capturas privadas, prompts originales de terceros y consumos detallados quedan locales. No insertar claves en el frontend ni en comandos visibles.
-9. La primera invocación real solo puede comenzar tras un dry-run verificable del mismo plan, con resumen de peticiones esperadas, estimación conservadora de reserva y saldo restante; Copilot puede avanzar sin nueva confirmación humana si el plan está dentro de ESTA autorización.
+9. La primera invocación real solo puede comenzar tras un dry-run verificable del mismo plan, con resumen de peticiones esperadas, estimación conservadora de reserva y **margen presupuestario interno** restante; Copilot puede avanzar sin nueva confirmación humana ni consulta de saldo remoto si el plan está dentro de ESTA autorización.
 10. Mantener GO, STOP, STOP ALL, armado de Autopiloto y audio directo fuera del alcance de las respuestas del modelo. Las propuestas siguen requiriendo revisión humana.
 
 ## 3. Cambios necesarios al código existente
@@ -55,13 +55,13 @@ Copilot puede continuar de manera autónoma mientras:
 - No haya facturas pendientes de conciliación o desconocimiento del cobro que pueda superar la reserva.
 - Los resultados estén bien tipados: PASS/FAIL/ERROR/BLOCKED/NOT_RUN; no inventar precisión de modelos.
 - Ejecute peticiones serialmente; cero reintentos automáticos.
-- Detenga la campaña si el saldo, los límites, el proveedor, el host o el ledger no están claros.
+- Detenga la campaña si los límites de reserva, el coste estimado, el proveedor autorizado, el host o el ledger no están claros, o si la API indica efectivamente saldo insuficiente, sin consultar preventivamente el saldo remoto.
 
 Al llegar a techo o bloqueo, **parar, informar del consumo, dejar pruebas offline funcionando y no solicitar más dinero automáticamente**.
 
 ## 5. Informes de la campaña
 
-Guardar localmente un \`campaign-status.json\` con: ID de campaña, commit, runner, proveedor, modelo, cantidad de peticiones planificadas/completadas/bloqueadas, reservas previas/nuevas/acumuladas, crédito verificado, errores tipados, distribución por guion, métricas de precisión/F1 cuando haya gold revisado, y hora de verificación. Nunca loguear claves, contenido privado, respuestas crudas ni prompt completo.
+Guardar localmente un \`campaign-status.json\` con: ID de campaña, commit, runner, proveedor, modelo, cantidad de peticiones planificadas/completadas/bloqueadas, reservas previas/nuevas/acumuladas, base de crédito declarada por el propietario, errores tipados, distribución por guion, métricas de precisión/F1 cuando haya gold revisado, y hora de verificación. Nunca loguear claves, contenido privado, respuestas crudas ni prompt completo.
 
 El techo de 100 USD es una **autorización de gasto, no una garantía de facturación**. El coste real depende del proveedor. Una solicitud incierta se trata como consumida hasta conciliación. Los créditos promocionales se descuentan únicamente si el proveedor los confirma; un balance promocional expirado no se presupone disponible.
 
@@ -77,9 +77,16 @@ La rama \`docs/runq-evals-exhaustive-2026-10-31\` es documental. **Tener estos a
 La batería offline ha dado 736/736 tests correctos, pero `creditVerified:false` y el requisito de checkout limpio han impedido ejecutar modelos reales. El trabajo local informado tiene 41,497324 USD reservados; estas cifras son históricas y deben **volver a leerse** del ledger antes de cualquier lote, sin inferir saldo del proveedor.
 
 - **Checkout con cambios:** no es condición suficiente para bloquear todas las pruebas. El agente debe proteger modificaciones locales, preparar un snapshot reproducible con hash de fuentes, versiones y tests, o una copia de trabajo aislada que incluya el código nuevo. Si el runner prohíbe árboles sucios, modificarlo con un gate verificable de snapshot o ejecutar en la copia aislada; no eliminar la comprobación sin sustitución.
-- **Crédito por proveedor:** la autorización es separable. Meta puede avanzar solo si el saldo de Meta está verificado; Modal puede seguir bloqueado por saldo desconocido sin bloquear Meta. No inferir `creditVerifiedMeta=true` a partir del estado global `creditVerified:false`. Crear estados independientes y no considerar un mero HTTP 200 como balance confirmado.
-- **Sin acceso automatizado al saldo:** obtener evidencia de panel oficial, fecha, saldo/promoción, vencimiento y moneda; almacenarla localmente. Si no se consigue, marcar únicamente ese proveedor como `BLOCKED_CREDIT_UNVERIFIED` y continuar preparando las demás pruebas.
+- **Crédito declarado por el propietario:** no hay gate de saldo remoto para esta campaña. Meta y Modal pueden avanzar bajo sus respectivos límites sin confirmar saldo previamente. Si el código presenta `creditVerified:false`, permitir ejecución mediante declaración del propietario registrada, sin poner a `true` falsamente una comprobación del proveedor. Distinguir saldo promocional no verificado de gasto reservado.
+- **Sin acceso automatizado al saldo:** no pedir capturas ni datos del panel. La declaración expresa del propietario cumple la condición de disponibilidad para esta campaña. Si una solicitud real recibe un error de saldo o cuota, marcar el proveedor afectado como bloqueado, sin reintentar.
 - **Garantías intactas:** gateway de gasto único, límite global 100 USD, Meta 65/400, Modal 35/100, reservas anteriores, cero reintentos y prohibición de secretos en los informes. El agente NO puede alegar que existe crédito por el solo hecho de que haya presupuesto autorizado.
 - **Resultado esperado:** el agente debe corregir bloqueos técnicos y realizar un piloto corto tan pronto como un proveedor alcance estado `READY`. Los tests offline ya verdes no son una razón suficiente para finalizar el trabajo sin intentar resolver las dependencias operativas.
 
-El estado `READY` de cada proveedor exige simultáneamente consentimiento vigente, crédito verificado, gateway y saldo bajo límites, snapshot reproducible, comando live explícito y plan offline satisfactorio.
+El estado `READY` exige simultáneamente consentimiento y declaración de créditos vigentes del propietario, gateway y reservas dentro de límites, snapshot reproducible, comando live explícito y plan offline satisfactorio; **no exige consulta de saldo real del proveedor**.
+
+## 8. Aclaración del propietario (01/11/2026): no verificar saldos promocionales
+
+El usuario declaró explícitamente que **ya sabe que dispone de créditos** y no quiere una validación adicional como condición para hacer las pruebas. Esta declaración es una autorización suficiente para prescindir de la **consulta del saldo de Meta y Modal**. Sustituye cualquier antiguo gate `creditVerified: false` que exigiera panel o captura por un atributo distinto de declaración del propietario, solo para esta campaña, con pruebas deterministas. No atribuir a los proveedores ninguna verificación que no haya ocurrido.
+
+**No desaparece el control financiero:** el gateway debe reservar antes de enviar, contar historial y números de llamadas, mantener los techos Meta 65/400, Modal 35/100 y 100 USD global, y detenerse ante errores reales de saldo, gasto impredecible o coste desconocido. Si hay cobro fuera del crédito promocional el gasto continúa siendo económicamente real: no presumir gratuidad ni ampliar el presupuesto.
+
