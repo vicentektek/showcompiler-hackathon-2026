@@ -67,12 +67,16 @@ try{
   assert.equal(await page.locator('#rqLiveStop').isDisabled(),true);
   assert.equal(await page.locator('#rqLivePrepare').isDisabled(),true);
   assert.equal(await page.locator('#rqLiveDismiss').isDisabled(),true);
+  await page.locator('#rqLiveSettingsSummary').click();
   await tryClick('#rqLiveStart');
   assert.match(await page.locator('#rqLiveStatus').textContent(),/Authorize|Autoriza/);
   assert.equal(await page.locator('#rqLiveStop').isDisabled(),true);
+  await tryClick('[data-workspace-nav="setup"]');
+  await tryClick('#setupTabRehearsal');
   await page.locator('#rqLiveLang').selectOption('en');
   await page.locator('#rqLiveLang').selectOption('mixed');
   await page.locator('#rqLiveLang').selectOption('es');
+  await tryClick('[data-workspace-nav="rehearsal"]');
 
   assert.equal(await page.locator('#rqvfCounter').textContent(),'0 / 0');
   await tryClick('#rqvfStep');

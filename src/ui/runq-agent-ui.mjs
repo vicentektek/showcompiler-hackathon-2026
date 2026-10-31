@@ -5,6 +5,7 @@
 import {buildAgentContext,prepareAgentPlan} from '../core/agentCore.mjs';
 import {resolveAgentDialogue,boundedAgentConversation} from '../core/agentDialogue.mjs';
 import {userFacingError} from './userFacingErrors.mjs';
+import {createCommandDictation,commandDictationMessage} from './command-dictation.mjs';
 const $=id=>document.getElementById(id);
 const es=()=>$('uiLocaleSelect')?.value==='es';
 const lang=(esText,enText)=>es()?esText:enText;
@@ -15,8 +16,9 @@ const make=(tag,cls='',text='')=>{
  return el;
 };
 let proposed=null,working=false,history=[],lastPrompt='';
-let sessionProjectId=null;
+let sessionProjectId=null,sessionGeneration=null;
 let selectedBatch=null;
+let requestEpoch=0,requestController=null,requestBase=null,dictation=null,dictationContext=null;
 function state(){
  let result=null;
  document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{result=value;}}}));
@@ -25,6 +27,34 @@ function state(){
 function notify(text,error=false){
  const status=$('rqAgentStatus');
  if(status){status.textContent=text;status.classList.toggle('is-error',error);}
+}
+function contextKey(){
+ const s=state();
+ return s?.canApply&&!['rehearsal','operation'].includes(s.workspace)
+  ?JSON.stringify([s.project,s.generation,s.workspace,s.selectedCueId]):null;
+}
+function refreshControls(){
+ $('rqAgentSubmit').disabled=working||Boolean(dictation?.busy);
+ $('rqAgentAskAI').disabled=working||Boolean(dictation?.busy);
+ $('rqAgentPrompt').disabled=working||Boolean(dictation?.busy);
+ for(const button of document.querySelectorAll('.rq-agent-examples button'))
+  button.disabled=working||Boolean(dictation?.busy);
+ const cancel=$('rqAgentCancel');
+ if(cancel)cancel.disabled=!working&&!dictation?.hasWork;
+ if(!dictation)return;
+ $('rqAgentRecord').disabled=working||['acquiring','transcribing'].includes(dictation.phase);
+ $('rqAgentRecord').textContent=dictation.phase==='recording'
+  ?lang('Detener grabación','Stop recording'):lang('Grabar instrucción (10 s)','Record instruction (10 s)');
+ $('rqAgentTranscribe').disabled=working||!dictation.canTranscribe;
+ if(['idle','transcribing'].includes(dictation.phase))$('rqAgentVoiceConsent').checked=false;
+}
+function cancelPending(reason='cancelled'){
+ dictation?.cancel(reason);
+ if(!working){refreshControls();return;}
+ requestEpoch++;requestController?.abort();requestController=null;requestBase=null;
+ working=false;$('rqAgentConsent').checked=false;showPlan(null);refreshControls();
+ notify(lang('Consulta cancelada. Los resultados tardíos no se aplicarán.',
+  'Request cancelled. Late results will not be applied.'));
 }
 function addMessage(role,text){
  const box=$('rqAgentMessages');if(!box)return;
@@ -111,13 +141,17 @@ function short(value){
 function sync(){
  const s=state(),button=$('rqAgentToggle');
  if(!s||!button)return;
- if(sessionProjectId!==s.project.id){
+ if((requestBase!==null&&requestBase!==contextKey())||contextKey()===null)cancelPending('context_changed');
+ if(dictation?.hasWork&&dictationContext!==contextKey())dictation.cancel('context_changed');
+ if(sessionProjectId!==s.project.id||sessionGeneration!==s.generation){
   if(sessionProjectId!==null){
    history=[];showPlan(null);
    if($('rqAgentSelectedSound'))$('rqAgentSelectedSound').value='';
    $('rqAgentMessages')?.replaceChildren();
    addMessage('assistant',lang('Nuevo espectáculo: conversación reiniciada.','New show: conversation reset.'));
   }
+  sessionProjectId=s.project.id;sessionGeneration=s.generation;
+ }
   const sound=$('rqAgentSelectedSound');
   const soundOptions=s.project.assets.map(asset=>({
    id:asset.id,name:asset.name,ready:assetReady(asset.id,s)===true,
@@ -135,8 +169,6 @@ function sync(){
    sound.value=soundOptions.some(asset=>asset.id===selected&&asset.ready)?selected:'';
    sound.dataset.options=soundKey;
   }
-  sessionProjectId=s.project.id;
- }
  const blocked=['rehearsal','operation'].includes(s.workspace);
  button.hidden=blocked;
  const drawer=$('rqAgentDrawer'),host=$('rqAgentWorkspace');
@@ -164,6 +196,7 @@ function positionDrawer(){
  drawer.style.top=Math.max(55,Math.min(window.innerHeight-160,barBottom+10))+'px';
 }
 function close(){
+ cancelPending();
  if(state()?.workspace==='ai'){
   $('rqAgentPrompt')?.focus();return;
  }
@@ -180,7 +213,7 @@ function open(){
 }
 function assetReady(id,s){return s.assets.find(a=>a.id===id)?.ready??null;}
 async function sendRequest(forceAI=false,custom=null){
- if(working)return;
+ if(working||dictation?.busy)return;
  const s=state();if(!s)return;
  if(['operation','rehearsal'].includes(s.workspace)){notify(lang('El agente solo está disponible en Studio.','Agent is available in Studio only.'),true);return;}
  const instruction=(custom??$('rqAgentPrompt').value).trim();
@@ -194,8 +227,10 @@ async function sendRequest(forceAI=false,custom=null){
    'Authorize sending the instruction and show context before using AI.'),true);return;
  }
  const conversation=boundedAgentConversation(history);
+ const epoch=++requestEpoch;requestBase=contextKey();
+ requestController=new AbortController();
  working=true;lastPrompt=instruction;showPlan(null);
- $('rqAgentSubmit').disabled=true;$('rqAgentAskAI').disabled=true;
+ refreshControls();
  addMessage('user',instruction);
  notify(forceAI?lang('Preparando propuesta con IA…','Preparing an AI suggestion…'):
   lang('Analizando proyecto localmente...','Analyzing local project...'));
@@ -212,9 +247,10 @@ async function sendRequest(forceAI=false,custom=null){
    }
    const response=await fetch('/api/agent/interpret',{method:'POST',headers:{
     'Content-Type':'application/json','X-Runq-Agent-Consent':'yes'
-   },body:JSON.stringify({prompt:instruction,language:s.language,context,
+   },signal:requestController.signal,body:JSON.stringify({prompt:instruction,language:s.language,context,
      provider:$('rqAgentProvider')?.value??'meta',conversation})});
    const result=await response.json();
+   if(epoch!==requestEpoch)return;
    if(!response.ok)throw new Error(result.error??'AGENT_PROVIDER_UNAVAILABLE');
    reply=result;
   }else{
@@ -224,7 +260,8 @@ async function sendRequest(forceAI=false,custom=null){
   }
   // One-shot model permission, including error paths.
   const latest=state();
-  if(!latest||JSON.stringify(latest.project)!==JSON.stringify(s.project)||
+  if(epoch!==requestEpoch)return;
+  if(!latest||requestBase!==contextKey()||JSON.stringify(latest.project)!==JSON.stringify(s.project)||
      ['operation','rehearsal'].includes(latest.workspace)){
    throw new Error(lang('El proyecto o el modo cambió durante el análisis. Repite la consulta.',
     'Show or workspace changed while planning. Submit again.'));
@@ -269,13 +306,14 @@ async function sendRequest(forceAI=false,custom=null){
       'Completed. The show was not modified.'));
   }
  }catch(error){
+  if(epoch!==requestEpoch)return;
   addMessage('assistant',userFacingError(error,es()?'es':'en'));
   notify(lang('La operación ha fallado. No se han aplicado cambios.',
     'Request failed. No changes were applied.'),true);
  }finally{
+  if(epoch!==requestEpoch)return;
   $('rqAgentConsent').checked=false;
-  working=false;
-  $('rqAgentSubmit').disabled=false;$('rqAgentAskAI').disabled=false;
+  working=false;requestController=null;requestBase=null;refreshControls();
  }
 }
 function apply(){
@@ -349,6 +387,22 @@ function mount(){
   const b=make('button','btn subtle small',text);b.type='button';
   b.addEventListener('click',()=>{input.value=cmd;void sendRequest(false,cmd);});examples.append(b);
  }
+ const voice=make('details','rq-agent-ai-options');voice.id='rqAgentVoice';
+ voice.append(make('summary','',lang('Dictar instrucción · revisión manual','Dictate instruction · manual review')));
+ const voiceConsentLabel=make('label','rq-agent-consent');
+ const voiceConsent=make('input','');voiceConsent.type='checkbox';voiceConsent.id='rqAgentVoiceConsent';
+ voiceConsentLabel.append(voiceConsent,make('span','',lang(
+  'Autorizo enviar esta grabación a Meta para transcribirla (puede tener coste).',
+  'I authorize this recording to be sent to Meta for transcription (may incur a charge).')));
+ const voiceActions=make('div','rq-agent-actions');
+ const record=make('button','btn subtle small',lang('Grabar instrucción (10 s)','Record instruction (10 s)'));
+ record.type='button';record.id='rqAgentRecord';
+ const transcribe=make('button','btn subtle small',lang('Transcribir grabación','Transcribe recording'));
+ transcribe.type='button';transcribe.id='rqAgentTranscribe';transcribe.disabled=true;
+ voiceActions.append(record,transcribe);
+ const voiceStatus=make('output','rq-agent-status');voiceStatus.id='rqAgentVoiceStatus';
+ voiceStatus.setAttribute('role','status');
+ voice.append(voiceConsentLabel,voiceActions,voiceStatus);
  const aiOptions=make('details','rq-agent-ai-options');
  aiOptions.id='rqAgentAiOptions';
  const aiSummary=make('summary','',lang('Servicio de IA y permisos','AI service and permissions'));
@@ -377,13 +431,28 @@ function mount(){
  cloud.id='rqAgentAskAI';cloud.type='button';
  const undoButton=make('button','btn subtle small',lang('Deshacer lote','Undo batch'));
  undoButton.id='rqAgentUndo';undoButton.type='button';
- actions.append(local,cloud,undoButton);
+ const cancel=make('button','btn subtle small',lang('Cancelar pendiente','Cancel pending'));
+ cancel.type='button';cancel.id='rqAgentCancel';cancel.disabled=true;
+ actions.append(local,cloud,undoButton,cancel);
  const status=make('output','rq-agent-status',
   lang('Sin modificaciones pendientes.','No pending modifications.'));
  status.id='rqAgentStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
- composer.append(label,input,soundLabel,examples,aiOptions,actions,status);
+ composer.append(label,input,soundLabel,examples,voice,aiOptions,actions,status);
  panel.append(head,messages,proposals,composer);
  document.body.append(panel);
+ dictation=createCommandDictation({
+  owner:'agent-command',contextKey,
+  onTranscript:text=>{input.value=text;input.focus();},
+  onStatus:(code,error)=>{
+   voiceStatus.textContent=commandDictationMessage(code,es()?'es':'en');
+   voiceStatus.classList.toggle('is-error',error);
+  },onChange:refreshControls,
+ });
+ record.addEventListener('click',()=>{
+  dictationContext=contextKey();void dictation.record();
+ });
+ transcribe.addEventListener('click',()=>void dictation.transcribe(voiceConsent.checked,es()?'es':'en'));
+ cancel.addEventListener('click',()=>cancelPending());
  window.addEventListener('resize',positionDrawer);
  window.addEventListener('scroll',()=>{if(!panel.hidden)positionDrawer();},{passive:true});
  panel.addEventListener('keydown',event=>{if(event.key==='Escape')close();});
@@ -401,6 +470,8 @@ function mount(){
   if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();void sendRequest(false);}
  });
  document.addEventListener('runq:show-state-changed',sync);
+ document.addEventListener('runq:operator-stop-all',()=>cancelPending());
+ window.addEventListener('pagehide',()=>cancelPending());
  sync();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);

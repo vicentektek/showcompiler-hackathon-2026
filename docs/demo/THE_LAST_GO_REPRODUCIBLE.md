@@ -19,7 +19,7 @@ Open the complete ZIP in RUNQ, not the TXT importer. Confirm all three sounds ar
 
 ## Hero configured cue - explicit review
 
-1. Open RUNQ AI in Studio.
+1. Open the main RUNQ AI workspace, or the contextual Agent in Studio.
 2. Deliberately choose the ready sound `01_atmosphere.wav` in the sound selector. No sound is selected automatically.
 3. Enter this supported English instruction:
 
@@ -30,6 +30,12 @@ Open the complete ZIP in RUNQ, not the TXT importer. Confirm all three sounds ar
 6. Save complete ZIP, reload and reopen. Check that four cues, three audio files, original script and trigger remain present.
 
 Only this narrow configured command is supported. Missing/unready sound, absent cue, nondialogue line, duplicate trigger or conflicting exclusion produces clarification. Source/audio readiness are revalidated at preview and commit. Model-returned operations cannot use this configured-cue tool; it is local/operator-only.
+
+### Optional dictated instruction
+
+Open **Dictate instruction**, explicitly record up to 10 seconds using the Setup-selected microphone, then authorize this individual Meta transcription upload and press **Transcribe recording**. Recording alone never uploads. The transcript only fills the command editor: review it, choose **Plan locally**, inspect the full preview and apply manually as above. Actual transcription requires a correctly configured provider and operator spend approval; the coding/browser gates do not contact it.
+
+**Cancel pending**, closing the editor, STOP ALL, workspace changes and project replacement invalidate capture and late results. Reopening identical project content still changes its generation. Cancellation does not guarantee that an upload already started is free. There are no automatic transcription retries or automatic command submission.
 
 ## Rehearsal and Live
 
@@ -42,8 +48,11 @@ Real microphone/provider recognition, audible output, room noise, latency and de
 ```powershell
 node --test test/heroCue.test.mjs test/heroIntegration.test.mjs
 npm run test:last-go
+npm run test:dictation
 node tools/rehearsal-auto-browser-e2e.mjs
 npm run qa:codex
 ```
 
 The Last GO browser gate verifies original source, explicit sound choice, preview/apply/undo, ZIP save/reload/reopen, four cues and three WAVs, armed synthetic speech jump/rewind, actual browser audio instances, manual Live GO and STOP ALL. No paid requests.
+
+The dictation browser gate separately uses silent synthetic PCM and controlled offline ASR/AI responses. It verifies transcript-only Hero editing, human apply/undo, and late-result rejection after Stage, STOP ALL, identical project reopen and editor close. It is not microphone/ASR or paid-model quality evidence.

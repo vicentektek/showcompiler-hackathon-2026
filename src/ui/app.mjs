@@ -2065,7 +2065,7 @@ function safeCueChatEditState(){
 document.addEventListener('runq:cue-chat-context',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
- respond({project:show,cueId:selectedCueId,language:uiLocale,workspace:activeWorkspace,
+ respond({project:show,generation:projectGeneration,cueId:selectedCueId,language:uiLocale,workspace:activeWorkspace,
   canApply:safeCueChatEditState(),
   undoAvailable:Boolean(cueChatUndo&&cueChatUndo.after===JSON.stringify(show))});
 });
@@ -2113,7 +2113,7 @@ function safeAgentEditState(){
 document.addEventListener('runq:agent-read',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
- respond({project:show,selectedCueId,workspace:activeWorkspace,
+ respond({project:show,generation:projectGeneration,selectedCueId,workspace:activeWorkspace,
   language:uiLocale,canApply:safeAgentEditState(),
   undoAvailable:Boolean(runqAgentUndo&&JSON.stringify(show)===runqAgentUndo.afterSnapshot),
   assets:show.assets.map(a=>({id:a.id,ready:player.hasAsset(a.id)}))});
@@ -2836,6 +2836,7 @@ $('analyzeMetaBtn').addEventListener('click', async () => {
 });
 
 function emergencyStopAllAudio() {
+  document.dispatchEvent(new CustomEvent('runq:operator-stop-all'));
   document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'stop_all'}}));
   stopSoundLabPreview();
   player.stopAll();

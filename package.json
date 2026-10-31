@@ -14,6 +14,7 @@
     "demo:rehearsal": "node tools/build-rehearsal-demo.mjs",
     "demo:last-go": "node tools/video/build-the-last-go.mjs",
     "test:last-go": "node tools/last-go-browser-e2e.mjs",
+    "test:dictation": "node --check src/ui/command-dictation.mjs && node tools/command-dictation-browser-e2e.mjs",
     "sfx:doctor": "node tools/runq-sfx-doctor.mjs",
     "qa:cues": "node tools/cue-qa-report.mjs",
     "qa:codex": "npm run check:syntax && npm test && npm run qa:cues && npm run qa:seminar && node tools/codex-qa-summary.mjs",
