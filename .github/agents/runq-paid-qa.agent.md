@@ -51,6 +51,19 @@ Si la documentación existe solo en `origin/docs/runq-evals-exhaustive-2026-10-3
 
 No neutralices pruebas, modifiques las cifras aprobadas ni elimines límites solo para habilitar las llamadas. Un fallo de verificación es `BLOCKED`, nunca `PASS`.
 
+## Bloqueos reales frente a bloqueos evitables (adenda 01/11/2026)
+
+**Un worktree con archivos sin commit NO es, por sí mismo, razón para detener toda la campaña.** El agente debe conservar esos archivos y crear una ejecución trazable, no pedir al usuario que los descarte ni hacer un commit indiscriminado:
+
+- Antes de ejecutar, registrar commit base, rama, diff, archivos no rastreados pertinentes, hashes SHA-256 y resultado de las suites. Crear un respaldo externo verificable. Si el runner exige un checkout limpio, preparar una **copia de trabajo aislada** que contenga exactamente el código que se pretende evaluar, con manifiesto de hashes y tests; no utilizar una versión anterior que excluya los cambios objeto de evaluación.
+- Un runner con gate `requireCleanCheckout` debe ofrecer un modo explícito `--verified-snapshot` respaldado por comprobación real de integridad y snapshot, o ejecutarse en la copia aislada. **No desactivar la comprobación sin sustituirla por una prueba de reproducibilidad.** No alterar el repositorio original, no limpiar el árbol, no lanzar pagos durante una modificación de archivos bajo prueba.
+- Los estados de crédito deben registrarse **por proveedor**: `meta.creditVerified` y `modal.creditVerified` (o equivalente). **Crédito Modal no verificado bloquea solamente Modal**, no una campaña Meta con crédito Meta verificado, límites de Meta y ledger compartido correctos. Un `creditVerified:false` global NO demuestra que Meta esté verificado: verificarlo de manera independiente antes de cualquier solicitud Meta.
+- Si no existe lectura API sin coste del balance, requerir una constancia explícita del panel del proveedor (créditos/saldo, moneda, fecha y vencimiento), almacenada localmente y ligada al presupuesto. **No inferir crédito del simple éxito de un endpoint**, ni asumir que fue verificado por una captura vieja. Si no se puede acreditar Meta, mantener Meta `BLOCKED`; si no se puede acreditar Modal, mantener Modal `BLOCKED`.
+- Los importes reportados como `remaining` en el ledger son **margen nominal de reservas**, no créditos disponibles ni gasto facturado. No incrementar límites, resetear reservas ni repetir solicitudes de resultado incierto.
+- Entregar un diagnóstico exacto por proveedor: `BLOCKED_CREDIT_UNVERIFIED`, `BLOCKED_SNAPSHOT_UNVERIFIED`, `BLOCKED_GATEWAY` o `READY`, con evidencia. Cuando un proveedor esté en `READY`, empezar por piloto de 1–2 peticiones aprobadas por esta política, sin necesidad de autorización por solicitud.
+
+**Prioridad:** resolver técnicamente los bloqueos, no ejecutar únicamente `npm test` y cerrar la tarea. Un resultado offline verde es condición necesaria, no equivale a completar una campaña de IA real.
+
 ## Flujo autónomo permitido
 
 - Primero ejecuta pruebas sintéticas y de integración sin coste.
