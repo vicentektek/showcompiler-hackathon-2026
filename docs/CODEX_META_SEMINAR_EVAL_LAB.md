@@ -1,6 +1,13 @@
 # RunQ — banco de pruebas del taller Meta para Codex
 **27 oct 2026 · Hackathon · ciclo evaluable, no autoentrenamiento**
 
+**Actualizacion autorizada, 31 octubre:** la [politica vigente](RUNQ_AI_CAMPAIGN_100_2026-10-31.md)
+amplia el techo global a USD 100 (Meta 65, Modal 35, Baseten/Fireworks 0).
+Los USD 2 siguen siendo el limite **por comando**, no el techo global.
+Se conservan el historial local y el ledger compartido, sin reinicios,
+reintentos desconocidos ni falsas comprobaciones de credito. La ejecucion
+pagada sigue siendo del operador; agentes/CI no leen claves ni ejecutan live.
+
 ## 1. Proveniencia y diseño
 
 Tomamos de «Agents 101: Build a Multimodal AI Agent Pt. 1» (Meta / Ivan Porollo / Suraj Subramanian) y el ejemplo de agente de trabajo presentado como inspiración de ingeniería **un agente que separa plan, herramienta/acción, observación y verificación**, con contexto explícito y una decisión humana de cierre. No atribuir a la sesión cifras, precisión teatral, comportamiento de Muse Code ni algoritmos que el material aportado no demuestra.
@@ -55,7 +62,9 @@ Por defecto NO hace llamadas. Primera comprobación:
 npm run qa:meta:plan
 \`\`\`
 
-Usa \`MODEL_API_KEY\` solo en tu entorno local (nunca la pegues en chats, archivos JSON o Git). Para ejecutar una tanda real, el usuario ha autorizado hasta ~2 USD:
+Usa \`MODEL_API_KEY\` solo en el entorno privado del operador (nunca en chats,
+JSON o Git). El propietario ya ha autorizado la campana vigente; este comando
+conserva una tanda limitada a 2 USD:
 
 \`\`\`powershell
 npm run qa:meta:live
@@ -69,7 +78,15 @@ node tools/run-meta-seminar-eval.mjs --live --ack-paid --budget-usd 0.50 --max-r
 
 **Medidas de seguridad:** no hay llamada al iniciar el servidor, en CI ni en el dry run. \`--live\` y \`--ack-paid\` deben estar presentes. **No se reintenta** tras error, timeout, respuesta truncada o JSON inválido. El runner reserva antes de cada solicitud el coste conservador calculado a partir del tamaño de la petición y del máximo de 8192 tokens de salida.
 
-**Límite acumulado local:** el archivo ignorado por Git \`.runq-local/meta-eval-budget.json\` guarda reservas previas y un \`.lock\` exclusivo impide dos tandas simultáneas. Así **un segundo lanzamiento no repone los 2 USD**. Las reservas de respuestas fallidas también se conservan. El archivo **no registra llamadas realizadas antes de instalar este laboratorio**, como las anteriores pruebas manuales del usuario. No lo borres para "resetear" el presupuesto sin consultar antes el consumo real. Si queda un .lock tras un cierre forzado, asegúrate de que no hay otro proceso activo antes de gestionarlo.
+**Limite acumulado:** el archivo ignorado por Git \`.runq-local/meta-eval-budget.json\`
+conserva las reservas previas y ahora limita el acumulado Meta a USD 65,
+ademas del ledger compartido global de USD 100. Un segundo lanzamiento no
+repone ninguno de los acumulados. El comando conserva su maximo USD 2.
+Fallos y estados inciertos permanecen reservados. Los historiales anteriores
+externos requieren la importacion conservadora de la politica vigente; el
+archivo local no descubre automaticamente llamadas antiguas de otras copias.
+No borrar ni modificar registros para aparentar credito disponible. Un lock
+tras cierre forzado necesita verificar primero que no existe otro proceso activo.
 
 **Limitación financiera:** esto es un techo de gasto **estimado por software local y solo para las solicitudes de este runner**; no es un límite de facturación impuesto por Meta. Las tarifas, tarifas adicionales, el uso del panel, y otras llamadas con la misma clave podrían sumar costes. Comprueba siempre el panel de facturación de Meta. Se usa \`muse-spark-1.3\` **Standard**, no Contributor: la documentación de Meta explica que Contributor autoriza uso del contenido para entrenar modelos; no activarlo por ahorro sin consentimiento.
 

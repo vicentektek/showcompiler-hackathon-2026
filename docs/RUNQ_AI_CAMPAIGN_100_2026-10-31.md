@@ -99,6 +99,16 @@ or billing are null, not zero. Precision/recall/F1 apply to typed event matches;
 conversation contract accuracy is a separate metric. Never mix failed or
 incomplete responses into fabricated F1, or retune gold to improve a score.
 
+`contract-scoring-v2` separates scored replies, network errors and artistic human
+review. Explicit summaries must enumerate actual cue labels; label coverage is
+a grounding heuristic, not comprehensive hallucination detection. Unspecified
+creative counts are not assigned an invented target of three. Empty closing
+cues are checked by final placement/source state, not by one `afterCueId`
+spelling. Derived operation kinds, target ordinals and changed field names are
+recorded without model messages or raw text. Historical reports are not rescored
+without their original evidence and protocol; percentages across versions are
+not directly comparable.
+
 For product E2E, human review precedes approval, audio import, cue creation and
 transport. Verify save/export/reopen with real WAV bytes; browser engine checks
 are not proof of physical sound, microphone recognition or theatre readiness.

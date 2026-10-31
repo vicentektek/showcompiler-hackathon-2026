@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {acquireAgentEvalBudget} from '../tools/agentLiveBudget.mjs';
 import {parseAgentLiveOptions,getAgentLiveScenario,
- judgeAgentLiveReply,runPaidAgentEvaluation} from '../tools/runq-agent-live-eval.mjs';
+ judgeAgentLiveReply,runPaidAgentEvaluation,summarizeAgentLiveResults} from '../tools/runq-agent-live-eval.mjs';
 
 test('paid experiment is off by default and requires BOTH explicit flags',()=>{
  const dry=parseAgentLiveOptions(['--cases','20','--providers','meta']);
@@ -38,21 +38,67 @@ test('20-case product plan includes both languages for every scenario category',
   assert.notEqual(getAgentLiveScenario(index).language,getAgentLiveScenario(index+10).language);
  }
 });
+test('campaign judge rejects fabricated summaries, false mutation claims and non-plan operations',()=>{
+ const summary=getAgentLiveScenario(5);
+ assert.equal(judgeAgentLiveReply(summary,{status:'ANSWER',
+  message:'The show has a laser cue, an explosion and a symphonic finale',operations:[]}).correct,false);
+ assert.equal(judgeAgentLiveReply(summary,{status:'ANSWER',
+  message:summary.project.cues.map(c=>c.label).join(', '),operations:[]}).correct,true);
+ const negative=getAgentLiveScenario(6);
+ assert.equal(judgeAgentLiveReply(negative,{status:'ANSWER',message:'I created the cues',operations:[]}).correct,false);
+ assert.equal(judgeAgentLiveReply(negative,{status:'ANSWER',message:'No changes proposed.',operations:[]}).correct,true);
+ assert.equal(judgeAgentLiveReply(negative,{status:'ANSWER',message:'No changes.',
+  operations:[{op:'GO'}]}).valid,false);
+});
+test('artistic advice and unspecified creative counts require human review, not invented accuracy',()=>{
+ const advice=judgeAgentLiveReply(getAgentLiveScenario(9),{
+  status:'ANSWER',message:'Try a quieter transition.',operations:[],
+ });
+ assert.equal(advice.correct,null);assert.equal(advice.reviewRequired,true);
+ const followup=judgeAgentLiveReply(getAgentLiveScenario(1),{
+  status:'PLAN',message:'Two possible closing cues.',
+  operations:Array.from({length:2},(_,i)=>({op:'CREATE_CUE',label:'Closing '+i,afterCueId:null})),
+ });
+ assert.equal(followup.correct,null);assert.equal(followup.reviewRequired,true);
+});
+test('correct appended empty cues are judged by final placement, not a single implementation spelling',()=>{
+ const scenario=getAgentLiveScenario(0);
+ const reply={status:'PLAN',message:'Three closing cues.',
+  operations:Array.from({length:3},(_,i)=>({
+   op:'CREATE_CUE',label:'Closing '+i,afterCueId:scenario.project.cues.at(-1).id,
+  }))};
+ assert.equal(judgeAgentLiveReply(scenario,reply).correct,true);
+});
+test('campaign accuracy excludes provider errors and human-only artistic review, with explicit denominators',()=>{
+ const rows=[
+  {provider:'meta',httpStatus:502,correct:false,valid:false,latencyMs:10},
+  {provider:'meta',httpStatus:200,correct:null,reviewRequired:true,valid:true,latencyMs:20},
+  {provider:'meta',httpStatus:200,correct:true,valid:true,latencyMs:30},
+  {provider:'meta',httpStatus:200,correct:false,valid:true,latencyMs:40},
+ ];
+ const report=summarizeAgentLiveResults(rows,parseAgentLiveOptions([]));
+ assert.equal(report.providerMetrics.meta.scored,2);
+ assert.equal(report.providerMetrics.meta.humanReview,1);
+ assert.equal(report.providerMetrics.meta.correctRate,50);
+ assert.equal(report.providerMetrics.meta.errors,1);
+ assert.equal(summarizeAgentLiveResults(rows.slice(0,2),
+  parseAgentLiveOptions([])).providerMetrics.meta.correctRate,null);
+});
 test('paired evaluation fixtures are independent and score proposed changes without execution',()=>{
  const a=getAgentLiveScenario(0),b=getAgentLiveScenario(0);
  assert.deepEqual(a.project,b.project);
  assert.equal(a.expected.kind,'CREATE_CUE');
- const creative={status:'PLAN',operations:Array.from({length:3},(_,i)=>({
+ const creative={status:'PLAN',message:'Closing ideas',operations:Array.from({length:3},(_,i)=>({
   op:'CREATE_CUE',label:'Artistic closing '+i,afterCueId:null
  }))};
  const r=judgeAgentLiveReply(a,creative);
  assert.equal(r.correct,true);
  assert.equal(r.valid,true);
  assert.equal(a.project.cues.length,4,'Judging must not alter source');
- assert.equal(judgeAgentLiveReply(a,{status:'CLARIFY',operations:[]}).correct,false);
+ assert.equal(judgeAgentLiveReply(a,{status:'CLARIFY',message:'Please clarify.',operations:[]}).correct,false);
  assert.equal(judgeAgentLiveReply(getAgentLiveScenario(6),
-  {status:'CLARIFY',operations:[]}).correct,true);
- const unsafe=judgeAgentLiveReply(a,{status:'PLAN',operations:[{op:'GO'}]});
+  {status:'CLARIFY',message:'No changes.',operations:[]}).correct,true);
+ const unsafe=judgeAgentLiveReply(a,{status:'PLAN',message:'Unsafe',operations:[{op:'GO'}]});
  assert.equal(unsafe.valid,false);
 });
 test('paid ledger records cumulative reservations, rejects overlapping runs and survives reopening',async()=>{

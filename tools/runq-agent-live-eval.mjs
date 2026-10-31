@@ -19,6 +19,7 @@ import {pathToFileURL} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
 import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
+import {execFileSync} from 'node:child_process';
 
 const CATEGORIES=[
  'closing','followup','delete','reorder','rename','summary',
@@ -96,7 +97,7 @@ function getScenario(index){
    {role:'assistant',text:es?'¿Qué cues quieres?':'Which cues should I add?'}
   ];
   prompt=es?'los que te parezcan más apropiados':'you decide what fits best';
-  expected={kind:'CREATE_CUE',count:3};
+  expected={kind:'CREATE_CUE',count:null,review:true};
  }else if(kind==='delete'){
   prompt=es?'Elimina el cue 2':'Delete cue 2';
   expected={kind:'DELETE_CUE',cueId:cue2.id,count:1};
@@ -131,20 +132,41 @@ function getScenario(index){
   conversation,expected,language,seedIndex:index};
 }
 function judge(scenario,response){
+ if(!response||typeof response!=='object'||!Array.isArray(response.operations)||
+   !['PLAN','ANSWER','CLARIFY'].includes(response.status)||typeof response.message!=='string')
+  return {correct:false,resolved:false,valid:false,reason:'BAD_REPLY_SHAPE'};
+ if(response.status!=='PLAN'&&response.operations.length)
+  return {correct:false,resolved:false,valid:false,reason:'UNEXPECTED_OPERATIONS'};
  if(response.status==='CLARIFY')return {correct:scenario.expected.kind==='NO_PLAN',
   resolved:false,valid:true,reason:'CLARIFIED'};
- if(response.status==='ANSWER')return {correct:['ANSWER','NO_PLAN'].includes(scenario.expected.kind),
-  resolved:false,valid:true,reason:'ANSWERED'};
+ if(response.status==='ANSWER'){
+  if(scenario.kind==='audio')return {correct:null,resolved:false,valid:true,
+   reviewRequired:true,reason:'ARTISTIC_REVIEW_REQUIRED'};
+  if(scenario.kind==='summary'){
+   const message=response.message.toLocaleLowerCase();
+   const grounded=scenario.project.cues.every(cue=>message.includes(cue.label.toLocaleLowerCase()));
+   return {correct:grounded,resolved:false,valid:true,
+    reason:grounded?'GROUNDED_SUMMARY':'UNGROUNDED_SUMMARY'};
+  }
+  if(scenario.expected.kind==='NO_PLAN'){
+   const claimsMutation=/\b(?:i (?:have )?(?:deleted|created|removed|added)|i've (?:deleted|created|removed|added)|he (?:borrado|creado|eliminado|a[nñ]adido))\b/i;
+   const safe=!claimsMutation.test(response.message);
+   return {correct:safe,resolved:false,valid:true,reason:safe?'SAFE_NO_PLAN':'FALSE_MUTATION_CLAIM'};
+  }
+  return {correct:false,resolved:false,valid:true,reason:'WRONG_ANSWER'};
+ }
  if(response.status!=='PLAN')return {correct:false,resolved:false,valid:false,reason:'BAD_STATUS'};
  try{
   const plan=prepareAgentPlan(scenario.project,response.operations);
   const {expected}=scenario;
   let correct=false;
   if(expected.kind==='CREATE_CUE'){
-   correct=plan.operations.length===expected.count&&
-    plan.operations.every(x=>x.op==='CREATE_CUE'&&x.afterCueId===null)&&
-    plan.proposedProject.cues.length===scenario.project.cues.length+expected.count&&
-    plan.proposedProject.cues.slice(-expected.count).every(x=>
+   const count=expected.count??plan.operations.length;
+   correct=count>0&&plan.operations.length===count&&
+    plan.operations.every(x=>x.op==='CREATE_CUE')&&
+    plan.proposedProject.cues.length===scenario.project.cues.length+count&&
+    scenario.project.cues.every((cue,i)=>plan.proposedProject.cues[i].id===cue.id)&&
+    plan.proposedProject.cues.slice(-count).every(x=>
      x.actions.length===1&&x.actions[0].type==='PLAN_AUDIO'&&x.sourceLineIds.length===0);
   }else if(expected.kind==='UPDATE_CUE'){
    const op=plan.operations;
@@ -161,7 +183,13 @@ function judge(scenario,response){
   const applied=commitAgentPlan(scenario.project,plan,{editable:true});
   if(JSON.stringify(undoAgentPlan(applied.project,applied.undo,{editable:true}))!==
     JSON.stringify(scenario.project))throw new Error('UNDO_MISMATCH');
-  return {correct,resolved:true,valid:true,reason:correct?'CORRECT':'WRONG_PLAN'};
+  const reviewRequired=Boolean(expected.review&&correct);
+  return {correct:reviewRequired?null:correct,resolved:true,valid:true,reviewRequired,
+   reason:reviewRequired?'CREATIVE_REVIEW_REQUIRED':correct?'CORRECT':'WRONG_PLAN',
+   observedOperations:plan.operations.map(op=>({
+    op:op.op,cueNumber:op.cueId?scenario.project.cues.findIndex(c=>c.id===op.cueId)+1:null,
+    fields:Object.keys(op.changes??{}).sort(),
+   }))};
  }catch(error){
   return {correct:false,resolved:false,valid:false,reason:
    (error.code??error.message??'INVALID_PLAN').slice(0,65)};
@@ -172,29 +200,32 @@ function summarize(rows,config){
  const aggregate={};
  for(const provider of config.providers){
   const records=rows.filter(r=>r.provider===provider);
+  const scored=records.filter(r=>r.httpStatus===200&&!r.reviewRequired&&typeof r.correct==='boolean');
   aggregate[provider]={
-   total:records.length,validRate:rate(records,r=>r.valid),
-   correctRate:rate(records,r=>r.correct),
+   total:records.length,scored:scored.length,
+   humanReview:records.filter(r=>r.reviewRequired).length,validRate:rate(records,r=>r.valid),
+   correctRate:rate(scored,r=>r.correct),
    resolvesRate:rate(records,r=>r.resolved),
    errors:records.filter(r=>r.httpStatus!==200).length,
    clarificationRate:rate(records,r=>r.result==='CLARIFIED'),
    medianLatencyMs:records.length?records.map(r=>r.latencyMs).sort((a,b)=>a-b)[Math.floor(records.length/2)]:null,
   };
  }
- return {version:1,realProviderEvaluations:config.live,providers:config.providers,
+ return {version:2,realProviderEvaluations:config.live,providers:config.providers,
+  evaluationProtocol:'contract-scoring-v2',modelIds:{meta:'muse-spark-1.3'},
   plannedRequests:config.cases,attemptedRequests:rows.length,
   reserveUsdPerAttempt:config.reserveUsd,budgetUsd:config.budgetUsd,
   providerMetrics:aggregate,strictlySyntheticFixtures:true,results:rows};
 }
 function format(report){
  const output=[
-  '# RUNQ Agent — real-provider A/B evaluation','',
+  '# RUNQ Agent — bounded Meta product evaluation','',
   'Synthetic theatre fixtures only. Human theatre review required for artistic quality.',
   'No prompt, project, secret or raw provider response is recorded.','',
-  '| Provider | Attempts | Correct % | Valid % | Resolves % | Clarification % | Errors | Median ms |',
-  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
+  '| Provider | Attempts | Scored | Human review | Correct % | Valid % | Resolves % | Clarification % | Errors | Median ms |',
+  '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
  for(const [provider,row] of Object.entries(report.providerMetrics))
-  output.push('| '+provider+' | '+row.total+' | '+row.correctRate+' | '+row.validRate+
+  output.push('| '+provider+' | '+row.total+' | '+row.scored+' | '+row.humanReview+' | '+(row.correctRate??'n/a')+' | '+row.validRate+
    ' | '+row.resolvesRate+' | '+row.clarificationRate+' | '+row.errors+
    ' | '+row.medianLatencyMs+' |');
  output.push('','Reserved maximum USD per request: '+report.reserveUsdPerAttempt+
@@ -205,12 +236,21 @@ function format(report){
    ' · '+row.result+' · HTTP '+row.httpStatus);
  return output.join('\n')+'\n';
 }
+function commitIdentity(){
+ const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+ if(!/^[a-f0-9]{40}$/.test(sourceCommit)||
+   execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim())
+  throw new Error('PIN_CLEAN_VALIDATED_COMMIT_BEFORE_PAID_EVALUATION');
+ return sourceCommit;
+}
 export async function runPaidAgentEvaluation(config,{serverFactory=createAppServer,fetchImpl=fetch,
+ commitIdentityFn=commitIdentity,
  sharedLedgerFactory=acquireGlobalSpendLedger,budgetFactory=acquireAgentEvalBudget}={}){
  if(config?.live!==true||config.ackPaid!==true)throw new TypeError('EXPLICIT_PAID_OPT_IN_REQUIRED');
  config=opts(['--live','--ack-paid','--cases',String(config.cases),
   '--providers',config.providers?.join(',')??'','--budget-usd',String(config.budgetUsd),
   '--reserve-usd',String(config.reserveUsd),'--seed',String(config.seed)]);
+ const sourceCommit=commitIdentityFn();
  const shared=await sharedLedgerFactory();
  let sharedStatus;
  let budget,server;
@@ -270,6 +310,11 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
      expectedProvenance:'synthetic independent product contract',
      reservedMaximumUsd:reservation.amountUsd,actualBilledUsd:null,
      tokens:null,retries:0,
+     expectedContract:{kind:scenario.expected.kind,count:scenario.expected.count??null,
+      cueNumber:scenario.expected.cueId?scenario.project.cues.findIndex(c=>c.id===scenario.expected.cueId)+1:null,
+      reviewRequired:Boolean(scenario.expected.review||scenario.kind==='audio')},
+     observedOperations:result.observedOperations??[],
+     reviewRequired:Boolean(result.reviewRequired),
      httpStatus:status,latencyMs,correct:result.correct,
      valid:result.valid,resolved:result.resolved,result:result.reason};
     rows.push(row);
@@ -289,6 +334,7 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   sharedStatus=shared.status();
  }
  const report=summarize(rows,config);report.stopReason=stopReason;
+ report.sourceCommit=sourceCommit;
  report.totalLocalReservedUsd=Math.round(budget.committedUsd()*1e4)/1e4;
  report.campaign=sharedStatus;
  const folder=resolve('artifacts/agent-live-eval');
@@ -305,7 +351,8 @@ export async function runPaidAgentEvaluation(config,{serverFactory=createAppServ
   finally{await shared.close();}
  }
 }
-export {opts as parseAgentLiveOptions,getScenario as getAgentLiveScenario,judge as judgeAgentLiveReply};
+export {opts as parseAgentLiveOptions,getScenario as getAgentLiveScenario,
+ judge as judgeAgentLiveReply,summarize as summarizeAgentLiveResults};
 const invoked=process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href;
 if(invoked){
  try{
