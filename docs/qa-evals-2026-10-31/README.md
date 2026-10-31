@@ -1,3 +1,5 @@
+> **ESTADO EN GITHUB (31/10/2026):** esta rama publica la documentación y contratos de la campaña. El corpus de 100 guiones, 102 conversaciones, 18 journeys, 32 fallos y los scripts del ZIP original **no están aún copiados al repositorio**. Por tanto, los comandos del kit que aparecen abajo son instrucciones para una fase posterior, no comandos que funcionen ya desde esta rama. Ver [START_HERE.md](START_HERE.md), [PROMPT_PARA_COPILOT.md](PROMPT_PARA_COPILOT.md) y [CORPUS_AND_REPORT_CONTRACT.md](CORPUS_AND_REPORT_CONTRACT.md) para reconstruir e integrar esos archivos sin descargar nada.
+
 # RUNQ — Kit inicial de campaña QA/Evals para Show Builder
 
 **Fecha:** 2026-10-31 · **Estado:** fixtures DRAFT y herramienta L0/L1 independiente. Este paquete no llama a IA, no ejecuta audio, no transforma pesos de ningún modelo y no modifica el repositorio RUNQ por sí mismo.
