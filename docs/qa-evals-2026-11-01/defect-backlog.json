@@ -155,7 +155,7 @@
       "summary": "Gauntlet v2 reports LOCAL_GAP turns (most require AI reasoning; some missing local functions, legitimate ambiguity or not implemented).",
       "repro": "node tools/runq-show-assistant-gauntlet-v2.mjs; node tools/runq-show-assistant-quality-audit.mjs",
       "fix": "Requires measured Muse responses against human-reviewed gold; not claimable offline.",
-      "reevaluation": "Pending live pilot and human review."
+      "reevaluation": "Live pilot F7 (e3bdda6): 5 real Meta requests on basic product quality contracts (edits, preservation, conversation, ambiguity, voice rehearsal) 5/5 correct; it did not exercise the 107 gauntlet LOCAL_GAP turns. Still pending a larger live sample and human-reviewed gold."
     }
   ]
 }
