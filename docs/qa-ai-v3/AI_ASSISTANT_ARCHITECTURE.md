@@ -25,7 +25,7 @@ completion limit are retained for comparisons.
    explicit. Dialogue before requested cue anchors is available for trigger review.
 3. `buildExpertAgentContext` combines relevant verified capabilities, current
    counts/diagnostics, a bounded evidence page and confirmed local memory. Total
-   serialized context is capped at 14,500 characters. Essential requested lines
+   serialized context is capped below 14,500 UTF-8 bytes, not just characters. Essential requested lines
    are protected during compaction; impossible packs fail explicitly.
 4. The server replaces client capability claims with its verified catalogue.
    Forged/cross-project memory is rejected before inference. The expert

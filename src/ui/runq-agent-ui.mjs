@@ -409,10 +409,16 @@ async function sendRequest(forceAI=false,custom=null){
     workspace:s.workspace,selectedCueId:s.selectedCueId??null,
     preparedCueId:s.preparedCueId??null,activeCueIds:s.activeCueIds??null,generation:s.generation,
     selectedLineIds,assetAvailable:id=>assetReady(id,s)});
+   const input={prompt:instruction,language:s.language,context,
+    provider:$('rqAgentProvider')?.value??'meta',conversation:[...conversation]};
+   while(new TextEncoder().encode(JSON.stringify(input)).length>24000&&input.conversation.length){
+    input.conversation.shift();
+   }
+   if(new TextEncoder().encode(JSON.stringify(input)).length>24000)
+    throw new Error('EXPERT_CONTEXT_TOO_LARGE');
    const response=await fetch('/api/agent/interpret',{method:'POST',headers:{
     'Content-Type':'application/json','X-Runq-Agent-Consent':'yes'
-   },signal:requestController.signal,body:JSON.stringify({prompt:instruction,language:s.language,context,
-     provider:$('rqAgentProvider')?.value??'meta',conversation})});
+   },signal:requestController.signal,body:JSON.stringify(input)});
    const result=await response.json();
    if(epoch!==requestEpoch)return;
    if(!response.ok)throw new Error(result.error??'AGENT_PROVIDER_UNAVAILABLE');

@@ -43,6 +43,12 @@ test('expert replies cannot cite source lines omitted from the evidence pack',as
   assert.equal(result.called,1);
   assert.equal(result.body.error,'AGENT_INFERENCE_FAILED');
 });
+test('clarification can identify an explicitly requested missing line without claiming source evidence',async()=>{
+  const input=buildExpertAgentContext(project,'Explain L9999');
+  const result=await request(input,{status:'CLARIFY',message:'L9999 is unavailable. Please provide the correct reference.',operations:[]});
+  assert.equal(result.status,200);
+  assert.deepEqual(result.body.operations,[]);
+});
 test('cross-project or malformed task memory is rejected before any remote request',async()=>{
   const input=context();
   input.expert.memory={identity:'other-project',entries:[]};

@@ -47,6 +47,14 @@ test('scene metadata retrieves the final scene rather than silently using the fi
   }
   assert.deepEqual(retrieveAgentEvidence(p, 'Explain scene 99').missingSceneNumbers, [99]);
 });
+test('UTF-8 context budget preserves a requested non-ASCII source line', () => {
+  const original = largeShow();
+  const p = {...original, scriptText: original.scriptText.split('\n').map((line, i) =>
+    i === 2799 ? '音'.repeat(220) : '🎭'.repeat(80)).join('\n')};
+  const context = buildExpertAgentContext(p, 'Explain cue 95 at L2800');
+  assert.ok(new TextEncoder().encode(JSON.stringify(context)).length <= 14500);
+  assert.ok(context.lines.some(line => line.id === 'L2800' && line.text === '音'.repeat(220)));
+});
 test('confirmed memory survives 50 turns/reopen but never crosses project or revision', () => {
   const p = largeShow(), now = Date.now();
   let memory = createAgentTaskMemory(p, now);
