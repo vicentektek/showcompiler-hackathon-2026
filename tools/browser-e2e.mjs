@@ -639,7 +639,9 @@ try {
   assert.equal(await page.locator('.rq5-ai-review #proposalList').count(),1);
   await capture('10-ai-three-pane.png');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
-  await page.locator('#rqShowBuilderOpenAiTools').click();
+  if (!await page.locator('#rqShowBuilderAiControls').evaluate(el => el.open))
+    await page.locator('#rqShowBuilderAiControls>summary').click();
+  await page.locator('#modelProviderSelect').waitFor({ state:'visible' });
   assert.equal(await page.locator('#modelProviderSelect option[value="baseten"]').isDisabled(), true,
     'Baseten is excluded by campaign policy');
   await page.locator('#modelProviderSelect').selectOption('meta');
