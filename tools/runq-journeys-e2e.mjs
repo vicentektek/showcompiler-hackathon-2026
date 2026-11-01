@@ -13,11 +13,14 @@
  * Usage:
  *   node tools/runq-journeys-e2e.mjs --out <dir> [--only full-show|recovery|manual-show]
  *     [--persona beginner|intermediate|stage-manager|creative] [--locale es|en]
- *     [--limit N] [--concurrency 3] [--resume] [--trace on-failure|off] [--screens failures|all]
+ *     [--limit N] [--concurrency 3] [--resume] [--retry-failed]
+ *     [--trace on-failure|off|all] [--screens failures|all] [--audio mock|native]
+ * Native audio supports full-show: synthetic 1s looping / 4s non-looping WAVs,
+ * real destination PCM, natural endings and fades. No physical listening claim.
  * Final line: unique=N journeys=N checks=N failed=N completed=x/y forbidden=N
  */
 import { createServer } from 'node:http';
-import { mkdir, writeFile, readFile, appendFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, appendFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -27,6 +30,7 @@ import { launchTestBrowser } from './browserTestRuntime.mjs';
 import { planScriptAnalysis } from '../src/core/sceneAnalysis.mjs';
 import { importPortableShow } from '../src/core/showArchive.mjs';
 import { approvedDetailCoverage } from '../src/core/soundPromptCompiler.mjs';
+import { installNativeAudioProbe, signalMetrics, captureWav } from './browserAudioProbe.mjs';
 
 let nodeFetchAttempts = 0;
 globalThis.fetch = async () => {
@@ -216,6 +220,32 @@ async function readStarted(page) {
   });
 }
 
+async function nativeSignal(j, label, { action, ms = 350, audible = true, fade = false } = {}) {
+  if (j.env.audio !== 'native') { if (action) await action(); return; }
+  await j.page.evaluate(() => window.__rqAudioProbe.begin());
+  if (action) await action();
+  await sleep(ms);
+  const captures = await j.page.evaluate(() => window.__rqAudioProbe.end());
+  const measured = captures.filter(c => c.channels[0].length)
+    .map(c => ({ capture: c, metrics: signalMetrics(c, [16000 / (2 * Math.PI * 9), 16000 / (2 * Math.PI * 12)]) }))
+    .sort((a, b) => b.metrics.rms - a.metrics.rms);
+  j.check(measured.length > 0, 'Native destination produced PCM frames: ' + label);
+  const { capture, metrics } = measured[0];
+  const wav = captureWav(capture);
+  const file = `${j.id}-${label}.wav`;
+  await writeFile(join(j.env.out, 'audio', file), wav);
+  (j.audioEvidence ??= []).push({ label, file, sha256: createHash('sha256').update(wav).digest('hex'), ...metrics });
+  j.check(metrics.seconds >= 0.15, 'Enough native PCM recorded: ' + label);
+  j.check(audible ? metrics.rms > 0.005 : metrics.peak < 0.0001, 'Destination signal matches transport: ' + label);
+  j.check(metrics.peak < 0.99, 'No clipped output: ' + label);
+  if (fade) {
+    const nonSilent = metrics.windows.filter(v => v > 0.001);
+    j.check(nonSilent.length >= 5 && nonSilent[0] < Math.max(...nonSilent) * 0.6,
+      'Recorded fade-in rises from low amplitude, not only saved metadata');
+  }
+  return metrics;
+}
+
 class Journey {
   constructor(spec, env) {
     Object.assign(this, spec);
@@ -359,14 +389,15 @@ async function sfxJobs(route, request, j, json, path, method) {
   if (path === '/api/sfx/jobs' && method === 'POST') {
     const input = request.postDataJSON() ?? {};
     if (input.confirmed !== true) return json(400, { code: 'SFX_CONFIRMATION_REQUIRED' });
-    const wav = makeWav(9 + j.sfx.order.length * 3);
+    const durationSeconds = j.env.audio === 'native' && j.sfx.order.length > 0 ? 4 : 1;
+    const wav = makeWav(9 + j.sfx.order.length * 3, durationSeconds);
     const job = {
       requestId: input.requestId, sourceLineId: input.sourceLineId, kind: input.kind, prompt: input.prompt,
       durationSeconds: input.durationSeconds, seed: input.seed, status: 'QUEUED',
       modelCandidate: 'stabilityai/stable-audio-3-small-sfx', modelRevision: 'a'.repeat(40),
       createdAt: now, updatedAt: now, cost: { estimatedMaxCostUsd: 0.05, actualBilledUsd: null },
       wav: { fileName: 'take-' + (j.sfx.order.length + 1) + '.wav', sha256: createHash('sha256').update(wav).digest('hex'),
-        durationSeconds: 1, sampleRateHz: 16000, channels: 1, byteLength: wav.length },
+        durationSeconds, sampleRateHz: 16000, channels: 1, byteLength: wav.length },
     };
     j.sfx.jobs.set(job.requestId, { job, wav, outcome: j.sfx.plan.shift() ?? 'ok' });
     j.sfx.order.push(job.requestId);
@@ -403,7 +434,7 @@ async function openContext(j) {
   });
   context.setDefaultTimeout(15000);
   if (j.env.trace !== 'off') await context.tracing.start({ screenshots: true, snapshots: true });
-  await context.addInitScript(fakeAudioInit);
+  await context.addInitScript(j.env.audio === 'native' ? installNativeAudioProbe : fakeAudioInit);
   await routeJourney(context, j);
   const page = await context.newPage();
   page.on('dialog', dialog => {
@@ -596,6 +627,7 @@ async function generateSoundForCue(j, cueId, { expectFailure = false, alreadyOpe
   await page.waitForFunction(() => !document.querySelector('#sfxListenBtn')?.disabled);
   await j.click(page.locator('#sfxListenBtn'));
   await j.until(async () => await page.evaluate(() => window.__rqStarts) > startsBefore, 'audition started');
+  await nativeSignal(j, 'audition-' + j.sfx.order.length);
   const stopPreview = page.locator('#sfxStopPreviewBtn');
   if (await stopPreview.isVisible() && await stopPreview.isEnabled()) await j.click(stopPreview);
   else await j.click(page.locator('#stopBtn'));
@@ -732,15 +764,21 @@ async function operate(j, cueIds) {
       }, 'reset prepares cue 1');
       j.finding('RESET_AFTER_REHEARSAL', 'INFO', 'After rehearsal GO stays prepared on the next cue; the operator returns to the top explicitly (by design: reading or rehearsing never moves the prepared GO implicitly).');
     }
-    await goOnce(j);
+    await nativeSignal(j, 'go-fade', { action: () => goOnce(j), ms: 750, fade: true });
     await j.until(async () => (await readState(page)).active.some(a => a.cueId === cueIds[0]), 'GO starts cue 1');
     await j.until(async () => (await readState(page)).preparedCueId === cueIds[1], 'cue 2 prepared');
+    if (j.env.audio === 'native') {
+      await sleep(500);
+      await nativeSignal(j, 'loop-after-file-end');
+    }
     await goOnce(j);
     state = await j.until(async () => {
       const s = await readState(page);
       return s.active.length === 2 ? s : null;
     }, 'second GO overlaps cue 2');
     j.check(state.active.some(a => a.cueId === cueIds[1]), 'Cue 2 is running');
+    const overlap = await nativeSignal(j, 'overlap');
+    if (overlap) j.check(overlap.amplitudes.every(a => a > 0.015), 'Both cue frequencies reach the real destination');
     const stop = page.locator(`#runqActiveCuesList [data-running-cue="${cueIds[0]}"] [data-active-action="stop"]`);
     await j.click(stop);
     state = await j.until(async () => {
@@ -748,8 +786,49 @@ async function operate(j, cueIds) {
       return !s.active.some(a => a.cueId === cueIds[0]) ? s : null;
     }, 'individual STOP');
     j.check(state.active.length === 1 && state.active[0].cueId === cueIds[1], 'Individual STOP leaves cue 2 running');
+    if (j.env.audio === 'native') await sleep(150);
+    const individual = await nativeSignal(j, 'individual-stop');
+    if (individual) j.check(individual.amplitudes[0] < 0.005 && individual.amplitudes[1] > 0.015,
+      'Individual STOP removes cue 1 signal while cue 2 remains audible');
     await stopAll(j);
+    if (j.env.audio === 'native') await sleep(150);
+    await nativeSignal(j, 'stop-all', { audible: false });
   });
+}
+
+async function nativeNaturalEndAndFade(j, cueIds) {
+  if (j.env.audio !== 'native') return;
+  await j.step('native-natural-end-and-fade-out', async () => {
+    await j.click(j.page.locator('#operatorResetBtn'));
+    await goOnce(j);
+    await j.until(async () => (await readState(j.page)).preparedCueId === cueIds[1], 'cue 2 prepared again');
+    await goOnce(j);
+    await j.until(async () => (await readState(j.page)).active.length === 2, 'two native sources');
+    await j.until(async () => {
+      const active = (await readState(j.page)).active;
+      return active.length === 1 && active[0].cueId === cueIds[0];
+    }, 'native onended removes only the non-looping cue', 7000);
+    const remaining = await nativeSignal(j, 'natural-end-loop-remains');
+    j.check(remaining.amplitudes[0] > 0.015 && remaining.amplitudes[1] < 0.005,
+      'Natural end silences cue 2; loop continues beyond the source duration');
+    const fading = await nativeSignal(j, 'fade-out', {
+      action: () => j.click(j.page.locator(`#runqActiveCuesList [data-running-cue="${cueIds[0]}"] [data-active-action="fade"]`)),
+      ms: 1900,
+    });
+    j.check(fading.windows[0] > 0.005 && fading.windows.at(-1) < 0.0001,
+      'Real fade-out reaches digital silence');
+    j.check(fading.windows.some(v => v > fading.windows[0] * 0.2 && v < fading.windows[0] * 0.8),
+      'Fade-out contains intermediate amplitude, not an immediate cut');
+    await j.until(async () => (await readState(j.page)).active.length === 0, 'fade completion clears active state');
+  });
+}
+
+async function closeOriginalContext(j) {
+  if (j.env.trace === 'all') {
+    await j.contexts[0].tracing.stop({ path: join(j.env.out, 'traces', `${j.id}-1.zip`) });
+    j.originalTraceSaved = true;
+  }
+  await j.contexts[0].close();
 }
 
 async function exportZip(j) {
@@ -813,7 +892,10 @@ async function reopenAndRun(j, bytes, expectation) {
     await j.nav('operation');
     await goOnce(j);
     await j.until(async () => (await readState(page)).active.length === 1, 'GO after reopen');
+    await nativeSignal(j, 'reopened-go', { ms: 650 });
     await stopAll(j);
+    if (j.env.audio === 'native') await sleep(150);
+    await nativeSignal(j, 'reopened-stop-all', { audible: false });
   });
 }
 
@@ -885,10 +967,11 @@ async function fullShowJourney(j) {
   await editCueOne(j, cueIds[0]);
   await rehearsalAuto(j, cueIds[0]);
   await operate(j, cueIds);
+  await nativeNaturalEndAndFade(j, cueIds);
   const bytes = await exportZip(j);
   const expectation = { cues: 2, audio: 2, playbackCue: true, sourceLines: [['L5'], ['L9']] };
   await verifyArchive(j, bytes, expectation);
-  await j.step('close-original', async () => { await j.contexts[0].close(); });
+  await j.step('close-original', () => closeOriginalContext(j));
   await reopenAndRun(j, bytes, expectation);
 }
 
@@ -1015,7 +1098,7 @@ async function manualShowJourney(j) {
   const bytes = await exportZip(j);
   const expectation = { cues: 2, audio: 2, sourceLines: [['L2', 'L3'], ['L9']] };
   await verifyArchive(j, bytes, expectation);
-  await j.step('close-original', async () => { await j.contexts[0].close(); });
+  await j.step('close-original', () => closeOriginalContext(j));
   await reopenAndRun(j, bytes, expectation);
 }
 
@@ -1034,15 +1117,17 @@ async function runJourney(spec, env) {
     j.error = (error instanceof CheckFailure ? 'CHECK ' : 'ERROR ') + String(error?.message ?? error).split('\n')[0].slice(0, 400);
   } finally { clearTimeout(timer); }
   const unexpectedErrors = j.errors.filter(Boolean);
-  const ok = !j.error && unexpectedErrors.length === 0 && j.forbidden.length === 0;
+  let ok = !j.error && unexpectedErrors.length === 0 && j.forbidden.length === 0;
   if (!ok && !j.error) j.error = 'RUNTIME ' + (unexpectedErrors[0] ?? j.forbidden[0]);
   if (j.page && !j.page.isClosed() && (!ok || env.screens === 'all')) {
-    await j.page.screenshot({ path: join(env.out, 'screens', j.id + '.png') }).catch(() => {});
+    try { await j.page.screenshot({ path: join(env.out, 'screens', j.id + '.png') }); }
+    catch { j.error = 'EVIDENCE_SCREENSHOT_FAILED'; ok = false; }
   }
   for (const [index, context] of j.contexts.entries()) {
-    if (env.trace !== 'off') {
-      const path = !ok ? join(env.out, 'traces', `${j.id}-${index + 1}.zip`) : undefined;
-      await context.tracing.stop(path ? { path } : undefined).catch(() => {});
+    if (env.trace !== 'off' && !(index === 0 && j.originalTraceSaved)) {
+      const path = !ok || env.trace === 'all' ? join(env.out, 'traces', `${j.id}-${index + 1}.zip`) : undefined;
+      try { await context.tracing.stop(path ? { path } : undefined); }
+      catch { if (env.trace === 'all') { j.error = 'EVIDENCE_TRACE_FAILED'; ok = false; } }
     }
     await context.close().catch(() => {});
   }
@@ -1053,6 +1138,7 @@ async function runJourney(spec, env) {
     steps: j.steps, findings: j.findings, errors: unexpectedErrors.slice(0, 10), forbidden: j.forbidden,
     unmockedApi: [...new Set(j.unmockedApi)], blockedProvider: [...new Set(j.blockedProvider)],
     metaRequests: j.meta.requests, sfxJobs: j.sfx.order.length, sfxReviews: j.sfx.review,
+    audioMode: env.audio, audioEvidence: j.audioEvidence ?? [],
     finishedAt: new Date().toISOString(),
   };
 }
@@ -1077,7 +1163,9 @@ function summarize(records, planned, extra) {
   for (const f of failures) failureSteps[f.failedStep ?? 'unknown'] = (failureSteps[f.failedStep ?? 'unknown'] ?? 0) + 1;
   return {
     generatedAt: new Date().toISOString(),
-    scope: 'Offline virtual-operator journeys. Real Chrome + real RUNQ UI; Meta, Modal SFX and Web Audio are deterministic mocks. Not a measurement of model quality or audible output.',
+    scope: extra.audio === 'native'
+      ? 'Native Web Audio destination PCM captured in real Chrome + RUNQ UI. Synthetic local WAVs; Meta/Modal/ASR mocked. Physical listening and artistic quality HUMAN_REVIEW_PENDING.'
+      : 'Offline virtual-operator journeys. Real Chrome + real RUNQ UI; Meta, Modal SFX and Web Audio are deterministic mocks. Not a measurement of model quality or audible output.',
     planned, recorded: records.length, passed: records.filter(r => r.ok).length, failed: failures.length,
     checks: records.reduce((s, r) => s + r.checks, 0),
     actions: { total: records.reduce((s, r) => s + r.actions, 0), median: median(records.map(r => r.actions)) },
@@ -1088,6 +1176,7 @@ function summarize(records, planned, extra) {
     unmockedApi: [...new Set(records.flatMap(r => r.unmockedApi))].sort(),
     blockedProvider: [...new Set(records.flatMap(r => r.blockedProvider))].sort(),
     byType: rate('type'), byPersona: rate('persona'), byLocale: rate('locale'), byViewport: rate('viewport'),
+    audioEvidence: records.flatMap(r => (r.audioEvidence ?? []).map(a => ({ journey: r.id, ...a }))),
     findings, failureSteps, failures: failures.slice(0, 50),
   };
 }
@@ -1106,6 +1195,13 @@ function reportMarkdown(summary) {
     `- Provider endpoints blocked locally: ${summary.blockedProvider.join(', ') || 'none'}`, '',
     table('By journey type', summary.byType), table('By persona', summary.byPersona),
     table('By locale', summary.byLocale), table('By viewport', summary.byViewport),
+    ...(summary.audioEvidence.length ? [
+      '### Native destination recordings', '',
+      'Synthetic tones, not Modal audio. Physical listening: **HUMAN_REVIEW_PENDING**.', '',
+      '| Journey / measurement | RMS | Peak | Seconds | Recorded WAV |',
+      '|---|---:|---:|---:|---|',
+      ...summary.audioEvidence.map(a => `| ${a.journey} / ${a.label} | ${a.rms.toFixed(6)} | ${a.peak.toFixed(6)} | ${a.seconds.toFixed(3)} | [PCM](audio/${a.file}) |`), '',
+    ] : []),
     '### Observed friction / findings', '',
     ...(Object.keys(summary.findings).length
       ? ['| Code | Severity | Journeys | Detail |', '|---|---|---:|---|',
@@ -1117,7 +1213,7 @@ function reportMarkdown(summary) {
 }
 
 function parseArgs(argv) {
-  const opts = { out: join('artifacts', 'long-campaign', 'journeys'), concurrency: 3, trace: 'on-failure', screens: 'failures', limit: Infinity, resume: false };
+  const opts = { out: join('artifacts', 'long-campaign', 'journeys'), concurrency: 3, trace: 'on-failure', screens: 'failures', limit: Infinity, resume: false, audio: 'mock' };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i], next = () => argv[++i];
     if (arg === '--out') opts.out = next();
@@ -1130,28 +1226,50 @@ function parseArgs(argv) {
     else if (arg === '--trace') opts.trace = next();
     else if (arg === '--screens') opts.screens = next();
     else if (arg === '--resume') opts.resume = true;
+    else if (arg === '--retry-failed') opts.retryFailed = true;
+    else if (arg === '--audio') opts.audio = next();
     else if (arg === '--journey-timeout') opts.journeyTimeoutMs = Number(next());
     else throw new Error('Unknown argument ' + arg);
   }
+  if (!['mock', 'native'].includes(opts.audio)) throw new Error('INVALID_AUDIO_MODE');
+  if (opts.audio === 'native' && opts.only !== 'full-show') throw new Error('NATIVE_AUDIO_REQUIRES_FULL_SHOW');
+  if (!['off', 'on-failure', 'all'].includes(opts.trace)) throw new Error('INVALID_TRACE_MODE');
   return opts;
 }
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const out = resolve(opts.out);
-  for (const dir of ['', 'screens', 'traces', 'downloads']) await mkdir(join(out, dir), { recursive: true });
+  for (const dir of ['', 'screens', 'traces', 'downloads', 'audio']) await mkdir(join(out, dir), { recursive: true });
   const all = buildMatrix();
   const inList = (value, list) => !list || list.split(',').map(item => item.trim()).includes(value);
   const selected = all.filter(s => inList(s.type, opts.only) && inList(s.persona, opts.persona)
     && inList(s.locale, opts.locale) && inList(s.viewport, opts.viewport)).slice(0, opts.limit);
   const ledger = join(out, 'journeys.jsonl');
   const previous = new Map();
+  const root = new URL('..', import.meta.url);
+  const source = createHash('sha256');
+  for (const dir of ['src', 'tools']) {
+    const entries = await readdir(new URL(dir + '/', root), { recursive: true, withFileTypes: true });
+    const files = entries.filter(e => e.isFile()).map(e => join(e.parentPath ?? e.path, e.name)).sort();
+    for (const file of files) { source.update(file); source.update(await readFile(file)); }
+  }
+  source.update(await readFile(new URL('index.html', root)));
+  const identity = { version: 1, sourceSha256: source.digest('hex'), audio: opts.audio };
+  const manifest = join(out, 'manifest.json');
   if (opts.resume && existsSync(ledger)) {
+    if (!existsSync(manifest) || JSON.stringify(JSON.parse(await readFile(manifest, 'utf8'))) !== JSON.stringify(identity))
+      throw new Error('JOURNEY_SOURCE_OR_AUDIO_CHANGED: use a new output directory');
     for (const line of (await readFile(ledger, 'utf8')).split('\n').filter(Boolean)) {
-      try { const r = JSON.parse(line); previous.set(r.id, r); } catch {}
+      const r = JSON.parse(line);
+      previous.set(r.id, r);
     }
-  } else await writeFile(ledger, '');
-  const pending = selected.filter(s => !previous.has(s.id));
+  } else {
+    if (existsSync(ledger)) throw new Error('JOURNEY_EVIDENCE_EXISTS: use --resume or a new output directory');
+    await writeFile(manifest, JSON.stringify(identity));
+    await writeFile(ledger, '');
+  }
+  const pending = selected.filter(s => !previous.has(s.id) || (opts.retryFailed && !previous.get(s.id).ok));
 
   const app = createAppServer({
     sfxConfig: () => ({ enabled: false }), basetenCampaignProhibited: true, voiceCampaignProhibited: true,
@@ -1175,7 +1293,7 @@ async function main() {
     try { browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--no-sandbox'] }); }
     catch { ({ browser } = await launchTestBrowser()); }
     const env = { browser, port: guard.address().port, out, trace: opts.trace, screens: opts.screens,
-      intentional: new WeakSet(), journeyTimeoutMs: opts.journeyTimeoutMs ?? 240000 };
+      intentional: new WeakSet(), journeyTimeoutMs: opts.journeyTimeoutMs ?? 240000, audio: opts.audio };
     const queue = [...pending];
     let done = 0;
     const worker = async () => {
@@ -1194,10 +1312,10 @@ async function main() {
     await new Promise(res => guard.close(res));
   }
   const records = selected.map(s => previous.get(s.id)).filter(Boolean);
-  const summary = summarize(records, selected.length, { serverApiHits, nodeFetchAttempts });
+  const summary = summarize(records, selected.length, { serverApiHits, nodeFetchAttempts, audio: opts.audio });
   await writeFile(join(out, 'summary.json'), JSON.stringify(summary, null, 2));
   await writeFile(join(out, 'report.md'), reportMarkdown(summary));
-  console.log(`unique=${all.length} journeys=${records.length} checks=${summary.checks} failed=${summary.failed} completed=${records.length}/${selected.length} forbidden=${summary.forbidden}`);
+  console.log(`unique=${selected.length} journeys=${records.length} checks=${summary.checks} failed=${summary.failed} completed=${records.length}/${selected.length} forbidden=${summary.forbidden}`);
   if (summary.failed || summary.forbidden || records.length < selected.length) process.exitCode = 1;
 }
 

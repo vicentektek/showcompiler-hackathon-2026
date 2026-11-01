@@ -7,6 +7,11 @@ original `feat/runq-ai-campaign-100-2026-10-31` @ `5fdb4d1` no se tocó).
 **Estado:** borrador para revisión humana. Sin merge, sin cambios en `main`,
 sin release. Ninguna prueba aquí certifica uso profesional en directo.
 
+**Revisión de evidencia:** las secciones 1–9 conservan la medición histórica.
+La sección 10 contrasta sus registros, corrige un error de recuento y añade
+Web Audio nativo con grabaciones verificables. La campaña no está validada
+artísticamente ni mediante escucha humana.
+
 ## 1. Qué es real y qué es simulado
 
 | Evidencia | Real | Simulado / no medido |
@@ -46,7 +51,7 @@ El recorrido `full-show` cubre cada paso, con comprobaciones de estado reales:
 |---|---|
 | Crear proyecto e importar guion | `create-show-import-script` |
 | Solicitar propuestas de IA | `ai-pass-1` |
-| Rechazar una, regenerar, aceptar dos | `reject-and-pass-2`, `approve-two` |
+| Rechazar una, continuar el análisis, aceptar dos | `reject-and-pass-2`, `approve-two` |
 | Generar sonido, escucharlo, convertirlo en cue | `sound-generate-listen-accept-*` (incluye cobertura del detalle aprobado en el prompt inglés, D16) |
 | Editar fade, loop y pie de voz | `edit-fade-loop-trigger` |
 | Ensayar, desarmar, pasar a Directo | `rehearsal-auto-arm-disarm-panic` |
@@ -205,3 +210,126 @@ regresiones. La única diferencia de recuento es la de esos tests nuevos.
 3. Revisar el gold provisional y ampliar el piloto de Muse a casos difíciles si
    se quiere una medida de precisión (quedan 20 solicitudes y ~12,19 USD de Meta).
 4. Aprobar o no la conexión de la automatización al GO (F2) con ensayo en hardware.
+
+## 10. Reparación y contraste de la evidencia
+
+### Registros contrastados, no solo resúmenes
+
+Se leyeron los 29 logs, el manifiesto y los checkpoints de
+`runq-2026-11-01-e3bdda6`, las 120 filas de `journeys.jsonl` y el JSON
+sanitizado del piloto. El verificador
+[`runq-evidence-audit.mjs`](../tools/runq-evidence-audit.mjs) comprueba
+identidades, pasos, sumas, errores, red prohibida y correspondencia del piloto
+con las reservas locales. Produce un índice con rutas, tamaños y SHA-256,
+sin copiar claves, respuestas crudas ni el contenido del ledger.
+
+- **120 registros únicos / 120 completos**, 3410 comprobaciones y 4480 acciones;
+  cero pasos fallidos y cero solicitudes prohibidas.
+- **5 respuestas Meta HTTP 200**, cero reintentos; las cinco tienen reserva
+  coincidente por requestId, runId, proveedor e importe. Cuatro resuelven la
+  petición y una ambigüedad no la resuelve: no se equiparan estas métricas.
+- Las reservas siguen siendo reservas: no acreditan facturación ni precisión
+  artística. Los 107 turnos LOCAL_GAP siguen sin evaluación real.
+- Los comandos de esta reparación no hicieron llamadas de proveedor. El ledger
+  compartido **cambió mientras se ejecutaban las pruebas offline**; no se
+  atribuyen esas reservas a un actor sin evidencia. Lecturas de solo lectura:
+  a las **20:45:14 UTC**, 54,680091 USD, Meta 380 y Modal 28; a las
+  **20:57:46 UTC**, **54,936902 USD**, Meta **384/400**, Modal **29/100**.
+  Baseten conserva cinco reservas históricas; Fireworks, cero.
+  Quedaban **16**, no 20, solicitudes Meta en la última lectura: no usar una
+  captura anterior para autorizar gasto. Copilot se contabiliza por separado.
+
+Se encontraron y corrigieron dos defectos del evaluador, ambos reproducidos
+con tests rojos antes del parche:
+
+| Defecto | Antes | Después |
+|---|---|---|
+| D20, agregación de recorridos | Tomaba `checks=50` de la primera línea de progreso | Lee exclusivamente el resumen final: `checks=3410` |
+| D21, resumen ilegible | Una excepción del parser se convertía en PASS con métricas vacías | FAIL explícito `SUITE_METRICS_INVALID` |
+
+Por D20, el total histórico de comprobaciones de navegador publicado como
+**90** debe leerse como **3450** (3410 recorridos + 40 de los otros adaptadores).
+Los artefactos originales **no se reescribieron**: el contraste conserva esa
+discrepancia. El agregado `unique` entre suites no demuestra casos globalmente
+disjuntos; no debe usarse como recuento deduplicado de capacidades.
+
+### Audio nativo, con señal y artefactos
+
+El modo `--audio native` utiliza el AudioContext, decodificador, nodos, reloj
+y `onended` reales de Chrome. Una rama silenciosa de instrumentación toma PCM
+del grafo que llega al destino; no reemplaza la salida ni los nodos por mocks.
+Los archivos de entrada son tonos sintéticos locales (1 s en loop y 4 s sin
+loop), **no** generaciones Modal. Chrome headless no prueba altavoces físicos.
+
+Muestra: **8/8** recorridos full-show, cuatro perfiles × ES/EN a 1366×768,
+**794 comprobaciones**, **464 acciones**. Se comprueba:
+
+- señal durante las dos preescuchas;
+- rampa de amplitud del fade-in, no solo su configuración guardada;
+- señal después de terminar la duración del archivo en loop;
+- dos frecuencias en GO solapado;
+- STOP individual elimina solo la frecuencia del cue parado;
+- STOP ALL deja pico PCM **0** en los ocho recorridos;
+- `onended` elimina el cue sin loop y mantiene el otro;
+- FADE atraviesa amplitudes intermedias antes de llegar a silencio;
+- exportar/cerrar/reabrir conserva el show y vuelve a producir señal con GO.
+
+Se conservaron **88 WAV de salida**, **16 trazas** (antes y después del cierre),
+**8 capturas** y **8 ZIP exportados**. El auditor vuelve a calcular el RMS
+desde el PCM guardado, verifica sus hashes y exige los artefactos. La traza
+del primer contexto se guarda **antes** de cerrarlo: antes se perdía.
+Si una captura o traza solicitada no puede guardarse, el recorrido falla.
+
+Evidencia local (ignorada por Git):
+
+- [Contraste histórico](../artifacts/long-campaign/repair-evidence/evidence-audit.json).
+- [Contraste del audio y artefactos](../artifacts/long-campaign/repair-evidence-native/evidence-audit.json).
+- [Contraste de los 120 recorridos repetidos](../artifacts/long-campaign/repair-evidence-mock/evidence-audit.json).
+- [Informe de audio con enlaces a cada WAV](../artifacts/long-campaign/repair-native-final/report.md).
+- [Captura del show reabierto](../artifacts/long-campaign/repair-native-final/screens/full-show-beginner-es-1366x768.png).
+- [Grabación del fade-in](../artifacts/long-campaign/repair-native-final/audio/full-show-beginner-es-1366x768-go-fade.wav).
+
+Identidad de las fuentes de los recorridos finales:
+`d58777b4c3812a99f5a6353b6f4b74ff135c919d0ab7cedd3c0b5005eb129128`
+(hash de fuentes/harness registrado en `manifest.json`, no hash de commit).
+Reanudar exige la misma identidad y modo de audio; no mezcla mocks con audio
+nativo ni cambios de código. Se verificó una reanudación sin repetir recorridos.
+`--retry-failed` llega también al ejecutor de recorridos.
+
+### Comandos reproducibles
+
+Desde el worktree de campaña, con `playwright-core` disponible (se restauró
+localmente tras `ERR_MODULE_NOT_FOUND`, sin cambiar dependencias del proyecto):
+
+```powershell
+node tools\runq-evidence-audit.mjs --campaign artifacts\long-campaign\runq-2026-11-01-e3bdda6 --pilot artifacts\agent-live-eval\eval-1793563623792-7148-3533f79a-7d87-43ee-893d-c5cb11a6878c.json --out artifacts\long-campaign\repair-evidence
+node tools\runq-journeys-e2e.mjs --audio native --only full-show --viewport 1366x768 --concurrency 2 --trace all --screens all --out artifacts\long-campaign\repair-native-final --resume
+node tools\runq-evidence-audit.mjs --campaign artifacts\long-campaign\runq-2026-11-01-e3bdda6 --pilot artifacts\agent-live-eval\eval-1793563623792-7148-3533f79a-7d87-43ee-893d-c5cb11a6878c.json --journeys artifacts\long-campaign\repair-native-final --out artifacts\long-campaign\repair-evidence-native
+node --test test\runqCampaign.test.mjs test\browserAudioProbe.test.mjs test\runqEvidenceAudit.test.mjs
+npm run qa:codex
+node tools\runq-journeys-e2e.mjs --out artifacts\long-campaign\repair-mock-final --concurrency 3 --resume
+```
+
+Resultados: regresiones focalizadas **15/15**; `qa:codex` completado, incluidas
+sintaxis, **837/837 tests**, cue QA y nueve contratos de guiones del seminario.
+Reejecución completa de los recorridos mock: **120/120**, las mismas 3410
+comprobaciones y 4480 acciones que antes; no se suman como nuevos casos únicos.
+Control negativo: el auditor rechazó `repair-native-02` por la traza ausente
+del contexto original. Los 16 archivos de traza de la ejecución final sí se
+verificaron, sin dar PASS a evidencia incompleta.
+El log completo permanece en `artifacts/long-campaign/repair-codex.log`.
+No se inició CI remota: **no hay URL de CI nueva**, push, PR ni merge de esta
+reparación. Se preservó el checkout original y el ZIP demo sin seguimiento.
+
+### Límites que no deben convertirse en PASS
+
+**HUMAN_REVIEW_PENDING:** escuchar las grabaciones y los sonidos del espectáculo
+en el dispositivo físico; valorar adecuación artística de Modal; revisar el
+gold antes de evaluar los 107 turnos con Muse. No se consumieron créditos para
+presentar otra prueba de humo como validación de estas capacidades.
+
+**F4, cobertura parcial:** `reject-and-pass-2` rechaza una propuesta y solicita
+la siguiente ventana/escena. **No regenera una alternativa de esa propuesta**.
+La generación/reintento SFX sí tiene cobertura, pero no sustituye ese requisito.
+Se corrigió la descripción histórica y se deja esta capacidad explícitamente
+pendiente, en lugar de declarar satisfecho el escenario exacto del usuario.

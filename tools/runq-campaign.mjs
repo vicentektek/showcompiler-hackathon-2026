@@ -108,10 +108,14 @@ export const SUITES = Object.freeze([
   ].map(([id, file]) => ({ id, kind: 'browser', evidence: 'BROWSER_MOCKED_PROVIDERS', args: [file],
     parse: out => ({ checks: countLines(out, /PASS|OK/) }) })),
   { id: 'user-journeys', kind: 'browser', evidence: 'BROWSER_MOCKED_PROVIDERS', timeoutMs: 90 * 60_000,
-    args: dir => ['tools/runq-journeys-e2e.mjs', '--out', join(dir, 'journeys'), '--resume'],
-    parse: out => ({ unique: num(out, /unique=(\d+)/), trials: num(out, /journeys=(\d+)/), checks: num(out, /checks=(\d+)/),
-      failures: num(out, /failed=(\d+)/), httpRequests: num(out, /forbidden=(\d+)/),
-      notes: (/(completed=\d+\/\d+)/.exec(out)?.[1] ?? '') }) },
+    args: (dir, { retryFailed = false } = {}) => ['tools/runq-journeys-e2e.mjs', '--out', join(dir, 'journeys'), '--resume',
+      ...(retryFailed ? ['--retry-failed'] : [])],
+    parse: out => {
+      const m = /^unique=(\d+) journeys=(\d+) checks=(\d+) failed=(\d+) completed=(\d+)\/(\d+) forbidden=(\d+)\s*$/m.exec(out);
+      if (!m) throw new Error('JOURNEY_SUMMARY_MISSING');
+      return { unique: Number(m[1]), trials: Number(m[2]), checks: Number(m[3]),
+        failures: Number(m[4]), httpRequests: Number(m[7]), notes: `completed=${m[5]}/${m[6]}` };
+    } },
 ]);
 
 /** Functional area → implementation → suites; lastResult is derived from suite outcomes. */
@@ -296,7 +300,7 @@ export async function runCampaign({ id, kind = 'offline', root = REPO_ROOT, only
       const done = entry.status === 'PASS' || entry.status === 'NOT_AVAILABLE' || (entry.status === 'FAIL' && !retryFailed);
       if (done && !force) { log('SKIP', suite.id, entry.status, '(checkpoint)'); continue; }
       if (cancelled) break;
-      const script = suite.syntax ? null : (typeof suite.args === 'function' ? suite.args(dir) : suite.args);
+      const script = suite.syntax ? null : (typeof suite.args === 'function' ? suite.args(dir, { retryFailed }) : suite.args);
       if (script && !existsSync(join(root, script[0]))) {
         Object.assign(entry, { status: 'NOT_AVAILABLE', reason: 'missing ' + script[0], finishedAt: new Date().toISOString() });
         await save(); log('NOT_AVAILABLE', suite.id); continue;
@@ -310,14 +314,20 @@ export async function runCampaign({ id, kind = 'offline', root = REPO_ROOT, only
       const clean = redact(result.out);
       await writeFile(join(dir, 'logs', suite.id + '.log'), clean.slice(-LOG_TAIL_BYTES));
       let metrics = result.metrics ?? {};
-      if (!result.metrics && suite.parse) { try { metrics = suite.parse(clean) ?? {}; } catch { metrics = {}; } }
+      let metricsInvalid = false;
+      if (!result.metrics && suite.parse) {
+        try { metrics = suite.parse(clean) ?? {}; }
+        catch { metricsInvalid = true; log('ERROR', suite.id, 'SUITE_METRICS_INVALID'); }
+      }
       const httpRequests = metrics.httpRequests ?? 0;
-      const status = cancelled ? 'INTERRUPTED' : result.code === 0 && !(metrics.failures > 0) && httpRequests === 0 ? 'PASS' : 'FAIL';
+      const status = cancelled ? 'INTERRUPTED' : !metricsInvalid && result.code === 0 && !(metrics.failures > 0) && httpRequests === 0 ? 'PASS' : 'FAIL';
       Object.assign(entry, { status, exitCode: result.code, durationMs: Date.now() - started, finishedAt: new Date().toISOString(),
         metrics: { unique: metrics.unique ?? null, trials: metrics.trials ?? null, checks: metrics.checks ?? null,
           failures: metrics.failures ?? (result.code === 0 ? 0 : null), httpRequests, notes: metrics.notes ?? '' },
         evidence: suite.evidence, tail: clean.trim().split(/\r?\n/).slice(-3).join(' | ').slice(0, 400) });
-      if (httpRequests) entry.reason = 'OFFLINE_SUITE_REPORTED_PROVIDER_REQUESTS';
+      delete entry.reason;
+      if (metricsInvalid) entry.reason = 'SUITE_METRICS_INVALID';
+      else if (httpRequests) entry.reason = 'OFFLINE_SUITE_REPORTED_PROVIDER_REQUESTS';
       await save();
       log(status, suite.id, JSON.stringify(entry.metrics));
     }

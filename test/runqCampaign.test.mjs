@@ -23,6 +23,28 @@ const git = sha => () => ({ sha, branch: 'test', dirtyEntries: 0 });
 const quiet = () => {};
 const noLedger = { includeLedger: false };
 
+test('journey metrics come from the final summary, never a progress line', () => {
+  const suite = SUITES.find(s => s.id === 'user-journeys');
+  const metrics = suite.parse('[1/120] PASS first actions=50 checks=50\n' +
+    'unique=120 journeys=120 checks=3410 failed=0 completed=120/120 forbidden=0\n');
+  assert.equal(metrics.checks, 3410);
+  assert.equal(metrics.trials, 120);
+  assert.throws(() => suite.parse('[1/120] PASS first checks=50\n'), /JOURNEY_SUMMARY_MISSING/);
+  assert.ok(suite.args('evidence', { retryFailed: true }).includes('--retry-failed'));
+  assert.ok(!suite.args('evidence').includes('--retry-failed'));
+});
+
+test('an unparseable suite result fails closed instead of recording PASS', async () => {
+  const root = await fakeRoot();
+  try {
+    const suites = [{ id: 'broken-metrics', kind: 'offline', evidence: 'LOCAL',
+      args: ['tools/ok.mjs'], parse() { throw new Error('MISSING_SUMMARY'); } }];
+    const result = await runCampaign({ id: 'invalid-metrics', root, suites, git: git('aaa'), log: quiet, reportOptions: noLedger });
+    assert.equal(result.state.suites['broken-metrics'].status, 'FAIL');
+    assert.equal(result.state.suites['broken-metrics'].reason, 'SUITE_METRICS_INVALID');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test('runner checkpoints each suite and resume skips completed suites', async () => {
   const root = await fakeRoot();
   try {

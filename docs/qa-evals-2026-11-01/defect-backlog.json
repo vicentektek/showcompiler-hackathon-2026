@@ -137,6 +137,27 @@
       "reevaluation": "soundPromptCompiler suite green with the new test; existing 'three times' assertions unchanged."
     },
     {
+      "id": "D20", "severity": "P2", "status": "FIXED", "area": "Campaign evidence",
+      "summary": "Journey adapter parsed checks from the first progress line, reporting 50 instead of the final 3410.",
+      "repro": "test/runqCampaign.test.mjs: journey metrics come from the final summary; observed red 50 !== 3410.",
+      "fix": "Parse the anchored final summary; reject missing summaries and report the selected unique count.",
+      "reevaluation": "Focused tests green; original 120 JSONL records and log totals cross-checked. Historical browser total is 3450, not 90; original evidence preserved."
+    },
+    {
+      "id": "D21", "severity": "P1", "status": "FIXED", "area": "Campaign evidence",
+      "summary": "A parser exception was swallowed and a successful child exit could become PASS with no measured evidence.",
+      "repro": "test/runqCampaign.test.mjs: unparseable suite result; observed red PASS !== FAIL.",
+      "fix": "Fail closed with SUITE_METRICS_INVALID and an explicit diagnostic.",
+      "reevaluation": "Focused tests green; npm run qa:codex passes 837 tests."
+    },
+    {
+      "id": "F4", "severity": "P2", "status": "PARTIAL_SCENARIO_COVERAGE", "area": "Proposal alternatives",
+      "summary": "The full-show journey continues to the next scene after rejecting a proposal; it does not regenerate an alternative for that proposal.",
+      "repro": "tools/runq-journeys-e2e.mjs reject-and-pass-2 asserts analysisWindowStart=1.",
+      "fix": "Report wording corrected; same-proposal alternative regeneration is not claimed as covered.",
+      "reevaluation": "Still pending; SFX retry coverage and the five basic Muse cases do not establish this capability."
+    },
+    {
       "id": "F1", "severity": "P2", "status": "HUMAN_REVIEW_PENDING", "area": "Operator queue policy",
       "summary": "Insert/duplicate/delete from the editor resets the prepared GO to the first cue even when the prepared cue still exists (documented reset policy).",
       "repro": "state-machine finding PREPARED_CUE_REMOVED_BY_EDIT (95 of 16,000 steps); src/ui/app.mjs editCueSequence",
