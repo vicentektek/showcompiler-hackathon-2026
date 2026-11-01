@@ -116,6 +116,27 @@
       "reevaluation": "soundPromptCompiler 47/47 (1 new red->green test with 20+ assertions incl. false-alarm and precision regressions). Seminar stage directions: false 'untranslated' alarms 8/8 -> 0/8 compiled ideas. Unseen-vocabulary held-out set (30 new ideas, written after the lexicon froze): 12/13 compiled ideas flagged before idiom/morphology fixes, 9/13 after; 0 silent drops in all sets. Browser full-show journeys (beginner, ES+EN, 10/10 PASS): SOUND_PROMPT_DROPS 5/5 ES -> 0/10, new coverage check passes. Residual limit: closed lexicon, so unknown nouns still need manual English (UI tells the user)."
     },
     {
+      "id": "D17", "severity": "P1", "status": "FIXED", "area": "SFX prompt compiler: source vs. place",
+      "summary": "A source noun used as a place became the generated sound: 'un teléfono suena detrás de la puerta' -> 'A wooden door moves once without a described action' (telephone only appended as detail), 'pasos tras la puerta' -> door, 'un disparo detrás de la puerta' -> door, 'un gato maúlla detrás de la puerta' -> door. The first lexicon match in array order won, so the wrong sound would be sent to Modal.",
+      "repro": "Found while probing D16 coverage; red test test/soundPromptCompiler.test.mjs 'a source named only as a place does not replace the sound that happens there'.",
+      "fix": "compileDetection() demotes a source introduced by a locative/motion complement (detrás de, junto a, tras, hacia, desde, se acercan a...). If every source is locative the clause is silent unless the object is acted on (abre/cierra/golpe/chirría/llaman/rompe), so 'corre a la puerta y la abre' still opens the door and 'llaman a la puerta' still knocks. An unparsed idea falls back to the quoted CUE_BRIEF instead of an invented door.",
+      "reevaluation": "18 handcrafted boundary sentences: 9 wrong door/none outputs corrected (telephone, footsteps, gunshot, rain, generic noise, cat -> CUE_BRIEF), 0 regressions after the acted-on-object rule (the first draft regressed 3 door/window openings and was revised). 267 corpus lines (12 scripts) compiled with old vs new: 0 changes attributable to D17."
+    },
+    {
+      "id": "D18", "severity": "P2", "status": "FIXED", "area": "SFX prompt compiler: Spanish singular nouns",
+      "summary": "Lexicon patterns written as 'relojes?' / 'explosiones?' / 'cristales?' require the plural stem, so consonant-final singulars never matched: 'Se oye una explosión' -> 'unspecified stage sound', 'Se rompe un cristal' / 'Se cierra el portón' / 'Pasa un camión' / 'Un rumor de gente' -> no proposal, while the plurals worked. Same for reloj, jarrón, tacón, voz, canción, vals, violín and the spaces corredor, jardín, catedral, hangar. 'El reloj da las doce' was never recognised as a chime.",
+      "repro": "Static scan of every lexicon regex for stem+'es?' alternatives whose singular cannot match; red test 'singular nouns ending in a consonant reach the same source and space as their plural'.",
+      "fix": "Patterns rewritten as stem(?:es)? (and voz|voces); the chime action accepts 'da la una' / 'da las dos..doce'. Reaching 'reloj' exposed a prop over-generation also present for the plural ('un reloj de utilería', 'un reloj roto'): a clock now needs a sounding verb (campanada, suena, empieza, continúa) or 'se oye', as windows and mirrors already did.",
+      "reevaluation": "20-sentence singular/plural probe: singulars now match their plural's source and space. 267 corpus lines old vs new: 4 changes. The 2 forbidden prop lines the first draft newly fired (reloj de utilería, reloj roto) are silent again after the prop rule. Residual: dialogue lines naming 'explosión' ('Recuerdo una explosión') compile when compiled directly, exactly as plurals did before; the product scan skips dialogue and the Sound Lab compiles only operator-pasted fragments behind explicit authorization."
+    },
+    {
+      "id": "D19", "severity": "P3", "status": "FIXED", "area": "SFX prompt compiler: count wording",
+      "summary": "A scripted single occurrence ('un disparo', 'una campanada', demo cue 'suena una campanada aislada del reloj') appended 'The script repeats the event once.', which in English reads as two occurrences and contradicts 'one short blast'.",
+      "repro": "Red test 'a scripted single occurrence is not described as a repetition'.",
+      "fix": "count === 1 renders 'The script specifies a single occurrence; do not repeat it.'; counts >= 2 keep 'repeats the event N times'.",
+      "reevaluation": "soundPromptCompiler suite green with the new test; existing 'three times' assertions unchanged."
+    },
+    {
       "id": "F1", "severity": "P2", "status": "HUMAN_REVIEW_PENDING", "area": "Operator queue policy",
       "summary": "Insert/duplicate/delete from the editor resets the prepared GO to the first cue even when the prepared cue still exists (documented reset policy).",
       "repro": "state-machine finding PREPARED_CUE_REMOVED_BY_EDIT (95 of 16,000 steps); src/ui/app.mjs editCueSequence",

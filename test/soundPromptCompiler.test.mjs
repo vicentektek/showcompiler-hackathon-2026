@@ -608,3 +608,75 @@ test('approved cue details survive compilation in English or are flagged for rev
   assert.deepEqual(coverage.untranslated, []);
   assert.deepEqual(coverage.rendered, ['pasos', 'lentos', 'grava']);
 });
+
+test('a source named only as a place does not replace the sound that happens there', () => {
+  const script = 'ANA: Escucha.\n(Se oye algo fuera.)\nLUIS: ¿Qué ha sido eso?';
+  const draftFor = idea => prepareCueSoundDraft({
+    cue: { id: 'cue-7', number: 7, label: 'Sonido', sourceLineIds: ['L2'], actions: [{ type: 'PLAN_AUDIO', prompt: idea }] },
+    scriptText: script,
+  });
+  const phone = draftFor('un teléfono suena detrás de la puerta');
+  assert.match(phone.prompt, /telephone/);
+  assert.doesNotMatch(phone.prompt, /wooden door/);
+  const steps = draftFor('pasos que se acercan a la puerta');
+  assert.match(steps.prompt, /footsteps/i);
+  assert.doesNotMatch(steps.prompt, /wooden door/);
+  // Only the place is recognised: the compiler must not present the place as the sound.
+  const cat = draftFor('un gato maúlla detrás de la puerta');
+  assert.doesNotMatch(cat.prompt, /wooden door/);
+  assert.equal(cat.interpretation, 'CUE_BRIEF');
+  assert.equal(cat.requiresTranslation, true);
+  // The door still sounds when it is the subject or the struck object.
+  assert.match(draftFor('la puerta se cierra de golpe').prompt, /door/);
+  assert.match(draftFor('llaman a la puerta tres veces').prompt, /door|knuckles/);
+  assert.match(draftFor('golpes en la puerta del despacho').prompt, /door|knuckles/);
+});
+
+test('singular nouns ending in a consonant reach the same source and space as their plural', () => {
+  const first = fragment => compileSoundProposals({
+    fragment, sourceLineId: 'L1', projectId: 'p', fragmentKind: 'STAGE_DIRECTION', mode: 'STRICT',
+  })[0]?.prompt ?? '';
+  const expectations = [
+    ['Se oye una explosión.', /^An explosion /],
+    ['El reloj da las doce.', /^A mechanical clock counts out the hour/],
+    ['El reloj da la una.', /^A mechanical clock counts out the hour/],
+    ['Suena un violín.', /music cue/],
+    ['Se oye un vals.', /music cue/],
+    ['Se rompe un cristal.', /^Window glass shatters/],
+    ['Se cierra el portón.', /^A wooden door closes/],
+    ['Un jarrón cae y se rompe.', /glass/],
+    ['Se oye un tacón.', /footsteps/],
+    ['Pasa un camión.', /engine/],
+    ['Un rumor de gente.', /crowd murmur/i],
+  ];
+  for (const [fragment, expected] of expectations) assert.match(first(fragment), expected, fragment);
+  // Reaching the clock noun must not turn a prop into a sound.
+  assert.match(first('Se oye un reloj.'), /mechanical clock/);
+  assert.match(first('El reloj suena.'), /mechanical clock/);
+  assert.equal(first('(Un teatro vacío. En una mesa, un reloj de utilería.)'), '');
+  assert.equal(first('En la recepción hay un reloj roto.'), '');
+  for (const [singular, plural] of [
+    ['Pasos en el corredor.', 'Pasos en los corredores.'],
+    ['Pasos en el jardín.', 'Pasos en los jardines.'],
+    ['Campanas en la catedral.', 'Campanas en las catedrales.'],
+    ['Un disparo en el hangar.', 'Un disparo en los hangares.'],
+  ]) {
+    assert.doesNotMatch(first(singular), /Acoustic space unspecified/, singular);
+    assert.equal(first(singular).split('. ').find(part => /space|room|outdoor|hall/i.test(part)),
+      first(plural).split('. ').find(part => /space|room|outdoor|hall/i.test(part)), singular);
+  }
+});
+
+test('a scripted single occurrence is not described as a repetition', () => {
+  for (const fragment of ['Un disparo en el hangar.', 'Se oye una campanada.', 'Un portazo.']) {
+    const prompt = compileSoundProposals({
+      fragment, sourceLineId: 'L1', projectId: 'p', fragmentKind: 'STAGE_DIRECTION', mode: 'STRICT',
+    })[0]?.prompt ?? '';
+    assert.doesNotMatch(prompt, /repeats the event once/, fragment);
+    assert.match(prompt, /single occurrence/, fragment);
+  }
+  const twice = compileSoundProposals({
+    fragment: 'Dos disparos.', sourceLineId: 'L1', projectId: 'p', fragmentKind: 'STAGE_DIRECTION', mode: 'STRICT',
+  })[0].prompt;
+  assert.match(twice, /The script repeats the event twice\./);
+});

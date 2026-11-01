@@ -88,13 +88,13 @@ function execAt(pattern, folded) {
 
 const SOURCES = Object.freeze([
   { id: 'glassware', english: 'a crystal drinking glass', category: 'SFX',
-    match: /\b(copas?|vasos?|botellas?|botellon(es)?|jarrones?|jarras?)\b/ },
-  { id: 'window-glass', english: 'window glass', category: 'SFX', match: /\b(vidrios?|cristales?)\b/ },
+    match: /\b(copas?|vasos?|botellas?|botellon(es)?|jarron(?:es)?|jarras?)\b/ },
+  { id: 'window-glass', english: 'window glass', category: 'SFX', match: /\b(vidrios?|cristal(?:es)?)\b/ },
   { id: 'mirror', english: 'a mirror', category: 'SFX', match: /\bespejos?\b/ },
-  { id: 'door', english: 'a wooden door', category: 'SFX', match: /\b(puertas?|portones?|portazos?)\b/ },
+  { id: 'door', english: 'a wooden door', category: 'SFX', match: /\b(puertas?|porton(?:es)?|portazos?)\b/ },
   { id: 'window', english: 'a window', category: 'SFX', match: /\bventanas?\b/ },
   { id: 'footsteps', english: 'footsteps', category: 'SFX',
-    match: /\b(pasos|pisadas?|tacones?|correteos?|paso\s+de\s+[a-z]+)\b/ },
+    match: /\b(pasos|pisadas?|tacon(?:es)?|correteos?|paso\s+de\s+[a-z]+)\b/ },
   { id: 'knock', english: 'knuckles on wood', category: 'SFX',
     match: /\b(llamada? en la puerta|llaman a la puerta|tocan a la puerta|golpes? en la puerta)\b/ },
   { id: 'impact', english: 'one blunt percussion hit', category: 'SFX',
@@ -103,12 +103,12 @@ const SOURCES = Object.freeze([
     match: /\b(?:algo cae|cae algo|se cae|caen los\w+|se caen los\w+)\b/ },
   { id: 'phone', english: 'a telephone bell', category: 'SFX', match: /\b(telefonos?|timbres?)\b/ },
   { id: 'bell', english: 'a bell', category: 'SFX', match: /\b(campanas?|campanillas?|campanadas?|gong)\b/ },
-  { id: 'clock', english: 'a mechanical clock', category: 'SFX', match: /\brelojes?\b/ },
+  { id: 'clock', english: 'a mechanical clock', category: 'SFX', match: /\breloj(?:es)?\b/ },
   { id: 'clock-tick', english: 'clock ticking', category: 'ENVIRONMENT',
     match: /\b(tic[\s-]?tic){2,}|tic[\s-]?tac\b/ },
   { id: 'shot', english: 'a gunshot', category: 'SFX',
     match: /\b(?:disparos?|detonacion(?:es)?|escopetas?|pistolas?)\b/ },
-  { id: 'explosion', english: 'an explosion', category: 'SFX', match: /\b(explosiones?|dinamita)\b/ },
+  { id: 'explosion', english: 'an explosion', category: 'SFX', match: /\b(explosion(?:es)?|dinamita)\b/ },
   { id: 'thunder', english: 'a thunderclap', category: 'SFX', match: /\btruenos?\b/ },
   { id: 'lightning', english: 'a lightning strike', category: 'SFX', match: /\brayos?\b/ },
   { id: 'rain', english: 'rainfall', category: 'ENVIRONMENT',
@@ -120,19 +120,19 @@ const SOURCES = Object.freeze([
   { id: 'fire', english: 'a burning fire', category: 'ENVIRONMENT',
     match: /\b(hogueras?|brasas?|estufas?|chimeneas?)\b/ },
   { id: 'engine', english: 'a vehicle engine', category: 'SFX',
-    match: /\b(?:motor(?:es)?|coches?|autos?|automovil\w*|carros?|camiones?|motos?|marchas? de motor)\b/ },
+    match: /\b(?:motor(?:es)?|coches?|autos?|automovil\w*|carros?|camion(?:es)?|motos?|marchas? de motor)\b/ },
   { id: 'train', english: 'a railway train', category: 'SFX', match: /\b(?:tren(?:es)?|locomotoras?)\b/ },
   { id: 'furniture', english: 'a wooden piece of furniture', category: 'SFX',
     match: /\b(?:sillas?|banquetas?|taburetes?|escritorios?|armarios?|estantes?|banca)\b/ },
   { id: 'applause', english: 'applause', category: 'ENVIRONMENT', match: /\baplausos?\b/ },
   { id: 'crowd-murmur', english: 'a crowd murmur', category: 'ENVIRONMENT',
-    match: /\b(murmullos?|rumores? de (?:gente|multitud|voces)|conversaciones|charla)\b/ },
-  { id: 'crowd-shout', english: 'shouting voices', category: 'SFX', match: /\b(?:gritos?|grita\w*|voces?\s+(?:que\s+)?(?:gritan|exigen))\b/ },
+    match: /\b(murmullos?|rumor(?:es)? de (?:gente|multitud|voces)|conversaciones|charla)\b/ },
+  { id: 'crowd-shout', english: 'shouting voices', category: 'SFX', match: /\b(?:gritos?|grita\w*|(?:voz|voces)\s+(?:que\s+)?(?:gritan|exigen))\b/ },
   { id: 'laughter', english: 'laughter', category: 'SFX', match: /\b(risas?|carcajadas?)\b/ },
   { id: 'breath-vocal', english: 'a human breath or vocal sound', category: 'SFX',
     match: /\b(?:suspiros?|respiracion(?:es)?|respirar|llantos?|sollozos?|jadeos?)\b/ },
   { id: 'music', english: 'music', category: 'MUSIC',
-    match: /\b(musicas?|melodias?|canciones?|valses?|tangos?|piano|violines?|guitarras?|orquestas?|radios?|fonografos?)\b/ },
+    match: /\b(musicas?|melodias?|cancion(?:es)?|vals(?:es)?|tangos?|piano|violin(?:es)?|guitarras?|orquestas?|radios?|fonografos?)\b/ },
   { id: 'generic-noise', english: 'an unspecified percussive stage event', category: 'SFX',
     match: /\b(ruidos?|estruendos?|silbidos?|chisporroteo)\b/ },
   { id: 'generic-heard', english: 'an unspecified stage sound', category: 'SFX',
@@ -155,7 +155,7 @@ const ACTIONS = {
   continue: /\b(continua|continuan|sigue[n]? sonando|se mantiene|persist\w*)\b/,
   start: /\b(empieza|comienza|arranca|arrancando)\b/,
   pass: /\b(pasa[n]?|cruza|atraviesa|llega desde)\b/,
-  chime: /\b(dan las|da la[s]? horas?|dando las|marcando las horas)\b/,
+  chime: /\b(dan las|da la[s]? horas?|dando las|marcando las horas|da la una|da las (?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce))\b/,
 };
 
 const INTENSITY_MATCHERS = [
@@ -167,9 +167,9 @@ const INTENSITY_MATCHERS = [
 const OFFSTAGE_PATTERN = /\b(fuera de escena|desde fuera|en el foro|tras (?:el|la) (?:telon|bambalin\w*|cortina)|bambalinas|desde bambalina[s]?)\b/;
 const FAR_PATTERN = /\b(?:a lo lejos|al fondo|desde lejos|lejanos?|lejan\w*|lejos|distantes?)\b/;
 const SPACE_MATCHERS = [
-  { id: 'CORRIDOR', pattern: /\b(pasillos?|corredores?|escaleras?)\b/ },
-  { id: 'OUTDOOR', pattern: /\b(calles?|bosques?|jardines?|plazas?|montes?|patios? de fachada|estacion (?:de|->)?tren|afuera|exterior|a la intemperie)\b/ },
-  { id: 'LARGE_HALL', pattern: /\b(iglesias?|catedrales?|salon(?: de )?baile|auditorios?|hangares?)\b/ },
+  { id: 'CORRIDOR', pattern: /\b(pasillos?|corredor(?:es)?|escaleras?)\b/ },
+  { id: 'OUTDOOR', pattern: /\b(calles?|bosques?|jardin(?:es)?|plazas?|montes?|patios? de fachada|estacion (?:de|->)?tren|afuera|exterior|a la intemperie)\b/ },
+  { id: 'LARGE_HALL', pattern: /\b(iglesias?|catedral(?:es)?|salon(?: de )?baile|auditorios?|hangar(?:es)?)\b/ },
   { id: 'INDOOR', pattern: /\b(dentro|habitacion(?:es)?|salon|cocinas?|oficinas?|cuartos?|interior(?:es)?|apartamentos?|estudios?)\b/ },
   { id: 'UNDERGROUND', pattern: /\b(subterraneos?|subsuelos?|sotanos?|bodegas?|cuevas?)\b/ },
 ];
@@ -464,6 +464,15 @@ function detectOffstageDistance(folded) {
 /* Single-clause detection                                             */
 /* ------------------------------------------------------------------ */
 
+// A source noun introduced as a place ("detrás de la puerta", "se acercan a la
+// puerta") locates the event instead of producing it. "a/en/contra la puerta"
+// after a contact verb (llaman, golpes) still names the struck object.
+const LOCATIVE_BEFORE = new RegExp('\\b(?:(?:detras|delante|cerca|lejos|alrededor|encima|debajo|dentro|fuera|' +
+  'al otro lado|a traves) del?|(?:junto|frente) al?|tras|hacia|desde|hasta|' +
+  '(?:se )?(?:acerca|aleja|aproxima|llega|dirige|vuelve|camina|corre)n? (?:a|al|hacia|hasta|del?|desde))' +
+  '\\s+(?:(?:la|el|las|los|una?|unos|unas)\\s+)?$');
+const LOCATED_OBJECT_ACTIONS = ['open', 'close', 'slam', 'creak', 'knock', 'break'];
+
 /** Compile one clause into a structured detection or `{ silent: true }`. */
 function compileDetection(clause) {
   const original = clause.originalText;
@@ -477,7 +486,11 @@ function compileDetection(clause) {
   }
   if (!matches.length) return { silent: true };
 
-  let primary = matches[0];
+  const locative = matched => LOCATIVE_BEFORE.test(folded.slice(Math.max(0, matched.start - 48), matched.start));
+  // "corre a la puerta y la abre": the reached object still sounds when acted on.
+  if (matches.every(locative) &&
+      !LOCATED_OBJECT_ACTIONS.some(key => execAt(ACTIONS[key], folded))) return { silent: true };
+  let primary = matches.find(matched => !locative(matched)) ?? matches[0];
   // Windows/panes mentioned by the rain ("lluvia sobre los cristales") are part
   // of the ambience detail, not a second percussive event.
   if (primary.source.id === 'window-glass') {
@@ -531,6 +544,12 @@ function compileDetection(clause) {
   }
   if (detection.source.id === 'window' &&
       !['open', 'close', 'creak', 'break'].some(key => actionKeys.includes(key))) {
+    return { silent: true };
+  }
+  // A clock on set ("un reloj de utilería", "un reloj roto") is a prop until it sounds.
+  if (detection.source.id === 'clock' &&
+      !['chime', 'ring', 'start', 'continue'].some(key => actionKeys.includes(key)) &&
+      !matches.some(matched => matched.source.id === 'generic-heard')) {
     return { silent: true };
   }
 
@@ -857,7 +876,9 @@ function buildFinalPrompt(proposal, detection, context) {
   }
   if (detection.count) {
     const times = detection.count.count && COUNT_WORDS_EN[detection.count.count - 1];
-    parts.push(times
+    parts.push(detection.count.count === 1
+      ? 'The script specifies a single occurrence; do not repeat it.'
+      : times
       ? `The script repeats the event ${times}.`
       : `The script mentions a repeated count (${detection.count.evidence}); confirm the exact number.`);
   }
