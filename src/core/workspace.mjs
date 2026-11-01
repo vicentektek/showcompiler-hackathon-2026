@@ -205,12 +205,13 @@ export function updateCueOperatorDetails(project, cueId, { label, trigger = '', 
 
 /**
  * Save operator playback settings separately from evidence/proposals.
- * Only committed GO reads these settings; editing never plays sound.
+ * Unresolved drafts may store settings but cannot GO until audio is resolved.
  */
 export function updateCuePlayback(project, cueId, changes) {
   const current = normalizeShowProject(project);
   const cue = current.cues.find(item => item.id === cueId);
-  if (!cue || cue.status !== 'DRAFT' || !cue.actions.some(a => a.type === 'PLAY')) {
+  if (!cue || cue.status !== 'DRAFT' ||
+      !cue.actions.some(a => a.type === 'PLAY' || a.type === 'PLAN_AUDIO')) {
     throw new TypeError('Cue must contain playable audio');
   }
   if (!changes || typeof changes !== 'object' || Array.isArray(changes)) {
@@ -262,6 +263,28 @@ export function decideProposal(project, proposalId, decision) {
   const proposals = current.proposals.map(p => p.id === proposalId ? reviewed.reviewedProposal : p);
   const cues = reviewed.cue ? [...current.cues, reviewed.cue] : current.cues;
   return normalizeShowProject({ ...current, proposals, cues });
+}
+
+export function decideProposalBatch(project, proposalIds, decision) {
+  const current = normalizeShowProject(project);
+  if (!Array.isArray(proposalIds) || proposalIds.length === 0 ||
+      proposalIds.some(id => typeof id !== 'string') ||
+      new Set(proposalIds).size !== proposalIds.length) {
+    throw new TypeError('Proposal batch must contain unique proposal IDs');
+  }
+  if (!['APPROVE', 'REJECT'].includes(decision)) {
+    throw new TypeError('Unsupported proposal decision');
+  }
+  const pendingIds = new Set(current.proposals
+    .filter(proposal => proposal.status === 'PENDING')
+    .map(proposal => proposal.id));
+  if (proposalIds.some(id => !pendingIds.has(id))) {
+    throw new Error('Every selected proposal must still be pending');
+  }
+  return proposalIds.reduce(
+    (next, proposalId) => decideProposal(next, proposalId, decision),
+    current,
+  );
 }
 
 /**

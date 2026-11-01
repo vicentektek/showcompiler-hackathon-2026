@@ -123,6 +123,51 @@ test('shared ledger rejects forbidden providers, duplicates, cap overflow and ov
   assert.deepEqual(raw.reservations.slice(0,3),legacy().reservations);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+  test('shared campaign ledger enforces provider request ceilings using historical reservations',async()=>{
+   const dir=await mkdtemp(join(tmpdir(),'runq-campaign-request-cap-'));
+   const file=join(dir,'global.json');
+   const state=updated();
+   for(let index=0;index<398;index++){
+    state.reservations.push({
+     requestId:'meta-historical-'+index,runId:'meta-historical-run',
+     provider:'meta',amountMicros:1,status:'UNKNOWN',
+    });
+   }
+   for(let index=0;index<98;index++){
+    state.reservations.push({
+     requestId:'modal-historical-'+index,runId:'modal-historical-run',
+     provider:'modal',amountMicros:1,status:'UNKNOWN',
+    });
+   }
+   try{
+    await writeFile(file,JSON.stringify(state));
+    const ledger=await acquireGlobalSpendLedger({file});
+    try{
+     const before=ledger.status();
+     assert.equal(before.perProvider.meta.requestCount,399);
+     assert.equal(before.perProvider.meta.requestCap,400);
+     assert.equal(before.perProvider.meta.requestsRemaining,1);
+     assert.equal(before.perProvider.modal.requestCount,99);
+     assert.equal(before.perProvider.modal.requestCap,100);
+     assert.equal((await ledger.reserve({
+      requestId:'meta-last-allowed',runId:'meta-new-run',provider:'meta',
+      estimatedMaximumUsd:0.000001,
+     })).accepted,true);
+     assert.equal((await ledger.reserve({
+      requestId:'meta-over-cap',runId:'meta-new-run',provider:'meta',
+      estimatedMaximumUsd:0.000001,
+     })).reason,'REQUEST_LIMIT');
+     assert.equal((await ledger.reserve({
+      requestId:'modal-last-allowed',runId:'modal-new-run',provider:'modal',
+      estimatedMaximumUsd:0.000001,
+     })).accepted,true);
+     assert.equal((await ledger.reserve({
+      requestId:'modal-over-cap',runId:'modal-new-run',provider:'modal',
+      estimatedMaximumUsd:0.000001,
+     })).reason,'REQUEST_LIMIT');
+    }finally{await ledger.close();}
+   }finally{await rm(dir,{recursive:true,force:true});}
+  });
   test('historical imports count once, preserve originals, retain prohibited spend and fail on changed evidence',()=>{
    const carry={requestId:'legacy-test-1',runId:'legacy-test',provider:'baseten',
     amountMicros:150000,status:'UNKNOWN',evidenceSha256:'a'.repeat(64)};
@@ -134,14 +179,32 @@ test('shared ledger rejects forbidden providers, duplicates, cap overflow and ov
    assert.throws(()=>upgradeCampaignBudget(first,{...options,
     legacyReservations:[{...carry,amountMicros:1}]}),/RECONCILE_REQUIRED/);
   });
-  test('dry budget planning has zero ledger writes and verified backup precedes authorized upgrade',async()=>{
+test('agent history without provider attribution cannot be imported or alter the shared ledger',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'runq-campaign-unattributed-'));
+ const file=join(dir,'global.json'),history=join(dir,'agent-history.json');
+ const before=JSON.stringify(updated());
+ try{
+   await writeFile(file,before);
+   await writeFile(history,JSON.stringify({
+    version:1,records:[{sequence:1,reserveUsd:0.15}],
+   }));
+   await assert.rejects(()=>campaignBudgetCommand([
+    '--ledger',file,'--legacy-agent-ledger',history,
+   ]),/LEGACY_PROVIDER_UNATTRIBUTED_RECONCILE_REQUIRED/);
+   assert.equal(await readFile(file,'utf8'),before);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+   test('dry budget planning has zero ledger writes and verified backup precedes authorized upgrade',async()=>{
    const dir=await mkdtemp(join(tmpdir(),'runq-upgrade-'));
    const file=join(dir,'ledger.json'),backup=join(dir,'external','backup.json');
    try{
     await writeFile(file,JSON.stringify(legacy()));
     const original=await readFile(file);
     const plan=await campaignBudgetCommand(['--ledger',file]);
-    assert.equal(plan.providerRequests,0);assert.equal(plan.creditVerified,false);
+    assert.equal(plan.providerRequests,0);
+    assert.equal(plan.creditBasis,'owner_attestation');
+    assert.equal(plan.providerBalanceVerified,false);
+    assert.equal(plan.ownerAttestedCredit,true);
     assert.deepEqual(await readFile(file),original);
     await assert.rejects(()=>campaignBudgetCommand(['--ledger',file,'--apply-authorized-upgrade']),
      /BACKUP_REQUIRED/);

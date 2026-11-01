@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeCuePlayback, DEFAULT_CUE_PLAYBACK } from '../src/core/cuePlayback.mjs';
 import { BrowserAudioEngine } from '../src/core/browserAudio.mjs';
-import { createNewShow, addAudioReference, addMockProposal, decideProposal, updateCuePlayback } from '../src/core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, decideProposal, updateCuePlayback, assignAudioToCue } from '../src/core/workspace.mjs';
 import { serializeShowProject, deserializeShowProject } from '../src/core/projectPersistence.mjs';
+import {insertManualCue} from '../src/core/manualCues.mjs';
 
 function showWithCue() {
   let project = createNewShow({ id: 'playback-show', name: 'Sound design', scriptText: '(Music starts)\nEnd' });
@@ -78,6 +79,22 @@ test('operator playback survives JSON without modifying AI evidence or existing 
   assert.throws(()=>updateCuePlayback(changed,'missing',{loop:true}),/playable audio/);
   assert.throws(()=>updateCuePlayback(changed,'cue-1',{gainDb:20}),/Invalid cue playback/);
   assert.throws(()=>updateCuePlayback(changed,'cue-1',{loop:true}),/Invalid cue playback/);
+});
+
+test('unresolved draft can store validated playback settings but still cannot GO',async()=>{
+ const original=insertManualCue(createNewShow({name:'Unresolved'}),{label:'Door'}).project;
+ const changed=updateCuePlayback(original,original.cues[0].id,{fadeInMs:500,fadeOutMs:1500,gainDb:-9});
+ assert.equal(normalizeCuePlayback(original.cues[0].playback).fadeOutMs,0);
+ assert.equal(changed.cues[0].playback.fadeOutMs,1500);
+ assert.deepEqual(changed.cues[0].actions,original.cues[0].actions);
+ assert.deepEqual(deserializeShowProject(serializeShowProject(changed)),changed);
+ const x=audioFixture();
+ await assert.rejects(()=>x.engine.go(changed.cues[0]));
+ assert.equal(x.sources.length,0);
+ assert.throws(()=>updateCuePlayback(changed,changed.cues[0].id,{loop:true}),/Invalid cue playback/);
+ const linked=addAudioReference(changed,'door.wav');
+ const resolved=assignAudioToCue(linked,linked.cues[0].id,linked.assets[0].id);
+ assert.deepEqual(resolved.cues[0].playback,changed.cues[0].playback);
 });
 
 test('manual GO executes trim, delayed start and real fade-in and end fade-out', async () => {

@@ -86,6 +86,7 @@ try{
  });
  const initial=await read();
  const command='Insert a cue before cue three. Name it Decision Tension. Use the selected sound. Set the voice trigger to line twenty.';
+ await page.locator('#rqAgentMoreOptions summary').first().click();
  await page.locator('#rqAgentVoice summary').click();
  assert.equal(await page.evaluate(()=>window.microphoneRequests),0,'Opening dictation never acquires a microphone');
  const capture=async prefix=>{
@@ -130,10 +131,15 @@ try{
 
  await page.locator('#rqAgentPrompt').fill('Keep this reviewed text');
  await capture('rqAgent');const stopped=await upload('rqAgent');
- await page.locator('#stopAllBtn').click();
+ assert.equal(await page.locator('#stopAllBtn').isVisible(),false,
+  'No-audio design context does not expose a live transport button');
+ await page.locator('#stopAllBtn').evaluate(button=>button.click());
  voiceReplies.shift()({transcript:'Late stopped command'});await stopped.settled;
  assert.equal(await page.locator('#rqAgentPrompt').inputValue(),'Keep this reviewed text',
   'STOP ALL invalidates a late transcription');
+ assert.equal(await page.locator('#rqAgentRecord').isEnabled(),true,
+  JSON.stringify({errors,status:await page.locator('#rqAgentVoiceStatus').textContent(),
+   agentStatus:await page.locator('#rqAgentStatus').textContent(),voiceRequests:voiceRequests.length}));
  await capture('rqAgent');
  const replaced=await upload('rqAgent');
  await page.locator('#bundleFileInput').setInputFiles({

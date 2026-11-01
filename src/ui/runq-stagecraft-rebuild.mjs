@@ -120,6 +120,10 @@ function createStage(){
   const sequenceFrame=el('div','rq5-sequence-frame');
   sequenceFrame.append(seqHeader);
   if(columns)sequenceFrame.append(columns);
+  const dropHint=get('cueAudioDropHint');
+  const dropStatus=get('cueAudioDropStatus');
+  if(dropHint)sequenceFrame.append(dropHint);
+  if(dropStatus)sequenceFrame.append(dropStatus);
   sequenceFrame.append(cueList);
   const inspectorFrame=el('div','rq5-inspector-frame');
   const inspectorHeader=el('div','rq5-inspector-heading');

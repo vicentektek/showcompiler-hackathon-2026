@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {acquireGlobalSpendLedger,globalLedgerDefaultPath} from '../src/qa/globalSpendLedger.mjs';
-import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
+import {CAMPAIGN_POLICY,CAMPAIGN_CREDIT_AUTHORIZATION} from '../src/qa/campaignPolicy.mjs';
 
 export async function campaignBudgetCommand(argv){
  const options={apply:false,file:globalLedgerDefaultPath(),legacyFiles:[]};
@@ -62,8 +62,8 @@ export async function campaignBudgetCommand(argv){
   return {current:ledger.status(),authorizedPolicy:CAMPAIGN_POLICY,
    proposedLegacyReservations:legacyReservations.length,
    proposedLegacyReserveUsd:legacyReservations.reduce((n,r)=>n+r.amountMicros,0)/1e6,
-   providerRequests:0,creditVerified:false,
-   note:'Local ceilings do not verify provider credit. Unknown historical reservations are not retryable.'};
+   providerRequests:0,...CAMPAIGN_CREDIT_AUTHORIZATION,
+   note:'Owner-attested credit is not a provider balance check. Unknown historical reservations are not retryable.'};
  }finally{await ledger.close();}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){

@@ -3,12 +3,23 @@
  * Checks waveform interaction, preview, STOP, PCM16 export and no paid requests.
  */
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { createAppServer } from './dev-server.mjs';
 import { chromium } from 'playwright-core';
 
 const server=createAppServer({sfxConfig:()=>({enabled:false})});
 let browser;
+function makeReviewWav(){
+  const sampleRate=16000,frames=sampleRate,bytes=Buffer.alloc(44+frames*2);
+  bytes.write('RIFF',0);bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVE',8);
+  bytes.write('fmt ',12);bytes.writeUInt32LE(16,16);bytes.writeUInt16LE(1,20);
+  bytes.writeUInt16LE(1,22);bytes.writeUInt32LE(sampleRate,24);
+  bytes.writeUInt32LE(sampleRate*2,28);bytes.writeUInt16LE(2,32);
+  bytes.writeUInt16LE(16,34);bytes.write('data',36);bytes.writeUInt32LE(frames*2,40);
+  for(let i=0;i<frames;i++)bytes.writeInt16LE(Math.round(Math.sin(i/15)*5000),44+i*2);
+  return bytes;
+}
 try{
   await new Promise((resolve,reject)=>{
     server.once('error',reject);server.listen(0,'127.0.0.1',resolve);
@@ -44,14 +55,56 @@ try{
         start(){window.__labStarted++},stop(){window.__labStopped++}};}
     };
   });
-  let billableCalls=0;
+  const mockWav=makeReviewWav();
+  const mockWavHash=createHash('sha256').update(mockWav).digest('hex');
+  let mockedGenerationRequests=0,mockedRefreshRequests=0,mockedReviewRequests=0,mockJob=null;
+  const mockSettings={
+    enabled:true,estimatedMaxCostUsdPerRequest:0.1,dailyBudgetUsd:10,
+    actualBillingStatus:'UNKNOWN',requiresExplicitConfirmation:true,
+    requiresExactCostAcknowledgement:true,manualImportOnly:true,
+  };
   await page.route('**/*',async route=>{
     const url=new URL(route.request().url());
-    if(url.pathname.startsWith('/api/sfx/jobs')){
-      billableCalls++;return route.abort();
-    }
     if(url.hostname!=='127.0.0.1'||url.port!==String(port)){
       return route.abort();
+    }
+    if(url.pathname==='/api/sfx/status'){
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockSettings)});
+    }
+    if(url.pathname==='/api/sfx/jobs'&&route.request().method()==='POST'){
+      mockedGenerationRequests++;
+      const input=route.request().postDataJSON();
+      assert.equal(input.confirmed,true);
+      mockJob={
+        requestId:input.requestId,sourceLineId:input.sourceLineId,
+        kind:input.kind,prompt:input.prompt,durationSeconds:input.durationSeconds,
+        seed:input.seed,status:'QUEUED',modelCandidate:'stabilityai/stable-audio-3-small-sfx',
+        modelRevision:'a'.repeat(40),createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString(),
+        cost:{estimatedMaxCostUsd:0.05,actualBilledUsd:null},
+        wav:{fileName:'mock-reviewed.wav',sha256:mockWavHash,durationSeconds:1,
+          sampleRateHz:16000,channels:1,byteLength:mockWav.length},
+      };
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockJob)});
+    }
+    const jobRoute=url.pathname.match(/^\/api\/sfx\/jobs\/([^/]+)(?:\/(refresh|audio|review))?$/);
+    if(jobRoute){
+      const operation=jobRoute[2]??'read';
+      if(!mockJob||decodeURIComponent(jobRoute[1])!==mockJob.requestId)
+        return route.fulfill({status:404,contentType:'application/json',body:'{"code":"SFX_NOT_FOUND"}'});
+      if(operation==='refresh'){
+        mockedRefreshRequests++;
+        mockJob={...mockJob,status:'READY_FOR_REVIEW',updatedAt:new Date().toISOString()};
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockJob)});
+      }
+      if(operation==='audio'&&route.request().method()==='GET')
+        return route.fulfill({status:200,contentType:'audio/wav',body:mockWav});
+      if(operation==='review'&&route.request().method()==='POST'){
+        mockedReviewRequests++;
+        mockJob={...mockJob,status:'ACCEPTED_FOR_MANUAL_IMPORT',updatedAt:new Date().toISOString()};
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockJob)});
+      }
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockJob)});
     }
     return route.continue();
   });
@@ -153,6 +206,19 @@ try{
   await page.locator('[data-rq10-sound-tab="library"]').click();
   await page.locator('#assetList [data-sound-edit]').first().click();
   await page.locator('#rq10CreateLibraryCue').waitFor({state:'visible'});
+  await page.locator('[data-workspace-nav="operation"]').click();
+  for(let index=0;index<3;index++)await page.locator('#operatorSkipBtn').click();
+  const completedQueue=await page.evaluate(()=>{
+    let state;document.dispatchEvent(new CustomEvent('runq:show-state-read',{
+      detail:{respond:value=>{state=value;}},
+    }));return state;
+  });
+  assert.equal(completedQueue.preparedCueId,null,'The original three-cue queue is complete before adding a new cue');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  await page.locator('[data-rq10-sound-tab="library"]').click();
+  await page.locator('#assetList [data-sound-edit]').first().click();
+  await page.locator('#rq10CreateLibraryCue').waitFor({state:'visible'});
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
   assert.equal(await page.locator('#rq10CreateLibraryCue').isEnabled(),true);
   assert.equal(await page.locator('[data-rq10-sound-tab="generate"]').getAttribute('aria-selected'),'true');
   await page.locator('#inPoint').fill('0.05');
@@ -160,6 +226,13 @@ try{
   page.once('dialog',d=>d.accept());
   await page.locator('#rq10CreateLibraryCue').click();
   await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='4');
+  const newCueQueue=await page.evaluate(()=>{
+    let state;document.dispatchEvent(new CustomEvent('runq:show-state-read',{
+      detail:{respond:value=>{state=value;}},
+    }));return state;
+  });
+  assert.equal(newCueQueue.preparedCueId,newCueQueue.cues.at(-1).id,
+    'A library-created cue becomes NEXT when added after the queue is complete');
   assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
     'Creating a cue from the audio editor must never trigger playback');
   assert.ok((await page.locator('#rq10TargetCue option').count())>=5,
@@ -170,10 +243,56 @@ try{
   assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
     'Assigning sound and trims cannot execute a GO');
   await page.locator('[data-workspace-nav="cues"]').click();
+  await page.evaluate(()=>document.dispatchEvent(new CustomEvent(
+    'runq:create-cue-from-script-lines',{detail:{lineIds:['L2']}},
+  )));
+  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='5');
+  await page.locator('#cueList [data-cue-select]').last().click();
+  await page.locator('#cueInspector [data-rq-context-action="sound"]').click();
+  await page.locator('[data-rq10-sound-tab="generate"]').waitFor({state:'visible'});
+  assert.equal(await page.locator('#sfxCueContext').isVisible(),true,
+    'Opening sound from a cue pins its destination and shows the contextual draft');
+  assert.match(await page.locator('#sfxCueContext').textContent(),/cue 5.*L2.*12 s/i);
+  assert.equal(await page.locator('#sourceLine').inputValue(),'L2');
+  assert.equal(await page.locator('#soundKind').inputValue(),'ENVIRONMENT');
+  assert.equal(await page.locator('#duration').inputValue(),'12');
+  assert.match(await page.locator('#soundPrompt').inputValue(),/atmospheric hum/i);
+  assert.equal(await page.locator('#sfxAdvanced').evaluate(el=>el.open),false,
+    'Contextual generation opens without configuration detours');
+  assert.equal(await page.locator('.sfx-export').isHidden(),true,
+    'Cue flow hides unrelated export/import actions');
+  await page.locator('#confirmRequest').check();
+  await page.locator('#generateBtn').click();
+  await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent.includes('Generated ·'));
+  assert.equal(mockedGenerationRequests,1);
+  assert.equal(mockedRefreshRequests,1);
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
+    'Ready audio is loaded but never played automatically');
+  await page.locator('#sfxListenBtn').click();
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts+1,
+    'The operator explicitly listens to the generated cue sound');
+  await page.locator('#stopBtn').click();
+  assert.equal(await page.locator('#acceptBtn').isEnabled(),true,
+    'After listening, one explicit action accepts and assigns the take');
+  await page.locator('#acceptBtn').click();
+  await page.waitForFunction(()=>document.querySelector('.shell')?.getAttribute('data-active-workspace')==='cues');
+  assert.equal(mockedReviewRequests,1);
+  const assignedState=await page.evaluate(()=>new Promise(resolve=>{
+    document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:resolve}}));
+  }));
+  assert.equal(assignedState.selectedCueId,'cue-5',
+    'The contextual import selects the exact cue that requested the sound');
+  assert.equal(assignedState.assets.length,4,'The accepted WAV is added to the show library');
+  assert.match(await page.locator('#cueList [data-cue-state="cue-5"]').textContent(),/ready/i,
+    'The requesting cue now has its reviewed audio assigned');
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts+1,
+    'Accepting and assigning audio does not execute GO');
+  await page.locator('[data-workspace-nav="cues"]').click();
   await page.locator('#cueList [data-cue-select]').first().click();
   assert.equal(await page.locator('#cuePlaybackForm [name="startAtMs"]').inputValue(),'50',
     'Library-to-cue review settings must be persisted as milliseconds');
-  assert.equal(billableCalls,0);
+  assert.equal(mockedGenerationRequests,1,'Only one explicitly authorized test request was intercepted');
+  assert.equal(mockedReviewRequests,1);
   assert.deepEqual(errors,[]);
   if(process.env.RUNQ_CAPTURE_UI==='1'){
     await mkdir('artifacts/runq-ui',{recursive:true});

@@ -242,6 +242,19 @@ function mountUnifiedSound(){
     (next==='library'?library:generate).focus();
   });
   document.addEventListener('runq:sound-mode',event=>setMode(event.detail?.mode));
+  document.addEventListener('runq:context-task-open-sound',event=>{
+    const taskContext=event.detail?.taskContext;
+    if(!taskContext)return;
+    setMode('generate');
+    requestAnimationFrame(()=>{
+      refreshCueTargets();
+      const target=$('rq10TargetCue');
+      if(target)target.value=taskContext.cueId??'';
+      document.dispatchEvent(new CustomEvent('runq:sound-context-open',{
+        detail:{taskContext},
+      }));
+    });
+  });
   const cueList=$('cueList');
   if(cueList)new MutationObserver(()=>queueMicrotask(refreshCueTargets))
     .observe(cueList,{childList:true});

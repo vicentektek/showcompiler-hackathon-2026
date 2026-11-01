@@ -3,7 +3,7 @@ import {dirname,join} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {globalLedgerDefaultPath,acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
-import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
+import {CAMPAIGN_CREDIT_AUTHORIZATION} from '../src/qa/campaignPolicy.mjs';
 import {buildAgentContext} from '../src/core/agentCore.mjs';
 import {buildQualityMatrix,initialMetaPhase} from '../src/qa/qualityMatrix.mjs';
 import {evaluateMetaCase,evaluateModalCase,qualityReport,renderQualityReport} from '../src/qa/qualityEvaluation.mjs';
@@ -66,31 +66,20 @@ export function cleanQualityCommit(){
  return head;
 }
 export async function qualityLivePreflight(options,{ledgerFactory=acquireGlobalSpendLedger,
- commitIdentity=cleanQualityCommit,now=()=>new Date()}={}){
- if(options.live!==true||options.ackPaid!==true||options.creditVerified!==true)
-  throw new Error('OPERATOR_PAID_AND_CREDIT_ACK_REQUIRED');
- const credit=options.creditRecord;
- if(!credit||credit.policyRevision!==CAMPAIGN_POLICY.revision||
-    credit.method!=='AUTHENTICATED_PROVIDER_DASHBOARD'||
-    !Number.isFinite(Date.parse(credit.verifiedAt))||
-    Date.parse(credit.verifiedAt)>now().getTime()||
-    now().getTime()-Date.parse(credit.verifiedAt)>86400000)
-  throw new Error('CURRENT_OPERATOR_CREDIT_RECORD_REQUIRED');
+ commitIdentity=cleanQualityCommit}={}){
+ if(options.live!==true||options.ackPaid!==true||
+    CAMPAIGN_CREDIT_AUTHORIZATION.ownerAttestedCredit!==true)
+  throw new Error('OPERATOR_PAID_AND_OWNER_ATTESTATION_REQUIRED');
  const commit=commitIdentity();
- if(credit.sourceCommit!==commit)throw new Error('CREDIT_RECORD_SOURCE_COMMIT_MISMATCH');
  const ledger=await ledgerFactory();
  try{
   const balance=ledger.status();
   for(const provider of ['meta','modal']){
    const minimum=provider==='meta'?0.15:0.05;
-   if(credit.providers?.[provider]?.currency!=='USD'||
-      !Number.isFinite(credit.providers[provider].availableUsd)||
-      credit.providers[provider].availableUsd<minimum||
-      balance.perProvider[provider].remainingUsd<minimum)
-    throw new Error('PROVIDER_CREDIT_OR_CAMPAIGN_BALANCE_TOO_SMALL');
+   if(balance.perProvider[provider].remainingUsd<minimum)
+    throw new Error('CAMPAIGN_BALANCE_TOO_SMALL');
   }
-  return {commit,balance,creditVerifiedAt:credit.verifiedAt,
-   creditVerification:'OPERATOR_ATTESTATION_NOT_INDEPENDENT_VENDOR_BILLING'};
+  return {commit,balance,...CAMPAIGN_CREDIT_AUTHORIZATION};
  }finally{await ledger.close();}
 }
 

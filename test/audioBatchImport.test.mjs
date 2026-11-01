@@ -48,6 +48,21 @@ function makeZip(entries,{comment=''}={}){
   return new Uint8Array(Buffer.concat([...local,dir,tail]));
 }
 const file=(name,data='sample data')=>new File([data],name);
+test('cue intake preserves every independent file and order, including repeated loaded names',()=>{
+  const files=[file('same.wav'),file('second.wav'),file('same.wav','different bytes'),file('bad.txt')];
+  const assets=[{id:'asset-1',name:'same.wav'}];
+  const result=planAudioLibraryBatch(files,assets,()=>true,{independentFiles:true});
+  assert.deepEqual(result.accepted.map(entry=>entry.file),files.slice(0,3));
+  assert.ok(result.accepted.every(entry=>entry.assetId===null&&entry.kind==='new'));
+  assert.equal(result.skipped.length,1);
+  const bounded=planAudioLibraryBatch(Array.from({length:101},()=>file('same.wav')),
+    assets,()=>true,{independentFiles:true});
+  assert.equal(bounded.accepted.length,100);
+  assert.equal(bounded.skipped.length,1);
+  assert.match(bounded.skipped[0].reason,/maximum 100/);
+  assert.equal(planAudioLibraryBatch([files[0]],assets,()=>true).accepted.length,0);
+});
+
 test('normal Windows-style deflated ZIP extracts audio from folders and ignores unrelated docs',async()=>{
   const zip=makeZip([
     {name:'Acto I/'},{name:'Acto I/01 Ambiente.wav',data:'WAVE content'},

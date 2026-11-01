@@ -144,14 +144,21 @@ export function makeMetaRoute({
       answer(response, 403, { error: 'Local server access only' }, headers);
       return true;
     }
-    const available = Boolean(getKey());
+    const apiKey = getKey();
+    const available = typeof apiKey === 'string' && Boolean(apiKey.trim());
     let model = DEFAULT_META_MODEL;
+    let modelValid = true;
     try { model = validateMetaModelId(getModel()); }
-    catch { /* invalid server configuration -> no model calls */ }
+    catch { modelValid = false; }
 
     if (path === '/api/meta/status' && request.method === 'GET') {
+      const configurationIssues = [
+        ...(!available ? ['MISSING_API_KEY'] : []),
+        ...(!modelValid ? ['INVALID_MODEL'] : []),
+      ];
       answer(response, 200, {
-        configured: available && getModel() === model,
+        configured: configurationIssues.length === 0,
+        configurationIssues,
         model,
         provider: 'META_MODEL_API',
         externalRequestRequiresConfirmation: true,

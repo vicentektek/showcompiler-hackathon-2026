@@ -9,6 +9,8 @@ import {evaluateModalCase,qualityReport,renderQualityReport,compareQualityVersio
 import {compareAudioAlternatives} from '../src/qa/audioQuality.mjs';
 import {qualityPhases,runQualityCampaign,readQualityJson,saveQualityJson,
  STABLE_QUALITY_CANDIDATE,validateQualityCandidate} from './qualityCampaign.mjs';
+import {AGENT_REPORT_FILE,reviewSavedAgentEvidence} from './agentEvidenceReview.mjs';
+import {getAgentEvaluationCorpus} from './runq-agent-live-eval.mjs';
 
 export function parseQualityOptions(argv){
  const options={id:'runq-quality-v1',origin:'http://127.0.0.1:5191'};
@@ -16,19 +18,18 @@ export function parseQualityOptions(argv){
  for(let i=0;i<argv.length;i++){
   const flag=argv[i];
   if(seen.has(flag))throw new Error('DUPLICATE_QUALITY_OPTION');seen.add(flag);
-  const boolean={'--live':'live','--ack-paid':'ackPaid','--credit-verified':'creditVerified',
+  const boolean={'--live':'live','--ack-paid':'ackPaid',
    '--resume':'resume','--continuous':'continuous','--evaluate-history':'evaluateHistory','--status':'status'};
   if(boolean[flag]){options[boolean[flag]]=true;continue;}
   const string={'--id':'id','--origin':'origin','--phase':'phase','--candidate':'candidateFile',
-   '--credit-record':'creditFile','--baseline-report':'baselineFile','--candidate-report':'candidateReportFile',
+   '--baseline-report':'baselineFile','--candidate-report':'candidateReportFile',
    '--new-candidate':'newCandidate','--design-mode':'designMode','--agent-suffix':'agentSuffix'};
   if(!string[flag]||!argv[i+1]||argv[i+1].startsWith('--'))throw new Error('INVALID_QUALITY_OPTION');
   options[string[flag]]=argv[++i];
  }
  if((options.live===true)!==(options.ackPaid===true)||
-    options.live&&(options.creditVerified!==true||!options.creditFile)||
     options.evaluateHistory&&options.live||options.status&&options.live||options.newCandidate&&options.live)
-  throw new Error('OPERATOR_PAID_AND_CREDIT_ACK_REQUIRED');
+  throw new Error('OPERATOR_PAID_AND_OWNER_ATTESTATION_REQUIRED');
  return options;
 }
 
@@ -78,14 +79,17 @@ export async function evaluateSavedQualityHistory({
   }
  }
  const realAgentReports=[];
- for(const file of (await optionalDirectory(agentDirectory)).filter(f=>/^eval-\d+-\d+\.json$/.test(f.name))){
+ for(const file of (await optionalDirectory(agentDirectory)).filter(f=>AGENT_REPORT_FILE.test(f.name))){
   const bytes=await readFile(join(agentDirectory,file.name)),report=JSON.parse(bytes.toString('utf8'));
   if(report.realProviderEvaluations!==true)continue;
+  const typedEventsReevaluable=report.results?.some(row=>Array.isArray(row.quality?.evidence?.events))??false;
   realAgentReports.push({file:file.name,evidenceSha256:createHash('sha256').update(bytes).digest('hex'),
    reportedProviderMetrics:report.providerMetrics,attemptedRequests:report.attemptedRequests,
-   retainedOperationValues:false,sourceReferencesReevaluable:false,unrequestedPropertyPreservationReevaluable:false,
-   limitation:'DERIVED_LEGACY_METRICS_ONLY_NO_NEW_INFERENCES_OR_RESCORING'});
+   retainedOperationValues:false,sourceReferencesReevaluable:typedEventsReevaluable,unrequestedPropertyPreservationReevaluable:false,
+   limitation:typedEventsReevaluable?'PARTIAL_TYPED_EVENT_AND_HASHED_OPERATION_REPLAY':
+    'DERIVED_LEGACY_METRICS_ONLY_NO_NEW_INFERENCES_OR_RESCORING'});
  }
+ const agentReplay=await reviewSavedAgentEvidence({directory:agentDirectory,corpus:getAgentEvaluationCorpus()});
  let dryRunReports=0,realEventReports=0;
  for(const folder of (await optionalDirectory(systematicDirectory)).filter(f=>f.isDirectory())){
   for(const child of (await optionalDirectory(join(systematicDirectory,folder.name))).filter(f=>f.isDirectory())){
@@ -95,7 +99,7 @@ export async function evaluateSavedQualityHistory({
   }
  }
  const report=qualityReport(rows,{version:'pcm-quality-v2',evidenceMode:'SAVED_REAL_MODAL_WAV_REPLAY',plannedCases:100});
- report.historicalEvidence={realAgentReports,realEventReports,dryRunReportsExcluded:dryRunReports,
+ report.historicalEvidence={realAgentReports,agentReplay,realEventReports,dryRunReportsExcluded:dryRunReports,
   integrityErrors,technicalFacts,duplicateWavs,recordedJournalJobs:jobs.length,
   distinctWavsScored:rows.length,
   improvement:{baseline:'EXISTING_PILOT_SILENCE_AND_DURATION_FLAGS',
@@ -166,12 +170,12 @@ export async function qualityCli(argv){
   await saveQualityJson(join(output,'matrix.json'),matrix);
   await saveQualityJson(join(output,'plan.json'),{
    version:1,corpusHash:matrix.corpusHash,counts:matrix.counts,phases,
-   candidate,providerRequests:0,liveGate:'OWNER_ONLY_WITH_EXISTING_CREDIT_AND_CLEAN_COMMIT_CONTROLS'});
+   candidate,providerRequests:0,
+   liveGate:'OWNER_ATTESTATION_WITH_SHARED_LEDGER_AND_CLEAN_COMMIT_CONTROLS'});
   return {mode:'DRY_RUN_NO_PROVIDER_REQUESTS',counts:matrix.counts,phases,
    estimatedConservativeMaximumUsd:{meta:60,modal:5},
    note:'Existing historical reservations still reduce provider/global balances.'};
  }
- options.creditRecord=await readQualityJson(options.creditFile);
  const state=await runQualityCampaign(options,{candidate});
  return {id:state.id,scored:state.results.length,stopReason:state.stopReason,
   completedPhases:state.completedPhases,artisticReview:'PENDING_HUMAN_REVIEW'};

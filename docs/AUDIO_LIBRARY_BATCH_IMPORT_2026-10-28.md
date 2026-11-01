@@ -59,3 +59,15 @@ La biblioteca incluye una zona de arrastre **visible en la lista principal**, si
 - Un drop durante reproducción, preview o importación se rechaza con un estado visible, sin detener ni cambiar la salida existente.
 - Archivos incompatibles se informan individualmente. Un paquete de espectáculo se rechaza en esta zona; debe abrirse desde «Abrir show». No se recorren carpetas arrastradas.
 - `npm run test:last-go` prueba WAVs originales decodificados, JSON sin audio, drop real mediante `DataTransfer`, recuperación no destructiva y protección durante GO. `node tools/stagecraft-audio-batch-e2e.mjs` cubre además archivos comprimidos y ES/EN con hardware simulado.
+
+## Arrastre directo al show - 31 octubre 2026
+
+En **Studio, Ensayo y Live**, arrastrar uno o varios archivos de audio al espacio principal crea **un cue MANUAL / DRAFT por cada archivo válido**, con una sola acción PLAY y el nombre del archivo. Los cues se añaden al final en el orden recibido del navegador; no se ordenan por nombre ni se configura avance automático. Son editables después, sin guion ni propuestas de IA.
+
+Cada archivo recibe una referencia independiente, incluso si comparte nombre con otro archivo: no se sustituyen sonidos existentes. Los fallos de formato, decodificación o límites se muestran en el espacio de cues y no crean cues vacíos. Se mantienen los límites de 100 archivos por lote, 500 referencias y 2000 cues.
+
+El NEXT y la selección existentes no cambian. Solo si el show estaba vacío se prepara el primer cue, sin ejecutarlo. La importación se bloquea durante reproducción, GO pendiente, preescucha, otra importación o cambios sin guardar del inspector. La biblioteca **Sonido** mantiene su comportamiento anterior: importar recursos sin crear cues y recuperar referencias sin bytes. El arrastre directo al show recibe archivos de audio, no carpetas ni paquetes de espectáculo.
+
+La lista de cues muestra siempre una franja con borde discontinuo: **«Arrastra tus archivos de audio aquí»**, con la explicación del Explorador de Windows, un archivo por cue y reproducción solo con GO. Permanece visible con el show vacío o con cues en Studio, Ensayo y Live. Se resalta durante el arrastre y vuelve a su aspecto normal al salir, soltar, cancelar el arrastre o cambiar de espacio. Los resultados aparecen junto a esta franja.
+
+Regresión offline: `node --test test/manualCues.test.mjs test/audioBatchImport.test.mjs` y `node tools/audio-cue-drop-browser-e2e.mjs`. La prueba de navegador usa WAV sintético original y no llama a proveedores; no certifica la salida física de Windows.

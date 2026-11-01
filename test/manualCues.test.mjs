@@ -1,8 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal} from '../src/core/workspace.mjs';
-import {insertManualCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue} from '../src/core/manualCues.mjs';
+import {insertManualCue,insertManualCueFromScriptLines,insertManualAudioCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue} from '../src/core/manualCues.mjs';
 import {serializeShowProject,deserializeShowProject} from '../src/core/projectPersistence.mjs';
+
+test('dropped audio appends independently editable PLAY cues without script or AI provenance',()=>{
+  let show=createNewShow({scriptText:'Original source text'});
+  const first=insertManualCue(show,{label:'Existing cue'});
+  show=first.project;
+  for(let index=0;index<20;index++){
+    show=addAudioReference(show,`Track ${index+1}.wav`);
+    const asset=show.assets.at(-1);
+    show=insertManualAudioCue(show,asset.id).project;
+  }
+  assert.equal(show.cues.length,21);
+  assert.equal(show.cues[0].id,first.cueId);
+  assert.equal(show.scriptText,'Original source text');
+  assert.deepEqual(show.proposals,[]);
+  show.cues.slice(1).forEach((cue,index)=>{
+    assert.equal(cue.number,index+2);
+    assert.equal(cue.label,`Track ${index+1}.wav`);
+    assert.equal(cue.origin,'MANUAL');
+    assert.equal(cue.status,'DRAFT');
+    assert.deepEqual(cue.sourceLineIds,[]);
+    assert.deepEqual(cue.actions,[{type:'PLAY',assetId:show.assets[index].id}]);
+    assert.equal(cue.automation,undefined);
+  });
+  assert.deepEqual(deserializeShowProject(serializeShowProject(show)),show);
+  assert.throws(()=>insertManualAudioCue(show,'missing'),/Unknown audio asset/);
+});
 
 test('new show allows manual cues without script, proposals or Meta permission',()=>{
   const blank=createNewShow({id:'blank',name:'Hand-built'});
@@ -20,6 +46,23 @@ test('new show allows manual cues without script, proposals or Meta permission',
   project=replaceCueAudioAsset(more,cueId,more.assets[1].id);
   assert.equal(project.cues[0].actions[0].assetId,more.assets[1].id);
   assert.deepEqual(deserializeShowProject(serializeShowProject(project)),project);
+});
+test('manual cue from selected script lines preserves exact source references without AI provenance',()=>{
+ const show=createNewShow({id:'selected-lines',scriptText:'SCENE 1\n(The old door opens.)\nMARA: I heard it.'});
+ const result=insertManualCueFromScriptLines(show,['L3','L2']);
+ const cue=result.project.cues.find(item=>item.id===result.cueId);
+ assert.equal(cue.label,'(The old door opens.)');
+ assert.deepEqual(cue.sourceLineIds,['L2','L3']);
+ assert.equal(cue.origin,'MANUAL');
+ assert.equal(cue.status,'DRAFT');
+ assert.equal(result.project.scriptText,show.scriptText);
+ assert.deepEqual(result.project.proposals,[]);
+ assert.equal(deserializeShowProject(serializeShowProject(result.project)).cues[0].sourceLineIds.join(','),'L2,L3');
+ assert.throws(()=>insertManualCueFromScriptLines(show,[]),/1 and 20/);
+ assert.throws(()=>insertManualCueFromScriptLines(show,['L1','L1']),/unique/);
+ assert.throws(()=>insertManualCueFromScriptLines(show,['L4']),/unavailable/);
+ assert.throws(()=>insertManualCueFromScriptLines(createNewShow(),['L1']),/source script/);
+ assert.throws(()=>insertManualCueFromScriptLines(show,Array.from({length:21},(_,index)=>'L'+(index+1))),/1 and 20/);
 });
 test('operator inserts and removes cues, preserving sequence and AI evidence',()=>{
   let show=createNewShow({scriptText:'(Thunder)',name:'Mixed show'});

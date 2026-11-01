@@ -65,8 +65,13 @@ export function checkLedgerAuthorization(state,{requireCurrent=true}={}){
  // allocation must not invalidate the preserved Baseten/voice history.
  if(spent>total||providers.some(p=>caps[p]>0&&reserved[p]>caps[p]))
   throw new TypeError('SPEND_RESERVATIONS_OVER_CAP');
+ const requestCaps=current?CAMPAIGN_POLICY.requestCaps:null;
+ if(current&&(!requestCaps||Object.keys(requestCaps).sort().join(',')!==[...providers].sort().join(',')||
+   providers.some(p=>!Number.isSafeInteger(requestCaps[p])||requestCaps[p]<0||
+    (caps[p]>0&&counts[p]>requestCaps[p]))))
+  throw new TypeError('REQUEST_RESERVATIONS_OVER_CAP');
  return {totalMicros:total,capsMicros:caps,reservedMicros:spent,
-  providerReservedMicros:reserved,requestCounts:counts,ids};
+  providerReservedMicros:reserved,requestCounts:counts,requestCaps,ids};
 }
 export function upgradeCampaignBudget(state,{authorizedAt,legacyReservations=[]}={}){
  if(typeof authorizedAt!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(authorizedAt)||
@@ -142,7 +147,8 @@ export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),a
     perProvider:Object.fromEntries(Object.keys(s.capsMicros).map(p=>[p,{
      capUsd:usd(s.capsMicros[p]),reservedUsd:usd(s.providerReservedMicros[p]),
      remainingUsd:usd(Math.max(0,s.capsMicros[p]-s.providerReservedMicros[p])),
-     requestCount:s.requestCounts[p],
+    requestCount:s.requestCounts[p],requestCap:s.requestCaps?.[p]??null,
+    requestsRemaining:s.requestCaps?Math.max(0,s.requestCaps[p]-s.requestCounts[p]):null,
     }]))};
   };
   async function upgrade({authorizedAt,backupFile,legacyReservations=[]}){
@@ -166,6 +172,8 @@ export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),a
    const amount=micros(estimatedMaximumUsd),s=checkLedgerAuthorization(state);
    if(s.capsMicros[provider]===0)return {accepted:false,reason:'PROVIDER_PROHIBITED'};
    if(s.ids.has(requestId))return {accepted:false,reason:'DUPLICATE_ID'};
+   if(s.requestCaps&&s.requestCounts[provider]>=s.requestCaps[provider])
+    return {accepted:false,reason:'REQUEST_LIMIT'};
    if(s.reservedMicros+amount>s.totalMicros||s.providerReservedMicros[provider]+amount>s.capsMicros[provider])
     return {accepted:false,reason:'BUDGET_LIMIT'};
    state.reservations.push({requestId,runId,provider,amountMicros:amount,status:'RESERVED'});

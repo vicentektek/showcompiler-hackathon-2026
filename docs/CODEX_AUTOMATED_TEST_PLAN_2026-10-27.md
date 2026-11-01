@@ -26,6 +26,8 @@ Los resultados están en:
 - artifacts/cue-qa/report.md y report.json: métricas y diferencias del evaluador de cues.
 - artifacts/codex-qa/summary.md y summary.json: resumen de incidencias priorizadas para Codex.
 
+El resumen incluye también `fixtures/qa/artistic-feedback-2026-10-31.json` en una sección y objeto JSON separados: conserva las cuatro valoraciones humanas, su batería, fingerprints y request IDs sin sumarlas a las métricas automáticas. La captura equivalente a paid-0022 muestra que el cue "Wind effect" ya estaba en el contexto de entrada y que la nueva respuesta capturada solo añadió cues de cierre; como la respuesta histórica no se conservó, esa discrepancia queda sin confirmar. La comparación rcv3/rcv4 documenta el cambio de prompt, pero no afirma una mejora medida: no se hizo una nueva llamada pagada.
+
 Los dos directorios están ignorados por Git. El CI en GitHub ejecuta el mismo comando en cada PR y adjunta artefactos sintéticos. GitHub Actions ejecuta además la construcción y validación del ZIP de demostración y un smoke test del DOM con Chrome (sin salida de audio física y sin IA real).
 
 ## 3. Matriz automática de regresión

@@ -22,6 +22,13 @@ Use Chrome/Edge on the local address printed by the preflight. This script does 
 
 ## Run locally
 
+The reference-led RUNQ interface now puts sound design with RUNQ AI on the
+project home screen. Project export is available in the active-project card
+and **Menu > File**; global STOP ALL is contextual and remains visible whenever
+audio is active or pending. See the [progressive visual redesign](docs/RUNQ_VISUAL_REDESIGN_2026-10-31.md)
+for scope, offline acceptance and deferred features. Restart an already-running
+development server to publish the new backstage asset.
+
 Node.js 20 or newer is required. Run `npm install` to install pinned `libarchive.js` for RAR/7z imports before testing.
 
 ```sh
@@ -33,7 +40,139 @@ npm run dev
 
 Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface; Spanish is selectable. `npm run demo:core` runs the terminal-only review demonstration.
 
+### Prepare a show with RUNQ AI
+
+Open `http://127.0.0.1:5173/?workspace=ai` to use the guided workflow on the
+active show. Its five stages cover the original script, cue proposals, sound,
+cue configuration and preflight. The canvas shows one task at a time, while
+the stage bar and left-side routes let you start from the script, a cue, audio
+or a request to RUNQ AI. A persistent right panel keeps the active show, cue,
+source-line and audio context visible. Proposals remain reviewable and require
+explicit operator approval. Navigation does not submit provider requests or
+start playback. With a script loaded, **Suggest cues to review** jumps directly
+to the existing proposal flow; the Sound step shows each approved cue's
+suggested sound and opens the sound desk with that cue selected. The review
+step can approve all pending proposals together, with the existing explicit
+confirmation and undo. Provider settings stay under optional advanced settings,
+while each AI or sound request still requires its own consent and cost controls.
+Opening **Prepare sound for this cue** now fills the English sound prompt,
+estimates duration from a recognized script direction, and pins its L# and cue
+destination. For a cue with an active generation, RUNQ checks readiness and
+loads the WAV without playing it; the operator listens first, then one explicit
+accept action assigns the reviewed take to that cue. If a Spanish cue idea is
+not recognized by the offline sound compiler, the interface flags that it needs
+an English rewrite rather than claiming it translated the text.
+
+Run `npm run test:product` for the offline unit and browser regression suite,
+including the integrated Show Builder. Tests use local fixtures and mocked
+providers; they do not measure live-model quality or generate billable audio.
+
+### Bulk preparation
+
+**RUNQ AI** now has three visible actions:
+
+- **Accept all cues** confirms all reviewed pending proposals together, creating
+  DRAFT cues without playback. Individual rejection and approval remain available.
+- **Generate audio for all** plans pending single-action sound cues without
+  replacing existing audio. Review/edit English prompts, select cues, and authorize
+  the displayed maximum estimate before sending. This is also available in
+  **Sound > Generate**. Unsupported music/voice and non-sound cues are excluded.
+- **Auto prepare entire show** starts analysis of remaining script windows, then
+  pauses for proposal approval and audio authorization. A shortcut is on Project.
+  It is one preparation entry point, not unattended approval or execution.
+
+Meta and Modal requests run serially, without retries, through the existing
+server-side reservation and spending gates. **Cancel batch**, STOP ALL and show
+replacement prevent further submissions and discard late results; cancellation
+does not revoke already reserved costs. Listen to each ready take and explicitly
+accept it for its original cue. No preparation action executes GO.
+
+Cue/request associations persist in this browser's local storage, preventing
+automatic duplicate generations after reopening the same show. Uncertain requests
+require checking Sound history. These associations are not portable show media:
+JSON retains cue/source and asset metadata, while a full show ZIP carries audio.
+Do not clear history to retry an uncertain request.
+
+Offline validation: `npm run test:show-preparation` (English/Spanish browser
+journeys with mocked providers) and `npm run qa:codex` (regression gates). Neither
+verifies live-model quality or consumes provider credits.
+
 ## Implemented
+
+### Assistant workflow
+
+RUNQ AI keeps alternate entry routes, one focused task and the active show
+context together. **Ask RUNQ AI** opens the optional assistant in the context
+panel without submitting a request. Expand the selected cue to inspect its
+original L# evidence or open the editor. Starter actions only fill the request;
+edit it and choose **Prepare
+proposal**, then review and apply the selected changes. Local preparation does
+not call an AI provider. Paid consultation remains inside **AI service and
+permissions**, with explicit one-request consent. Sound attachment and dictation
+are optional expandable controls. Discarding a proposal clears its pending task;
+navigation and preparation never execute GO.
+Dictation cancellation uses the shared supported status messages, so STOP ALL
+also restores the recording controls without accepting late transcription.
+Requests such as "prepara los cues" / "prepare the cues" now show numbered steps
+and open the existing script-to-cue tools. Unsupported local requests explain
+how to prepare an explicitly authorized AI consultation rather than just saying
+"complex request". Guidance buttons never submit, approve or play anything;
+this is guided task preparation, not autonomous completion of arbitrary tasks.
+
+Read-only questions such as "Which audio is still unresolved?", "Is cue 2
+ready?" and "¿Está listo el cue seleccionado?" use the local preflight checks.
+They distinguish unresolved sounds, unavailable files and unverified loading,
+name the affected cues, and explain the next manual step. Only confirmed decoded
+audio passes the local audio check; unknown availability is not a pass. Pending
+proposals remain subject to human review. These answers never play or edit cues,
+call providers, or certify live-show readiness.
+The offline assistant Gauntlet keeps new answers without a recorded semantic
+review as `PENDING_REVIEW`, even when their structural contract passes. It does
+not abort or automatically promote them to semantic successes; recorded local
+review rationales are separate from model evaluation and new human validation.
+
+### Generated sound audition
+
+Ready takes have **Listen to sound**, **Stop preview** and volume controls beside
+the result. Listen loads and decodes the selected WAV on demand and then auditions
+it, without requiring acceptance or library import first. Repeated listening
+reuses the decoded take; volume changes do not interrupt playback. Approval and
+import remain separate human actions. STOP ALL or stopping a pending audition
+invalidates late audio loads. Status checks remain explicit and never create
+another take or retry an uncertain submission. This reduces local review steps;
+it does not claim faster Modal GPU generation. Audition shares GO's output.
+
+For a running generation, **Track readiness for 2 minutes** is an explicit
+opt-in: at most 24 status checks, 5 seconds apart, stopping at completion or the
+first error. It never resubmits a generation, auto-accepts or auto-plays audio.
+Stopping tracking, STOP ALL, changing the take, hiding the page or leaving the
+sound editor invalidates the remaining checks. No tracking resumes on reload.
+**Use 3-second take** only edits duration and clears cost consent; shorter audio
+is not a guaranteed inference speedup. The deployed pilot's actual cold-load
+and inference time require separate measurements before changing GPU retention,
+model steps or infrastructure. The local worker remains scale-to-zero with no
+automatic deployment or new paid benchmark.
+
+### Exhaustive campaign evidence review (1 November 2026)
+
+`npm run qa:exhaustive` is offline: it replays retained typed Meta evidence and
+exercises 100 original scripts, 102 conversations and 18 instrumented core
+journey contracts. It preserves the shared ledger and makes zero provider calls.
+The private results and exported corpus are in ignored `artifacts/runq-evals/`.
+`quality.md` separates model observations, oracle checks and local simulations;
+core journey PASS does **not** mean a full browser E2E or professional acceptance.
+Some conversation requirements deliberately report FAIL to expose capability
+gaps rather than hiding them. The 1 November fixes retain a bounded local
+pending closing-cue task across long chats, resolve ES/EN renames offline, and
+allow unresolved DRAFT cues to store validated playback settings. Those settings
+do not resolve audio or permit GO. Pending task memory is cleared on cancel,
+STOP ALL, apply/undo, project replacement and project edits; it is not persisted
+in show JSON. If AI consultation is explicitly authorized, only a short labelled
+task summary and at most seven recent turns are sent, never the local snapshot.
+`npm run qa:quality:history` additionally measures existing original WAVs
+without regenerating them and includes the same retained Meta replay.
+Discarded reply text, labels and complete project snapshots cannot be recreated
+from hashes. This review must not be presented as an improvement in Muse accuracy.
 
 - Import a UTF-8 script without translating or rewriting it. Stable `L1`, `L2`, … references always point to the original source.
 - Plan bounded scene-aware analysis windows: 60 core lines plus up to three read-only context lines. One expressly confirmed Meta request analyzes at most two windows and returns at most eight rich transient suggestions. Later windows require another explicit click.
@@ -53,9 +192,11 @@ Open `http://127.0.0.1:5173` in Chrome or Edge. English is the default interface
 A separate browser UI branch introduces six functional workspaces without changing the validated audio backend, show schema or provider safety:
 
 - **Script:** original source text, TXT import and stable L# navigation.
-- **AI & Review:** simulated/opt-in Meta proposals, explicit approval and source evidence.
-- **Cue Editor:** full cue list, independent selection, read-only inspector and editable operator label/trigger/notes; search never changes the prepared GO.
-- **Audio:** local library, file loading and same-output audition.
+- **RUNQ AI / Show Builder:** a resumable five-stage project flow with one active task, alternate routes from script/cue/audio/request, and a persistent show-context panel; its sound stage lists current cues and opens the existing sound desk with the selected cue and original source line pinned.
+- **Context inspector:** follows script lines, proposals, cues and audio across workspace changes; pinning a sound task keeps its cue destination fixed when selection changes.
+- **AI & Review:** simulated/opt-in Meta proposals, explicit approval and source evidence; selected pending proposals can be approved or rejected together, with confirmation and undo while the show is unchanged.
+- **Cue Editor:** full cue list, independent selection, contextual actions and editable operator label/trigger/notes; inspection never changes the prepared GO.
+- **Audio:** local library, file loading and same-output audition; an accepted generated WAV can be saved and assigned to its pinned compatible cue in one confirmed action.
 - **Setup:** truthful browser engine capabilities and live readiness checks; does not arm a professional live mode.
 - **Operation:** prepared queue, manual GO/STOP/FADE, STOP ALL, and active cue cards.
 

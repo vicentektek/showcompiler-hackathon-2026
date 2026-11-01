@@ -62,6 +62,9 @@
   & #generateBtn:disabled { background: #272e26 !important; color: #747886 !important; box-shadow: none !important; }
   & #generationHint { font-size: 12px; color: #8e92a0 !important; }
   & .sfx-buttons { display: flex !important; flex-wrap: wrap; align-items: center; gap: 8px !important; }
+  & .sfx-result-player { padding:12px; margin-bottom:12px; border:1px solid #526648; border-radius:8px; background:#152016; }
+  & .sfx-result-player .sfx-level { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:12px; }
+  & .sfx-result-player input[type=range] { flex:1; min-width:100px; max-width:100%; }
   & .sfx-buttons .btn:not(#generateBtn) { height: 32px; border-radius: 6px !important; }
   & .sfx-advanced, & .sfx-script-assistant { border: 1px solid var(--sl-line) !important; border-radius: 8px !important; background: #171a16 !important; margin-top: 10px !important; }
   & .sfx-advanced > summary, & .sfx-script-assistant > summary { padding: 9px 12px !important; font-size: 12px !important; color: #c3c6d0 !important; cursor: pointer; }

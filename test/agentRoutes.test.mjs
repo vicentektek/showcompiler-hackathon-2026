@@ -132,3 +132,41 @@ test('Baseten fallback uses independent server-side key and never requests unsup
   assert.equal(called,1);
  });
 });
+
+test('agent prompt preserves explicit door actions while keeping ambience optional in English and Spanish',async()=>{
+ const cases=[
+  {language:'en',line:'A door opens.',prompt:'Suggest a sound for this script line.'},
+  {language:'es',line:'Se abre una puerta.',prompt:'Sugiere un sonido para esta línea del guion.'},
+  {language:'es',line:'Se abre la puerta y entra una fuerte ráfaga de viento.',
+   prompt:'Sugiere sonidos para esta línea del guion.'},
+ ];
+ const requests=[];
+ await withServer({
+  getAgentKey:()=> 'test-key',
+  agentFetch:async(_url,request)=>{
+   requests.push(JSON.parse(request.body));
+   return reply({status:'ANSWER',message:'Suggestions only.',operations:[]});
+  },
+ },async root=>{
+  for(const item of cases){
+   const input=params(root);
+   input.body=JSON.stringify({
+    ...JSON.parse(input.body),prompt:item.prompt,language:item.language,
+    context:{...context,lines:[{id:'L4',text:item.line}]},
+   });
+   const response=await fetch(root+'/api/agent/interpret',input);
+   assert.equal(response.status,200);
+  }
+ });
+ assert.equal(requests.length,cases.length);
+ for(let index=0;index<cases.length;index++){
+  const [developer,user]=requests[index].messages;
+  assert.match(developer.content,/preserve the acoustic identity of explicit actions/i);
+  assert.match(developer.content,/Do not replace an explicit action with unrelated ambience/i);
+  assert.match(developer.content,/optional, separately identified layer/i);
+  assert.match(developer.content,/must not displace the explicit action/i);
+  const input=JSON.parse(user.content);
+  assert.equal(input.language,cases[index].language);
+  assert.deepEqual(input.context.lines,[{id:'L4',text:cases[index].line}]);
+ }
+});

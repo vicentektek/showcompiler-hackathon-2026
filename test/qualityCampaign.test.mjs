@@ -8,11 +8,10 @@ import {runQualityCampaign,qualityPhases,qualityLivePreflight,
  qualityAttemptIdentity,validateQualityCandidate,STABLE_QUALITY_CANDIDATE} from '../tools/qualityCampaign.mjs';
 import {parseQualityOptions,evaluateSavedQualityHistory} from '../tools/runq-quality-campaign.mjs';
 import {measurePilotWav} from '../tools/runq-modal-live-batch.mjs';
-import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
 
 const matrix=buildQualityMatrix();
 const options={id:'quality-test-run',origin:'http://127.0.0.1:5191',
- live:true,ackPaid:true,creditVerified:true};
+ live:true,ackPaid:true};
 const commit='a'.repeat(40);
 function wav(seconds){
  const frames=16000*seconds,bytes=Buffer.alloc(44+frames*2);
@@ -83,29 +82,29 @@ test('phase layout is exactly 400/100; first 30 vary functions, languages and di
  assert.ok(phases.slice(0,3).every(p=>p.cases.every(c=>c.split==='development')));
  assert.ok(phases[3].cases.every(c=>c.split==='holdout'));
 });
-test('paid/credit gates fail before transport, ledger or filesystem and disallow other providers',async()=>{
+test('paid gate fails before transport, ledger or filesystem and disallows other providers',async()=>{
  let effects=0;
  await assert.rejects(()=>runQualityCampaign({...options,ackPaid:false},{
   fetchImpl:async()=>{effects++;},
- }),/OPERATOR_PAID_AND_CREDIT_ACK/);
+ }),/OPERATOR_PAID_AND_OWNER_ATTESTATION/);
  assert.equal(effects,0);
  assert.throws(()=>parseQualityOptions(['--live']),/OPERATOR_PAID/);
  assert.throws(()=>parseQualityOptions(['--providers','baseten']),/INVALID_QUALITY/);
  assert.throws(()=>parseQualityOptions(['--providers','fireworks']),/INVALID_QUALITY/);
 });
-test('preflight preserves authorized caps and requires genuine owner-provided current credit evidence',async()=>{
+test('preflight preserves caps and records owner-attested, provider-unverified credit basis',async()=>{
  let closed=0;
- const deps={commitIdentity:()=>commit,now:()=>new Date('2026-10-31T16:00:00Z'),
+ const deps={commitIdentity:()=>commit,
   ledgerFactory:async()=>({status:()=>({perProvider:{
    meta:{remainingUsd:1},modal:{remainingUsd:1}}}),close:async()=>{closed++;}})};
- await assert.rejects(()=>qualityLivePreflight(options,deps),/CURRENT_OPERATOR_CREDIT/);
- const creditRecord={policyRevision:CAMPAIGN_POLICY.revision,sourceCommit:commit,
-  method:'AUTHENTICATED_PROVIDER_DASHBOARD',verifiedAt:'2026-10-31T15:00:00Z',
-  providers:{meta:{currency:'USD',availableUsd:1},modal:{currency:'USD',availableUsd:1}}};
- const approved=await qualityLivePreflight({...options,creditRecord},deps);
+ const approved=await qualityLivePreflight(options,deps);
  assert.equal(approved.commit,commit);assert.equal(closed,1);
- await assert.rejects(()=>qualityLivePreflight({...options,creditRecord:{
-  ...creditRecord,verifiedAt:'2026-10-29T15:00:00Z'}},deps),/CURRENT_OPERATOR_CREDIT/);
+ assert.equal(approved.creditBasis,'owner_attestation');
+ assert.equal(approved.providerBalanceVerified,false);
+ assert.equal(approved.ownerAttestedCredit,true);
+ await assert.rejects(()=>qualityLivePreflight(options,{...deps,
+  ledgerFactory:async()=>({status:()=>({perProvider:{meta:{remainingUsd:0.1},
+   modal:{remainingUsd:1}}}),close:async()=>{}})}),/CAMPAIGN_BALANCE_TOO_SMALL/);
 });
 test('30 simulated requests score contracts, resume and a new campaign never duplicate submissions',async t=>{
  const f=await fixture(t);
@@ -174,6 +173,19 @@ test('offline history explicitly excludes dry-run plans and does not claim unver
  assert.equal(report.summary.scored,0);assert.equal(report.summary.f1,null);
  assert.equal(report.historicalEvidence.improvement.newProviderRequests,0);
  assert.equal(report.historicalEvidence.improvement.originalWavsModified,false);
+});
+test('saved history includes UUID reports and exposes replay separately from audio quality',async t=>{
+ const f=await fixture(t),directory=join(f.directory,'agent-history');
+ await mkdir(directory);
+ await writeFile(join(directory,'eval-123-456-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.json'),
+  JSON.stringify({version:2,realProviderEvaluations:true,results:[],attemptedRequests:0}));
+ const report=await evaluateSavedQualityHistory({jobDirectory:join(f.directory,'absent'),
+  agentDirectory:directory,systematicDirectory:join(f.directory,'absent'),
+  outputDirectory:join(f.directory,'uuid-history-report')});
+ assert.equal(report.historicalEvidence.realAgentReports.length,1);
+ assert.equal(report.historicalEvidence.agentReplay.reports.length,1);
+ assert.equal(report.historicalEvidence.agentReplay.summary.newProviderRequests,0);
+ assert.equal(report.summary.scored,0);
 });
 test('stale shared campaign lock fails closed without removing evidence or making a request',async t=>{
  const f=await fixture(t);

@@ -8,6 +8,7 @@ import {pathToFileURL} from 'node:url';
 import {createHash,randomUUID} from 'node:crypto';
 import {measureAudioQuality} from '../src/qa/audioQuality.mjs';
 import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
+import {CAMPAIGN_CREDIT_AUTHORIZATION} from '../src/qa/campaignPolicy.mjs';
 
 export const MODAL_PILOT_CASES=Object.freeze([
  ['glass','en','basic','SFX',4,'One light tap on the rim of an empty glass, clear short decay, no voice or music.'],
@@ -25,7 +26,8 @@ export const MODAL_PILOT_CASES=Object.freeze([
 })));
 
 export function parseModalBatchOptions(argv){
- const options={live:false,ackPaid:false,creditVerified:false,count:9,port:5192};
+ const options={live:false,ackPaid:false,count:9,port:5192,
+  ...CAMPAIGN_CREDIT_AUTHORIZATION};
  const seen=new Set();
  for(let i=0;i<argv.length;i++){
   const flag=argv[i];
@@ -33,15 +35,15 @@ export function parseModalBatchOptions(argv){
   seen.add(flag);
   if(flag==='--live')options.live=true;
   else if(flag==='--ack-paid')options.ackPaid=true;
-  else if(flag==='--credit-verified')options.creditVerified=true;
   else if(flag==='--count'||flag==='--port'){
    const raw=argv[++i];
    if(!/^\d+$/.test(raw??''))throw new TypeError('INVALID_OPTION_VALUE');
    options[flag.slice(2)]=Number(raw);
   }else throw new TypeError('UNKNOWN_FLAG');
  }
- if(!options.live||!options.ackPaid||!options.creditVerified)
-  throw new TypeError('OPERATOR_LIVE_ACK_AND_ACTUAL_CREDIT_VERIFICATION_REQUIRED');
+ if(!options.live||!options.ackPaid||options.ownerAttestedCredit!==true||
+   options.creditBasis!=='owner_attestation'||options.providerBalanceVerified!==false)
+  throw new TypeError('OPERATOR_LIVE_ACK_AND_OWNER_ATTESTATION_REQUIRED');
  if(options.count<1||options.count>MODAL_PILOT_CASES.length||
    !Number.isSafeInteger(options.port)||options.port<1024||options.port>65535)
   throw new TypeError('INVALID_BATCH_LIMIT');
@@ -77,7 +79,6 @@ export async function runModalBatch(options,{
 }={}){
  const config=parseModalBatchOptions([
   ...(options?.live?['--live']:[]),...(options?.ackPaid?['--ack-paid']:[]),
-  ...(options?.creditVerified?['--credit-verified']:[]),
   '--count',String(options?.count),'--port',String(options?.port),
  ]);
  if(!Number.isSafeInteger(maxPolls)||maxPolls<1||maxPolls>60)
@@ -100,7 +101,7 @@ export async function runModalBatch(options,{
  await mkdir(directory,{recursive:true,mode:0o700});
  const lockFile=join(directory,'batch.lock'),lock=await open(lockFile,'wx',0o600);
  const report={version:1,realProviderRequests:true,model:settings.model,
-  modelRevision:settings.modelRevision,creditVerification:'OPERATOR_ATTESTED_NOT_PROVIDER_API',
+  modelRevision:settings.modelRevision,...CAMPAIGN_CREDIT_AUTHORIZATION,
   plannedCases:config.count,submittedThisRun:0,stopReason:'COMPLETE',cases:[]};
  try{
   for(const item of MODAL_PILOT_CASES.slice(0,config.count)){
@@ -143,13 +144,21 @@ export async function runModalBatch(options,{
       kind:item.kind,prompt:item.prompt,durationSeconds:item.durationSeconds,
       seed:162100+MODAL_PILOT_CASES.indexOf(item),confirmed:true,acknowledgedMaxCostUsd:cost,
      }});
-     if(response.status!==202)throw new Error('SUBMISSION_NOT_CONFIRMED');
+     if(response.status!==202){
+      let upstreamStatus=response.status;
+      try{upstreamStatus=(await response.json())?.status??upstreamStatus;}catch{}
+      if(upstreamStatus===402)throw new Error('PROVIDER_BILLING_402');
+      if([401,403,429].includes(upstreamStatus))
+       throw new Error('PROVIDER_AUTH_OR_RATE_'+upstreamStatus);
+      throw new Error('SUBMISSION_NOT_CONFIRMED');
+     }
      job=await response.json();
      if(job.requestId!==item.id)throw new Error('SUBMISSION_ID_MISMATCH');
      report.submittedThisRun++;
      row.submissionMs=Math.round(performance.now()-start);
-    }catch{
-     row.error='SUBMISSION_UNCERTAIN_CHECK_ORIGINAL_ID';report.stopReason=row.error;
+    }catch(error){
+     const known=/^PROVIDER_(?:BILLING_402|AUTH_OR_RATE_(?:401|403|429))$/.test(error.message??'');
+     row.error=known?error.message:'SUBMISSION_UNCERTAIN_CHECK_ORIGINAL_ID';report.stopReason=row.error;
      await save(file,row);report.cases.push(row);break;
     }
    }
