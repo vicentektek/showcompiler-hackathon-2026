@@ -44,7 +44,8 @@ test('frontend imports backend facade, never Web Audio engine directly', () => {
 test('scene coverage is transient and each Meta batch remains explicitly authorized', () => {
   assert.match(client, /metaWindowsPerRequest\s*=\s*1/);
   assert.match(client, /analysisWindowStart/);
-  assert.match(client, /window\.confirm\(t\('status\.confirmMeta'/);
+  assert.doesNotMatch(client, /window\.confirm\(t\('status\.confirmMeta'/);
+  assert.match(client,/analyzeMetaBtn'\)\.addEventListener\('click'/);
   assert.doesNotMatch(client, /show\s*=\s*\{[^}]*metaCoverage/s);
 });
 

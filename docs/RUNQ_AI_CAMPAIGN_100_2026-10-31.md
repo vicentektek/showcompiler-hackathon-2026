@@ -49,7 +49,12 @@ and fails closed without charging or deleting an unowned file.
 Meta production design routes reserve before outbound inference; Modal reserves
 before submission and preserves its existing shared job journal. The consent,
 cost acknowledgement, model revision, daily/active job limits and explicit
-manual review are still required. Dependency injection makes offline tests free;
+manual review are still required. In the simplified browser workflow, clicking an
+AI action is the explicit authorization: the client sends the existing consent
+header or confirmed request with the configured exact cost cap. There is no
+additional per-request checkbox or confirmation dialog. This changes the UI, not
+the campaign ceilings, server enforcement or requirement for manual output review.
+Dependency injection makes offline tests free;
 it is not an alternative execution path for evading campaign controls.
 
 The Agent evaluator validates programmatic entrypoints before side effects,

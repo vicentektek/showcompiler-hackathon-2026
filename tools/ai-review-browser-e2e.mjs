@@ -49,6 +49,7 @@ try{
  const original=await read();
  const route=async workspace=>{await page.locator(`[data-workspace-nav="${workspace}"]`).click();};
  await route('ai');
+ await page.locator('#rqShowBuilderAskAssistant').click();
  if(captures){
   const before=path.join(captures,'ai-v3-before.png');
   if(!existsSync(before))await page.screenshot({path:before,animations:'disabled'});
@@ -67,14 +68,18 @@ try{
   'Choosing an example fills the composer without preparing or applying changes');
  assert.equal((await read()).cueCount,beforeExample.cueCount);
  assert.equal(requests.length,0);
- assert.equal(await page.locator('#rqAgentAskAI').isVisible(),false,
-  'Paid consultation belongs inside the explicit permissions section');
+ assert.equal(await page.locator('#rqAgentAskAI').isVisible(),true,
+  'Direct AI consultation is visible without opening optional details');
+ assert.equal(await page.locator('#rqAgentAskAI').evaluate(el=>getComputedStyle(el).backgroundColor),
+  'rgb(167, 178, 143)','Direct AI is the visually primary action');
+ assert.notEqual(await page.locator('#rqAgentSubmit').evaluate(el=>getComputedStyle(el).backgroundColor),
+  'rgb(167, 178, 143)','Offline planning remains a secondary option');
  assert.equal(await page.locator('#rqAgentDrawer').getAttribute('aria-busy'),'false');
  assert.equal(await page.locator('.rq5-ai-workspace>.panel-head').isVisible(),false,
   'The old title must not duplicate the creative welcome and agent heading');
  assert.ok((await page.locator('#rq16AIWelcome').boundingBox()).height<=220,
   'Creative welcome must leave space for actual conversation and cue context');
- const primaryAction=await page.locator('#rqAgentSubmit').boundingBox();
+ const primaryAction=await page.locator('#rqAgentAskAI').boundingBox();
  assert.ok(primaryAction.y+primaryAction.height<=900,
   `Primary design action remains above the fold: ${JSON.stringify(primaryAction)}`);
  for(const width of [1440,1024,768,390]){
@@ -85,7 +90,7 @@ try{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
   await page.locator('#rqShowBuilderAskAssistant').click();
   assert.equal(await page.locator('#rqAgentPrompt').evaluate(el=>document.activeElement===el),true);
-  const action=await page.locator('#rqAgentSubmit').boundingBox();
+  const action=await page.locator('#rqAgentAskAI').boundingBox();
   assert.ok(action.y>=0&&action.y+action.height<=900,
    `Open assistant brings preparation into view at ${width}px`);
   assert.equal((await read()).cueCount,original.cueCount);
@@ -120,10 +125,13 @@ try{
  await page.locator('#rqAgentPrompt').fill('quiero un diseño sonoro por escenas');
  await page.locator('#rqAgentSubmit').click();
  const prepareAI=page.getByRole('button',{name:'Prepare AI consultation',exact:true}).last();
+ const guidanceRequest=page.waitForRequest('**/api/agent/interpret');
  await prepareAI.click();
- assert.equal(await page.locator('#rqAgentConsent').isChecked(),false);
- assert.equal(requests.length,0,'Preparing an AI consultation cannot authorize or submit it');
- await page.locator('#rqAgentAiOptions > summary').click();
+ await guidanceRequest;
+ assert.equal(await page.locator('#rqAgentConsent').count(),0);
+ assert.equal(requests.length,1,'Explicit AI consultation action starts work directly without a second permission step');
+ respond({status:200,body:{status:'CLARIFY',message:'What sound should this scene emphasize?',operations:[]}});
+ await page.waitForFunction(()=>document.querySelector('#rqAgentDrawer')?.getAttribute('aria-busy')==='false');
  await prepareCues.click();
  await page.evaluate(()=>document.dispatchEvent(new CustomEvent('runq:navigate-to-source',{detail:{lineId:'L9999'}})));
  assert.equal((await read()).workspace,'ai','Nonexistent source navigation must be rejected without changing workspace');
@@ -151,7 +159,7 @@ try{
  assert.equal((await read()).workspace,'audio');
  assert.ok((await page.locator('#soundPrompt').inputValue()).includes(built.project.cues[0].label));
  assert.equal((await read()).active.length,0);
- assert.equal(requests.length,0,'Preparing a sound alternative never submits a generation');
+ assert.equal(requests.length,1,'Preparing a sound alternative never submits another generation');
  await route('ai');
  await page.locator('#rqAgentPrompt').fill('Set cue 1 gain to -6 dB');
  await page.locator('#rqAgentSubmit').click();
@@ -191,7 +199,6 @@ try{
  await page.setViewportSize({width:1366,height:900});
  await page.locator('#rqAgentAiOptions summary').click();
  await page.locator('#rqAgentPrompt').fill('Review original script context using the offline response fixture');
- await page.locator('#rqAgentConsent').check();
  const request=page.waitForRequest('**/api/agent/interpret');
  await page.locator('#rqAgentAskAI').click();await request;
  assert.equal(await page.locator('#rqAgentDrawer').getAttribute('aria-busy'),'true');
@@ -199,15 +206,14 @@ try{
  assert.equal(await page.locator('#rqAgentApply').isEnabled(),false);
  respond({status:401,body:{error:'HTTP_401'}});
  await page.waitForFunction(()=>document.querySelector('#rqAgentDrawer')?.dataset.phase==='error');
- assert.equal(await page.locator('#rqAgentConsent').isChecked(),false);
+ assert.equal(await page.locator('#rqAgentConsent').count(),0);
  assert.equal(await page.locator('#rqAgentDrawer').getAttribute('aria-busy'),'false');
  assert.ok((await page.locator('#rqAgentMessages').textContent()).includes('credentials'));
- assert.equal(requests.length,1);
- assert.ok(requests[0].conversation.every(turn=>Object.keys(turn).sort().join(',')==='role,text'),
+ assert.equal(requests.length,2);
+ assert.ok(requests[1].conversation.every(turn=>Object.keys(turn).sort().join(',')==='role,text'),
   'Local sound actions and their cue snapshots must never be added to provider conversation');
  const failOnce=async(prompt,reply)=>{
   await page.locator('#rqAgentPrompt').fill(prompt);
-  await page.locator('#rqAgentConsent').check();
   const pending=page.waitForRequest('**/api/agent/interpret');
   await page.locator('#rqAgentAskAI').click();await pending;
   await page.waitForFunction(()=>document.querySelector('#rqAgentDrawer')?.getAttribute('aria-busy')==='true');
@@ -217,11 +223,11 @@ try{
  await failOnce('One-shot rate-limit fixture',{status:429,body:{error:'HTTP_429'}});
  await failOnce('One-shot timeout fixture',{abort:'timedout'});
  await new Promise(resolve=>setTimeout(resolve,100));
- assert.equal(requests.length,3,'401, 429 and timeout each submit exactly once with no automatic retry');
+ assert.equal(requests.length,4,'401, 429 and timeout each submit exactly once with no automatic retry');
  if(captures)await page.screenshot({path:path.join(captures,'ai-v3-error.png'),animations:'disabled'});
  await page.locator('#uiLocaleSelect').selectOption('es');
  assert.equal(await page.locator('#rqAgentViewSource').textContent(),'Ver guion');
- assert.equal(await page.locator('#rqAgentAskAI').textContent(),'Consultar IA');
+ assert.equal(await page.locator('#rqAgentAskAI').textContent(),'Trabajar con IA');
  assert.equal(await page.locator('#rqAgentPhase').textContent(),'Revisar error');
  assert.ok((await page.locator('#rqAgentConsentDisclosure').textContent()).includes('No se envían archivos de audio'));
  assert.equal((await read()).scriptText,original.scriptText);
@@ -237,7 +243,7 @@ try{
  assert.equal(await page.locator('#rqAgentSelectedSound option:enabled').count(),1,
   'Metadata-only import cannot silently choose or play unavailable audio');
  assert.equal(await page.locator('#rqAgentPhase').textContent(),'Próxima instrucción');
- assert.equal(requests.length,3);
+ assert.equal(requests.length,4);
  await page.locator('#uiLocaleSelect').selectOption('en');
  const projectState=()=>page.evaluate(()=>{
   let s;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{s=value;}}}));return s;
@@ -300,7 +306,7 @@ try{
  await route('ai');await instruct('you decide');
  assert.equal(await page.locator('#rqAgentProposal').isVisible(),false,'Replacement invalidates old project intent');
  assert.equal((await read()).active.length,0);
- assert.equal(requests.length,3,'Memory, rename and fade improvements use zero additional provider requests');
+ assert.equal(requests.length,4,'Memory, rename and fade improvements use zero additional provider requests');
  assert.deepEqual(external,[]);assert.deepEqual(errors,[]);
  console.log('AI REVIEW E2E PASS: original WAVs/source, contextual review/apply/undo, long-chat task correction, local rename, unresolved fades and inspector, cancel/STOP ALL/project invalidation, one-shot offline error and ES/EN. No provider/microphone/acoustic measurement.');
 }finally{

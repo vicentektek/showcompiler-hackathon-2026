@@ -57,10 +57,9 @@ try{
  const disclosure=await page.locator('#rqAgentConsentDisclosure').textContent();
  assert.ok(disclosure.includes('120 original script lines'));
  assert.ok(disclosure.includes('Audio files are never sent'));
- assert.equal(await page.locator('#rqAgentConsent').isChecked(),false,
+ assert.equal(await page.locator('#rqAgentConsent').count(),0,
   'Opening AI permissions never authorizes or submits a provider request');
  await page.locator('#rqAgentPrompt').fill('Revisa el cue seleccionado');
- await page.locator('#rqAgentConsent').check();
  await page.locator('#rqAgentAskAI').click();
  await page.waitForFunction(()=>{
   const status=document.querySelector('#rqAgentStatus')?.textContent??'';

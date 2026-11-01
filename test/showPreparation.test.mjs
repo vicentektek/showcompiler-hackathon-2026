@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planShowAudio, runPreparationQueue, cueSoundIdentity, validateAudioBatch } from '../src/core/showPreparation.mjs';
+import { planShowAudio, runPreparationQueue, cueSoundIdentity, validateAudioBatch, limitAudioBatch } from '../src/core/showPreparation.mjs';
 import { createNewShow, addMockProposal, decideProposal, addAudioReference, assignAudioToCue } from '../src/core/workspace.mjs';
 
 function project() {
@@ -23,6 +23,25 @@ test('bulk audio preserves provenance, excludes linked audio and never creates c
   show = assignAudioToCue(show, show.cues[0].id, show.assets[0].id);
   assert.equal(planShowAudio(show).items.length, 1);
   assert.notEqual(cueSoundIdentity(show.cues[0]), plan.items[0].cueIdentity);
+});
+
+test('no-music constraints do not exclude eligible sound effects', () => {
+  const show = project();
+  show.cues[0].actions[0].prompt = 'A single bell, no music, without dialogue';
+  show.cues[1].actions[0].prompt = 'Background music starts';
+  const plan = planShowAudio(show);
+  assert.deepEqual(plan.items.map(item => item.cueId), [show.cues[0].id]);
+  assert.equal(plan.excluded[0].reason, 'UNSUPPORTED_SOUND_KIND');
+});
+
+test('one-click batch is bounded without hiding deferred cues or increasing limits', () => {
+  const items = planShowAudio(project()).items;
+  const policy = { enabled: true, estimatedMaxCostUsdPerRequest: 0.05, dailyBudgetUsd: 0.05, maxDailyStarts: 10 };
+  const plan = limitAudioBatch(items, policy);
+  assert.equal(plan.items.length, 1);
+  assert.equal(plan.deferred, 1);
+  assert.equal(policy.dailyBudgetUsd, 0.05);
+  assert.throws(() => limitAudioBatch(items, { ...policy, dailyBudgetUsd: 0.01 }), /DAILY_CEILING/);
 });
 
 test('queue is serial, stops on failure, never retries and retains completed work', async () => {

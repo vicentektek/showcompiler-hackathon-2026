@@ -261,7 +261,6 @@ try{
     'Contextual generation opens without configuration detours');
   assert.equal(await page.locator('.sfx-export').isHidden(),true,
     'Cue flow hides unrelated export/import actions');
-  await page.locator('#confirmRequest').check();
   await page.locator('#generateBtn').click();
   await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent.includes('Generated ·'));
   assert.equal(mockedGenerationRequests,1);

@@ -41,10 +41,11 @@ try {
     const context = await browser.newContext({ viewport: { width: 1366, height: 900 }, acceptDownloads: true });
     const page = await context.newPage(); page.setDefaultTimeout(15000);
     const errors = [], metaCalls = [], starts = [], jobs = new Map();
-    let reviews = 0, mode = 'ready', maxActive = 0, active = 0, changedPolicy = false, metaDelay = 0, statusDelay = 0;
+    let reviews = 0, mode = 'ready', maxActive = 0, active = 0, changedPolicy = false, limitedPolicy = false, metaDelay = 0, statusDelay = 0;
     const audio = wav();
     page.on('pageerror', e => errors.push(e.message));
-    page.on('dialog', d => void d.accept());
+    const permissionDialogs = [];
+    page.on('dialog', d => { if (/Meta Muse|requests for remaining|autoriza|authorize/i.test(d.message())) permissionDialogs.push(d.message()); void d.accept(); });
     await page.route('**/*', async route => {
       const req = route.request(), url = new URL(req.url()), path = url.pathname;
       const json = (body, status = 200) => route.fulfill({ status, json: body });
@@ -54,7 +55,8 @@ try {
       if (path === '/api/sfx/status') {
         if (statusDelay) await new Promise(resolve => setTimeout(resolve, statusDelay));
         return json({ enabled: true, estimatedMaxCostUsdPerRequest: 0.05,
-          dailyBudgetUsd: changedPolicy ? 0.01 : 0.5, maxDailyStarts: 10, modelRevision: 'a'.repeat(40) });
+          dailyBudgetUsd: changedPolicy ? 0.01 : limitedPolicy ? 0.05 : 0.5,
+          maxDailyStarts: 10, modelRevision: 'a'.repeat(40) });
       }
       if (path === '/api/agent/status') return json({ configured: true, provider: 'meta' });
       if (path === '/api/meta/proposals') {
@@ -119,16 +121,11 @@ try {
     assert.equal((await read()).project.cues.length, 0, 'Full-show generation pauses before human proposal approval');
     assert.equal(starts.length, 0);
     assert.equal((await read()).project.proposals.length, 2);
+    assert.equal(await page.locator('#rqIncludeShowAudio').isChecked(), true);
     await page.locator('#rqAcceptAllCues').click();
-    await page.locator('.rq-preparation-dialog').waitFor({ state: 'visible' });
-    assert.equal((await read()).project.cues.length, 2);
-    assert.equal(starts.length, 0, 'Approval does not authorize audio');
-    await page.locator('#rqStartAudioBatch').click();
-    assert.match(await page.locator('#rqBatchError').textContent(), /autoriza|authorize/);
-    assert.equal(starts.length, 0);
-    await page.locator('#rqBatchAuthorize').check();
-    await page.locator('#rqStartAudioBatch').click();
     await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/2\/2 tomas generadas|2\/2 takes generated/));
+    assert.equal((await read()).project.cues.length, 2);
+    assert.equal(await page.locator('.rq-preparation-dialog').isVisible(), false, 'Reviewed approval continues directly to sound generation without extra permissions');
     assert.equal(starts.length, 2); assert.equal(maxActive, 1);
     assert.equal(reviews, 0); assert.equal((await read()).project.assets.length, 0);
     const cue1 = (await read()).project.cues[0];
@@ -170,11 +167,9 @@ try {
     await importScript('batch-cancel.txt');
     await page.locator('#rqPrepareShow').click();
     await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/Guion analizado|Script analyzed/));
-    await page.locator('#rqAcceptAllCues').click();
-    await page.locator('.rq-preparation-dialog').waitFor({ state: 'visible' });
     mode = 'hold'; const beforeCancel = starts.length;
     const submitted = page.waitForResponse(r => new URL(r.url()).pathname === '/api/sfx/jobs' && r.request().method() === 'POST');
-    await page.locator('#rqBatchAuthorize').check(); await page.locator('#rqStartAudioBatch').click();
+    await page.locator('#rqAcceptAllCues').click();
     await submitted;
     await page.waitForFunction(() => !document.querySelector('#rqCancelPreparation')?.hidden);
     await page.locator('[data-workspace-nav="cues"]').click();
@@ -190,20 +185,14 @@ try {
     await page.locator('#rqPrepareShow').click();
     await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/Guion analizado|Script analyzed/));
     await page.locator('#rqAcceptAllCues').click();
-    await page.locator('#rqBatchAuthorize').check();
     const beforeFailure = starts.length;
-    await page.locator('#rqStartAudioBatch').click();
-    assert.match(await page.locator('#rqBatchError').textContent(), /límite diario|daily ceiling/);
+    await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/límite diario|daily ceiling/));
     assert.equal(starts.length, beforeFailure, 'Known daily ceiling blocks before any request');
-    await page.locator('#rqCloseAudioBatch').click();
     changedPolicy = false;
     await page.locator('[data-workspace-nav="audio"]').click();
     await page.locator('[data-rq10-sound-tab="generate"]').click();
-    await page.locator('#rqSoundGenerateAllAudio').click();
-    await page.locator('.rq-preparation-dialog').waitFor({ state: 'visible' });
-    await page.locator('#rqBatchAuthorize').check();
     const rejected = page.waitForResponse(r => new URL(r.url()).pathname === '/api/sfx/jobs' && r.request().method() === 'POST');
-    await page.locator('#rqStartAudioBatch').click();
+    await page.locator('#rqSoundGenerateAllAudio').click();
     await rejected;
     await page.waitForFunction(() => document.querySelector('#rqCancelPreparation')?.hidden);
     await page.waitForTimeout(250);
@@ -225,13 +214,10 @@ try {
 
     await page.locator('#rqPrepareShow').click();
     await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/Guion analizado|Script analyzed/));
-    await page.locator('#rqAcceptAllCues').click();
-    await page.locator('.rq-preparation-dialog').waitFor({ state: 'visible' });
     mode = 'hold';
     const beforeButtonCancel = starts.length;
     const cancelSubmitted = page.waitForResponse(r => new URL(r.url()).pathname === '/api/sfx/jobs' && r.request().method() === 'POST');
-    await page.locator('#rqBatchAuthorize').check();
-    await page.locator('#rqStartAudioBatch').click();
+    await page.locator('#rqAcceptAllCues').click();
     await cancelSubmitted;
     await page.locator('#rqCancelPreparation').click();
     await page.waitForFunction(() => document.querySelector('#rqCancelPreparation')?.hidden);
@@ -241,11 +227,8 @@ try {
     active = 0; // The already submitted remote fixture finishes without another generation.
     await page.locator('[data-workspace-nav="audio"]').click();
     await page.locator('[data-rq10-sound-tab="generate"]').click();
-    await page.locator('#rqSoundGenerateAllAudio').click();
-    await page.locator('.rq-preparation-dialog').waitFor({ state: 'visible' });
     const soundSubmitted = page.waitForResponse(r => new URL(r.url()).pathname === '/api/sfx/jobs' && r.request().method() === 'POST');
-    await page.locator('#rqBatchAuthorize').check();
-    await page.locator('#rqStartAudioBatch').click();
+    await page.locator('#rqSoundGenerateAllAudio').click();
     await soundSubmitted;
     await page.locator('#rqSoundCancelPreparation').click();
     await page.waitForFunction(() => document.querySelector('#rqSoundCancelPreparation')?.hidden);
@@ -262,13 +245,40 @@ try {
     await page.waitForTimeout(1000);
     assert.equal(await page.locator('.rq-preparation-dialog').isVisible(), false, 'STOP ALL prevents a late budget response from opening an authorization dialog');
     assert.equal(starts.length, beforeButtonCancel + 2);
+    statusDelay = 0; mode = 'ready';
+    await page.locator('#rqEditAudioBatch').click();
+    await page.locator('.rq-preparation-dialog').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#rqBatchAuthorize').count(), 0);
+    await page.locator('.rq-preparation-row input[type="checkbox"]').last().uncheck();
+    const beforeEdited = starts.length;
+    await page.locator('#rqStartAudioBatch').click();
+    await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/1\/1 tomas generadas|1\/1 takes generated/));
+    assert.equal(starts.length, beforeEdited + 1, 'Optional adjustments retain selected cue scope with no additional permission');
+
+    await importScript('batch-analysis-only.txt');
+    await page.locator('#rqIncludeShowAudio').uncheck();
+    const beforeAnalysisOnly = starts.length;
+    await page.locator('#rqPrepareShow').click();
+    await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/Guion analizado|Script analyzed/));
+    await page.locator('#rqAcceptAllCues').click();
+    assert.equal((await read()).project.cues.length, 2);
+    assert.equal(starts.length, beforeAnalysisOnly, 'Analysis-only option approves cues without generating any sound');
+    limitedPolicy = true;
+    await page.locator('#rqGenerateAllAudio').click();
+    await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/1\/1 tomas generadas|1\/1 takes generated/));
+    assert.equal(starts.length, beforeAnalysisOnly + 1, 'Direct batch starts its bounded first part instead of rejecting the entire show');
+    assert.match(await page.locator('#rqPreparationStatus').textContent(), /1 cues (siguen pendientes|remain pending)/);
+    assert.equal(await page.locator('.rq-preparation-dialog').isVisible(), false);
+    assert.equal((await read()).project.assets.length, 0, 'Capped generation still does not auto-import or play');
+    limitedPolicy = false;
     const events = await page.evaluate(() => {
       let e; document.dispatchEvent(new CustomEvent('runq:show-event-read', { detail: { respond: v => { e = v; } } })); return e;
     });
     assert.equal(events.filter(e => e.type === 'CUE_STARTED').length, 0);
     assert.deepEqual(errors, []);
     assert.equal(escaped, 0);
-    console.log(`PASS bulk preparation ${locale}: visible controls, review gates, serial audio, audition/import, reopen, budget, cancel, STOP ALL, 429, late Meta, no GO`);
+    assert.deepEqual(permissionDialogs, [], 'No recurring AI permission dialogs');
+    console.log(`PASS bulk preparation ${locale}: direct controls, optional analysis-only, capped/deferred batch, review gates, serial audio, audition/import, reopen, budget, cancel, STOP ALL, 429, late Meta, no GO`);
     await context.close();
   }
 } finally {
