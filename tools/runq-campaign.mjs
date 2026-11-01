@@ -101,9 +101,11 @@ export const SUITES = Object.freeze([
     ['command-dictation-browser', 'tools/command-dictation-browser-e2e.mjs'],
   ].map(([id, file]) => ({ id, kind: 'browser', evidence: 'BROWSER_MOCKED_PROVIDERS', args: [file],
     parse: out => ({ checks: countLines(out, /PASS|OK/) }) })),
-  { id: 'user-journeys', kind: 'browser', evidence: 'BROWSER_MOCKED_PROVIDERS', args: dir => ['tools/runq-journeys-e2e.mjs', '--out', join(dir, 'journeys')],
+  { id: 'user-journeys', kind: 'browser', evidence: 'BROWSER_MOCKED_PROVIDERS', timeoutMs: 90 * 60_000,
+    args: dir => ['tools/runq-journeys-e2e.mjs', '--out', join(dir, 'journeys'), '--resume'],
     parse: out => ({ unique: num(out, /unique=(\d+)/), trials: num(out, /journeys=(\d+)/), checks: num(out, /checks=(\d+)/),
-      failures: num(out, /failed=(\d+)/), notes: (/(completed=\d+\/\d+)/.exec(out)?.[1] ?? '') }) },
+      failures: num(out, /failed=(\d+)/), httpRequests: num(out, /forbidden=(\d+)/),
+      notes: (/(completed=\d+\/\d+)/.exec(out)?.[1] ?? '') }) },
 ]);
 
 /** Functional area → implementation → suites; lastResult is derived from suite outcomes. */
@@ -297,7 +299,7 @@ export async function runCampaign({ id, kind = 'offline', root = REPO_ROOT, only
       log('RUN', suite.id);
       const started = Date.now();
       const result = suite.syntax ? await runSyntaxSuite(root, env)
-        : await runNode(script, { cwd: root, env, timeoutMs, onChild: child => { current = child; } });
+        : await runNode(script, { cwd: root, env, timeoutMs: suite.timeoutMs ?? timeoutMs, onChild: child => { current = child; } });
       const clean = redact(result.out);
       await writeFile(join(dir, 'logs', suite.id + '.log'), clean.slice(-LOG_TAIL_BYTES));
       let metrics = result.metrics ?? {};

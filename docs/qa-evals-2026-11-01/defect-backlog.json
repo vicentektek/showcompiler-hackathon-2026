@@ -67,6 +67,41 @@
       "reevaluation": "agent-browser, ai-review-browser, last-go-browser, command-dictation-browser, interface-browser and interface-functional PASS."
     },
     {
+      "id": "D10", "severity": "P2", "status": "FIXED", "area": "Cue list (UX/i18n)",
+      "summary": "Every manually inserted cue row showed the internal English placeholder \"AUDIO PENDING: Operator sound selection pending\" (also inside the Spanish UI).",
+      "repro": "node tools/runq-journeys-e2e.mjs --only manual-show,full-show --locale es,en --viewport 1920x1080 --persona beginner,intermediate (finding INTERNAL_SOUND_PLACEHOLDER_VISIBLE in 4/4 manual-show journeys).",
+      "fix": "src/core/manualCues.mjs exports OPERATOR_SOUND_PENDING_PROMPT, isOperatorSoundPlaceholder and plannedAudioDetail; describeCueActions and the Show Builder hide the stored placeholder. Saved projects keep the stored value (compatibility).",
+      "reevaluation": "test/manualCues.test.mjs + test/browserPrototype.test.mjs red->green; finding absent in 4/4 manual-show journeys."
+    },
+    {
+      "id": "D11", "severity": "P2", "status": "FIXED", "area": "Cue inspector (UX)",
+      "summary": "The Audio tab of a cue that still needs sound only said multi-track editing is separate; loading or assigning audio was only possible under the Actions tab.",
+      "repro": "node tools/runq-journeys-e2e.mjs --only manual-show,full-show --locale es,en --viewport 1920x1080 --persona beginner,intermediate (finding AUDIO_TAB_CANNOT_LOAD_PENDING_SOUND in 4/4 manual-show journeys; one extra tab switch per cue).",
+      "fix": "src/ui/app.mjs cueAudioSourceControls shows the pending status, the load-file picker and a shared cuePlanLibraryAssign control for PLAN_AUDIO cues.",
+      "reevaluation": "test/browserPrototype.test.mjs red->green; finding absent and one action fewer in 4/4 manual-show journeys."
+    },
+    {
+      "id": "D12", "severity": "P2", "status": "FIXED", "area": "Context inspector (UX state coherence)",
+      "summary": "After the app selected a cue (approval, insertion), the cue inspector showed it but the context panel above it said \"Select an item\" and hid \"Prepare sound for this cue\" until the row was clicked again.",
+      "repro": "node tools/runq-journeys-e2e.mjs --only manual-show,full-show --locale es,en --viewport 1920x1080 --persona beginner,intermediate (finding CONTEXT_INSPECTOR_IGNORES_SELECTED_CUE in intermediate/stage-manager/creative full-show journeys).",
+      "fix": "src/ui/runq-context-inspector.mjs adopts app cue-selection changes (state.selectedCueId) unless a proposal batch is selected; Clear holds until the app selects another cue; reset on project/generation change.",
+      "reevaluation": "Contract test red->green; finding absent and one action fewer in intermediate full-show ES/EN; interface-functional e2e re-run."
+    },
+    {
+      "id": "D13", "severity": "P3", "status": "FIXED", "area": "Copy accuracy (i18n)",
+      "summary": "workspace.autoNotWired claimed automation is metadata only and configurable fades/loops are disabled, although GO stop targets and Audio-tab fades/loop work.",
+      "repro": "Code review: app.mjs executeCueById applies automation.stopCueIds; playback fades/loop verified in full-show journeys.",
+      "fix": "en/es locale text now states only that automatic follow/continue (and its own stored fades/loop) is not executed.",
+      "reevaluation": "test/workspaceNavigationTranslations.test.mjs red->green."
+    },
+    {
+      "id": "D14", "severity": "P2", "status": "FIXED", "area": "Sound prompt fidelity (AI)",
+      "summary": "When an approved cue idea could not be compiled (any English idea: the deterministic compiler is Spanish-only), prepareCueSoundDraft silently compiled the script line instead, even when it described a different sound (approved \"strong wind between the lighthouse rocks\" became a bell prompt).",
+      "repro": "Probe of prepareCueSoundDraft with English ideas over a Spanish bell line; journey checks SOUND_PROMPT_WRONG_SOURCE / SOUND_PROMPT_DROPS_APPROVED_DETAIL.",
+      "fix": "src/core/soundPromptCompiler.mjs reuses the script-line compilation only when the idea is the cue label or names the same sound source (English source or Spanish evidence stem); otherwise the approved idea is kept verbatim as CUE_BRIEF.",
+      "reevaluation": "test/soundPromptCompiler.test.mjs (3 new) red->green; 46/46 compiler tests. Known limit kept as INFO: Spanish compilation drops some approved detail (e.g. \"faro\")."
+    },
+    {
       "id": "F1", "severity": "P2", "status": "HUMAN_REVIEW_PENDING", "area": "Operator queue policy",
       "summary": "Insert/duplicate/delete from the editor resets the prepared GO to the first cue even when the prepared cue still exists (documented reset policy).",
       "repro": "state-machine finding PREPARED_CUE_REMOVED_BY_EDIT (95 of 16,000 steps); src/ui/app.mjs editCueSequence",
