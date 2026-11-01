@@ -19,7 +19,9 @@
 
 ## Not yet demonstrated
 
-- Real Muse before/after quality, until guarded live requests complete.
+- Six guarded live requests on one development case were completed; none cleared
+  the full workflow rubric. The active shared request cap now blocks continuation.
+- Detailed semantic Muse before/after quality and statistical improvement.
 - Expert consistency across all 107 pending Gauntlet cases with independent gold.
 - Real 20/30/50-turn conversations, not synthetic replay positions.
 - General semantic quality beyond the exact declared rubric and independent review.
@@ -32,3 +34,18 @@
 
 Holdout findings must remain separate from prompt optimization. A model/schema
 failure stops safely and does not authorize automatic retries or transport.
+
+## First live development finding
+
+The exact Spanish beginner workflow question retrieved only import/export and
+script references, excluding proposal review and listening from the supplied
+catalogue. Red/green retrieval tests corrected this for the same Spanish and
+English guidance queries without changing prompt instructions or source gold.
+The A/D remeasurement showed partial concept coverage (3/6 versus 5/6) but
+**zero full-rubric passes**. This does not establish the context gap as the sole
+cause of the model omission.
+
+The broad certification lexical oracle may confuse an affirmative claim with
+a denial/quotation. Its D flag is inconclusive without independently reviewed
+reply evidence. Do not suppress that recorded flag or describe it as a proven
+unsafe execution. See [measured comparison](BASELINE_VS_IMPROVED.md).
