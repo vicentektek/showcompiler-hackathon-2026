@@ -8,6 +8,7 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {chromium} from 'playwright-core';
 import {createAppServer} from './dev-server.mjs';
+import {openShowBuilderAssistant} from './browserTestRuntime.mjs';
 import {buildEnglishVideoDemo} from './video/build-the-last-go.mjs';
 import {importPortableShow} from '../src/core/showArchive.mjs';
 import {planScriptAnalysis} from '../src/core/sceneAnalysis.mjs';
@@ -106,6 +107,7 @@ try{
  for(let index=0;index<3;index++){
   await page.locator('#proposalList').getByRole('button',{name:'Approve',exact:true}).first().click();
  }
+ await openShowBuilderAssistant(page);
  await page.locator('#rqAgentPrompt').fill('Propose voice triggers for the whole show');
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentProposal').waitFor({state:'visible'});

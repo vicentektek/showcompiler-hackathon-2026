@@ -312,8 +312,12 @@ function sync(){
  const drawer=$('rqAgentDrawer'),host=$('rqAgentWorkspace');
  const docked=s.workspace==='ai'&&host;
  if(docked){
+  const activeConversation=drawer.parentElement!==host&&!drawer.hidden;
   if(drawer.parentElement!==host)host.append(drawer);
   drawer.hidden=false;button.setAttribute('aria-expanded','true');
+  // Docking an open floating conversation must not hide it inside the collapsed Builder help.
+  const disclosure=host.closest('details');
+  if(activeConversation&&disclosure&&!disclosure.open)disclosure.open=true;
  }else if(host&&drawer.parentElement===host){
   document.body.append(drawer);close();
  }

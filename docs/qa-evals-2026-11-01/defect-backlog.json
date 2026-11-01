@@ -60,6 +60,13 @@
       "reevaluation": "CLI exit 0 in a clean checkout."
     },
     {
+      "id": "D9", "severity": "P2", "status": "FIXED", "area": "RUNQ AI continuity (UX)",
+      "summary": "An operator conversing with the floating RUNQ AI drawer who then opened the AI workspace saw the conversation vanish: the drawer was docked inside the collapsed Show Builder help disclosure. The same design change left three browser suites (ai-review, last-go, command-dictation) stale against the intentionally collapsed fresh visit.",
+      "repro": "tools/runq-agent-browser-e2e.mjs failed at #rqAgentPrompt 'element is not visible' after [data-workspace-nav=ai] (runner campaign probe-be41563); same failure at baseline 929c475.",
+      "fix": "src/ui/runq-agent-ui.mjs opens the disclosure only when an open floating conversation is docked; a fresh AI visit stays collapsed (interface-browser assertion preserved). Stale suites use tools/browserTestRuntime.mjs openShowBuilderAssistant like an operator.",
+      "reevaluation": "agent-browser, ai-review-browser, last-go-browser, command-dictation-browser, interface-browser and interface-functional PASS."
+    },
+    {
       "id": "F1", "severity": "P2", "status": "HUMAN_REVIEW_PENDING", "area": "Operator queue policy",
       "summary": "Insert/duplicate/delete from the editor resets the prepared GO to the first cue even when the prepared cue still exists (documented reset policy).",
       "repro": "state-machine finding PREPARED_CUE_REMOVED_BY_EDIT (95 of 16,000 steps); src/ui/app.mjs editCueSequence",

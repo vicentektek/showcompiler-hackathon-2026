@@ -28,6 +28,14 @@ function browserCandidates() {
   });
 }
 
+/** The Show Builder keeps RUNQ AI collapsed on a fresh AI visit; open it the way an operator would. */
+export async function openShowBuilderAssistant(page) {
+  const disclosure = page.locator('#rqShowBuilderAiHelp');
+  if (await disclosure.count() && await disclosure.getAttribute('open') === null)
+    await page.locator('#rqShowBuilderAiHelp > summary').click();
+  await page.locator('#rqAgentPrompt').waitFor({ state: 'visible' });
+}
+
 export async function launchTestBrowser() {
   const diagnostics = [];
   for (const candidate of browserCandidates()) {

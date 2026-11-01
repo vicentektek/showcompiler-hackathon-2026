@@ -8,6 +8,7 @@ import {existsSync} from 'node:fs';
 import path from 'node:path';
 import {chromium} from 'playwright-core';
 import {createAppServer} from './dev-server.mjs';
+import {openShowBuilderAssistant} from './browserTestRuntime.mjs';
 import {buildEnglishVideoDemo} from './video/build-the-last-go.mjs';
 import {serializeShowProject} from '../src/core/projectPersistence.mjs';
 
@@ -49,6 +50,7 @@ try{
  const original=await read();
  const route=async workspace=>{await page.locator(`[data-workspace-nav="${workspace}"]`).click();};
  await route('ai');
+ await openShowBuilderAssistant(page);
  if(captures){
   const before=path.join(captures,'ai-v3-before.png');
   if(!existsSync(before))await page.screenshot({path:before,animations:'disabled'});

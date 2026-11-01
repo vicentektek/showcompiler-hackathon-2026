@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
 import {createAppServer} from './dev-server.mjs';
+import {openShowBuilderAssistant} from './browserTestRuntime.mjs';
 import {buildEnglishVideoDemo} from './video/build-the-last-go.mjs';
 
 const built=await buildEnglishVideoDemo();
@@ -60,6 +61,7 @@ try{
  });
  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
  await page.locator('[data-workspace-nav="ai"]').click();
+ await openShowBuilderAssistant(page);
  await page.locator('#rqAgentAiOptions summary').click();
  await page.locator('#rqAgentPrompt').fill('Rename cue one to Late result');
  await page.locator('#rqAgentConsent').check();

@@ -90,6 +90,9 @@ try{
  assert.equal(await page.locator('#rqAgentDrawer').evaluate(element=>getComputedStyle(element).position),'static');
  assert.equal(await page.locator('#rqAgentClose').isVisible(),false);
  assert.equal(await page.locator('#rqAgentMessages').textContent(),conversation,'Docking preserves the conversation');
+ assert.equal(await page.locator('#rqShowBuilderAiHelp').getAttribute('open'),'',
+  'D9: an active floating conversation stays visible when docked into the collapsed Builder help');
+ assert.equal(await page.locator('#rqAgentPrompt').isVisible(),true);
  assert.equal(agentRequests.length,1,'Entering main AI does not submit a provider request');
  assert.equal(await prepared(),before);
  await page.locator('#rqAgentPrompt').fill('Propón pies de voz para el cue seleccionado');
