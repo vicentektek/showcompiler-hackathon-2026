@@ -3,7 +3,7 @@ import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, decideProposalBatch, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
 import { setCueEntryPolicy,planEntryStops,normalizeCueEntryPolicy } from '../core/cueEntryPolicy.mjs';
-import { insertManualCue, insertManualCueFromScriptLines, insertManualAudioCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue, reorderOperatorCue } from '../core/manualCues.mjs';
+import { insertManualCue, insertManualCueFromScriptLines, insertManualAudioCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue, reorderOperatorCue, trailingFollowReleased } from '../core/manualCues.mjs';
 import { stageAddCueTrack, stageChangeCueTrack, stageRemoveCueTrack } from '../core/cueTracks.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
@@ -2412,13 +2412,15 @@ function editCueSequence(fn,{preserveQueue=false}={}) {
     return;
   }
   try {
+    const before = show;
     const result = fn();
     show = result.project ?? result;
     selectedCueId = result.cueId ?? (show.cues.some(c => c.id === selectedCueId) ? selectedCueId : show.cues[0]?.id ?? null);
     // Drag reorder changes sequence order, not the operator's prepared cue.
     // Structural add/delete/duplicate still use the established reset policy.
-    if(!preserveQueue || (operatorQueue.preparedCueId &&
-      !show.cues.some(c=>c.id===operatorQueue.preparedCueId))){
+    const queueReset = !preserveQueue || (operatorQueue.preparedCueId &&
+      !show.cues.some(c=>c.id===operatorQueue.preparedCueId));
+    if(queueReset){
       operatorQueue = startOperatorQueue(show.cues);
       lastGoCueId = null;
     }
@@ -2427,7 +2429,12 @@ function editCueSequence(fn,{preserveQueue=false}={}) {
     $('cueSearchInput').value = '';
     dirty = true;
     render();
-    feedback('cueEditor.sequenceChanged', {}, 'success');
+    const releasedId = trailingFollowReleased(before, show);
+    if (releasedId) {
+      feedback('cueEditor.followReleased', { number: show.cues.find(c => c.id === releasedId)?.number ?? '' }, 'info');
+    } else {
+      feedback(queueReset ? 'cueEditor.sequenceChanged' : 'cueEditor.sequenceChangedQueueKept', {}, 'success');
+    }
   } catch(error) { showError(error); }
 }
 $('cueAddBtn').addEventListener('click', () => editCueSequence(() => insertManualCue(show)));

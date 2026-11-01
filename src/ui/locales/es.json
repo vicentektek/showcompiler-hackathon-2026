@@ -493,6 +493,8 @@
   "cueEditor.confirmDelete": "¿Eliminar el cue seleccionado? Se quitarán sus referencias activas. No se puede deshacer.",
   "cueEditor.stopBeforeEdit": "Detén todo el audio antes de cambiar la secuencia.",
   "cueEditor.sequenceChanged": "Secuencia actualizada. El siguiente GO se ha colocado en el primer cue.",
+  "cueEditor.sequenceChangedQueueKept": "Secuencia actualizada. El siguiente GO preparado no ha cambiado.",
+  "cueEditor.followReleased": "Secuencia actualizada. El cue {number} ha quedado último y su continuación automática pasa a MANUAL. Revisa el siguiente GO antes de ensayar.",
   "cueEditor.duplicateCue": "Duplicar",
   "cueEditor.moveUp": "Subir",
   "cueEditor.moveDown": "Bajar",

@@ -4,6 +4,25 @@ import { nextAvailableId, assignAudioToCue } from './workspace.mjs';
 
 const renumber = cues => cues.map((cue,index)=>({...cue,number:index+1}));
 
+/**
+ * A follow/continue cue needs a next cue. When a structural edit leaves one in
+ * last position, it is downgraded to MANUAL (never upgraded to automatic) so the
+ * edit succeeds; fades, loop and stop targets are preserved.
+ */
+function releaseTrailingFollow(cues) {
+  const last=cues.at(-1);
+  if(!last?.automation||last.automation.mode==='MANUAL')return cues;
+  return [...cues.slice(0,-1),{...last,automation:{...last.automation,mode:'MANUAL',delayMs:0}}];
+}
+
+/** Cue id whose automatic follow an edit would release, or null. */
+export function trailingFollowReleased(before,after) {
+  const last=after?.cues?.at(-1);
+  if(!last||last.automation?.mode!=='MANUAL')return null;
+  const previous=before?.cues?.find(c=>c.id===last.id);
+  return previous?.automation&&previous.automation.mode!=='MANUAL'?last.id:null;
+}
+
 /** Operator creates a cue without needing any script or AI suggestion. */
 export function insertManualCue(project,{afterCueId=null,label='New cue'}={}) {
   const show=normalizeShowProject(project);
@@ -57,7 +76,7 @@ export function deleteOperatorCue(project,cueId){
     return {...c,automation:{...c.automation,stopCueIds},
       ...(c.stopFadeOverrides?{stopFadeOverrides:overrides}:{})};
   });
-  return normalizeShowProject({...show,cues:renumber(cues)});
+  return normalizeShowProject({...show,cues:renumber(releaseTrailingFollow(cues))});
 }
 
 /** Duplicate any cue as an independently editable MANUAL cue. */
@@ -88,7 +107,7 @@ export function moveOperatorCue(project,cueId,direction) {
   if(next<0||next>=show.cues.length)return show;
   const cues=[...show.cues];
   [cues[at],cues[next]]=[cues[next],cues[at]];
-  return normalizeShowProject({...show,cues:renumber(cues)});
+  return normalizeShowProject({...show,cues:renumber(releaseTrailingFollow(cues))});
 }
 
 
@@ -108,5 +127,5 @@ export function reorderOperatorCue(project, cueId, targetCueId, position='before
   const [moved]=cues.splice(sourceIndex,1);
   const destination=cues.findIndex(c=>c.id===targetCueId)+(position==='after'?1:0);
   cues.splice(destination,0,moved);
-  return normalizeShowProject({...show,cues:renumber(cues)});
+  return normalizeShowProject({...show,cues:renumber(releaseTrailingFollow(cues))});
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal} from '../src/core/workspace.mjs';
-import {insertManualCue,insertManualCueFromScriptLines,insertManualAudioCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue} from '../src/core/manualCues.mjs';
+import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal,updateCueAutomation} from '../src/core/workspace.mjs';
+import {insertManualCue,insertManualCueFromScriptLines,insertManualAudioCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue,trailingFollowReleased} from '../src/core/manualCues.mjs';
 import {serializeShowProject,deserializeShowProject} from '../src/core/projectPersistence.mjs';
 
 test('dropped audio appends independently editable PLAY cues without script or AI provenance',()=>{
@@ -120,4 +120,23 @@ test('drag reorder moves cue before/after target without changing IDs or setting
   assert.deepEqual(reorderOperatorCue(show,one.cueId,one.cueId),show);
   assert.throws(()=>reorderOperatorCue(show,'bad',two.cueId),/not found/);
   assert.throws(()=>reorderOperatorCue(show,one.cueId,two.cueId,'middle'),/position/);
+});
+test('structural edits that leave a follow cue last make it MANUAL instead of blocking',()=>{
+  let show=createNewShow({scriptText:'A\nB'});
+  for(const label of ['One','Two','Three'])show=insertManualCue(show,{label}).project;
+  show=updateCueAutomation(show,'cue-2',{mode:'AUTO_CONTINUE',delayMs:1500});
+  const deleted=deleteOperatorCue(show,'cue-3');
+  assert.deepEqual(deleted.cues.map(c=>c.id),['cue-1','cue-2']);
+  assert.equal(deleted.cues[1].automation.mode,'MANUAL');
+  assert.equal(deleted.cues[1].automation.delayMs,0);
+  assert.equal(trailingFollowReleased(show,deleted),'cue-2');
+  const moved=moveOperatorCue(show,'cue-2',1);
+  assert.deepEqual(moved.cues.map(c=>c.id),['cue-1','cue-3','cue-2']);
+  assert.equal(moved.cues[2].automation.mode,'MANUAL');
+  const dropped=reorderOperatorCue(show,'cue-2','cue-3','after');
+  assert.equal(dropped.cues.at(-1).automation.mode,'MANUAL');
+  const untouched=deleteOperatorCue(show,'cue-1');
+  assert.equal(untouched.cues[0].automation.mode,'AUTO_CONTINUE','a follow that still has a next cue is preserved');
+  assert.equal(untouched.cues[0].automation.delayMs,1500);
+  assert.equal(trailingFollowReleased(show,untouched),null);
 });
