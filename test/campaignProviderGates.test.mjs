@@ -84,6 +84,19 @@ test('realtime voice session is refused while the campaign voice cap is zero',as
  assert.equal(getVoiceKey.calls,0);assert.equal(sockets,0);
 });
 
+test('Baseten seminar runner refuses live mode before corpus, key use or any transport',async()=>{
+ const {runBasetenSeminarEval}=await import('../tools/basetenSeminarEval.mjs');
+ let corpusReads=0,calls=0;
+ await assert.rejects(runBasetenSeminarEval({live:true,ackPaid:true,apiKey:'DUMMY_NEVER_SENT',
+  corpusReader:async()=>{corpusReads++;return {cases:[]};},caller:async()=>{calls++;},
+  fetchImpl:async()=>{calls++;throw new Error('network forbidden in test');}}),/CAMPAIGN_PROVIDER_PROHIBITED/);
+ assert.equal(corpusReads,0);assert.equal(calls,0);
+ const cli=readFileSync(new URL('../tools/run-baseten-seminar-eval.mjs',import.meta.url),'utf8');
+ assert.ok(cli.indexOf("isCampaignProviderProhibited('baseten')")>=0&&
+  cli.indexOf("isCampaignProviderProhibited('baseten')")<cli.indexOf('process.env.BASETEN_API_KEY'),
+  'CLI must check campaign policy before touching BASETEN_API_KEY');
+});
+
 test('browser UI cannot select Baseten and explains the campaign exclusion in ES and EN',async()=>{
  const {commandDictationMessage}=await import('../src/ui/command-dictation.mjs');
  assert.match(commandDictationMessage('voice_campaign_prohibited','es'),/0 USD/);
