@@ -16,3 +16,14 @@ for(const [locale,catalog] of [['en',en],['es',es]]){
    }
  });
 }
+
+test('the automatic-continuity warning does not claim working playback fades, loop or stop targets are disabled',()=>{
+  for(const catalog of [en,es]){
+    const warning=catalog['workspace.autoNotWired'];
+    assert.doesNotMatch(warning,/metadata only|solo se guardan como datos/i);
+    assert.doesNotMatch(warning,/configurable fades|fades configurables/i);
+    assert.match(warning,/GO/);
+  }
+  assert.match(en['workspace.autoNotWired'],/Audio tab/);
+  assert.match(es['workspace.autoNotWired'],/pestaña Audio/);
+});

@@ -330,7 +330,7 @@
   "workspace.prepared": "SIGUIENTE GO",
   "workspace.actions": "Acciones",
   "workspace.engineNote": "El motor del navegador usa niveles fijos y un fundido STOP de 1,5 s. Las propiedades avanzadas aún no funcionan.",
-  "workspace.autoNotWired": "Los automatismos solo se guardan como datos. GO automático, fades configurables y loops están desactivados.",
+  "workspace.autoNotWired": "La continuidad automática se guarda pero no se ejecuta: no hay GO automático y los fades/loop guardados con esa continuidad no se aplican. Los cues a detener al hacer GO y los fades y loop de la pestaña Audio sí funcionan.",
   "workspace.moreIssues": "…y {count} incidencias de preparación más.",
   "setup.nav.audio": "Audio",
   "setup.nav.microphone": "Micrófono",

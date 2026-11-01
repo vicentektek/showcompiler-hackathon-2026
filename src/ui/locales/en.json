@@ -330,7 +330,7 @@
   "workspace.prepared": "NEXT GO",
   "workspace.actions": "Actions",
   "workspace.engineNote": "Browser playback currently uses fixed levels and a 1.5 s STOP fade. Advanced per-action parameters are not wired.",
-  "workspace.autoNotWired": "Automation is saved as metadata only. Automatic GO and configurable fades/loops are disabled.",
+  "workspace.autoNotWired": "Automatic follow/continue is saved but not executed: there is no automatic GO, and the fades/loop stored with that continuity are not applied. Cues to stop on GO, and the fades and loop in the Audio tab, do work.",
   "workspace.moreIssues": "…and {count} more readiness findings.",
   "setup.nav.audio": "Audio",
   "setup.nav.microphone": "Microphone",
