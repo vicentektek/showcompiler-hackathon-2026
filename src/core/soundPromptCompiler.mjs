@@ -901,6 +901,65 @@ function probeFragment(fragment) {
   return null;
 }
 
+export function prepareCueSoundDraft({ cue, scriptText = '', sourceLines = [] } = {}) {
+  if (!cue || typeof cue !== 'object' || Array.isArray(cue) ||
+      typeof cue.id !== 'string' || typeof cue.label !== 'string' ||
+      !Array.isArray(cue.actions) || typeof scriptText !== 'string' ||
+      !Array.isArray(sourceLines)) {
+    throw new SoundPromptCompilerError('A cue and its original script are required');
+  }
+  const lines = parseScript(scriptText);
+  const cueLineIds = Array.isArray(cue.sourceLineIds) ? cue.sourceLineIds : [];
+  const sourceLine = lines.find(line => cueLineIds.includes(line.id)) ??
+    sourceLines.find(line => line && cueLineIds.includes(line.id) &&
+      typeof line.text === 'string' && /^L[1-9]\d*$/.test(line.id)) ?? null;
+  const sourceLineId = sourceLine?.id ?? null;
+  const plannedPrompt = cue.actions.find(action =>
+    action?.type === 'PLAN_AUDIO' && typeof action.prompt === 'string')?.prompt?.trim() ?? '';
+  const cueIdea = /^operator sound selection pending$/i.test(plannedPrompt)
+    ? ''
+    : plannedPrompt;
+  const fragments = [...new Set([cueIdea, sourceLine?.text ?? '']
+    .map(fragment => fragment.trim())
+    .filter(fragment => fragment.length > 0 && fragment.length <= MAX_FRAGMENT_CHARS))];
+  let proposal = null;
+  for (const fragment of fragments) {
+    proposal = compileSoundProposals({
+      fragment,
+      sourceLineId,
+      projectId: cue.id,
+      fragmentKind: 'STAGE_DIRECTION',
+      mode: 'STRICT',
+    }).find(item => item.category === 'SFX' || item.category === 'ENVIRONMENT') ?? null;
+    if (proposal) break;
+  }
+
+  const direction = cueIdea || sourceLine?.text?.trim() || cue.label.trim();
+  const ambient = proposal?.category === 'ENVIRONMENT' ||
+    (!proposal && /\b(ambience|ambient|atmospher(?:e|ic)|background|continuous|rain|wind|fire|water|crowd|ambiente|lluvia|viento|fuego|agua|multitud|continuo)\b/i.test(direction));
+  const kind = ambient ? 'ENVIRONMENT' : 'SFX';
+  const durationSeconds = proposal?.suggestedDurationSeconds ?? (ambient ? 12 : 8);
+  const requiresTranslation = !proposal &&
+    /[áéíóúñ¿¡]|\b(?:el|la|los|las|un|una|unos|unas|de|del|que|se|su|sobre|puerta|pasos|lluvia|viento|biblioteca|misterio|misteriosa|silencio|sombra|pasillo|bosque|habitación|habitacion|jardín|jardin)\b/i.test(direction);
+  const cueReference = `Cue ${String(cue.number ?? cue.id).trim()}` +
+    (sourceLineId ? `, script reference ${sourceLineId}` : '');
+  const basePrompt = proposal
+    ? `${cueReference}. ${proposal.prompt}`
+    : `${cueReference}. Create a clean, isolated theatrical ${kind === 'ENVIRONMENT' ? 'ambience' : 'sound effect'} based on this approved cue idea: "${direction}". Do not add dialogue, music, or unrelated sounds.`;
+  const durationPrompt = kind === 'ENVIRONMENT'
+    ? ` Sustain as a consistent atmospheric bed for approximately ${durationSeconds} seconds.`
+    : ` Complete the described event with a natural decay within approximately ${durationSeconds} seconds.`;
+
+  return {
+    prompt: trimPromptToLimit(`${basePrompt}${durationPrompt}`),
+    kind,
+    durationSeconds,
+    sourceLineId,
+    interpretation: proposal ? 'SCRIPT_COMPILER' : 'CUE_BRIEF',
+    requiresTranslation,
+  };
+}
+
 /**
  * Deterministic offline scan of the ORIGINAL script text. Reuses
  * `annotateDramaticStructure` so L# references and role segregation stay the

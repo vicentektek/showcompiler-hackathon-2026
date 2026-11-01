@@ -171,3 +171,4 @@ artifacts/systematic-eval/
 # Live agent provider benchmarking: costs, anonymized diagnostics and local budget only.
 artifacts/agent-eval/
 artifacts/agent-live-eval/
+artifacts/runq-evals/

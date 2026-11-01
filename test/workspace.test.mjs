@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNewShow, replaceShowScript, addAudioReference, addMockProposal, decideProposal, nextAvailableId, updateCueAutomation } from '../src/core/workspace.mjs';
+import { createNewShow, replaceShowScript, addAudioReference, addMockProposal, decideProposal, decideProposalBatch, nextAvailableId, updateCueAutomation } from '../src/core/workspace.mjs';
 import { serializeShowProject, deserializeShowProject } from '../src/core/projectPersistence.mjs';
 
 function prepared() {
@@ -49,6 +49,29 @@ test('rejection creates no cue', () => {
   const result = decideProposal(start, start.proposals[0].id, 'REJECT');
   assert.equal(result.proposals[0].status, 'REJECTED');
   assert.deepEqual(result.cues, []);
+});
+
+test('batch proposal review applies one explicit decision to exactly the selected pending items', () => {
+  let start = prepared();
+  start = addMockProposal(start, {
+    lineId: 'L1', assetId: start.assets[0].id, label: 'Escena de apertura',
+  });
+  const result = decideProposalBatch(start, ['proposal-2'], 'APPROVE');
+  assert.deepEqual(start.proposals.map(proposal => proposal.status), ['PENDING', 'PENDING']);
+  assert.deepEqual(result.proposals.map(proposal => proposal.status), ['PENDING', 'APPROVED']);
+  assert.deepEqual(result.cues.map(cue => cue.sourceLineIds), [['L1']]);
+});
+
+test('batch proposal review is atomic when an ID is stale, repeated, or invalid', () => {
+  const start = prepared();
+  assert.throws(() => decideProposalBatch(start, ['proposal-1', 'missing'], 'APPROVE'),
+    /still be pending/);
+  assert.throws(() => decideProposalBatch(start, ['proposal-1', 'proposal-1'], 'APPROVE'),
+    /unique proposal IDs/);
+  assert.throws(() => decideProposalBatch(start, ['proposal-1'], 'EXECUTE'),
+    /Unsupported proposal decision/);
+  assert.deepEqual(start.proposals.map(proposal => proposal.status), ['PENDING']);
+  assert.deepEqual(start.cues, []);
 });
 
 test('repeated review and invalid decisions do not change state', () => {

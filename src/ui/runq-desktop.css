@@ -246,6 +246,28 @@ body.rq-resizing-row,body.rq-resizing-row *{cursor:row-resize!important;user-sel
 :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace{
  container-type:inline-size;container-name:runq-stage;
 }
+@media(max-height:720px){
+ :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace>.rq5-transport-dock{
+  padding:5px!important;
+ }
+ :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace .operator-queue{
+  grid-template-columns:minmax(0,1fr) minmax(280px,42%)!important;
+  min-height:84px!important;
+ }
+ :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] #runqActiveCues{
+  height:60px!important;min-height:60px!important;max-height:60px!important;
+ }
+ :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] #runqActiveCuesList{
+  max-height:32px!important;overflow:auto!important;
+ }
+ :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] #rq14Events{
+  flex:0 0 52px!important;max-height:52px!important;
+ }
+ :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-desk{
+  flex:1 1 150px!important;min-height:150px!important;
+  overflow:auto!important;overscroll-behavior:contain;
+ }
+}
 @container runq-stage (max-width:640px){
  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=operation] .rq5-show-workspace .operator-queue{
   grid-template-columns:minmax(0,1fr)!important;

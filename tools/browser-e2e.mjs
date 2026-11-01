@@ -78,8 +78,8 @@ try {
   assert.equal(await page.locator('html.rq14').count(),1,'V14 workstations must mount');
   assert.equal(await page.locator('.shell').getAttribute('data-rq14-surface'),'studio');
   assert.equal(await page.locator('#rq8Identity').count(),1);
-  const studioColor=await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor);
-  assert.equal(studioColor,'rgb(22, 24, 24)','The interface uses the RUNQ charcoal Studio canvas');
+  const homeColor=await page.locator('.home-panel').evaluate(el=>getComputedStyle(el).backgroundColor);
+  assert.equal(homeColor,'rgb(8, 14, 11)','The project launcher uses a dark stage backdrop surface');
   assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
     'V8 has one tool navigation rather than duplicate horizontal tool tabs');
   // Voice Follow: real DOM integration against a checked-in offline transcript.
@@ -120,6 +120,7 @@ try {
   const contentBounds = await page.locator('main').boundingBox();
   assert.ok(railBounds && contentBounds && contentBounds.y >= railBounds.y + railBounds.height - 2,
     'Desktop page bar sits above the workspace like a software tab strip');
+  await page.locator('#rq16AppMenu>summary').click();
   await page.locator('.runq-menu').nth(2).locator('summary').click();
   await page.locator('.runq-menu').nth(2).locator('button').filter({hasText:'Script'}).click();
   assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-selected'),'true');
@@ -486,7 +487,9 @@ try {
   assert.match(await page.locator('#rq14EventsList').innerText(),/GO confirmed|GO confirmado/);
   assert.equal(await page.locator('#rq14StageCurrent .rq14-now-title').count(),1);
   const downloadWait = page.waitForEvent('download');
-  await page.locator('#saveBundleBtn').click();
+  await page.locator('#rq16AppMenu>summary').click();
+  await page.locator('#rq16AppMenu .runq-menu>summary').first().click();
+  await page.getByRole('button',{name:'Export complete show',exact:true}).click();
   const download = await downloadWait;
   assert.ok(download.suggestedFilename().endsWith('.showcompiler.zip'));
   const zip = await readFile(await download.path());
@@ -611,9 +614,13 @@ try {
     const end = start + selected.length;
     const ids = selected.flatMap(window => window.coreLines.map(line => line.id));
     await new Promise(resolve => setTimeout(resolve, 1200));
+    const proposals=ids.slice(0,5).map((lineId,index)=>({
+      lineId,assetId:null,label:'Builder proposal '+(index+1),
+      soundPrompt:'Synthetic review-only sound idea '+(index+1),
+    }));
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
       provider: 'META_MODEL_API', model: 'muse-spark-1.3',
-      proposals: [], proposalDetails: [], observations: [], duplicatesRemoved: 0,
+      proposals, observations: [], duplicatesRemoved: 0,
       coverage: {
         totalLines: plan.coverage.totalLines,
         sceneCount: plan.coverage.sceneCount,
@@ -631,6 +638,8 @@ try {
   assert.equal(await page.locator('.rq5-ai-engine #modelProviderSelect').count(),1);
   assert.equal(await page.locator('.rq5-ai-review #proposalList').count(),1);
   await capture('10-ai-three-pane.png');
+  await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
+  await page.locator('#rqShowBuilderOpenAiTools').click();
   await page.locator('#modelProviderSelect').selectOption('baseten');
   await page.locator('#modelProviderSelect').selectOption('meta');
   await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
@@ -650,11 +659,29 @@ try {
   assert.equal(sentDocumentKind, 'running_order');
   assert.equal(await page.locator('#analyzeMetaBtn').isEnabled(), true);
   assert.match(await page.locator('#analyzeMetaBtn').innerText(), /another AI pass/);
+  const readBuilderState=()=>page.evaluate(()=>{
+    let state;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{state=value;}}}));return state;
+  });
+  const cueCountBeforeReview=(await readBuilderState()).project.cues.length;
+  const pendingBuilder=page.locator('#proposalList .item').filter({hasText:'Builder proposal'});
+  assert.equal(await pendingBuilder.count(),5,
+    'Builder exposes five provider suggestions for explicit human review');
+  const beforeReviewState=await readBuilderState();
+  const approvedBefore=beforeReviewState.project.proposals.filter(proposal=>proposal.status==='APPROVED').length;
+  const rejectedBefore=beforeReviewState.project.proposals.filter(proposal=>proposal.status==='REJECTED').length;
+  for(let i=0;i<3;i++)await page.locator('#proposalList .item').filter({hasText:'Builder proposal'}).locator('.item-actions .btn.primary').first().click();
+  for(let i=0;i<2;i++)await page.locator('#proposalList .item').filter({hasText:'Builder proposal'})
+    .getByRole('button',{name:'Reject',exact:true}).first().click();
+  const reviewed=await readBuilderState();
+  assert.equal(reviewed.project.cues.length,cueCountBeforeReview+3,'Only three explicitly approved proposals become draft cues');
+  assert.equal(reviewed.project.proposals.filter(proposal=>proposal.status==='APPROVED').length,approvedBefore+3);
+  assert.equal(reviewed.project.proposals.filter(proposal=>proposal.status==='REJECTED').length,rejectedBefore+2);
   assert.equal(await page.evaluate(() => window.__testAudioStarts), beforeCorrupt.starts + 1,
     'Meta simulation and AI activity must never start another audio source');
   await page.locator('#uiLocaleSelect').selectOption('es');
   assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
   assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
+  await page.locator('#rq16AppMenu>summary').click();
   assert.equal(await page.locator('.runq-menu').first().locator('summary').innerText(),'Archivo');
   await page.locator('[data-workspace-nav="audio"]').click();
   assert.equal(await page.locator('#runqAudioOverview .runq-audio-introduction strong').innerText(),'Espacio de recursos');

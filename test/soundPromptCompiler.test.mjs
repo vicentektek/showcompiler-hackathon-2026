@@ -7,6 +7,7 @@ import {
   recompileProposal,
   applyProposalEdits,
   buildPromptFromFields,
+  prepareCueSoundDraft,
   SoundPromptCompilerError,
   COMPILER_CONTRACT_VERSION,
   COMPILE_MODES,
@@ -85,6 +86,72 @@ test('explicit single SFX: strong portazo', () => {
 test('explicit single SFX: door closes with golpe', () => {
   const [proposal] = compile('(La puerta se cierra de golpe)').map(contractFields);
   assert.equal(proposal.action, 'closes once, briefly and evenly');
+});
+
+test('cue sound drafts include the cue reference and infer English prompt duration from the original direction', () => {
+  const draft = prepareCueSoundDraft({
+    cue: {
+      id: 'cue-7', number: '007', label: 'Puerta',
+      sourceLineIds: ['L1'],
+      actions: [{ type: 'PLAN_AUDIO', prompt: 'La puerta se abre lentamente y chirría.' }],
+    },
+    scriptText: '(La puerta se abre lentamente y chirría)',
+  });
+  assert.equal(draft.kind, 'SFX');
+  assert.equal(draft.durationSeconds, 5);
+  assert.equal(draft.sourceLineId, 'L1');
+  assert.equal(draft.interpretation, 'SCRIPT_COMPILER');
+  assert.match(draft.prompt, /^Cue 007, script reference L1\./);
+  assert.match(draft.prompt, /wooden door/i);
+  assert.match(draft.prompt, /approximately 5 seconds/i);
+  assert.doesNotMatch(draft.prompt, /puerta|chirría/i);
+  assert.equal(draft.requiresTranslation,false);
+});
+
+test('cue sound drafts choose ambience type and duration from a sustained script direction', () => {
+  const draft = prepareCueSoundDraft({
+    cue: {
+      id: 'cue-8', number: '008', label: 'Lluvia',
+      sourceLineIds: ['L1'],
+      actions: [{ type: 'PLAN_AUDIO', prompt: 'Lluvia constante y viento en el patio.' }],
+    },
+    scriptText: '(Lluvia constante y viento en el patio)',
+  });
+  assert.equal(draft.kind, 'ENVIRONMENT');
+  assert.equal(draft.durationSeconds, 12);
+  assert.match(draft.prompt, /^Cue 008, script reference L1\./);
+  assert.match(draft.prompt, /atmospheric bed for approximately 12 seconds/i);
+  assert.doesNotMatch(draft.prompt, /Lluvia|viento/i);
+  assert.equal(draft.requiresTranslation,false);
+});
+
+test('cue sound drafts ignore the generic pending-audio placeholder and use its real source line', () => {
+  const draft = prepareCueSoundDraft({
+    cue: {
+      id: 'cue-9', number: '009', label: 'Theatre atmosphere',
+      sourceLineIds: ['L2'],
+      actions: [{ type: 'PLAN_AUDIO', prompt: 'Operator sound selection pending' }],
+    },
+    sourceLines: [{ id: 'L2', text: '(The theatre is dark. A low atmospheric hum rises.)' }],
+  });
+  assert.equal(draft.sourceLineId, 'L2');
+  assert.equal(draft.kind, 'ENVIRONMENT');
+  assert.equal(draft.durationSeconds, 12);
+  assert.match(draft.prompt, /low atmospheric hum rises/i);
+  assert.doesNotMatch(draft.prompt, /selection pending/i);
+  assert.equal(draft.requiresTranslation,false);
+});
+
+test('cue sound drafts do not claim untranslated Spanish cue ideas are English', () => {
+  const draft = prepareCueSoundDraft({
+    cue: {
+      id: 'cue-10', number: '010', label: 'Biblioteca misteriosa',
+      sourceLineIds: [],
+      actions: [{ type: 'PLAN_AUDIO', prompt: 'Biblioteca misteriosa y silenciosa' }],
+    },
+  });
+  assert.equal(draft.requiresTranslation,true);
+  assert.match(draft.prompt,/Biblioteca misteriosa y silenciosa/);
 });
 
 test('creak door with slow open moves to low intensity', () => {

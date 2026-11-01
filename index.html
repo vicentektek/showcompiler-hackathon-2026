@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="/src/ui/runq-sound-library-v12.css">
   <link rel="stylesheet" href="/src/ui/runq-visual-freeze-v15.css">
   <link rel="stylesheet" href="/src/ui/runq-interface.css">
+  <link rel="stylesheet" href="/src/ui/runq-show-builder.css">
   <link rel="stylesheet" href="/src/ui/runq-desktop.css">
   <link rel="stylesheet" href="/src/ui/runq-soundlab.css">
   <link rel="stylesheet" href="/src/ui/runq-brand.css">
@@ -50,6 +51,8 @@
   <script src="/src/ui/runq-sound-library-v12.mjs" type="module"></script>
   <script src="/src/ui/runq-workstation-v14.mjs" type="module"></script>
   <script src="/src/ui/runq-interface.mjs" type="module"></script>
+  <script src="/src/ui/runq-context-inspector.mjs" type="module"></script>
+  <script src="/src/ui/runq-studio-shortcuts.mjs" type="module"></script>
   <script src="/src/ui/runq-panels.mjs" type="module"></script>
   <script src="/src/ui/runq-soundlab-ui.mjs" type="module"></script>
   <script src="/src/ui/runq-a11y.mjs" type="module"></script>
@@ -353,6 +356,7 @@
               <section class="sfx-card" aria-labelledby="sfxGenerateTitle">
                 <div class="sfx-section-header"><span class="sfx-index">01</span><div><h3 id="sfxGenerateTitle" data-sfx-en="Create a sound" data-sfx-es="Crear sonido">Create a sound</h3><p data-sfx-en="Start with a description, or use a script direction" data-sfx-es="Empieza con una descripción o utiliza una acotación del guion">Start with a description, or use a script direction</p></div></div>
                 <form id="generateForm" class="sfx-form">
+                  <p id="sfxCueContext" class="sfx-cue-context" role="status" aria-live="polite" hidden></p>
                   <label class="sfx-prompt-main"><span data-sfx-en="Describe your sound" data-sfx-es="Describe el sonido que quieres generar">Describe your sound</span><textarea id="soundPrompt" rows="5" maxlength="1000" required placeholder="An old wooden door creaks open and closes. No music."></textarea></label>
 <div class="sfx-row-fields"><label><span data-sfx-en="Sound type" data-sfx-es="Tipo">Sound type</span><select id="soundKind"><option value="SFX" data-sfx-en="Sound effect" data-sfx-es="Efecto puntual">Sound effect</option><option value="ENVIRONMENT" data-sfx-en="Ambience" data-sfx-es="Ambiente continuo">Ambience</option></select></label><label><span data-sfx-en="Duration (seconds)" data-sfx-es="Duración (segundos)">Duration (seconds)</span><input id="duration" type="number" min="1" max="12" value="8" step="1" required></label></div>
 <details class="sfx-advanced" id="sfxAdvanced"><summary data-sfx-en="Examples and sound options" data-sfx-es="Ejemplos y opciones avanzadas">Examples and sound options</summary><div class="sfx-advanced-content">
@@ -366,7 +370,7 @@
                     </div>
                   </details>
                   <label class="sfx-checkline"><input id="confirmRequest" type="checkbox"><span id="confirmRequestLabel">I authorize this sound generation.</span></label>
-                  <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled data-sfx-en="Generate sound" data-sfx-es="Generar sonido">Generate sound</button><span id="generationHint" class="sfx-muted">Checking generator…</span></div>
+                  <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled data-sfx-en="Generate sound" data-sfx-es="Generar sonido">Generate sound</button><button class="btn subtle" id="sfxShortTakeBtn" type="button" data-sfx-en="Use 3-second take" data-sfx-es="Pedir toma de 3 segundos">Use 3-second take</button><span id="generationHint" class="sfx-muted">Checking generator…</span></div>
                 </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret"><summary><span data-sfx-es="Interpretar una acotación de guion" data-sfx-en="Create from a script direction">Create from a script direction</span> <span class="sfx-muted" data-sfx-es="· opcional" data-sfx-en="· optional">· optional</span></summary><div class="sfx-script-body">
                   <p id="scriptSfxHeading" class="sfx-muted" data-sfx-es="Interpreta el guion y ajusta la propuesta; no genera sonido automáticamente." data-sfx-en="Interpret the direction and refine the suggestion before generating audio.">Interpret the direction and refine the suggestion before generating audio.</p>
                   <label><span data-sfx-es="Acotación del guion" data-sfx-en="Script direction">Script direction</span><textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
@@ -396,6 +400,20 @@
               <section class="sfx-card" aria-labelledby="jobsHeading">
                 <div class="sfx-section-header"><span class="sfx-index">02</span><div><h3 id="jobsHeading" data-sfx-en="Your sound" data-sfx-es="Tu sonido">Your sound</h3><p data-sfx-en="Preview the result before saving it" data-sfx-es="Escucha el resultado antes de guardarlo">Preview the result before saving it</p></div></div>
                 <div class="sfx-job-info"><div class="sfx-pill" id="jobState">No sound generated yet</div><p id="jobDetails" class="sfx-muted">Describe a sound to get started.</p></div>
+                <div class="sfx-buttons">
+                  <button class="btn" id="sfxWatchBtn" type="button" disabled data-sfx-en="Track readiness for 2 minutes" data-sfx-es="Seguir estado durante 2 minutos">Track readiness for 2 minutes</button>
+                  <button class="btn subtle" id="sfxStopWatchBtn" type="button" disabled data-sfx-en="Stop tracking" data-sfx-es="Detener seguimiento">Stop tracking</button>
+                </div>
+                <p id="sfxWatchStatus" class="sfx-muted sfx-small" role="status" data-sfx-en="Optional: checks every 5 seconds, up to 24 times. No new generation, acceptance or playback." data-sfx-es="Opcional: comprueba cada 5 segundos, hasta 24 veces. No genera otra toma, acepta ni reproduce.">Optional: checks every 5 seconds, up to 24 times. No new generation, acceptance or playback.</p>
+                <div class="sfx-result-player">
+                  <div class="sfx-buttons">
+                    <button class="btn primary" id="sfxListenBtn" type="button" disabled data-sfx-en="▶ Listen to sound" data-sfx-es="▶ Escuchar sonido">▶ Listen to sound</button>
+                    <button class="btn" id="sfxStopPreviewBtn" type="button" disabled data-sfx-en="■ Stop preview" data-sfx-es="■ Detener escucha">■ Stop preview</button>
+                  </div>
+                  <label class="sfx-level"><span data-sfx-en="Preview volume" data-sfx-es="Volumen de escucha">Preview volume</span><input id="sfxPreviewLevel" type="range" min="0" max="50" value="15" aria-label="Preview volume"></label>
+                  <p id="sfxListenStatus" class="sfx-muted sfx-small" role="status"></p>
+                  <p class="sfx-muted sfx-small" data-sfx-en="Uses the same output as GO. Start at low volume. Never plays automatically." data-sfx-es="Usa la misma salida que GO. Empieza con volumen bajo. Nunca suena automáticamente.">Uses the same output as GO. Start at low volume. Never plays automatically.</p>
+                </div>
                 <div class="sfx-inline sfx-history">
                   <label><span data-sfx-en="Saved takes" data-sfx-es="Tomas guardadas">Saved takes</span><select id="sfxHistorySelect" disabled aria-describedby="sfxHistoryStatus"><option value="">Choose a saved take</option></select></label>
                   <button class="btn subtle" id="sfxHistoryRefreshBtn" type="button" data-sfx-en="Show saved takes" data-sfx-es="Ver tomas guardadas">Show saved takes</button>
@@ -403,7 +421,7 @@
                 <p id="sfxHistoryStatus" class="sfx-muted sfx-small" role="status" data-sfx-en="Opens local history only. No generation, playback or cue change." data-sfx-es="Solo abre el historial local. No genera, reproduce ni cambia cues.">Opens local history only. No generation, playback or cue change.</p>
                 <p id="sfxHistoryNotice" class="sfx-muted sfx-small" hidden data-sfx-en="This earlier take keeps its original provenance. New cues do not inherit its old script reference; review the source in this show." data-sfx-es="La toma anterior conserva su procedencia. El nuevo cue no hereda la referencia antigua; revisa su fuente en este espectáculo.">This earlier take keeps its original provenance. New cues do not inherit its old script reference; review the source in this show.</p>
                 <div class="sfx-buttons">
-                  <button class="btn primary-secondary" id="sfxCheckResultBtn" type="button" disabled data-sfx-en="Check result and load audio" data-sfx-es="Comprobar resultado y cargar audio">Check result and load audio</button>
+                  <button class="btn primary-secondary" id="sfxCheckResultBtn" type="button" disabled data-sfx-en="Check if ready" data-sfx-es="Comprobar si está listo">Check if ready</button>
                   <button class="btn" id="acceptBtn" type="button" data-sfx-en="Accept sound" data-sfx-es="Aceptar toma">Accept sound</button>
                   <button class="btn danger-outline" id="rejectBtn" type="button" data-sfx-en="Discard" data-sfx-es="Descartar">Discard</button>
                 </div>
@@ -437,7 +455,7 @@
               </div>
               <div class="sfx-transport"><button class="btn primary" id="playBtn" type="button" disabled>▶ Preview selection</button><button class="btn" id="stopBtn" type="button" disabled>■ Stop</button><label class="sfx-level">Monitor level <input id="monitorLevel" type="range" min="0" max="50" value="15" aria-label="Audition volume"></label></div>
               <div class="sfx-notice sfx-muted">Preview uses the computer's default output, not an isolated PFL bus. Start at low volume. GO, NEXT and the running show are untouched.</div>
-              <div class="sfx-export"><div><h3>Commit the accepted source</h3><p>The original verified WAV is preserved. IN/OUT remain review metadata and can become non-destructive cue settings after manual assignment.</p></div><div class="sfx-buttons"><button class="btn" id="exportBtn" type="button" disabled>Download original WAV</button><button class="btn primary-secondary" id="importLibraryBtn" type="button" disabled>Import accepted WAV to library</button><button class="btn accent" id="importCueBtn" type="button" disabled>Import + create cue</button></div></div>
+              <div class="sfx-export"><div><h3>Commit the accepted source</h3><p>The original verified WAV is preserved. IN/OUT remain review metadata and can become non-destructive cue settings after manual assignment.</p></div><div class="sfx-buttons"><button class="btn" id="exportBtn" type="button" disabled>Download original WAV</button><button class="btn primary-secondary" id="importLibraryBtn" type="button" disabled>Import accepted WAV to library</button><button class="btn accent" id="importCueBtn" type="button" disabled>Import + create cue</button><button class="btn accent" id="importAssignCueBtn" type="button" disabled>Save + assign to cue</button></div></div>
               <section class="rq10-local-actions" id="rq10LibraryEditActions" aria-labelledby="rq10LibraryActionsTitle">
                 <div><strong id="rq10LibraryActionsTitle" data-sfx-es="Aplicar edición a un cue" data-sfx-en="Apply audio edits to a cue">Apply audio edits to a cue</strong>
                   <p data-sfx-es="Solo para originales ya importados. Los ajustes IN/OUT y fades se guardan en el cue; el archivo original nunca se altera." data-sfx-en="Trim and fade settings are saved to the cue. Your original audio stays unchanged.">Trim and fade settings are saved to the cue. Your original audio stays unchanged.</p>
@@ -547,6 +565,7 @@
               <p class="caption" data-i18n="proposals.analysisActivityHelp">Waiting for the provider response and validation. Progress is indeterminate; no cue will play automatically.</p>
             </div>
             <p id="metaStatus" class="caption" role="status" aria-live="polite" data-i18n="proposals.metaChecking">Checking local Meta AI connection...</p>
+            <button id="checkMetaStatusBtn" type="button" class="btn secondary" disabled data-i18n="status.metaCheckButton">Check local setup</button>
             <p id="metaCoverage" class="caption" role="status" aria-live="polite" data-i18n="proposals.coverageNone">No scene-analysis coverage yet.</p>
             <div id="metaIndependentReview" hidden aria-live="polite" aria-atomic="true">
               <p id="metaIndependentReviewSummary" class="caption"></p>
@@ -611,6 +630,11 @@
             <input id="cueSearchInput" type="search" autocomplete="off" data-i18n-placeholder="workspace.searchCue" placeholder="Search cues by number, title, source or sound">
             <span id="cueSearchStatus" class="caption" role="status" aria-live="polite"></span>
           </div>
+          <div id="cueAudioDropHint" class="cue-audio-drop-hint">
+            <strong data-i18n="cueAudioDrop.title">Drop your audio files here</strong>
+            <span data-i18n="cueAudioDrop.hint">From Windows Explorer: one file = one editable cue. Drop 1 or 20 to build your show, in drop order. Playback starts only with GO.</span>
+          </div>
+          <p id="cueAudioDropStatus" class="caption" role="status" aria-live="polite" hidden></p>
           <div class="cue-workspace-body">
             <div id="cueList" class="item-list" aria-label="Show cues"></div>
             <aside id="cueInspector" class="cue-inspector" aria-label="Selected cue details">

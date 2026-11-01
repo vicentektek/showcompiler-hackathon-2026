@@ -72,11 +72,31 @@ try{
   const viewport={width:i===0?1366:768,height:900};
   const context=await browser.newContext({acceptDownloads:true,viewport});
   const page=await context.newPage(),errors=[];
+  let downloads=0,holdAudio=false,releaseAudio=null;
+  const watchJob={...job,requestId:'watch-fixture',status:'RUNNING',wav:null};
+  let statusChecks=0,watchFailure=true,completeAt=3;
   page.on('pageerror',()=>errors.push('PAGE_ERROR'));
   page.on('dialog',dialog=>void dialog.accept());
   await page.route('**/*',async route=>{
    const request=route.request(),url=new URL(request.url());
    if(url.origin!==origin){providerCalls++;return route.abort();}
+   if(i===0&&url.pathname==='/api/sfx/jobs'&&request.method()==='GET'){
+    const response=await route.fetch(),data=await response.json();
+    return route.fulfill({json:{...data,jobs:[...data.jobs,watchJob]}});
+   }
+   if(url.pathname==='/api/sfx/jobs/watch-fixture'){
+    return route.fulfill({json:watchJob});
+   }
+   if(url.pathname==='/api/sfx/jobs/watch-fixture/refresh'){
+    statusChecks++;
+    if(watchFailure)return route.fulfill({status:503,json:{code:'SFX_SERVICE'}});
+    return route.fulfill({json:statusChecks>=completeAt?
+      {...watchJob,status:'READY_FOR_REVIEW',wav:job.wav}:watchJob});
+   }
+   if(url.pathname.endsWith('/audio')){
+    downloads++;
+    if(holdAudio)await new Promise(resolve=>{releaseAudio=resolve;});
+   }
    if(url.pathname.startsWith('/api/')&&request.method()!=='GET'&&
      !/^\/api\/sfx\/jobs\/[^/]+\/review$/.test(url.pathname)){
     providerCalls++;return route.abort();
@@ -95,6 +115,13 @@ try{
   });
   await page.locator('[data-workspace-nav="audio"]').click();
   await page.locator('[data-rq10-sound-tab="generate"]').click();
+  await page.locator('#soundPrompt').fill('Original short sound fixture');
+  await page.locator('#confirmRequest').check();
+  await page.waitForFunction(()=>!document.querySelector('#generateBtn')?.disabled);
+  await page.locator('#sfxShortTakeBtn').click();
+  assert.equal(await page.locator('#duration').inputValue(),'3');
+  assert.equal(await page.locator('#confirmRequest').isChecked(),false);
+  assert.equal(providerCalls,0,'Short duration shortcut never submits a generation');
   if(captures&&i===0){
    const before=path.join(captures,'sfx-history-before.png');
    try{await readFile(before);}catch(error){
@@ -110,6 +137,35 @@ try{
   const historyBounds=await page.locator('#sfxHistorySelect').boundingBox();
   assert.ok(historyBounds.width>=100&&historyBounds.x>=0&&
     historyBounds.x+historyBounds.width<=viewport.width+1,'Saved history must fit actual viewport');
+  if(i===0){
+   await page.locator('#sfxHistorySelect').selectOption(watchJob.requestId);
+   await page.waitForFunction(()=>!document.querySelector('#sfxWatchBtn')?.disabled);
+   assert.equal(statusChecks,0,'Opening active history never starts status tracking');
+   await page.locator('#sfxWatchBtn').click();
+   await page.waitForFunction(()=>document.querySelector('#sfxStopWatchBtn')?.disabled);
+   assert.equal(statusChecks,1,'Tracking error stops without retry');
+   watchFailure=false;
+   await page.locator('#sfxWatchBtn').click();
+   await page.waitForFunction(()=>document.querySelector('#jobState')?.textContent==='Ready to listen');
+   assert.equal(statusChecks,3,'Explicit tracking discovers completion on its next 5-second check');
+   assert.equal(await page.locator('#sfxStopWatchBtn').isDisabled(),true);
+   assert.equal(downloads,0,'Status completion never downloads or plays audio automatically');
+   assert.equal(await page.locator('#acceptBtn').isDisabled(),true);
+   assert.equal((await read()).cueCount,baseline.cueCount);
+   assert.equal((await read()).active.length,0);
+   completeAt=Infinity;
+   await page.locator('#sfxHistorySelect').selectOption(job.requestId);
+   await page.locator('#sfxHistorySelect').selectOption(watchJob.requestId);
+   await page.waitForFunction(()=>!document.querySelector('#sfxWatchBtn')?.disabled);
+   const checked=page.waitForResponse('**/watch-fixture/refresh');
+   await page.locator('#sfxWatchBtn').click();
+   await checked;
+   await page.locator('#stopAllBtn').evaluate(button=>button.click());
+   assert.equal(await page.locator('#sfxStopWatchBtn').isDisabled(),true);
+   const stoppedChecks=statusChecks;
+   await page.waitForTimeout(5500);
+   assert.equal(statusChecks,stoppedChecks,'STOP ALL invalidates scheduled status checks');
+  }
   await page.locator('#sfxHistorySelect').selectOption(unknownId);
   await page.waitForFunction(id=>document.querySelector('#requestId')?.value===id,unknownId);
   assert.equal(await page.locator('#sfxCheckResultBtn').isDisabled(),true);
@@ -121,7 +177,35 @@ try{
   assert.equal((await read()).preparedCueId,baseline.preparedCueId);
   assert.equal((await read()).cueCount,baseline.cueCount);
   assert.equal((await read()).active.length,0,'History cannot play or create cues');
-  await page.locator('#sfxCheckResultBtn').click();
+  const listen=page.locator('#sfxListenBtn');
+  assert.equal(await listen.isEnabled(),true,'Ready take must be directly listenable');
+  holdAudio=true;
+  const pendingAudio=page.waitForRequest('**/audio');
+  await listen.click();await pendingAudio;
+  await page.locator('#sfxStopPreviewBtn').click();
+  holdAudio=false;releaseAudio();
+  await page.waitForFunction(()=>!document.querySelector('#sfxListenBtn')?.disabled);
+  assert.equal(await page.locator('#acceptBtn').isDisabled(),true,
+   'Stopping a pending download cannot count as listening or restart later');
+  assert.equal(await page.locator('#stopBtn').isDisabled(),true);
+  assert.equal(await page.locator('#playBtn').isDisabled(),true);
+  await listen.click();
+  await page.waitForFunction(()=>!document.querySelector('#acceptBtn')?.disabled);
+  assert.equal(downloads,2,'Direct preview downloads only the cancelled attempt and the chosen take');
+  await page.locator('#sfxPreviewLevel').press('ArrowRight');
+  assert.equal(await page.locator('#monitorLevel').inputValue(),'16');
+  assert.equal(await page.locator('#sfxStopPreviewBtn').isEnabled(),true,
+   'Volume adjustment must not interrupt audition');
+  await page.locator('#sfxStopPreviewBtn').click();
+  await listen.click();
+  await page.locator('#stopAllBtn').click();
+  assert.equal(await page.locator('#sfxStopPreviewBtn').isDisabled(),true);
+  assert.equal(downloads,2,'Repeated preview reuses decoded audio');
+  assert.equal((await read()).cueCount,baseline.cueCount);
+  assert.equal((await read()).active.length,0);
+  // Reloading explicitly clears listening approval before editing this take.
+  await page.locator('.sfx-technical-jobs').evaluate(el=>{el.open=true;});
+  await page.locator('#loadGeneratedBtn').click();
   await page.waitForFunction(()=>!document.querySelector('#playBtn')?.disabled);
   assert.equal(await page.locator('#acceptBtn').isDisabled(),true,'Decode is not audition/acceptance');
   await page.locator('#inPoint').fill('0.05');await page.locator('#inPoint').dispatchEvent('change');
@@ -155,6 +239,7 @@ try{
   await page.locator('#stopAllBtn').click();
   assert.equal((await read()).active.length,0);
   const fileMenu=page.locator('.runq-menu').first();
+  await page.locator('#rq16AppMenu>summary').click();
   await fileMenu.locator('summary').click();
   const [download]=await Promise.all([
    page.waitForEvent('download'),

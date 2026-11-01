@@ -121,10 +121,110 @@ export function buildCodexQaSummary(report) {
     '5. Never spend provider credits, inspect credentials, publish private scripts or merge automatically.', '');
   return {meta,markdown:lines.join('\n')};
 }
+function summarizeHumanArtisticFeedback(feedback){
+  if(!feedback||feedback.schema!=='runq-human-artistic-feedback-v1'||
+     typeof feedback.sourceBatteryId!=='string'||
+     typeof feedback.reviewedAt!=='string'||!Number.isFinite(Date.parse(feedback.reviewedAt))||
+     typeof feedback.provenance!=='string'||typeof feedback.sourceCapture!=='string'||
+     typeof feedback.sourceReport!=='string'||!Array.isArray(feedback.feedback)||
+     feedback.feedback.length<1||feedback.feedback.length>100||
+     !Array.isArray(feedback.findings)||!feedback.evidenceReconciliation||
+     !feedback.promptComparison)throw new TypeError('Invalid human artistic feedback');
+  const allowedDecisions=new Set(['accept','modify','reject']);
+  const seen=new Set();
+  for(const entry of feedback.feedback){
+    if(!entry||typeof entry.equivalentToHistoricalCase!=='string'||
+       !/^paid-\d{4}$/.test(entry.equivalentToHistoricalCase)||
+       typeof entry.caseFingerprint!=='string'||!/^[a-f0-9]{64}$/.test(entry.caseFingerprint)||
+       typeof entry.requestId!=='string'||!entry.requestId||
+       !['en','es'].includes(entry.language)||
+       !Number.isInteger(entry.rating)||entry.rating<1||entry.rating>5||
+       !allowedDecisions.has(entry.decision)||typeof entry.comments!=='string'||
+       seen.has(entry.equivalentToHistoricalCase))throw new TypeError('Invalid human artistic rating');
+    seen.add(entry.equivalentToHistoricalCase);
+  }
+  const counts={
+    reviewCount:feedback.feedback.length,
+    meanRating:Number((feedback.feedback.reduce((sum,item)=>sum+item.rating,0)/
+      feedback.feedback.length).toFixed(2)),
+    accepted:feedback.feedback.filter(item=>item.decision==='accept').length,
+    modify:feedback.feedback.filter(item=>item.decision==='modify').length,
+    rejected:feedback.feedback.filter(item=>item.decision==='reject').length,
+  };
+  for(const [key,value] of Object.entries(counts)){
+    if(feedback.aggregate?.[key]!==value)throw new TypeError('Human artistic aggregate mismatch');
+  }
+  if(typeof feedback.evidenceReconciliation.status!=='string'||
+     !/^[A-Z0-9_]+$/.test(feedback.evidenceReconciliation.status)||
+     typeof feedback.evidenceReconciliation.conclusion!=='string'||
+     typeof feedback.promptComparison.previousVersion!=='string'||
+     typeof feedback.promptComparison.currentVersion!=='string'||
+     typeof feedback.promptComparison.liveOutputComparison!=='string'||
+     feedback.findings.some(item=>!item||typeof item.caseId!=='string'||
+       typeof item.line!=='string'||typeof item.type!=='string'))
+    throw new TypeError('Invalid human artistic evidence');
+  return {
+    kind:'HUMAN_ARTISTIC_REVIEW',
+    sourceBatteryId:feedback.sourceBatteryId,
+    reviewedAt:feedback.reviewedAt,
+    provenance:feedback.provenance,
+    sourceCapture:feedback.sourceCapture,
+    sourceReport:feedback.sourceReport,
+    ...counts,
+    evaluations:feedback.feedback.map(item=>({
+      caseId:item.equivalentToHistoricalCase,
+      caseFingerprint:item.caseFingerprint,
+      requestId:item.requestId,
+      category:item.category,
+      language:item.language,
+      rating:item.rating,
+      decision:item.decision,
+      comments:item.comments,
+    })),
+    findings:feedback.findings.map(item=>({
+      caseId:item.caseId,lineId:item.line,status:feedback.evidenceReconciliation.status,
+    })),
+    promptComparison:feedback.promptComparison,
+  };
+}
+export function buildCodexQaSummaryWithHumanFeedback(report,feedback){
+  const result=buildCodexQaSummary(report);
+  const human=summarizeHumanArtisticFeedback(feedback);
+  result.meta.humanArtisticFeedback=human;
+  const lines=result.markdown.split('\n');
+  const insertAt=lines.indexOf('## Codex work contract');
+  if(insertAt<0)throw new TypeError('Missing Codex QA report section');
+  lines.splice(insertAt,0,
+    '## Human artistic feedback (separate from automatic QA)','',
+    '- Source battery: '+human.sourceBatteryId+'; reviewed '+human.reviewedAt+'.',
+    '- '+human.reviewCount+' human ratings; mean '+human.meanRating+'/5 ('+
+      human.accepted+' accepted, '+human.modify+' modify, '+human.rejected+' rejected).',
+    '- Human ratings are not model-accuracy measurements and are not included in automatic fixture metrics.',
+    '',
+    '| Human case | Language | Rating | Decision | Review request |',
+    '| --- | --- | ---: | --- | --- |',
+    ...human.evaluations.map(item=>'| '+item.caseId+' | '+item.language+' | '+
+      item.rating+'/5 | '+item.decision+' | '+item.requestId+' |'),
+    '',
+    '- Evidence reconciliation: '+human.findings.map(item=>
+      item.caseId+' / '+item.lineId+' — '+item.status).join('; '),
+    '- Prompt comparison: '+human.promptComparison.previousVersion+' → '+
+      human.promptComparison.currentVersion+'; live output comparison: '+
+      human.promptComparison.liveOutputComparison+' (no new paid requests).',
+    '- '+feedback.evidenceReconciliation.conclusion,
+    '- Provenance: '+feedback.provenance,
+    '- Source capture: '+feedback.sourceCapture+'.',
+    '- Source report: '+feedback.sourceReport+'.',
+    '');
+  result.markdown=lines.join('\n');
+  return result;
+}
 export async function generateCodexQaSummary(root=process.cwd()) {
   const raw=await readFile(join(root,'artifacts','cue-qa','report.json'),'utf8');
   if (raw.length>1024*1024) throw new RangeError('QA report too large');
-  const result=buildCodexQaSummary(JSON.parse(raw));
+  const feedbackRaw=await readFile(join(root,'fixtures','qa','artistic-feedback-2026-10-31.json'),'utf8');
+  if(feedbackRaw.length>256*1024)throw new RangeError('Human artistic feedback too large');
+  const result=buildCodexQaSummaryWithHumanFeedback(JSON.parse(raw),JSON.parse(feedbackRaw));
   const dir=join(root,'artifacts','codex-qa');
   await mkdir(dir,{recursive:true});
   await Promise.all([

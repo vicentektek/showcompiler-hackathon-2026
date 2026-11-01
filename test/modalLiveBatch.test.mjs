@@ -8,7 +8,7 @@ import {MODAL_PILOT_CASES,parseModalBatchOptions,runModalBatch,measurePilotWav}
 import {createAppServer} from '../tools/dev-server.mjs';
 import {createSfxJobStore} from '../src/core/sfxJobStore.mjs';
 
-const config={live:true,ackPaid:true,creditVerified:true,count:2,port:5191};
+const config={live:true,ackPaid:true,count:2,port:5191};
 const model='stabilityai/stable-audio-3-small-sfx',revision='a'.repeat(40);
 function wav(seconds=4,value=1000){
  const samples=16000*seconds,bytes=Buffer.alloc(44+samples*2);
@@ -53,20 +53,26 @@ async function fixture(t){
   deps:{directory,fetchImpl:fake,preflight:async()=>{},wait:async()=>{}}};
 }
 
-test('paid batch requires all operator flags before file, network or ledger side effects',async()=>{
+test('paid batch uses owner attestation and requires live acknowledgement before side effects',async()=>{
  let calls=0;
- for(const name of ['live','ackPaid','creditVerified']){
+ for(const name of ['live','ackPaid']){
   await assert.rejects(()=>runModalBatch({...config,[name]:false},{
    fetchImpl:async()=>{calls++;},preflight:async()=>{calls++;},
   }),/OPERATOR_LIVE_ACK/);
  }
  assert.equal(calls,0);
- assert.throws(()=>parseModalBatchOptions(['--live','--ack-paid','--credit-verified','--count','100']));
- assert.throws(()=>parseModalBatchOptions(['--live','--ack-paid','--credit-verified','--providers','baseten']));
+ const authorized=parseModalBatchOptions(['--live','--ack-paid','--count','1']);
+ assert.equal(authorized.creditBasis,'owner_attestation');
+ assert.equal(authorized.providerBalanceVerified,false);
+ assert.equal(authorized.ownerAttestedCredit,true);
+ assert.throws(()=>parseModalBatchOptions(['--live','--ack-paid','--credit-verified']));
+ assert.throws(()=>parseModalBatchOptions(['--live','--ack-paid','--providers','baseten']));
 });
 test('automated pilot validates original WAVs and resumes without submitting a completed case again',async t=>{
  const f=await fixture(t);
  const first=await runModalBatch(config,f.deps);
+ assert.equal(first.creditBasis,'owner_attestation');
+ assert.equal(first.providerBalanceVerified,false);
  assert.equal(first.submittedThisRun,2);assert.equal(first.stopReason,'COMPLETE');
  assert.equal(first.cases.length,2);assert.equal(f.calls.start,2);
  assert.ok(first.cases.every(c=>c.status==='WAV_VERIFIED'&&c.reviewRequired));
@@ -89,6 +95,22 @@ test('uncertain submission never retries even when the local job is absent',asyn
  assert.equal(first.cases[1].status,'NOT_EXECUTED');
  assert.equal(f.calls.start,1);
  const resumed=await runModalBatch(config,{...f.deps,fetchImpl:transport});
+ assert.equal(resumed.stopReason,'UNCERTAIN_SUBMISSION_NO_RESUBMIT');
+ assert.equal(f.calls.start,1);
+});
+test('a real Modal billing response stops the provider and is never retried',async t=>{
+ const f=await fixture(t);
+ const billing=async(url,options)=>{
+  if(new URL(url).pathname==='/api/sfx/jobs'){
+   f.calls.start++;
+   return new Response(JSON.stringify({status:402}),{status:502});
+  }
+  return f.fake(url,options);
+ };
+ const first=await runModalBatch(config,{...f.deps,fetchImpl:billing});
+ assert.equal(first.stopReason,'PROVIDER_BILLING_402');
+ assert.equal(first.cases[0].error,'PROVIDER_BILLING_402');
+ const resumed=await runModalBatch(config,{...f.deps,fetchImpl:billing});
  assert.equal(resumed.stopReason,'UNCERTAIN_SUBMISSION_NO_RESUBMIT');
  assert.equal(f.calls.start,1);
 });

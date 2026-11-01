@@ -53,6 +53,18 @@ test('independent edit oracle rejects correct requested value plus collateral ch
  assert.equal(bad.evidence.undoExact,true,'Undo alone is not edit correctness');
 });
 
+test('workflow oracle accepts an empty cue appended after the last existing cue',()=>{
+ const item=matrix.cases.find(c=>c.id==='quality-meta-workflow-01');
+ const lastCueId=item.input.project.cues.at(-1).id;
+ const result=evaluateMetaCase(item,reply([{
+  op:'CREATE_CUE',afterCueId:lastCueId,label:'Bell placeholder',
+ }]));
+ assert.equal(result.correct,true);
+ assert.equal(result.editCorrect,true);
+ assert.equal(result.evidence.requestedCorrect,true);
+ assert.equal(result.evidence.preserved,true);
+});
+
 test('exact source, FP, omission, duplicate and transport metrics are independently scored',()=>{
  const item=matrix.cases.find(c=>c.family==='transport');
  const projectResponse=events=>({

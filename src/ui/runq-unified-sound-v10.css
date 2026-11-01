@@ -93,11 +93,17 @@
 .rq10 .rq10-integrated-lab .sfx-wavepanel canvas{height:190px!important}
 .rq10 .rq10-integrated-lab .sfx-transport{margin:8px 0!important}
 .rq10 .rq10-integrated-lab .sfx-export{margin-top:8px!important;padding-top:10px!important}
+.rq10 .rq10-integrated-lab .sfx-export[hidden]{display:none!important}
 .rq10 .rq10-integrated-lab .sfx-source-file{margin-bottom:8px!important}
 .rq10 .rq10-integrated-lab .sfx-index{color:#a2ac8b;background:#3a3d31}
 .rq10 .rq10-integrated-lab .sfx-eyebrow{color:#a2ac8b}
 .rq10 .rq10-integrated-lab .sfx-form{gap:8px}
 .rq10 .rq10-integrated-lab .sfx-form textarea{min-height:76px!important}
+.rq10 .rq10-integrated-lab .sfx-cue-context{
+  margin:0;padding:10px 12px;border:1px solid rgba(183,242,216,.34);
+  border-radius:8px;background:rgba(41,72,62,.48);color:#c9f5e1;
+  font-size:12px;line-height:1.5
+}
 .rq10 .rq10-integrated-lab .sfx-notice{background:#2f3228;border-left-color:#788067}
 .rq10 .rq10-integrated-lab .sfx-feedback{color:#b3e3d7}
 .rq10 .rq10-integrated-lab .sfx-wavepanel{background:#0b1723}

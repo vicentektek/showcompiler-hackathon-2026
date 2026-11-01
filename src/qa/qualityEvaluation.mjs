@@ -4,7 +4,7 @@ import {evaluateStageEventCases} from '../core/stageCueQa.mjs';
 import {prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '../core/agentCore.mjs';
 import {classifyAudioQuality,compareAudioAlternatives} from './audioQuality.mjs';
 
-export const QUALITY_EVALUATOR_REVISION='quality-contract-v1';
+export const QUALITY_EVALUATOR_REVISION='quality-contract-v2-append';
 const same=isDeepStrictEqual;
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const proposals={
@@ -99,8 +99,9 @@ export function evaluateMetaCase(item,response){
   const before=JSON.stringify(project),plan=prepareAgentPlan(project,response.operations);
   let requestedCorrect=false,preserved=false;
   if(expected.kind==='CREATE'){
+   const lastExistingCueId=project.cues.at(-1)?.id??null;
    requestedCorrect=plan.operations.length===expected.count&&plan.operations.every(op=>
-    op.op==='CREATE_CUE'&&op.afterCueId===null);
+    op.op==='CREATE_CUE'&&(op.afterCueId===null||op.afterCueId===lastExistingCueId));
    preserved=same(plan.proposedProject.cues.slice(0,project.cues.length),project.cues);
    result.reviewRequired=true;
   }else{

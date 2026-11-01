@@ -62,7 +62,33 @@ test('local status reports configured/unconfigured without exposing secret', asy
   assert.doesNotMatch(raw, /SUPER_SECRET_TEST/);
   const status = JSON.parse(raw);
   assert.equal(status.configured, true);
+  assert.deepEqual(status.configurationIssues, []);
   assert.equal(status.provider, 'META_MODEL_API');
+});
+
+test('local status identifies missing credentials without exposing configuration values', async (t) => {
+  const base = await withServer(t, { getKey: () => undefined });
+  const result = await fetch(base + '/api/meta/status');
+  assert.equal(result.status, 200);
+  const status = await result.json();
+  assert.equal(status.configured, false);
+  assert.deepEqual(status.configurationIssues, ['MISSING_API_KEY']);
+  assert.equal(status.provider, 'META_MODEL_API');
+});
+
+test('local status identifies an invalid model without contacting Meta', async (t) => {
+  let calls = 0;
+  const base = await withServer(t, {
+    getKey: () => 'TEST_KEY',
+    getModel: () => 'invalid-model',
+    modelClient: async () => { calls += 1; },
+  });
+  const result = await fetch(base + '/api/meta/status');
+  assert.equal(result.status, 200);
+  const status = await result.json();
+  assert.equal(status.configured, false);
+  assert.deepEqual(status.configurationIssues, ['INVALID_MODEL']);
+  assert.equal(calls, 0);
 });
 
 test('no MODEL_API_KEY means no external inference is attempted', async (t) => {

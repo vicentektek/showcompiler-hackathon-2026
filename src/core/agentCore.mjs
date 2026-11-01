@@ -37,13 +37,16 @@ export function resolveAgentCue(project,reference){
 }
 export function buildAgentContext(project,{
  cueIds=null,maxCues=80,maxScriptLines=120,focusLineId=null,assetAvailable=()=>null,
- workspace='ai',mode='design-manual',selectedCueId=null,
+ workspace='ai',mode='design-manual',selectedCueId=null,selectedLineIds=null,
 }={}){
  const p=normalizeShowProject(project);
  if(!Number.isSafeInteger(maxCues)||maxCues<1||maxCues>200||
     !Number.isSafeInteger(maxScriptLines)||maxScriptLines<1||maxScriptLines>200||
     !DESIGN_WORKSPACES.has(workspace)||mode!=='design-manual'||
-    (selectedCueId!==null&&typeof selectedCueId!=='string'))
+    (selectedCueId!==null&&typeof selectedCueId!=='string')||
+    (selectedLineIds!==null&&(!Array.isArray(selectedLineIds)||selectedLineIds.length<1||
+      selectedLineIds.length>20||selectedLineIds.some(id=>typeof id!=='string')||
+      new Set(selectedLineIds).size!==selectedLineIds.length)))
   fail('INVALID_CONTEXT_LIMIT');
  const cues=cueIds===null?p.cues:p.cues.filter(c=>cueIds.includes(c.id));
  const selectedCue=selectedCueId===null?null:cues.find(c=>c.id===selectedCueId);
@@ -54,12 +57,17 @@ export function buildAgentContext(project,{
   boundedCues.sort((a,b)=>a.number-b.number);
  }
  const lines=parseScript(p.scriptText);
+ const selectedLines=selectedLineIds===null?null:selectedLineIds.map(id=>{
+  const line=lines.find(item=>item.id===id);
+  if(!line)fail('INVALID_SELECTED_SCRIPT_LINE');
+  return line;
+ });
  const focus=Number(/^L([1-9]\d*)$/.exec(focusLineId??'')?.[1])||1;
  const first=Math.max(0,Math.min(focus-1-Math.floor(maxScriptLines/2),Math.max(0,lines.length-maxScriptLines)));
  return {
   projectId:p.id,projectName:p.name,workspace,mode,selectedCueId,
   counts:{cues:p.cues.length,assets:p.assets.length,scriptLines:lines.length},
-  truncated:{cues:cues.length>maxCues,script:lines.length>maxScriptLines},
+  truncated:{cues:cues.length>maxCues,script:selectedLines===null&&lines.length>maxScriptLines},
   cues:boundedCues.map(c=>({
    id:c.id,number:c.number,label:c.label,trigger:c.trigger??'',
    notes:c.notes??'',sourceLineIds:[...c.sourceLineIds],
@@ -69,7 +77,7 @@ export function buildAgentContext(project,{
    ],unresolved:c.actions.some(a=>a.type==='PLAN_AUDIO')
   })),
   assets:p.assets.map(a=>({id:a.id,name:a.name,available:assetAvailable(a.id)})),
-  lines:lines.slice(first,first+maxScriptLines).map(l=>({id:l.id,text:l.text.slice(0,350)}))
+  lines:(selectedLines??lines.slice(first,first+maxScriptLines)).map(l=>({id:l.id,text:l.text.slice(0,350)}))
  };
 }
 export function auditAgentProject(project,{assetAvailable=()=>null}={}){

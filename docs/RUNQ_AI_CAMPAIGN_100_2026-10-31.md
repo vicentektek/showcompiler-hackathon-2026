@@ -124,10 +124,30 @@ authorized; do not delegate or change directories to bypass them.
 
 ## Progressive product evaluation
 
-- `npm run qa:agent:live:plan`: 20 bilingual, independent synthetic product
-  scenarios, Meta only, maximum USD 3 reserved for this batch. Each of the ten
-  categories appears in Spanish and English. Fixtures remain synthetic inputs,
-  even when a real provider evaluates them; results must say which was used.
+The shared campaign ledger enforces the USD ceilings and the campaign request
+ceilings (Meta 400, Modal 100) before accepting each reservation. Its status
+reports reserved requests and remaining request capacity; reservations are not
+provider invoices or verified account credit.
+
+- `npm run qa:agent:live:plan`: history-aware offline selection, Meta only.
+  The legacy 400 fixture positions contain only 24 unique inputs. The runner
+  preserves those identities and adds the existing 400 quality-matrix contracts,
+  interleaving functions, ES/EN and all four difficulties. Fixtures remain
+  synthetic inputs even when evaluated by a real provider.
+- `--cases N` now requests N NEW completed evaluations, not N visited positions.
+  `--target-total 100 --cases 100` subtracts unique completed historical inputs:
+  with the current history, it selects 76 new cases (38 ES, 38 EN). Preview with
+  `node tools/runq-agent-live-eval.mjs --target-total 100 --cases 100`.
+  Only the owner adds `--live --ack-paid` after the existing credit/clean-commit
+  gates. Reservations, including UNKNOWN, never permit a retry. Legacy rows
+  without fingerprints block identical-content aliases, not only old case IDs.
+  Results are atomically saved before each POST and after each evaluation.
+  `COMPLETE` requires the effective completion target; underfill reports
+  `CORPUS_EXHAUSTED`, budget or provider blockage instead. Errors stop without
+  retries. HTTP completion, objective correctness and human review are separate.
+  New extraction metrics reuse exact event P/R/F1; edits reuse exact property
+  and preservation contracts. Legacy summary heuristics cannot establish a
+  measured improvement in Muse extraction or artistic quality.
 - `npm run qa:meta:plan`: original seminar-script extraction and typed
   PLAY/STOP/CONTINUE/SILENCE evidence, provisional human gold, no inference.
 - `npm run qa:systematic`: bounded original-case plan with independent A/B

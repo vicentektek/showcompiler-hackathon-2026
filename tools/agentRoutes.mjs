@@ -9,6 +9,7 @@ import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
 import {campaignMetaFetch,campaignBasetenFetch} from './campaignFetch.mjs';
 const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
+export const AGENT_PROMPT_VERSION='agent-design-context-rcv4';
 const MAX_BODY=24500,MAX_RESPONSE=24000;
 const validAgentFocusContext=context=>
  (context.workspace===undefined||AGENT_DESIGN_WORKSPACES.includes(context.workspace))&&
@@ -155,6 +156,9 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
       'Never pretend to have generated or listened to audio. Offer Sound Lab suggestions in a textual ANSWER.',
       'For reversible creative tasks propose a concrete plan; do not over-ask for details.',
       'For follow-ups such as "you decide" use the conversation context to determine which pending task is meant.',
+      'When proposing or revising sound cues grounded in script lines, preserve the acoustic identity of explicit actions and their objects (for example, a door opening calls for a door-opening sound).',
+      'Do not replace an explicit action with unrelated ambience. You may offer justified ambience as an optional, separately identified layer or a clearly described combination; it must not displace the explicit action.',
+      'Keep each interpretation tied to its exact source line, and do not invent sound where the script gives no acoustic evidence.',
       'When asked to close a show, suggest up to three appropriate MANUAL cues with creative labels.',
       'Manual CREATE_CUE placeholders need no asset or script reference. Clearly say that audio remains unconfigured.',
       'Never claim invented cues are in the source script, and never invent or assign a file or voice trigger.',

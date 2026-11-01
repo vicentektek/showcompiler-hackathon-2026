@@ -1,5 +1,6 @@
 import { normalizeShowProject } from './projectPersistence.mjs';
-import { nextAvailableId } from './workspace.mjs';
+import { parseScript } from './script.mjs';
+import { nextAvailableId, assignAudioToCue } from './workspace.mjs';
 
 const renumber = cues => cues.map((cue,index)=>({...cue,number:index+1}));
 
@@ -15,6 +16,33 @@ export function insertManualCue(project,{afterCueId=null,label='New cue'}={}) {
     actions:[{type:'PLAN_AUDIO',prompt:'Operator sound selection pending',resolution:'DEFER'}]};
   const cues=[...show.cues.slice(0,at),cue,...show.cues.slice(at)];
   return {project:normalizeShowProject({...show,cues:renumber(cues)}),cueId:cue.id};
+}
+
+/** Create one reviewed manual cue anchored to a bounded set of real source lines. */
+export function insertManualCueFromScriptLines(project,lineIds) {
+  const show=normalizeShowProject(project);
+  if(!Array.isArray(lineIds)||lineIds.length<1||lineIds.length>20||
+     lineIds.some(id=>typeof id!=='string')||new Set(lineIds).size!==lineIds.length)
+    throw new TypeError('Select between 1 and 20 unique script lines');
+  if(!show.scriptText.trim())throw new TypeError('A source script is required');
+  const lines=parseScript(show.scriptText);
+  const sourceLines=lineIds.map(id=>lines.find(line=>line.id===id))
+    .sort((left,right)=>left.lineNumber-right.lineNumber);
+  if(sourceLines.some(line=>!line))throw new TypeError('Selected script line is unavailable');
+  const firstText=sourceLines.find(line=>line.text.trim())?.text.trim();
+  const label=(firstText||`Cue from ${sourceLines[0].id}`).slice(0,200);
+  const result=insertManualCue(show,{label});
+  const cues=result.project.cues.map(cue=>cue.id===result.cueId
+    ?{...cue,sourceLineIds:sourceLines.map(line=>line.id)}
+    :cue);
+  return {...result,project:normalizeShowProject({...result.project,cues})};
+}
+
+export function insertManualAudioCue(project,assetId) {
+  const asset=project.assets.find(item=>item.id===assetId);
+  if(!asset)throw new TypeError('Unknown audio asset');
+  const result=insertManualCue(project,{label:asset.name});
+  return {...result,project:assignAudioToCue(result.project,result.cueId,assetId)};
 }
 
 /** Delete only the chosen cue, leaving proposals and AI evidence intact. */

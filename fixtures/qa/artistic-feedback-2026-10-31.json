@@ -1,0 +1,101 @@
+{
+  "schema": "runq-human-artistic-feedback-v1",
+  "sourceBatteryId": "artistic-review-927b74cc-ca31-4e24-bb71-a8b775e4c80e",
+  "reviewedAt": "2026-10-31T17:14:22.068Z",
+  "provenance": "Human artistic ratings of NEW live Muse Spark captures from 2026-10-31; they are not ratings of the historical responses, which were never persisted.",
+  "sourceCapture": "artifacts/agent-live-eval/artistic-capture-1793465999379.json",
+  "sourceReport": "artifacts/agent-live-eval/eval-1793465157480-35980.json",
+  "feedback": [
+    {
+      "equivalentToHistoricalCase": "paid-0022",
+      "caseFingerprint": "9d0abfab1b9954873a19b6d2288df1625cca72cb48440e00cf63c9fcb2ad118e",
+      "requestId": "artistic-review-9d0abfab1b9954873a19b6d2288df1625cca72cb48440e00",
+      "category": "followup",
+      "language": "en",
+      "rating": 3,
+      "decision": "modify",
+      "comments": "el l4 pone especificamente que se abre una puerta, y ha puesto un sonido de viento, en lugar de uno abriendo la puerta"
+    },
+    {
+      "equivalentToHistoricalCase": "paid-0032",
+      "caseFingerprint": "00c6f2a8533f612e0dfde70408c01c3f4ea4ccdba760fc97ac76afa1f4c05e7d",
+      "requestId": "artistic-review-00c6f2a8533f612e0dfde70408c01c3f4ea4ccdba760fc97",
+      "category": "followup",
+      "language": "es",
+      "rating": 5,
+      "decision": "accept",
+      "comments": ""
+    },
+    {
+      "equivalentToHistoricalCase": "paid-0030",
+      "caseFingerprint": "b8e5af07c9869bd6291cd6cafeb4621cc06203cb28daa400ab70e2a9d6d057ae",
+      "requestId": "artistic-review-b8e5af07c9869bd6291cd6cafeb4621cc06203cb28daa400",
+      "category": "audio",
+      "language": "en",
+      "rating": 5,
+      "decision": "accept",
+      "comments": ""
+    },
+    {
+      "equivalentToHistoricalCase": "paid-0040",
+      "caseFingerprint": "b33e6b6546465b65d05368f7906237dd91a3ee1ff3055b99e8c41371e74a8f5a",
+      "requestId": "artistic-review-b33e6b6546465b65d05368f7906237dd91a3ee1ff3055b99",
+      "category": "audio",
+      "language": "es",
+      "rating": 4,
+      "decision": "accept",
+      "comments": ""
+    }
+  ],
+  "aggregate": {
+    "reviewCount": 4,
+    "meanRating": 4.25,
+    "accepted": 3,
+    "modify": 1,
+    "rejected": 0,
+    "warning": "Small human-reviewed sample; not a general accuracy or creativity metric."
+  },
+  "findings": [
+    {
+      "caseId": "paid-0022",
+      "type": "explicit_action_not_covered",
+      "source": "human_observation",
+      "line": "L4",
+      "observed": "Reviewer reports line L4 specifies a door opening, while model suggested wind instead of a door-opening sound.",
+      "proposedChange": "Prioritize explicit scene actions over optional ambience, while allowing both when justified.",
+      "verification": "Check full captured script and model output before labeling as confirmed model error."
+    }
+  ],
+  "evidenceReconciliation": {
+    "status": "UNCONFIRMED_CAPTURE_CONTEXT_CONFLICT",
+    "captureProvenance": "NEW live Meta battery 2026-10-31; NOT the historical response, which was never persisted",
+    "observedInput": "The captured context already contains cue-2 labeled Wind effect and linked to L4 (Door opens).",
+    "observedResponse": "The captured reply proposes three manual closing cues after cue-4 Curtain call; it does not create or revise the L4 cue.",
+    "conclusion": "Preserve the human rating as reported, but do not score its specific wind-versus-door claim as a confirmed model omission."
+  },
+  "suggestedRegressionTests": [
+    {
+      "id": "explicit-door-open-es",
+      "input": "L4: Se abre una puerta.",
+      "expectation": "Include or explicitly address door-opening action; wind alone is insufficient."
+    },
+    {
+      "id": "explicit-door-open-en",
+      "input": "L4: A door opens.",
+      "expectation": "Include or explicitly address door-opening action; wind alone is insufficient."
+    },
+    {
+      "id": "door-and-wind",
+      "input": "L4: Se abre la puerta y entra una fuerte ráfaga de viento.",
+      "expectation": "Represent opening and wind as distinct or appropriately combined sound actions."
+    }
+  ],
+  "promptComparison": {
+    "previousVersion": "agent-design-context-rcv3",
+    "previousBehavior": "No dedicated instruction distinguished explicit acoustic actions from optional ambience.",
+    "currentVersion": "agent-design-context-rcv4",
+    "change": "Preserve explicit action identity; keep justified ambience optional and supplemental, not a replacement.",
+    "liveOutputComparison": "NOT_RUN_NO_NEW_PAID_REQUESTS"
+  },
+  "policy": "Do not rewrite or mark historical responses as reviewed; these reviews refer to NEW equivalent-case captures. Human ratings are separate from synthetic and automatic QA metrics."
+}

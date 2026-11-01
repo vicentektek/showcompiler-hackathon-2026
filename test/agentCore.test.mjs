@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNewShow,addAudioReference,assignAudioToCue} from '../src/core/workspace.mjs';
+import {createNewShow,addAudioReference,assignAudioToCue,addMockProposal} from '../src/core/workspace.mjs';
+import {stageAddCueTrack} from '../src/core/cueTracks.mjs';
 import {insertManualCue} from '../src/core/manualCues.mjs';
 import {normalizeShowProject} from '../src/core/projectPersistence.mjs';
 import {buildAgentContext,resolveAgentCue,auditAgentProject,validateAgentOperations,
@@ -29,6 +30,65 @@ function fixture(){
  }))});
  return project;
 }
+test('readiness answers explain actual unresolved audio without provider calls or edits',()=>{
+ const p=fixture(),before=JSON.stringify(p);
+ for(const prompt of ['Which audio is still unresolved?','¿Qué falta para ensayar, sin afirmar que está listo?',
+  'Can you review the audio without playing it?','Are we ready to go live?']){
+  const answer=interpretLocalAgentRequest(p,prompt);
+  assert.equal(answer.status,'ANSWER',prompt);
+  assert.deepEqual(answer.operations,[]);
+  assert.equal(answer.readiness.readyCues,0);
+  assert.equal(answer.readiness.totalCues,3);
+  assert.equal(answer.readiness.ready,false);
+  assert.match(answer.message,/Puerta/);
+ }
+ assert.equal(JSON.stringify(p),before);
+});
+test('cue readiness distinguishes decoded, missing and unknown files and exact selected scope',()=>{
+ let p=fixture();
+ p=assignAudioToCue(p,p.cues[0].id,p.assets[0].id);
+ const id=p.cues[0].id;
+ for(const available of [true,false,null]){
+  const answer=interpretLocalAgentRequest(p,'Is cue 1 ready?',{assetAvailable:()=>available});
+  assert.equal(answer.status,'ANSWER');
+  assert.equal(answer.readiness.totalCues,1);
+  assert.equal(answer.readiness.ready,available===true);
+  assert.match(answer.message,available===true?/decoded audio/i:available===false?/Load or relink/:/not verified/);
+ }
+ const selected=interpretLocalAgentRequest(p,'¿Está listo el cue seleccionado?',{
+  selectedCueId:id,assetAvailable:()=>true});
+ assert.equal(selected.readiness.readyCues,1);
+ assert.equal(interpretLocalAgentRequest(p,'Is cue 99 ready?').status,'CLARIFY');
+ assert.equal(interpretLocalAgentRequest(p,'Are cues 1 and 2 ready?').status,'CLARIFY');
+ assert.equal(interpretLocalAgentRequest(p,'Is cue Rain ready?').status,'CLARIFY');
+ assert.equal(interpretLocalAgentRequest(p,'Are you ready?').status,'NEEDS_AI');
+ assert.equal(interpretLocalAgentRequest(p,'Now imagine the main audio file is missing.').status,'NEEDS_AI');
+ assert.equal(interpretLocalAgentRequest(p,'Set cue 1 gain to -6 dB').status,'PLAN');
+});
+test('secondary tracks, unknown availability, empty shows and pending reviews cannot become live certification',()=>{
+ let p=fixture();
+ p=addAudioReference(p,'secondary.wav');
+ p=assignAudioToCue(p,p.cues[0].id,p.assets[0].id);
+ p=normalizeShowProject(stageAddCueTrack(p,p.cues[0].id,p.assets[1].id));
+ p=addMockProposal(p,{lineId:'L2',label:'Human review required'});
+ const before=JSON.stringify(p);
+ const availability=id=>id===p.assets[0].id?true:null;
+ const answer=interpretLocalAgentRequest(p,'Is cue 1 ready?',{assetAvailable:availability});
+ assert.equal(answer.readiness.ready,false);
+ assert.equal(answer.readiness.unknownAudio,1);
+ assert.ok(answer.readiness.issues.some(i=>i.assetId===p.assets[1].id));
+ const pending=interpretLocalAgentRequest(p,'Dime qué quedó pendiente.',{assetAvailable:availability});
+ assert.equal(pending.projectState.unknown.length,1);
+ assert.ok(!pending.projectState.locallyResolved.some(c=>c.cueId===p.cues[0].id));
+ const full=interpretLocalAgentRequest(p,'Are we ready for rehearsal?',{assetAvailable:()=>true});
+ assert.equal(full.readiness.warningCount,1);
+ assert.equal(full.readiness.liveReady,false);
+ assert.match(full.message,/human review/);
+ const empty=interpretLocalAgentRequest(createNewShow({name:'Empty'}),'Are we ready to go live?');
+ assert.equal(empty.readiness.ready,false);
+ assert.ok(empty.readiness.issues.some(i=>i.code==='EMPTY_SHOW'));
+ assert.equal(JSON.stringify(p),before);
+});
 test('context builder exposes bounded, original source and stable identities',()=>{
  const project=fixture();
  const context=buildAgentContext(project,{maxCues:2,maxScriptLines:3,focusLineId:'L5'});
@@ -57,6 +117,15 @@ test('context builder exposes bounded, original source and stable identities',()
  assert.throws(()=>buildAgentContext(project,{workspace:'operation'}),/INVALID_CONTEXT_LIMIT/);
  assert.throws(()=>buildAgentContext(project,{selectedCueId:'unknown'}),/INVALID_SELECTED_CUE/);
 });
+test('selected script context contains only exact existing lines and stays bounded',()=>{
+ const project=fixture();
+ const context=buildAgentContext(project,{selectedLineIds:['L5','L2']});
+ assert.deepEqual(context.lines,[{id:'L5',text:'(Suena una puerta)'},{id:'L2',text:'ANA: Estamos todos listos para comenzar'}]);
+ assert.equal(context.truncated.script,false);
+ assert.throws(()=>buildAgentContext(project,{selectedLineIds:['L99']}),/INVALID_SELECTED_SCRIPT_LINE/);
+ assert.throws(()=>buildAgentContext(project,{selectedLineIds:[]}),/INVALID_CONTEXT_LIMIT/);
+ assert.throws(()=>buildAgentContext(project,{selectedLineIds:Array.from({length:21},(_,index)=>'L'+(index+1))}),/INVALID_CONTEXT_LIMIT/);
+});
 test('local agent accepts narrow commands but refuses unsupported/negated requests',()=>{
  const p=fixture();
  const deletion=interpretLocalAgentRequest(p,'elimina el cue 2');
@@ -69,6 +138,26 @@ test('local agent accepts narrow commands but refuses unsupported/negated reques
  assert.equal(moving.operations[0].position,'before');
  assert.equal(interpretLocalAgentRequest(p,'Review the show').status,'ANSWER');
  assert.equal(interpretLocalAgentRequest(p,'Create a cue named Telephone').status,'PLAN');
+});
+test('natural ES/EN rename resolves exact cue identity locally and preserves spelling and bounds',()=>{
+ const p=fixture(),id=p.cues[1].id;
+ for(const [prompt,label] of [
+  ['Renombra el cue 2 como Último eco','Último eco'],
+  ['Rename cue 2 to Final Door','Final Door'],
+  ['Rename the selected cue to "Door: Finale"','Door: Finale'],
+ ]){
+  const reply=interpretLocalAgentRequest(p,prompt,{selectedCueId:id});
+  assert.equal(reply.status,'PLAN');
+  assert.deepEqual(reply.operations,[{op:'UPDATE_CUE',cueId:id,changes:{label}}]);
+  const plan=prepareAgentPlan(p,reply.operations);
+  assert.equal(plan.proposedProject.cues[1].label,label);
+  assert.deepEqual(plan.proposedProject.cues[1].actions,p.cues[1].actions);
+ }
+ for(const prompt of ['No renombres el cue 2','Rename cue 99 to Finale',
+  'Rename cue 2 to '+ 'x'.repeat(201),'Rename cue 2 to ""',
+  'Rename cue 2 to Finale and delete cue 1']){
+  assert.notEqual(interpretLocalAgentRequest(p,prompt).status,'PLAN',prompt);
+ }
 });
 test('propose voice triggers from real dialogue, skip absent source and conflicts',()=>{
  const p=fixture();

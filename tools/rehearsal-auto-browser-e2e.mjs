@@ -27,13 +27,13 @@ const server=createAppServer();
 await new Promise((resolve,reject)=>{
  server.once('error',reject);server.listen(0,'127.0.0.1',resolve);
 });
-let browser;const errors=[],remote=[];
+let browser,page;const errors=[],remote=[];
 try{
  const port=server.address().port;
  browser=await chromium.launch({channel:'chrome',headless:true,args:[
   '--no-sandbox','--autoplay-policy=no-user-gesture-required',
  ]});
- const page=await browser.newPage({viewport:{width:1366,height:900}});
+ page=await browser.newPage({viewport:{width:1366,height:900}});
  page.on('pageerror',e=>errors.push(e.message));
  page.on('dialog',dialog=>void dialog.accept());
  await page.route('**/*',route=>{
@@ -106,7 +106,24 @@ try{
  await send(1,'repeat');
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('Repeat take'));
  assert.equal((await snapshot()).started.length,beforeRepeat+1,'A new take replays only after cooldown');
- await page.locator('[data-cue-action="stop"][data-cue-id="'+modified.cues[1].id+'"]').click();
+ const individualStop=page.locator('[data-cue-action="stop"][data-cue-id="'+modified.cues[1].id+'"]');
+ await individualStop.scrollIntoViewIfNeeded();
+ const stopHitTest=await individualStop.evaluate(element=>{
+  const rect=element.getBoundingClientRect();
+  const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+  return {
+   cueListHeight:document.querySelector('#cueList').clientHeight,
+   hitStack:document.elementsFromPoint(x,y).slice(0,5).map(hit=>({
+    tag:hit.tagName,className:String(hit.className),
+    cueId:hit.dataset.cueId,action:hit.dataset.cueAction,
+   })),
+  };
+ });
+ assert.ok(stopHitTest.cueListHeight>0,
+  `Rehearsal must allocate a scrollable cue list: ${JSON.stringify(stopHitTest)}`);
+ assert.ok(stopHitTest.hitStack[0]?.cueId===modified.cues[1].id&&stopHitTest.hitStack[0]?.action==='stop',
+  `Individual STOP must receive a real pointer at its center: ${JSON.stringify(stopHitTest)}`);
+ await individualStop.click();
  assert.equal((await snapshot()).active.some(cue=>cue.cueId===modified.cues[1].id),false,
   'Individual STOP terminates the repeated sound');
  // Panic must always disarm; speech after emergency stop cannot fire.
@@ -136,6 +153,10 @@ try{
  assert.deepEqual(remote,[], 'No provider calls in browser rehearsal E2E');
  assert.deepEqual(errors,[], 'Browser runtime errors');
  console.log('REHEARSAL AUTO GO E2E PASS: visible policy, ARM, skip, rewind, duplicate/repeat, individual STOP, STOP ALL, manual GO override, navigation isolation; real WAV engine, synthetic ASR');
+}catch(error){
+ try{await page?.screenshot({path:'artifacts/interface-review/rehearsal-auto-failure.png',animations:'disabled'});}
+ catch(screenshotError){console.error('Rehearsal failure screenshot unavailable:',screenshotError);}
+ throw error;
 }finally{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));

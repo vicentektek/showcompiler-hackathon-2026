@@ -91,6 +91,8 @@ try{
  });
  assert.equal((await read()).cueCount,0,'Multiple sound import modifies only the library');
  await page.locator('[data-workspace-nav="ai"]').click();
+ await page.locator('.rq16-builder-stage[data-stage="cues"]').click();
+ await page.locator('#rqShowBuilderAiControls > summary').click();
  await page.locator('#modelProviderSelect').selectOption('meta');
  await page.waitForFunction(()=>document.querySelector('#analyzeMetaBtn')?.disabled===false);
  await page.locator('#analyzeMetaBtn').click();
@@ -123,6 +125,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#rqAgentSubmit')?.disabled===false);
  assert.equal((await read()).cueCount,3,'Unselected sound cannot create a cue');
  assert.equal(await page.locator('#rqAgentProposal').isVisible(),false);
+ await page.locator('#rqAgentMoreOptions summary').first().click();
  await page.locator('#rqAgentSelectedSound').selectOption(built.project.assets[0].id);
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentProposal').waitFor({state:'visible'});
@@ -166,7 +169,9 @@ try{
  await page.locator('#cuePlaybackForm [name="fadeOutMs"]').fill('150');
  await page.locator('#cuePlaybackForm button[type="submit"]').click();
  const downloadPromise=page.waitForEvent('download');
- await page.locator('#saveBundleBtn').click();
+ await page.locator('#rq16AppMenu>summary').click();
+ await page.locator('#rq16AppMenu .runq-menu>summary').first().click();
+ await page.getByRole('button',{name:'Export complete show',exact:true}).click();
  const download=await downloadPromise;
  const bytes=await readFile(await download.path());
  const restored=await importPortableShow(bytes);
@@ -223,7 +228,23 @@ try{
  await speech(restored.project.cues[1],'repeat-original',built.project.cues[1].trigger);
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent.includes('Repeat take'));
  assert.equal((await starts()).length,4);
- await page.locator('[data-cue-action="stop"][data-cue-id="'+initial.cues[0].id+'"]').click();
+ const loopStop=page.locator('[data-cue-action="stop"][data-cue-id="'+initial.cues[0].id+'"]');
+ await loopStop.scrollIntoViewIfNeeded();
+ const loopStopHit=await loopStop.evaluate(button=>{
+  const box=button.getBoundingClientRect();
+  const target=document.elementFromPoint(box.left+box.width/2,box.top+box.height/2);
+  const rect=element=>{const value=element.getBoundingClientRect();return {x:value.x,y:value.y,width:value.width,height:value.height}};
+  return {
+   button:rect(button),cueList:rect(document.querySelector('#cueList')),
+   sequence:rect(document.querySelector('.rq5-sequence-frame')),
+   monitor:rect(document.querySelector('#rq14StageCurrent')),
+   target:target?.outerHTML?.slice(0,180)??null,
+   receivesPointer:Boolean(target&&button.contains(target)),
+  };
+ });
+ assert.equal(loopStopHit.receivesPointer,true,
+  `Running-cue STOP must remain physically clickable in Rehearsal: ${JSON.stringify(loopStopHit)}`);
+ await loopStop.click();
  assert.equal((await read()).active.some(item=>item.cueId===initial.cues[0].id),false);
  assert.ok((await read()).active.some(item=>item.cueId===initial.cues[1].id),
   'Individual STOP of the loop must preserve the independently running repeated bell');
@@ -235,6 +256,7 @@ try{
  await page.waitForTimeout(100);
  assert.equal((await read()).active.length,0,'Speech after panic cannot restart the show');
  await page.locator('[data-workspace-nav="cues"]').click();
+ await page.locator('#rq16AppMenu>summary').click();
  await page.locator('.runq-menu').first().locator('summary').click();
  const [jsonFile]=await Promise.all([
   page.waitForEvent('download'),

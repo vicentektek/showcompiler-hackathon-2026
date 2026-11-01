@@ -70,6 +70,11 @@ test('HTTP server serves only its allowlisted local resources with restrictive h
   const runqMenu = await fetch(base + '/src/ui/runq-menu.mjs');
   assert.equal(runqMenu.status, 200);
   assert.match(runqMenu.headers.get('content-type'), /javascript/);
+  const backdrop = await fetch(base + '/assets/runq-backstage.png');
+  assert.equal(backdrop.status, 200);
+  assert.equal(backdrop.headers.get('content-type'), 'image/png');
+  assert.deepEqual([...new Uint8Array(await backdrop.arrayBuffer()).slice(0, 8)],
+    [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.match(home.headers.get('content-security-policy'), /connect-src 'self'/);
   assert.equal(home.headers.get('access-control-allow-origin'), null);
   const module = await fetch(base + '/src/core/workspace.mjs');

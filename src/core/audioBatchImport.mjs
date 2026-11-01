@@ -180,7 +180,7 @@ export async function extractAudioZip(bytes){
  * Pure assignment policy. Never silently replace already loaded sounds, since
  * multiple cues may reuse them. Match existing unloaded placeholders by name.
  */
-export function planAudioLibraryBatch(files,assets,isLoaded){
+export function planAudioLibraryBatch(files,assets,isLoaded,{independentFiles=false}={}){
   if(!Array.isArray(files)||!Array.isArray(assets)||typeof isLoaded!=='function')
     throw new TypeError('Invalid audio batch');
   const accepted=[],skipped=[],seen=new Set();
@@ -193,9 +193,10 @@ export function planAudioLibraryBatch(files,assets,isLoaded){
       continue;
     }
     const key=name.toLocaleLowerCase();
-    if(seen.has(key)){skipped.push({name,reason:'duplicate in selection'});continue}
+    if(!independentFiles&&seen.has(key)){skipped.push({name,reason:'duplicate in selection'});continue}
     seen.add(key);
-    const matching=assets.filter(a=>a.name.toLocaleLowerCase()===key);
+    // Cue drops keep each original independent, even when names coincide.
+    const matching=independentFiles?[]:assets.filter(a=>a.name.toLocaleLowerCase()===key);
     if(matching.length>1){skipped.push({name,reason:'ambiguous existing library references'});continue}
     if(matching.length===1&&isLoaded(matching[0].id)){
       skipped.push({name,reason:'already loaded; no overwrite'});continue;

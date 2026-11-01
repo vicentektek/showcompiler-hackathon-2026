@@ -326,7 +326,7 @@
  .rq16-current-project {flex-wrap:wrap}
 }
 @media(max-width:600px) {
- :root#runqApp.rq16.rq8.rq14 .shell {grid-template-columns:1fr!important;grid-template-rows:56px 28px auto minmax(0,1fr)!important}
+ :root#runqApp.rq16.rq8.rq14 .shell {grid-template-columns:1fr!important;grid-template-rows:56px 28px auto minmax(0,1fr)!important;overflow:clip!important}
  :root#runqApp.rq16.rq8.rq14 .workspace-nav {grid-column:1!important;grid-row:3!important;flex-direction:row!important;padding:7px!important;gap:5px!important;overflow:auto!important;border-bottom:1px solid var(--line)!important}
  :root#runqApp.rq16.rq8.rq14 .workspace-tab {width:auto!important;min-width:max-content!important;min-height:35px!important;gap:6px!important;padding:6px 9px!important}
  :root#runqApp.rq16.rq8.rq14 :is(.rq16-nav-group,.rq16-nav-footer) {display:none!important}
@@ -397,7 +397,22 @@
 /* The inspector title is the cue itself. Duplicate tool bands added empty space. */
 :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=cues] .rq5-inspector-heading {display:none!important}
 :root#runqApp.rq16.rq8.rq14 .rq5-selected-tools {min-height:0!important;height:auto!important;padding:0!important;border:0!important}
-:root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .layout {flex-basis:420px!important;min-height:420px!important}
+.rq-context-inspector {display:grid;gap:10px;padding:12px;margin:0 0 12px;background:#20262f;border:1px solid #41483c;border-left:3px solid #a7b28f;border-radius:7px}
+.rq-context-inspector-head {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rq-context-inspector-head strong {font-size:12px;letter-spacing:.04em}
+.rq-context-inspector-body,.rq-context-task {display:grid;gap:7px;min-width:0}
+.rq-context-inspector-body>strong,.rq-context-task>strong {font-size:13px;color:#eff1f5}
+.rq-context-inspector-body p,.rq-context-task p {margin:0;color:#a7afbe;font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.rq-context-inspector-source {max-height:96px;overflow:auto}
+.rq-context-inspector-status {width:max-content;max-width:100%;padding:2px 7px;border:1px solid #4b5143;border-radius:999px;color:#c5cfaa;font-size:10px}
+.rq-context-inspector-actions {display:flex;gap:6px;flex-wrap:wrap}
+.rq-context-task {padding-top:9px;border-top:1px solid #39404a}
+.rq-context-proposal-select {display:inline-flex;align-items:center;gap:5px;margin-right:8px;color:#c4cbd7;font-size:10px}
+.rq-context-proposal-select input {width:15px;height:15px;accent-color:#a7b28f}
+.rq-context-inspector button:focus-visible,.rq-context-proposal-select input:focus-visible {outline:2px solid #d5e0bb;outline-offset:2px}
+@media(min-width:801px) {
+ :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] .layout {flex-basis:580px!important;min-height:580px!important}
+}
 :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=rehearsal] #rqvfPanel #rqLivePanel {background:transparent!important;border:0!important;padding:0!important}
 .rqlive-session-mode {display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 220px}
 .rqlive-session-mode span {font-size:11px;color:var(--text-muted,#aaaeb7)}
