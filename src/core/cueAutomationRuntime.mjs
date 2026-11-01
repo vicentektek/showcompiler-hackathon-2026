@@ -42,6 +42,8 @@ export function createCueAutomationRuntime({ plan, transport, schedule = (fn, ms
     if (disposed) throw new Error('Automation runtime disposed');
     const instruction = planCueGo(plan, cueId);
     if (active.has(cueId)) throw new Error('Cue already active');
+    // A fresh GO supersedes any follow left by this cue's previous run.
+    clearPending(cueId);
     for (const otherId of instruction.stopFirst) stopCue(otherId);
     const epoch = generation;
     active.add(cueId);

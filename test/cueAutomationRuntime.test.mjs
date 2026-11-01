@@ -91,3 +91,16 @@ test('failed transport GO never schedules follow', async () => {
   assert.equal(schedules,0);
   assert.deepEqual(runtime.getStatus().activeCueIds,[]);
 });
+test('re-GO of a cue cancels the follow left by its previous natural end', async () => {
+  const f = fixture([{id:'a',automation:{mode:'AUTO_FOLLOW',delayMs:3000}}, {id:'b'}]);
+  await f.runtime.go('a');
+  f.runtime.endedNaturally('a');
+  assert.deepEqual(f.runtime.getStatus().pendingFollowCueIds, ['a']);
+  await f.runtime.go('a');
+  assert.deepEqual(f.runtime.getStatus().pendingFollowCueIds, [], 'a fresh GO supersedes the previous run');
+  await f.tick();
+  assert.deepEqual(f.calls, ['GO a','GO a'], 'no stale automatic GO while the restarted cue plays');
+  f.runtime.endedNaturally('a');
+  await f.tick();
+  assert.deepEqual(f.calls, ['GO a','GO a','GO b'], 'the new run still follows on its own natural end');
+});
