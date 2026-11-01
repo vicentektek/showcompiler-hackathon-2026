@@ -4,6 +4,18 @@ import { nextAvailableId, assignAudioToCue } from './workspace.mjs';
 
 const renumber = cues => cues.map((cue,index)=>({...cue,number:index+1}));
 
+/** Stored PLAN_AUDIO prompt of a cue whose sound the operator has not chosen yet (kept for saved-project compatibility). */
+export const OPERATOR_SOUND_PENDING_PROMPT='Operator sound selection pending';
+
+export function isOperatorSoundPlaceholder(prompt) {
+  return typeof prompt==='string'&&prompt.trim().toLowerCase()===OPERATOR_SOUND_PENDING_PROMPT.toLowerCase();
+}
+
+/** Human sound idea of a planned-audio action, or '' when only the internal placeholder is stored. */
+export function plannedAudioDetail(prompt) {
+  return typeof prompt==='string'&&!isOperatorSoundPlaceholder(prompt)?prompt.trim():'';
+}
+
 /**
  * A follow/continue cue needs a next cue. When a structural edit leaves one in
  * last position, it is downgraded to MANUAL (never upgraded to automatic) so the
@@ -32,7 +44,7 @@ export function insertManualCue(project,{afterCueId=null,label='New cue'}={}) {
   if (afterCueId!==null&&at===0) throw new TypeError('Cue position not found');
   const cue={id:nextAvailableId('cue',show.cues.map(c=>c.id)),origin:'MANUAL',
     number:at+1,label:label.trim(),sourceLineIds:[],status:'DRAFT',
-    actions:[{type:'PLAN_AUDIO',prompt:'Operator sound selection pending',resolution:'DEFER'}]};
+    actions:[{type:'PLAN_AUDIO',prompt:OPERATOR_SOUND_PENDING_PROMPT,resolution:'DEFER'}]};
   const cues=[...show.cues.slice(0,at),cue,...show.cues.slice(at)];
   return {project:normalizeShowProject({...show,cues:renumber(cues)}),cueId:cue.id};
 }

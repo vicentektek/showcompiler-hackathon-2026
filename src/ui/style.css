@@ -302,6 +302,7 @@ main{padding:24px 26px 34px}
 .cue-inspector-panel .cue-playback-editor>.btn{margin-top:8px}
 .cue-inspector-audio-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .cue-inspector-audio-tools select{flex:1 1 150px;min-width:0}
+.cue-plan-library{display:contents}
 .cue-target-stop-editor{display:grid;gap:10px;margin-top:18px}
 .cue-target-stop-editor .cue-stop-options{max-height:280px}
 .cue-target-stop-editor .btn{justify-self:start}

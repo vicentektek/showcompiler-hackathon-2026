@@ -9,6 +9,7 @@ let taskContext = null;
 let batchUndoAvailable = false;
 let renderedProjectId = null;
 let renderedGeneration = null;
+let lastAppCueId = null;
 let panel = null;
 
 function readState() {
@@ -126,12 +127,29 @@ function render() {
     selected = null;
     taskContext = null;
     batchUndoAvailable = false;
+    lastAppCueId = null;
   }
   renderedProjectId = currentProjectId;
   renderedGeneration = currentGeneration;
   if (!state?.project) {
     panel.replaceChildren();
     return;
+  }
+  // Follow cue selections made by the app (row click, approval, insertion) so the
+  // panel never contradicts the cue inspector it sits in. "Clear" holds until the
+  // app selects another cue; an explicit proposal batch is never replaced.
+  const appCueId = state.selectedCueId ?? null;
+  if (appCueId !== lastAppCueId) {
+    lastAppCueId = appCueId;
+    if (appCueId && !selectedProposalIds.size &&
+        state.project.cues.some(cue => cue.id === appCueId)) {
+      selected = {
+        kind: 'cue',
+        ids: [appCueId],
+        projectId: currentProjectId,
+        generation: currentGeneration,
+      };
+    }
   }
   const pendingIds = new Set(state.project.proposals
     .filter(proposal => proposal.status === 'PENDING').map(proposal => proposal.id));

@@ -253,3 +253,34 @@ test('Meta independent verifier is a transient, review-only UI with source links
   assert.match(client, /sourceButton\(lineId\)/);
   assert.doesNotMatch(client, /metaIndependentReview\s*=\s*show/);
 });
+
+test('cue rows and the show builder never display the internal pending-sound placeholder', () => {
+  const builder = readFileSync(new URL('../src/ui/show-builder-ui.mjs', import.meta.url), 'utf8');
+  const describe = client.slice(client.indexOf('function describeCueActions'), client.indexOf('function pickAudioFile'));
+  assert.match(describe, /plannedAudioDetail\(action\.prompt\)/);
+  assert.doesNotMatch(describe, /\+ ': ' \+ action\.prompt/);
+  assert.match(builder, /isOperatorSoundPlaceholder\(action\.prompt\)/);
+  assert.doesNotMatch(builder, /Operator sound selection pending/);
+});
+
+test('the Audio tab of a cue that still needs sound offers loading or assigning audio', () => {
+  const source = client.slice(client.indexOf('function cueAudioSourceControls'), client.indexOf('function cueAdditionalTracksEditor'));
+  const pending = source.slice(source.indexOf("action.type === 'PLAN_AUDIO'"));
+  assert.ok(pending.length < source.length, 'pending-sound branch exists');
+  assert.match(pending, /cueAudioPicker\(cue\.id, 'soundPlan\.loadFile'\)/);
+  assert.match(pending, /cuePlanLibraryAssign\(cue\)/);
+  const actions = client.slice(client.indexOf('function cueActionInspector'), client.indexOf('function cueAudioSourceControls'));
+  assert.match(actions, /cuePlanLibraryAssign\(cue\)/, 'both tabs share one library-assign control');
+});
+
+test('the context inspector follows cue selections made by the app without overriding a proposal batch', () => {
+  const context = readFileSync(new URL('../src/ui/runq-context-inspector.mjs', import.meta.url), 'utf8');
+  const render = context.slice(context.indexOf('function render()'), context.indexOf('const pendingIds = new Set'));
+  assert.match(render, /const appCueId = state\.selectedCueId \?\? null;/);
+  assert.match(render, /if \(appCueId !== lastAppCueId\)/);
+  assert.match(render, /!selectedProposalIds\.size/);
+  assert.match(render, /kind: 'cue',\s*ids: \[appCueId\]/);
+  assert.match(render, /lastAppCueId = null;/, 'a new project or generation forgets the previous app selection');
+  const agentRead = client.slice(client.indexOf("'runq:agent-read'"));
+  assert.match(agentRead.slice(0, 2000), /selectedCueId/);
+});

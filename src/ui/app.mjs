@@ -3,7 +3,7 @@ import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, decideProposalBatch, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
 import { setCueEntryPolicy,planEntryStops,normalizeCueEntryPolicy } from '../core/cueEntryPolicy.mjs';
-import { insertManualCue, insertManualCueFromScriptLines, insertManualAudioCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue, reorderOperatorCue, trailingFollowReleased } from '../core/manualCues.mjs';
+import { insertManualCue, insertManualCueFromScriptLines, insertManualAudioCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue, reorderOperatorCue, trailingFollowReleased, plannedAudioDetail } from '../core/manualCues.mjs';
 import { stageAddCueTrack, stageChangeCueTrack, stageRemoveCueTrack } from '../core/cueTracks.mjs';
 import { createBrowserAudioBackend } from '../core/audioBackend.mjs';
 import { normalizeCuePlayback } from '../core/cuePlayback.mjs';
@@ -726,10 +726,13 @@ function replaceOptions(select, entries, oldValue) {
   select.disabled = entries.length === 0;
 }
 function describeCueActions(actions) {
-  return actions.map(action => action.type === 'PLAY'
-    ? 'PLAY → ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
-    : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') + ': ' + action.prompt
-  ).join(' | ');
+  return actions.map(action => {
+    if (action.type === 'PLAY')
+      return 'PLAY → ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId);
+    const status = t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved');
+    const detail = plannedAudioDetail(action.prompt);
+    return detail ? status + ': ' + detail : status;
+  }).join(' | ');
 }
 function pickAudioFile(cueId = null) {
   if (audioInFlight) return;
@@ -1739,6 +1742,20 @@ function cuePlaybackEditor(cue) {
   return form;
 }
 
+function cuePlanLibraryAssign(cue) {
+  if (!show.assets.length) return null;
+  const group = node('span', 'cue-plan-library');
+  const library = node('select');
+  library.setAttribute('aria-label', t('soundPlan.libraryLabel'));
+  replaceOptions(library, show.assets.map(asset => [asset.id, asset.name]));
+  const assign = node('button', 'btn primary small', t('soundPlan.assign'));
+  assign.type = 'button';
+  assign.addEventListener('click', () => safeOperation(
+    () => assignAudioToCue(show, cue.id, library.value), 'soundPlan.assignedFeedback'));
+  group.append(library, assign);
+  return group;
+}
+
 function cueActionInspector(cue) {
   const pane = node('div', 'cue-actions-inspector');
   pane.append(node('h4', 'inspector-section-heading', t('cueEditor.assetSection')));
@@ -1763,16 +1780,8 @@ function cueActionInspector(cue) {
     generate.addEventListener('click', () => safeOperation(
       () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'));
     audioTools.append(deferred, generate);
-    if (show.assets.length) {
-      const library = node('select');
-      library.setAttribute('aria-label', t('soundPlan.libraryLabel'));
-      replaceOptions(library, show.assets.map(asset => [asset.id, asset.name]));
-      const assign = node('button', 'btn primary small', t('soundPlan.assign'));
-      assign.type = 'button';
-      assign.addEventListener('click', () => safeOperation(
-        () => assignAudioToCue(show, cue.id, library.value), 'soundPlan.assignedFeedback'));
-      audioTools.append(library, assign);
-    }
+    const library = cuePlanLibraryAssign(cue);
+    if (library) audioTools.append(library);
   } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
     audioTools.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
   }
@@ -1908,6 +1917,15 @@ function cueAudioSourceControls(cue) {
       });
       block.append(pick, assign);
     }
+  } else if (!playable.length && cue.actions.some(action => action.type === 'PLAN_AUDIO')) {
+    const plan = cue.actions.find(action => action.type === 'PLAN_AUDIO');
+    const detail = plannedAudioDetail(plan.prompt);
+    block.append(node('p', 'caption', detail
+      ? t('soundPlan.unresolved') + ': ' + detail
+      : t('soundPlan.unresolved')));
+    block.append(cueAudioPicker(cue.id, 'soundPlan.loadFile'));
+    const library = cuePlanLibraryAssign(cue);
+    if (library) block.append(library);
   } else {
     block.append(node('p', 'caption', t('cueEditor.trackEditorPending')));
   }

@@ -10,6 +10,7 @@ import {
   updateShowBuilderStage,
 } from '../core/showBuilder.mjs';
 import { parseScript } from '../core/script.mjs';
+import { isOperatorSoundPlaceholder } from '../core/manualCues.mjs';
 
 const STAGE_COPY = Object.freeze({
   en: {
@@ -828,7 +829,7 @@ export function mountShowBuilder(panel, welcome, steps) {
           (locale === 'es' ? 'Sin referencia al guion' : 'No script reference'));
         identity.append(cueName, source);
         const audioPlanAction = cue.actions.find(action =>
-          action.type === 'PLAN_AUDIO' && action.prompt !== 'Operator sound selection pending');
+          action.type === 'PLAN_AUDIO' && !isOperatorSoundPlaceholder(action.prompt));
         if (audioPlanAction) {
           identity.append(make('small', 'rq16-builder-sound-idea',
             `${copy.audioIdea[0]}: ${audioPlanAction.prompt}`));

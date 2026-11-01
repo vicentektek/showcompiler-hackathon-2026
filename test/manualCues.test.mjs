@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal,updateCueAutomation} from '../src/core/workspace.mjs';
-import {insertManualCue,insertManualCueFromScriptLines,insertManualAudioCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue,trailingFollowReleased} from '../src/core/manualCues.mjs';
+import {insertManualCue,insertManualCueFromScriptLines,insertManualAudioCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue,trailingFollowReleased,isOperatorSoundPlaceholder,plannedAudioDetail} from '../src/core/manualCues.mjs';
 import {serializeShowProject,deserializeShowProject} from '../src/core/projectPersistence.mjs';
 
 test('dropped audio appends independently editable PLAY cues without script or AI provenance',()=>{
@@ -139,4 +139,18 @@ test('structural edits that leave a follow cue last make it MANUAL instead of bl
   assert.equal(untouched.cues[0].automation.mode,'AUTO_CONTINUE','a follow that still has a next cue is preserved');
   assert.equal(untouched.cues[0].automation.delayMs,1500);
   assert.equal(trailingFollowReleased(show,untouched),null);
+});
+
+test('the internal pending-sound placeholder is recognised but never shown as a cue sound idea',()=>{
+  const {project,cueId}=insertManualCue(createNewShow({scriptText:''}),{label:'Gaviotas'});
+  const plan=project.cues.find(cue=>cue.id===cueId).actions.find(action=>action.type==='PLAN_AUDIO');
+  assert.equal(isOperatorSoundPlaceholder(plan.prompt),true);
+  assert.equal(isOperatorSoundPlaceholder(' operator SOUND selection pending '),true);
+  assert.equal(plannedAudioDetail(plan.prompt),'');
+  assert.equal(plannedAudioDetail('  tres toques claros de campana  '),'tres toques claros de campana');
+  assert.equal(isOperatorSoundPlaceholder('Gulls over the harbour'),false);
+  assert.equal(isOperatorSoundPlaceholder(undefined),false);
+  assert.equal(plannedAudioDetail(undefined),'');
+  const restored=deserializeShowProject(serializeShowProject(project));
+  assert.equal(restored.cues[0].actions[0].prompt,plan.prompt,'saved projects keep the stored placeholder for compatibility');
 });
