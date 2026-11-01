@@ -58,6 +58,12 @@ export const SUITES = Object.freeze([
     parse: out => { const m = /RUNQ GAUNTLET OFFLINE (\d+) turns (\{[^\n]*\})/.exec(out); if (!m) return {};
       const counts = JSON.parse(m[2]); return { trials: Number(m[1]), checks: Number(m[1]), failures: counts.FAIL ?? 0,
         notes: 'LOCAL_GAP=' + (counts.LOCAL_GAP ?? 0) + ' (needs real AI reasoning, not a pass)' }; } },
+  { id: 'context-retrieval', kind: 'offline', evidence: 'LOCAL', args: dir => ['tools/runq-context-retrieval-eval.mjs',
+    '--seeds', '20', '--out', join(dir, 'context-retrieval'), '--quiet'],
+    parse: out => ({ unique: num(out, /CONTEXT RETRIEVAL EVAL unique=(\d+)/), trials: num(out, /trials=(\d+)/), checks: num(out, /checks=(\d+)/),
+      failures: num(out, /failed=(\d+)/), httpRequests: num(out, /providerRequests=(\d+)/),
+      notes: ['B_accept', 'B_evidence', 'A_evidence'].map(k => k + '=' + (new RegExp(k + '=([\\d.]+%)').exec(out)?.[1] ?? '?')).join(' ') +
+        ' (evidence availability, not Muse quality)' }) },
   { id: 'stateful-conversations', kind: 'offline', evidence: 'LOCAL', args: ['tools/runq-agent-stateful-conversations.mjs'],
     parse: out => { const m = /STATEFUL CONVERSATIONS (\d+) (\d+) turns PASS/.exec(out);
       return m ? { unique: Number(m[1]), trials: Number(m[2]), checks: Number(m[2]), failures: 0 } : {}; } },
@@ -121,6 +127,7 @@ export const MODULE_MATRIX = Object.freeze([
   ['Operator queue GO/STOP/STOP ALL/NEXT', 'IMPLEMENTED', 'operatorQueue.mjs,browserAudio.mjs', 'unit;state-machine;browser-smoke;interface-browser;user-journeys', 'P0'],
   ['Persistence JSON + portable ZIP round-trip', 'IMPLEMENTED', 'projectPersistence.mjs,showArchive.mjs', 'unit;state-machine;browser-smoke;user-journeys', 'P0'],
   ['Agent plans (preview, commit, undo, stale)', 'IMPLEMENTED', 'agentCore.mjs,agentDialogue.mjs', 'unit;agent-mass;stateful-conversations;state-machine', 'P0'],
+  ['AI context budget + script retrieval for Muse', 'IMPLEMENTED', 'agentCore.mjs,agentRoutes.mjs', 'unit;context-retrieval', 'P1'],
   ['Agent reasoning on ambiguous intent', 'PARTIAL', 'agentIntent.mjs', 'gauntlet-v2 (LOCAL_GAP);quality-audit', 'P2'],
   ['Show Builder guided flow', 'IMPLEMENTED', 'show-builder-ui.mjs,showBuilder.mjs', 'browser-smoke;user-journeys', 'P1'],
   ['Sound generation (Modal SFX) — mocked', 'IMPLEMENTED', 'modalSfxPilotClient.mjs,sfxRoutes.mjs', 'unit;sfx-history-browser', 'P1'],
