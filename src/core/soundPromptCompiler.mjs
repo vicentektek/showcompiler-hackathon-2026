@@ -901,6 +901,23 @@ function probeFragment(fragment) {
   return null;
 }
 
+const SOURCE_EVIDENCE_PREFIX = 'Fuente sonora constatada en el guion: «';
+const SOURCE_STOPWORDS = new Set(['the', 'and', 'with', 'from', 'unidentified', 'sound', 'noise', 'heard', 'some',
+  'del', 'las', 'los', 'una', 'unos', 'unas', 'por', 'con', 'que']);
+
+function ideaNamesSoundSource(idea, proposal) {
+  const ideaWords = fold(idea).split(/[^a-z0-9ñ]+/).filter(Boolean);
+  const evidence = proposal.explicitElements
+    .find(item => item.startsWith(SOURCE_EVIDENCE_PREFIX))
+    ?.slice(SOURCE_EVIDENCE_PREFIX.length, -1) ?? '';
+  const stems = fold(`${proposal.soundSource ?? ''} ${evidence}`)
+    .split(/[^a-z0-9ñ]+/)
+    .filter(word => word.length >= 3 && !SOURCE_STOPWORDS.has(word))
+    .map(word => word.replace(/(?:es|s)$/, ''))
+    .filter(stem => stem.length >= 3);
+  return stems.some(stem => ideaWords.some(word => word.startsWith(stem)));
+}
+
 export function prepareCueSoundDraft({ cue, scriptText = '', sourceLines = [] } = {}) {
   if (!cue || typeof cue !== 'object' || Array.isArray(cue) ||
       typeof cue.id !== 'string' || typeof cue.label !== 'string' ||
@@ -919,19 +936,26 @@ export function prepareCueSoundDraft({ cue, scriptText = '', sourceLines = [] } 
   const cueIdea = /^operator sound selection pending$/i.test(plannedPrompt)
     ? ''
     : plannedPrompt;
+  const ideaIsLabel = cueIdea === cue.label.trim();
   const fragments = [...new Set([cueIdea, sourceLine?.text ?? '']
     .map(fragment => fragment.trim())
     .filter(fragment => fragment.length > 0 && fragment.length <= MAX_FRAGMENT_CHARS))];
   let proposal = null;
   for (const fragment of fragments) {
-    proposal = compileSoundProposals({
+    const candidate = compileSoundProposals({
       fragment,
       sourceLineId,
       projectId: cue.id,
       fragmentKind: 'STAGE_DIRECTION',
       mode: 'STRICT',
     }).find(item => item.category === 'SFX' || item.category === 'ENVIRONMENT') ?? null;
-    if (proposal) break;
+    if (!candidate) continue;
+    // An approved cue idea the compiler cannot parse must not be silently
+    // replaced by a different sound described elsewhere on the script line.
+    if (fragment !== cueIdea && cueIdea && !ideaIsLabel &&
+        !ideaNamesSoundSource(cueIdea, candidate)) break;
+    proposal = candidate;
+    break;
   }
 
   const direction = cueIdea || sourceLine?.text?.trim() || cue.label.trim();

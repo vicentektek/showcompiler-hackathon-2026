@@ -142,6 +142,52 @@ test('cue sound drafts ignore the generic pending-audio placeholder and use its 
   assert.equal(draft.requiresTranslation,false);
 });
 
+test('cue sound drafts keep an approved idea instead of substituting a different sound from the script line', () => {
+  const draft = prepareCueSoundDraft({
+    cue: {
+      id: 'cue-11', number: '011', label: 'Wind',
+      sourceLineIds: ['L1'],
+      actions: [{ type: 'PLAN_AUDIO', prompt: 'strong wind between the lighthouse rocks' }],
+    },
+    scriptText: '(Suena la campana del faro tres veces.)',
+  });
+  assert.equal(draft.sourceLineId, 'L1');
+  assert.equal(draft.interpretation, 'CUE_BRIEF');
+  assert.match(draft.prompt, /strong wind between the lighthouse rocks/);
+  assert.doesNotMatch(draft.prompt, /bell/i);
+  assert.equal(draft.kind, 'ENVIRONMENT');
+  assert.equal(draft.requiresTranslation, false);
+});
+
+test('cue sound drafts reuse the script compiler when an uncompiled idea names the same sound source', () => {
+  for (const idea of ['three clear lighthouse bell strikes', 'Bells tolling at the lighthouse']) {
+    const draft = prepareCueSoundDraft({
+      cue: {
+        id: 'cue-12', number: '012', label: 'Faro',
+        sourceLineIds: ['L1'],
+        actions: [{ type: 'PLAN_AUDIO', prompt: idea }],
+      },
+      scriptText: '(Suena la campana del faro tres veces.)',
+    });
+    assert.equal(draft.interpretation, 'SCRIPT_COMPILER', idea);
+    assert.match(draft.prompt, /bell/i, idea);
+    assert.match(draft.prompt, /three times/i, idea);
+  }
+});
+
+test('cue sound drafts still compile the script line when the brief is only the cue label', () => {
+  const draft = prepareCueSoundDraft({
+    cue: {
+      id: 'cue-13', number: '013', label: 'Lighthouse',
+      sourceLineIds: ['L1'],
+      actions: [{ type: 'PLAN_AUDIO', prompt: 'Lighthouse' }],
+    },
+    scriptText: '(Suena la campana del faro tres veces.)',
+  });
+  assert.equal(draft.interpretation, 'SCRIPT_COMPILER');
+  assert.match(draft.prompt, /bell/i);
+});
+
 test('cue sound drafts do not claim untranslated Spanish cue ideas are English', () => {
   const draft = prepareCueSoundDraft({
     cue: {
