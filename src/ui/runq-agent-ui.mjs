@@ -381,13 +381,13 @@ async function sendRequest(forceAI=false,custom=null){
   let reply;
   if(forceAI){
    const focus=s.project.cues.find(c=>c.id===s.selectedCueId)?.sourceLineIds[0];
-   const context=buildAgentContext(s.project,{focusLineId:focus??null,
+   const context=buildAgentContext(s.project,{focusLineId:focus??null,instruction,
     workspace:s.workspace,mode:'design-manual',selectedCueId:s.selectedCueId??null,
     selectedLineIds:selectedLineIds.length?selectedLineIds:null,
     assetAvailable:id=>assetReady(id,s)});
    if(context.truncated.cues){
-    throw new Error(lang('El proyecto supera el contexto seguro de 80 cues. Divide la tarea por escena.',
-     'Show exceeds the safe 80-cue context. Narrow the task by scene.'));
+    throw new Error(lang(`El proyecto (${context.counts.cues} cues) no cabe en el contexto seguro de la IA. Divide la tarea por escena.`,
+     `The show (${context.counts.cues} cues) does not fit the safe AI context. Narrow the task by scene.`));
    }
    const response=await fetch('/api/agent/interpret',{method:'POST',headers:{
     'Content-Type':'application/json','X-Runq-Agent-Consent':'yes'

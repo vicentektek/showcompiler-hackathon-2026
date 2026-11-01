@@ -102,6 +102,13 @@
       "reevaluation": "test/soundPromptCompiler.test.mjs (3 new) red->green; 46/46 compiler tests. Known limit kept as INFO: Spanish compilation drops some approved detail (e.g. \"faro\")."
     },
     {
+      "id": "D15", "severity": "P1", "status": "FIXED", "area": "AI context sent to Muse",
+      "summary": "AI consultation failed for any realistic show: the browser built a 120-line/80-cue context with no size budget, but /api/agent/interpret rejects contexts over 15000 JSON chars with INVALID_INPUT (120 lines + 30 cues = 15613 chars). When accepted, Muse only saw a window around the selected cue or L1, so lines/cues named in the instruction were missing.",
+      "repro": "test/agentRoutes.test.mjs realistic-size route test returned 400; tools/runq-context-retrieval-eval.mjs A_LEGACY_WINDOW: server accepts 50%, usable evidence 0% at 1200 and 3000 lines.",
+      "fix": "src/core/agentCore.mjs buildAgentContext enforces AGENT_CONTEXT_MAX_CHARS (shared with tools/agentRoutes.mjs) and keeps a third of it for script: it omits empty cue fields and unreferenced assets, then the details (not the identity) of cues far from the focus/evidence (detailsOmitted), and drops whole cues only as a last resort, never the selected one (otherwise the UI blocked with a false 80-cue error). Lines are filled by priority: L# refs, cue N / selected-cue source lines with preceding dialogue, IDF-weighted instruction keywords, then the focus window; original text is verbatim. src/ui/runq-agent-ui.mjs passes the instruction and reports the real cue count.",
+      "reevaluation": "agentCore/agentRoutes 25/25 (4 new red->green, incl. 80 cues with long stage-manager notes). Offline A/B tools/runq-context-retrieval-eval.mjs, 2400 cases x 3 variants, ES/EN, 80-3000 lines, 20% long notes: legacy server acceptance 43.6% / usable evidence 33.2% (0% at 1200+ lines) -> retrieval 100% / 92.0%, UI blocks 0%; LINE/CUE/SELECTED and literal or shared-noun keywords 100%. Known limit kept visible: synonym-only phrasing 44.1% (lexical retrieval). Measures evidence availability, not Muse answer quality."
+    },
+    {
       "id": "F1", "severity": "P2", "status": "HUMAN_REVIEW_PENDING", "area": "Operator queue policy",
       "summary": "Insert/duplicate/delete from the editor resets the prepared GO to the first cue even when the prepared cue still exists (documented reset policy).",
       "repro": "state-machine finding PREPARED_CUE_REMOVED_BY_EDIT (95 of 16,000 steps); src/ui/app.mjs editCueSequence",

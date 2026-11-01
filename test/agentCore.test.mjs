@@ -4,10 +4,11 @@ import {createNewShow,addAudioReference,assignAudioToCue,addMockProposal} from '
 import {stageAddCueTrack} from '../src/core/cueTracks.mjs';
 import {insertManualCue} from '../src/core/manualCues.mjs';
 import {normalizeShowProject} from '../src/core/projectPersistence.mjs';
-import {buildAgentContext,resolveAgentCue,auditAgentProject,validateAgentOperations,
+import {AGENT_CONTEXT_MAX_CHARS,buildAgentContext,resolveAgentCue,auditAgentProject,validateAgentOperations,
  prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '../src/core/agentCore.mjs';
 import {proposeAgentVoiceTriggers} from '../src/core/agentVoice.mjs';
 import {interpretLocalAgentRequest} from '../src/core/agentIntent.mjs';
+import {parseScript} from '../src/core/script.mjs';
 
 const script=[
  'ESCENA I',
@@ -233,4 +234,69 @@ test('deleting a cue previews indirect automation edits on surviving cues',()=>{
  const committed=commitAgentPlan(modified,plan,{editable:true});
  assert.deepEqual(committed.project.cues.find(c=>c.id===survivor.id).automation.stopCueIds,[]);
  assert.deepEqual(undoAgentPlan(committed.project,committed.undo,{editable:true}),modified);
+});
+
+function longShow(total=1500,cueCount=40){
+ const lines=Array.from({length:total},(_,i)=>['ANA','LUIS','MARTA'][i%3]+': Frase de ensayo '+(i+1)+' con texto de relleno para medir el contexto del agente');
+ if(total>=900)lines[899]='(Suena el teléfono del despacho)';
+ let project=createNewShow({id:'agent-long',name:'Obra larga',scriptText:lines.join('\n')});
+ for(let i=0;i<cueCount;i++)project=insertManualCue(project,{label:'Cue largo '+(i+1)}).project;
+ return normalizeShowProject({...project,cues:project.cues.map((c,i)=>({
+  ...c,sourceLineIds:['L'+(i===6&&total>=1100?1100:i*7+10)]
+ }))});
+}
+const hasLine=(context,id)=>context.lines.some(line=>line.id===id);
+test('AI context fits the server budget for a realistic show and keeps exact source lines',()=>{
+ const project=longShow(300,40);
+ const context=buildAgentContext(project,{});
+ assert.ok(JSON.stringify(context).length<=AGENT_CONTEXT_MAX_CHARS,'context exceeds server budget');
+ assert.equal(context.truncated.script,true);
+ assert.equal(context.cues.length,40);
+ assert.ok(context.lines.length>=40);
+ const original=new Map(parseScript(project.scriptText).map(line=>[line.id,line.text]));
+ const numbers=context.lines.map(line=>Number(line.id.slice(1)));
+ assert.deepEqual(numbers,[...numbers].sort((x,y)=>x-y));
+ assert.equal(new Set(numbers).size,numbers.length);
+ for(const line of context.lines)assert.equal(line.text,original.get(line.id).slice(0,350));
+});
+test('AI context retrieves script evidence named by the instruction outside the focus window',()=>{
+ const project=longShow();
+ assert.equal(hasLine(buildAgentContext(project,{}),'L1234'),false);
+ const byLine=buildAgentContext(project,{instruction:'¿Qué sonido pondrías en L1234?'});
+ for(const id of ['L1233','L1234','L1235'])assert.ok(hasLine(byLine,id),id);
+ const byKeyword=buildAgentContext(project,{instruction:'Propón un sonido para cuando suena el teléfono del despacho'});
+ assert.ok(hasLine(byKeyword,'L900'));
+ const byCue=buildAgentContext(project,{instruction:'Mejora el cue 7 por favor'});
+ for(const id of ['L1097','L1098','L1099','L1100'])assert.ok(hasLine(byCue,id),id);
+ const selected=buildAgentContext(project,{selectedCueId:project.cues[6].id,instruction:'¿Qué le falta a este cue?'});
+ assert.ok(hasLine(selected,'L1100'));
+ for(const context of [byLine,byKeyword,byCue,selected])
+  assert.ok(JSON.stringify(context).length<=AGENT_CONTEXT_MAX_CHARS);
+ assert.throws(()=>buildAgentContext(project,{instruction:'x'.repeat(1601)}),/INVALID_CONTEXT_LIMIT/);
+});
+test('AI context keeps every cue visible when stage-manager notes are long instead of blocking the request',()=>{
+ const base=longShow(1500,80);
+ const note='Regiduría: entrar con la luz del pasillo, esperar a que ANA cierre la puerta y confirmar por intercom con el técnico de sonido antes de lanzar. Nivel -12 dB, fundido 3 s, nunca solapar con la música del cambio de escena.';
+ const project=normalizeShowProject({...base,cues:base.cues.map((c,i)=>({...c,label:'Efecto ambiente escena '+(1+Math.floor(i/8))+' — variante '+(i+1),
+  trigger:'Después de que LUIS diga la frase de entrada número '+(i+1)+' y cruce el escenario',notes:note}))});
+ const selected=project.cues[6];
+ const context=buildAgentContext(project,{instruction:'Revisa el cue 12 y el teléfono del despacho',selectedCueId:selected.id,focusLineId:selected.sourceLineIds[0]});
+ assert.ok(JSON.stringify(context).length<=AGENT_CONTEXT_MAX_CHARS);
+ assert.equal(context.truncated.cues,false,'UI blocks the request when cues are truncated');
+ assert.deepEqual(context.cues.map(c=>c.id),project.cues.map(c=>c.id));
+ assert.equal(context.truncated.cueDetails,true);
+ const sel=context.cues.find(c=>c.id===selected.id),twelve=context.cues.find(c=>c.number===12);
+ assert.equal(sel.notes,note.slice(0,240));assert.equal(sel.trigger,selected.trigger);
+ assert.equal(twelve.notes,note.slice(0,240));
+ for(const cue of context.cues)assert.deepEqual(cue.sourceLineIds,project.cues.find(c=>c.id===cue.id).sourceLineIds);
+ assert.ok(hasLine(context,'L900')&&hasLine(context,selected.sourceLineIds[0]));
+ assert.ok(context.lines.length>=20,'enough script remains for the model');
+});
+test('AI context drops whole cues only as a last resort and never the selected cue',()=>{
+ const project=longShow(1500,80),selected=project.cues.at(-1);
+ const context=buildAgentContext(project,{maxContextChars:2000,selectedCueId:selected.id,focusLineId:selected.sourceLineIds[0]});
+ assert.ok(JSON.stringify(context).length<=2000);
+ assert.equal(context.truncated.cues,true);
+ assert.ok(context.cues.some(c=>c.id===selected.id));
+ assert.ok(context.cues.length<80&&context.lines.length>=1);
 });

@@ -3,7 +3,7 @@
  * project, calls transport, retries, logs scripts or persists conversations.
  * The browser MUST stage and approve every returned operation separately.
  */
-import {AGENT_DESIGN_WORKSPACES,validateAgentOperations} from '../src/core/agentCore.mjs';
+import {AGENT_CONTEXT_MAX_CHARS,AGENT_DESIGN_WORKSPACES,validateAgentOperations} from '../src/core/agentCore.mjs';
 import {normalizeSpeech} from '../src/core/voiceFollow.mjs';
 import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
 import {campaignMetaFetch,campaignBasetenFetch} from './campaignFetch.mjs';
@@ -132,7 +132,7 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
       !Array.isArray(input.context.lines)||input.context.cues.length>80||
       input.context.lines.length>120||
       !validAgentFocusContext(input.context)||
-      JSON.stringify(input.context).length>15000)throw new TypeError('INVALID_INPUT');
+      JSON.stringify(input.context).length>AGENT_CONTEXT_MAX_CHARS)throw new TypeError('INVALID_INPUT');
    const conversation=input.conversation??[];
    if(!Array.isArray(conversation)||conversation.length>8||
       conversation.some(turn=>!isObj(turn)||

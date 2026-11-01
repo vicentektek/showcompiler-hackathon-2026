@@ -35,13 +35,93 @@ export function resolveAgentCue(project,reference){
  if(numbered)return p.cues.find(c=>c.number===Number(numbered[1]))??null;
  return null;
 }
+/** Same JSON size limit that tools/agentRoutes.mjs enforces on the consented context. */
+export const AGENT_CONTEXT_MAX_CHARS=15000;
+const CONTEXT_STOPWORDS=new Set(('para cuando como este esta esto estos estas pero porque donde desde hasta sobre entre '+
+ 'todo toda todos todas otro otra otros otras cual cuales quien algo hace hacer puedes podrias quiero necesito favor '+
+ 'sonido sonidos propon propone proponer pondrias pondria mejora mejorar revisa revisar linea lineas guion '+
+ 'que los las del una uno unos unas por con sus mis tus muy mas ese esa eso hay fue era son ser han has hoy ahi aqui '+
+ 'tiene tienen ella ellos usted tambien entonces ahora despues antes siempre nunca mientras efecto usarias '+
+ 'with that this these those what when where which would could should there their about from into please '+
+ 'the and for you but not are was were his her she him our out all any can had its one who why how did get got '+
+ 'let use may new now see way have does will just like some they them then than your more most only also over '+
+ 'such very here been being cue cues sound sounds make give improve review suggest propose line lines script effect').split(' '));
+const STEM_SUFFIXES=['iendo','ando','adas','ados','idas','idos','ing','ada','ado','ida','ido','es','ed','as','os','an','en','s','a','o','e'];
+const foldText=text=>String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function stemWord(word){
+ const suffix=STEM_SUFFIXES.find(end=>word.length-end.length>=3&&word.endsWith(end));
+ return (suffix?word.slice(0,-suffix.length):word).slice(0,7);
+}
+function contextTerms(text){
+ return new Set((foldText(text).match(/[a-z]{3,}/g)??[])
+  .filter(word=>!CONTEXT_STOPWORDS.has(word)).map(stemWord));
+}
+const termIn=(term,stems)=>stems.has(term)||(term.length>=4&&
+ [...stems].some(stem=>stem.length>=4&&(stem.startsWith(term)||term.startsWith(stem))));
+/**
+ * Script lines the instruction explicitly points at (L#, cue numbers, the selected
+ * cue and distinctive keywords), in priority order. Only existing line indexes.
+ */
+function instructionEvidence(lines,cues,instruction,selectedCue){
+ const order=[],index=new Map(lines.map((line,i)=>[line.id,i]));
+ const push=(...items)=>{for(const i of items)if(i>=0&&i<lines.length)order.push(i);};
+ const text=instruction??'';
+ for(const match of text.matchAll(/\bL([1-9]\d{0,5})\b/g)){
+  const i=index.get('L'+match[1]);
+  if(i!==undefined)push(i,i-1,i+1,i-2,i+2);
+ }
+ const anchors=[];
+ for(const match of text.matchAll(/\b(?:cue|q)\s*[#nº°.]*\s*0*([1-9]\d{0,4})\b/gi)){
+  const cue=cues.find(c=>c.number===Number(match[1]));
+  if(cue)anchors.push(cue);
+ }
+ if(selectedCue)anchors.push(selectedCue);
+ for(const cue of anchors)for(const id of cue.sourceLineIds.slice(0,3)){
+  const i=index.get(id);
+  if(i!==undefined)push(i,i-1,i-2,i-3,i-4,i+1);
+ }
+ const terms=[...contextTerms(text)];
+ if(terms.length){
+  const lineTerms=lines.map(line=>contextTerms(line.text));
+  const common=Math.max(3,Math.ceil(lines.length*0.15));
+  const weight=new Map();
+  for(const term of terms){
+   const df=lineTerms.reduce((n,set)=>n+(termIn(term,set)?1:0),0);
+   if(df>0&&df<=common)weight.set(term,Math.log(1+lines.length/df));
+  }
+  if(weight.size){
+   lineTerms.map((set,i)=>[i,[...weight].reduce((sum,[term,w])=>sum+(termIn(term,set)?w:0),0)])
+    .filter(([,score])=>score>0).sort((x,y)=>y[1]-x[1]||x[0]-y[0]).slice(0,6)
+    .forEach(([i])=>push(i,i-1,i+1));
+  }
+ }
+ return order;
+}
+function compactAgentCue(c){
+ const assetIds=[...c.actions.filter(a=>a.type==='PLAY').map(a=>a.assetId),
+  ...(c.audioTracks??[]).map(t=>t.assetId)];
+ const playback=c.playback??{};
+ return {id:c.id,number:c.number,label:c.label,sourceLineIds:[...c.sourceLineIds],
+  ...(c.trigger?{trigger:c.trigger}:{}),...(c.notes?{notes:String(c.notes).slice(0,240)}:{}),
+  ...(Object.keys(playback).length?{playback}:{}),...(assetIds.length?{assetIds}:{}),
+  unresolved:c.actions.some(a=>a.type==='PLAN_AUDIO')};
+}
+/** Identity and placement only; the model is told the details exist but were omitted. */
+function minimalAgentCue(c){
+ const full=compactAgentCue(c);
+ return {id:full.id,number:full.number,label:String(full.label).slice(0,120),sourceLineIds:full.sourceLineIds,
+  ...(full.assetIds?{assetIds:full.assetIds}:{}),unresolved:full.unresolved,detailsOmitted:true};
+}
 export function buildAgentContext(project,{
  cueIds=null,maxCues=80,maxScriptLines=120,focusLineId=null,assetAvailable=()=>null,
  workspace='ai',mode='design-manual',selectedCueId=null,selectedLineIds=null,
+ instruction=null,maxContextChars=AGENT_CONTEXT_MAX_CHARS,
 }={}){
  const p=normalizeShowProject(project);
  if(!Number.isSafeInteger(maxCues)||maxCues<1||maxCues>200||
     !Number.isSafeInteger(maxScriptLines)||maxScriptLines<1||maxScriptLines>200||
+    !Number.isSafeInteger(maxContextChars)||maxContextChars<2000||maxContextChars>AGENT_CONTEXT_MAX_CHARS||
+    (instruction!==null&&(typeof instruction!=='string'||instruction.length>1600))||
     !DESIGN_WORKSPACES.has(workspace)||mode!=='design-manual'||
     (selectedCueId!==null&&typeof selectedCueId!=='string')||
     (selectedLineIds!==null&&(!Array.isArray(selectedLineIds)||selectedLineIds.length<1||
@@ -62,23 +142,67 @@ export function buildAgentContext(project,{
   if(!line)fail('INVALID_SELECTED_SCRIPT_LINE');
   return line;
  });
- const focus=Number(/^L([1-9]\d*)$/.exec(focusLineId??'')?.[1])||1;
- const first=Math.max(0,Math.min(focus-1-Math.floor(maxScriptLines/2),Math.max(0,lines.length-maxScriptLines)));
- return {
+ const index=new Map(lines.map((line,i)=>[line.id,i]));
+ const center=Math.min(Math.max(0,(Number(/^L([1-9]\d*)$/.exec(focusLineId??'')?.[1])||1)-1),Math.max(0,lines.length-1));
+ let order;
+ if(selectedLines!==null)order=selectedLines.map(line=>index.get(line.id));
+ else order=instructionEvidence(lines,p.cues,instruction,selectedCue);
+ const evidence=new Set(order);
+ if(selectedLines===null){
+  for(let step=0;step<lines.length*2;step++){
+   const i=step%2===0?center+step/2:center-(step+1)/2;
+   if(i>=0&&i<lines.length)order.push(i);
+  }
+ }
+ const context={
   projectId:p.id,projectName:p.name,workspace,mode,selectedCueId,
   counts:{cues:p.cues.length,assets:p.assets.length,scriptLines:lines.length},
-  truncated:{cues:cues.length>maxCues,script:selectedLines===null&&lines.length>maxScriptLines},
-  cues:boundedCues.map(c=>({
-   id:c.id,number:c.number,label:c.label,trigger:c.trigger??'',
-   notes:c.notes??'',sourceLineIds:[...c.sourceLineIds],
-   playback:c.playback??{},assetIds:[
-    ...c.actions.filter(a=>a.type==='PLAY').map(a=>a.assetId),
-    ...(c.audioTracks??[]).map(t=>t.assetId)
-   ],unresolved:c.actions.some(a=>a.type==='PLAN_AUDIO')
-  })),
+  truncated:{cues:cues.length>maxCues,script:false},
+  cues:boundedCues.map(compactAgentCue),
   assets:p.assets.map(a=>({id:a.id,name:a.name,available:assetAvailable(a.id)})),
-  lines:(selectedLines??lines.slice(first,first+maxScriptLines)).map(l=>({id:l.id,text:l.text.slice(0,350)}))
+  lines:[]
  };
+ // The server rejects larger contexts. Keep a third of the budget for script lines by
+ // omitting unreferenced assets, then the details (not the identity) of cues far from
+ // the focus/evidence. Whole cues are dropped only as a last resort, never the selected one.
+ const size=()=>JSON.stringify(context).length;
+ const detailBudget=maxContextChars-Math.floor(maxContextChars/3);
+ const dropBudget=maxContextChars-Math.min(1500,Math.floor(maxContextChars/4));
+ if(size()>detailBudget){
+  const referenced=new Set(context.cues.flatMap(c=>c.assetIds??[]));
+  const kept=context.assets.filter(a=>referenced.has(a.id));
+  if(kept.length<context.assets.length){context.assets=kept;context.truncated.assets=true;}
+ }
+ const rank=cue=>{
+  if(cue.id===selectedCueId)return -1;
+  const at=cue.sourceLineIds.map(id=>index.get(id)).filter(i=>i!==undefined);
+  if(at.some(i=>evidence.has(i)))return -1;
+  return at.length?Math.min(...at.map(i=>Math.abs(i-center))):Number.MAX_SAFE_INTEGER;
+ };
+ const farthest=()=>context.cues.map((cue,k)=>[k,rank(cue)]).sort((x,y)=>y[1]-x[1]||y[0]-x[0]);
+ for(const [k,r] of farthest()){
+  if(size()<=detailBudget||r<0)break;
+  context.cues[k]=minimalAgentCue(boundedCues[k]);context.truncated.cueDetails=true;
+ }
+ while(context.cues.length>1&&size()>dropBudget){
+  const [k]=farthest().find(([j])=>context.cues[j].id!==selectedCueId);
+  context.cues.splice(k,1);boundedCues.splice(k,1);context.truncated.cues=true;
+ }
+ const byIndex=new Map(lines.map((line,i)=>[i,{id:line.id,text:line.text.slice(0,350)}]));
+ let used=JSON.stringify(context).length;
+ const chosen=new Set();
+ for(const i of order){
+  if(chosen.size>=maxScriptLines)break;
+  if(chosen.has(i))continue;
+  const cost=JSON.stringify(byIndex.get(i)).length+1;
+  if(used+cost>maxContextChars)continue;
+  chosen.add(i);used+=cost;
+ }
+ const picked=selectedLines!==null?order.filter(i=>chosen.has(i)):[...chosen].sort((x,y)=>x-y);
+ context.lines=picked.map(i=>byIndex.get(i));
+ context.truncated.script=selectedLines===null?context.lines.length<lines.length:
+  context.lines.length<selectedLines.length;
+ return context;
 }
 export function auditAgentProject(project,{assetAvailable=()=>null}={}){
  const p=normalizeShowProject(project),issues=[];

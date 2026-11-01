@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAppServer} from '../tools/dev-server.mjs';
+import {createNewShow} from '../src/core/workspace.mjs';
+import {insertManualCue} from '../src/core/manualCues.mjs';
+import {buildAgentContext} from '../src/core/agentCore.mjs';
 
 const proposal={
  status:'PLAN',message:'Delete cue 2 after review.',
@@ -170,4 +173,20 @@ test('agent prompt preserves explicit door actions while keeping ambience option
   assert.equal(input.language,cases[index].language);
   assert.deepEqual(input.context.lines,[{id:'L4',text:cases[index].line}]);
  }
+});
+
+test('agent route accepts the context the browser builds for a realistic show size',async()=>{
+ const lines=Array.from({length:300},(_,i)=>'ANA: Frase de ensayo '+(i+1)+' con texto de relleno para medir el contexto del agente');
+ let project=createNewShow({id:'route-long',name:'Obra',scriptText:lines.join('\n')});
+ for(let i=0;i<40;i++)project=insertManualCue(project,{label:'Cue '+(i+1)}).project;
+ const built=buildAgentContext(project,{instruction:'Revisa la escena del despacho'});
+ let called=0;
+ await withServer({getAgentKey:()=> 'test-key',agentFetch:async()=>{called++;
+   return reply({status:'ANSWER',message:'Revisado.',operations:[]});}},async root=>{
+  const request=params(root);
+  request.body=JSON.stringify({prompt:'Revisa la escena del despacho',language:'es',context:built});
+  const response=await fetch(root+'/api/agent/interpret',request);
+  assert.equal(response.status,200);
+  assert.equal(called,1);
+ });
 });
