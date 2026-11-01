@@ -547,7 +547,10 @@ function bindScriptCompiler(){
       const promptStatus=draft.requiresTranslation
         ?ux('la acotación necesita traducción al inglés antes de generar',
           'the script direction needs an English rewrite before generation')
-        :ux('prompt preparado en inglés','English prompt prepared');
+        :draft.untranslatedDetail?.length
+          ?ux(`revisa el prompt: falta en inglés «${draft.untranslatedDetail.join(', ')}»`,
+            `review the prompt: «${draft.untranslatedDetail.join(', ')}» still needs English`)
+          :ux('prompt preparado en inglés','English prompt prepared');
       text('sfxCueContext',ux(
         `Sonido para cue ${taskContext.cueNumber??''}${draft.sourceLineId?' · '+draft.sourceLineId:''} · ${promptStatus} · duración estimada: ${draft.durationSeconds} s.`,
         `Sound for cue ${taskContext.cueNumber??''}${draft.sourceLineId?' · '+draft.sourceLineId:''} · ${promptStatus} · estimated duration: ${draft.durationSeconds} s.`,

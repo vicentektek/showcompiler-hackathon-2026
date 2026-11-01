@@ -8,6 +8,7 @@ import {
   applyProposalEdits,
   buildPromptFromFields,
   prepareCueSoundDraft,
+  approvedDetailCoverage,
   SoundPromptCompilerError,
   COMPILER_CONTRACT_VERSION,
   COMPILE_MODES,
@@ -560,4 +561,50 @@ test('buildShowSoundCandidates scans stage directions with L# references', () =>
 
 test('buildShowSoundCandidates rejects non-string scripts', () => {
   assert.throws(() => buildShowSoundCandidates(42), SoundPromptCompilerError);
+});
+
+test('approved cue details survive compilation in English or are flagged for review, never silently dropped', () => {
+  const script = 'FARERO: Ya llega la niebla.\n(Suena la campana del faro tres veces)';
+  const draftFor = idea => prepareCueSoundDraft({
+    cue: { id: 'cue-20', number: 20, label: 'Campana', sourceLineIds: ['L2'], actions: [{ type: 'PLAN_AUDIO', prompt: idea }] },
+    scriptText: script,
+  });
+  const cases = [
+    ['tres toques claros de campana de faro', [/three times/, /\bclear\b/, /lighthouse/]],
+    ['pasos lentos sobre madera vieja que cruje', [/footsteps/, /\bslow\b/, /\bwood/, /\bold\b/, /creak/]],
+    ['un portazo seco y violento', [/door/, /\bdry\b/, /violent/]],
+    ['campana de faro lejana con eco metálico', [/distant/, /lighthouse/, /metallic/, /echo/]],
+    ['three clear lighthouse bell strikes', [/three times/, /\bclear\b/, /lighthouse/, /\bstrikes?\b/]],
+  ];
+  for (const [idea, expected] of cases) {
+    const draft = draftFor(idea);
+    assert.equal(draft.interpretation, 'SCRIPT_COMPILER', idea);
+    for (const pattern of expected) assert.match(draft.prompt, pattern, idea);
+    assert.doesNotMatch(draft.prompt, /\b(?:campana|faro|madera|seco|lejana|cruje)\b/i, idea);
+    assert.deepEqual(draft.untranslatedDetail, [], idea);
+  }
+  const unknown = draftFor('campana del faro con zumbido de abejorros');
+  assert.deepEqual(unknown.untranslatedDetail, ['abejorros']);
+  assert.doesNotMatch(unknown.prompt, /abejorros/);
+  assert.deepEqual(approvedDetailCoverage('Lighthouse', 'A bell').add, ['lighthouse']);
+  // Operational vocabulary, character names and idioms are neither false alarms nor mistranslated.
+  const operational = draftFor('reproducir lluvia de fondo grabada, en loop');
+  assert.deepEqual(operational.untranslatedDetail, []);
+  assert.match(operational.prompt, /background/);
+  assert.deepEqual(draftFor('JULIO cierra la puerta con un golpe seco').untranslatedDetail, []);
+  assert.doesNotMatch(draftFor('JULIO cierra la puerta con un golpe seco').prompt, /julio/i);
+  const gust = draftFor('un golpe de viento procesado');
+  assert.match(gust.prompt, /\bgust\b/);
+  assert.doesNotMatch(gust.prompt, /knock/i);
+  // Idioms and verb morphology resolve to the intended sense instead of a literal noun.
+  const slam = draftFor('la puerta de un coche que se cierra de golpe');
+  assert.match(slam.prompt, /slammed/);
+  assert.doesNotMatch(slam.prompt, /knock/i);
+  assert.match(draftFor('pasos lentos y arrastrados en un sótano húmedo').prompt, /dragging/);
+  assert.match(draftFor('una botella de vidrio rueda por el suelo').prompt, /rolling/);
+  assert.doesNotMatch(draftFor('una botella de vidrio rueda por el suelo').prompt, /wheels/);
+  const coverage = approvedDetailCoverage('pasos lentos sobre grava', 'Slow footsteps on gravel.');
+  assert.deepEqual(coverage.add, []);
+  assert.deepEqual(coverage.untranslated, []);
+  assert.deepEqual(coverage.rendered, ['pasos', 'lentos', 'grava']);
 });

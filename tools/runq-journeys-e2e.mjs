@@ -26,6 +26,7 @@ import { createAppServer } from './dev-server.mjs';
 import { launchTestBrowser } from './browserTestRuntime.mjs';
 import { planScriptAnalysis } from '../src/core/sceneAnalysis.mjs';
 import { importPortableShow } from '../src/core/showArchive.mjs';
+import { approvedDetailCoverage } from '../src/core/soundPromptCompiler.mjs';
 
 let nodeFetchAttempts = 0;
 globalThis.fetch = async () => {
@@ -569,6 +570,7 @@ async function generateSoundForCue(j, cueId, { expectFailure = false, alreadyOpe
     else await openSoundFromStudio(j, cueId);
     await page.locator('[data-rq10-sound-tab="generate"]').waitFor({ state: 'visible' });
     j.check(await page.locator('#sfxCueContext').isVisible(), 'Sound lab shows the pinned cue context');
+    j.sfxCueContextText = (await page.locator('#sfxCueContext').textContent()) ?? '';
   }
   const cue = (await readAgent(page)).project.cues.find(c => c.id === cueId);
   j.check(await page.locator('#sourceLine').inputValue() === cue.sourceLineIds[0],
@@ -866,9 +868,17 @@ async function fullShowJourney(j) {
       if (expectedSource && !expectedSource.test(prompt))
         j.finding('SOUND_PROMPT_WRONG_SOURCE', 'P1',
           `The generation prompt does not describe the approved sound source. approved="${proposalPrompt}" sent="${prompt.slice(0, 240)}"`);
-      else if (!prompt.includes(proposalPrompt))
-        j.finding('SOUND_PROMPT_DROPS_APPROVED_DETAIL', 'INFO',
-          `Deterministic English prompt keeps the approved source but drops some approved detail (known compiler vocabulary limit). approved="${proposalPrompt}" sent="${prompt.slice(0, 160)}"`);
+      else if (!prompt.includes(proposalPrompt)) {
+        const coverage = approvedDetailCoverage(proposalPrompt, prompt);
+        const hidden = coverage.untranslated.filter(word => !(j.sfxCueContextText ?? '').includes(word));
+        if (coverage.add.length)
+          j.finding('SOUND_PROMPT_DROPS_APPROVED_DETAIL', 'P2',
+            `The English prompt silently drops approved detail. approved="${proposalPrompt}" missing="${coverage.add.join(', ')}" sent="${prompt.slice(0, 200)}"`);
+        else if (hidden.length)
+          j.finding('SOUND_PROMPT_UNTRANSLATED_DETAIL_HIDDEN', 'P2',
+            `Approved detail could not be translated and the sound lab did not tell the user. approved="${proposalPrompt}" words="${hidden.join(', ')}"`);
+        j.check(coverage.add.length === 0, 'Every translatable approved detail reaches the English generation prompt');
+      }
       j.check((await readStarted(page)).length === 0, 'Reviewing and accepting sound never executes GO');
     });
   }

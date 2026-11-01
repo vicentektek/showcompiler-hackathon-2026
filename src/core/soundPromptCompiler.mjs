@@ -918,6 +918,183 @@ function ideaNamesSoundSource(idea, proposal) {
   return stems.some(stem => ideaWords.some(word => word.startsWith(stem)));
 }
 
+/*
+ * Approved-idea fidelity. The deterministic compiler renders source, action, count,
+ * distance and intensity; other approved descriptors (tempo, texture, material,
+ * place...) would otherwise vanish from the English prompt. A general sound-design
+ * lexicon carries them over; words it cannot translate are reported, not dropped.
+ */
+const IDEA_STOPWORDS = new Set(('el la los las lo le les un una uno unos unas de del al a en con sin sobre entre por para ' +
+  'que y o u e ni se su sus muy mas menos poco como cuando desde hasta tras contra hacia ante bajo durante mientras ' +
+  'otro otra este esta estos estas ese esa aquel aquella cada todo toda hay es son estan ser sonido sonidos efecto ' +
+  'efectos ruido cue the an and or of to in on at by for from with without into onto over under between through that ' +
+  'this these those then very some its it is are be sound sounds effect one two three four five six seven eight nine ' +
+  'ten once twice times seguido seguida luego despues antes entonces algo alguien').split(' '));
+// Transport/production vocabulary describes how the cue is operated, not how it sounds.
+const IDEA_OPERATIONAL = new Set(('reproducir reproduce lanzar lanza ejecutar ejecuta iniciar inicia comienza empieza ' +
+  'detener detiene cortar corta parar para disparar dispara dispararla dispararlo volver vuelve permanece mantiene ' +
+  'continua sigue termina acaba activa activo fade loop bucle fundido entrada salida segundo segundos minuto minutos ' +
+  'vez veces sola solo unica unico grabado grabada pregrabado pregrabada efecto sonoro sonora anadido anadida ' +
+  'fisicamente real utileria senal compas final nivel pista volumen oye escucha suena sonar mediante hace pide debe nuevo nueva ' +
+  'sfx stop play cue wav mp3 audio start starts stops plays trigger triggered recorded prerecorded looped seconds ' +
+  'second minutes single level track volume heard hear').split(' '));
+const IDEA_IDIOMS = Object.freeze([
+  ['de golpe', 'slammed abruptly'], ['en mil pedazos', 'shattering'], ['de al lado', 'next door'],
+  ['sala de espera', 'waiting room'],
+  ['golpe de viento', 'gust'], ['rafaga de viento', 'gust'], ['golpe de mar', 'surge'],
+  ['cuna publicitaria', 'advert'], ['cuna de radio', 'advert'], ['de fondo', 'background'],
+  ['a lo lejos', 'distant'], ['fuera de escena', 'offstage'], ['en off', 'offstage'],
+  ['sirena de niebla', 'foghorn'], ['maquina de escribir', 'typewriter'], ['caja de musica', 'music box'],
+  ['reloj de pared', 'wall clock'], ['apenas audible', 'barely audible'], ['sala de maquinas', 'engine room'],
+  ['fuegos artificiales', 'fireworks'], ['piso de arriba', 'upstairs'], ['llamada a la puerta', 'knock at the door'],
+  ['reloj de arena', 'hourglass'], ['reloj de cuco', 'cuckoo clock'], ['vias del tren', 'railway tracks'],
+]);
+const IDEA_GLOSSARY = Object.freeze({
+  lento: 'slow', lentamente: 'slowly', despacio: 'slowly', rapido: 'fast', rapidamente: 'quickly', veloz: 'fast',
+  deprisa: 'hurried', apresurado: 'hurried', pausado: 'unhurried', ritmico: 'rhythmic', irregular: 'irregular',
+  constante: 'steady', continuo: 'continuous', intermitente: 'intermittent', repetido: 'repeated', breve: 'brief',
+  corto: 'short', largo: 'long', sostenido: 'sustained', creciente: 'swelling', progresivo: 'gradual',
+  fuerte: 'loud', suave: 'soft', violento: 'violent', brusco: 'abrupt', seco: 'dry', sordo: 'muffled',
+  ahogado: 'muffled', amortiguado: 'muffled', debil: 'faint', tenue: 'faint', leve: 'faint', intenso: 'intense',
+  estruendoso: 'thunderous', atronador: 'thunderous', potente: 'powerful', delicado: 'delicate', claro: 'clear',
+  nitido: 'crisp', limpio: 'clean', subito: 'sudden', repentino: 'sudden',
+  grave: 'low-pitched', agudo: 'high-pitched', metalico: 'metallic', hueco: 'hollow', aspero: 'rough',
+  estridente: 'shrill', chillon: 'shrill', apagado: 'dull', brillante: 'bright', profundo: 'deep',
+  cristalino: 'crystalline', resonante: 'resonant', vibrante: 'vibrant', ronco: 'hoarse',
+  madera: 'wood', metal: 'metal', hierro: 'iron', acero: 'steel', cristal: 'glass', vidrio: 'glass', piedra: 'stone',
+  grava: 'gravel', arena: 'sand', nieve: 'snow', barro: 'mud', tela: 'cloth', papel: 'paper', cuero: 'leather',
+  hoja: 'leaves', viejo: 'old', antiguo: 'antique', oxidado: 'rusty', nuevo: 'new', roto: 'broken', mojado: 'wet',
+  humedo: 'damp', pesado: 'heavy', ligero: 'light',
+  cruje: 'creaking', crujir: 'creaking', crujido: 'creaking', chirria: 'creaking', chirrido: 'creaking',
+  retumba: 'rumbling', eco: 'echo', reverberacion: 'reverberation', resuena: 'resonating', vibra: 'vibrating',
+  arrastra: 'dragging', golpea: 'knocking', gotea: 'dripping', goteo: 'dripping', silba: 'whistling',
+  zumba: 'buzzing', zumbido: 'buzzing', abre: 'opening', cierra: 'closing', cae: 'falling', rompe: 'breaking',
+  estalla: 'bursting', toque: 'strikes', golpe: 'knocks', grito: 'scream', ladrido: 'barking', aplauso: 'applause',
+  lluvia: 'rain', viento: 'wind', trueno: 'thunder', tormenta: 'storm', campana: 'bell', puerta: 'door',
+  paso: 'footsteps', perro: 'dog', telefono: 'telephone', reloj: 'clock', tren: 'train', coche: 'car', barco: 'ship',
+  sirena: 'siren', agua: 'water', fuego: 'fire', ola: 'waves', pajaro: 'bird', multitud: 'crowd', disparo: 'gunshot',
+  vaso: 'glass', musica: 'music', radio: 'radio', piano: 'piano',
+  lejano: 'distant', lejos: 'distant', cercano: 'close', cerca: 'close', proximo: 'nearby', fuera: 'outside',
+  exterior: 'outdoor', interior: 'indoor', sala: 'hall', salon: 'living room', pasillo: 'corridor', sotano: 'cellar',
+  escalera: 'staircase', iglesia: 'church', calle: 'street', bosque: 'forest', campo: 'countryside',
+  puerto: 'harbour', faro: 'lighthouse', estacion: 'station', cueva: 'cave', patio: 'courtyard', jardin: 'garden',
+  cocina: 'kitchen', habitacion: 'room', despacho: 'office', biblioteca: 'library', mar: 'sea', playa: 'beach',
+  rio: 'river', ciudad: 'city', pueblo: 'village', tejado: 'roof', ventana: 'window',
+  inquietante: 'unsettling', tenso: 'tense', amenazante: 'menacing', alegre: 'cheerful', triste: 'sad',
+  misterioso: 'mysterious', lugubre: 'gloomy', silencioso: 'quiet', tranquilo: 'calm', nocturno: 'night-time',
+  noche: 'night', altavoz: 'loudspeaker', megafonia: 'public address', recepcion: 'reception', timbre: 'bell',
+  procesado: 'processed', distorsionado: 'distorted', filtrado: 'filtered',
+  // Common sound sources and actions (weather, animals, household, transport, nautical, human).
+  gato: 'cat', caballo: 'horse', gallo: 'rooster', vaca: 'cow', oveja: 'sheep', lobo: 'wolf', buho: 'owl',
+  cuervo: 'crow', grillo: 'crickets', rana: 'frogs', abeja: 'bees', mosca: 'flies', insecto: 'insects',
+  paloma: 'pigeons', gaviota: 'gulls', maulla: 'meowing', maullido: 'meowing', aulla: 'howling', aullido: 'howling',
+  relincha: 'neighing', relincho: 'neighing', ladra: 'barking', ulula: 'hooting', ruge: 'roaring', rugido: 'roar',
+  canta: 'singing', grita: 'shouting', llora: 'crying', llanto: 'crying', risa: 'laughter', susurro: 'whispers',
+  susurra: 'whispering', murmullo: 'murmur', murmura: 'murmuring', respiracion: 'breathing', respira: 'breathing',
+  jadeo: 'panting', latido: 'heartbeat', corazon: 'heart', tos: 'cough', tose: 'coughing', suspiro: 'sigh',
+  palmada: 'clap', voz: 'voices', conversacion: 'conversation', gente: 'people', publico: 'audience', nino: 'children',
+  entusiasta: 'enthusiastic', ovacion: 'ovation', abucheo: 'booing',
+  llave: 'keys', cerradura: 'lock', cajon: 'drawer', silla: 'chair', mesa: 'table', plato: 'plates', taza: 'cup',
+  cubierto: 'cutlery', botella: 'bottle', copa: 'wine glass', tetera: 'kettle', grifo: 'tap', ducha: 'shower',
+  interruptor: 'switch', maquina: 'machine', ventilador: 'fan', nevera: 'fridge', televisor: 'television',
+  cortina: 'curtain', persiana: 'blinds', tictac: 'ticking', campanada: 'bell toll', alarma: 'alarm', pitido: 'beep',
+  timbrazo: 'ring', chispa: 'sparks', electrico: 'electric', estatica: 'static', interferencia: 'interference',
+  trafico: 'traffic', bocina: 'horn', claxon: 'horn', motor: 'engine', frenazo: 'screeching brakes', freno: 'brakes',
+  rueda: 'rolling', carruaje: 'carriage', moto: 'motorbike', avion: 'aeroplane', helicoptero: 'helicopter',
+  tranvia: 'tram', vapor: 'steam', martillo: 'hammer', taladro: 'drill', engranaje: 'gears', arranca: 'starting',
+  acerca: 'approaching', aleja: 'receding', pasa: 'passing', muelle: 'pier', casco: 'hull', lona: 'canvas',
+  ancla: 'anchor', cadena: 'chain', cuerda: 'rope', remo: 'oars', cubierta: 'deck', niebla: 'fog', marea: 'tide',
+  oleaje: 'swell', rama: 'branches', arbol: 'trees', hierba: 'grass', cascada: 'waterfall', arroyo: 'stream',
+  fuente: 'fountain', gota: 'drops', granizo: 'hail', relampago: 'lightning', chimenea: 'fireplace', hoguera: 'bonfire',
+  brasa: 'embers', crepita: 'crackling', chisporrotea: 'crackling', rasca: 'scratching', rasga: 'tearing',
+  frota: 'rubbing', salpica: 'splashing', burbujea: 'bubbling', hierve: 'boiling', sopla: 'blowing',
+  ondea: 'flapping', aletea: 'flapping', tiembla: 'trembling', choca: 'crashing', choque: 'crash',
+  explosion: 'explosion', explota: 'exploding', derrumba: 'collapsing', desliza: 'sliding', rebota: 'bouncing',
+  tintinea: 'tinkling', tintineo: 'tinkling', repica: 'pealing', repique: 'pealing', chasquido: 'click',
+  portazo: 'door slam', aldabonazo: 'knocker', corre: 'running', camina: 'walking', salta: 'jumping', sube: 'climbing',
+  baja: 'descending', pisa: 'stepping', teclea: 'typing', rendija: 'cracks',
+  guitarra: 'guitar', violin: 'violin', tambor: 'drum', trompeta: 'trumpet', organo: 'organ', flauta: 'flute',
+  acordeon: 'accordion', orquesta: 'orchestra', melodia: 'melody', cancion: 'song', vals: 'waltz', himno: 'anthem',
+  distante: 'distant', remoto: 'remote', audible: 'audible', arriba: 'above', abajo: 'below', encima: 'overhead',
+  izquierda: 'left', derecha: 'right', detras: 'behind', delante: 'in front', alrededor: 'around',
+  siniestro: 'sinister', oscuro: 'dark', ominoso: 'ominous', festivo: 'festive', solemne: 'solemn', epico: 'epic',
+  romantico: 'romantic', melancolico: 'melancholic', nostalgico: 'nostalgic', angustioso: 'distressing',
+  dramatico: 'dramatic', sutil: 'subtle', ambiente: 'ambience', denso: 'dense', fino: 'fine', espeso: 'thick',
+  amanecer: 'dawn', atardecer: 'dusk', madrugada: 'small hours', invierno: 'winter', verano: 'summer',
+  otono: 'autumn', primavera: 'spring', taberna: 'tavern', mercado: 'market', plaza: 'square', estadio: 'stadium',
+  teatro: 'theatre', hospital: 'hospital', oficina: 'office', fabrica: 'factory', granja: 'farm', establo: 'stable',
+  castillo: 'castle', palacio: 'palace', prision: 'prison', celda: 'cell', tunel: 'tunnel', desierto: 'desert',
+  montana: 'mountain', selva: 'jungle', isla: 'island', lago: 'lake', pantano: 'swamp', roca: 'rocks',
+  plastico: 'plastic', carton: 'cardboard', laton: 'brass', cobre: 'copper', porcelana: 'porcelain',
+  ceramica: 'ceramic', lata: 'tin can', goma: 'rubber', alfombra: 'carpet', suelo: 'floor', pared: 'wall',
+  techo: 'ceiling', tabla: 'boards', baldosa: 'tiles', adoquin: 'cobblestones', asfalto: 'asphalt', hielo: 'ice',
+  charco: 'puddle', insistente: 'insistent', vacio: 'empty', callejon: 'alley', tacon: 'high heels', marmol: 'marble',
+  vestibulo: 'lobby', corredera: 'sliding', enfurecido: 'angry', furioso: 'furious', chapa: 'sheet metal',
+  sigiloso: 'stealthy', helado: 'icy', motocicleta: 'motorcycle', acelera: 'accelerating', frena: 'braking',
+  derrapa: 'skidding', traqueteo: 'clattering', via: 'tracks', piso: 'floor', boda: 'wedding', llamada: 'call',
+  timido: 'timid', grune: 'growling', grunido: 'growl', grazna: 'cawing', chapoteo: 'splashing', cuco: 'cuckoo',
+  frigorifico: 'fridge', ambulancia: 'ambulance', cementerio: 'cemetery', abandonado: 'abandoned',
+  oscuridad: 'darkness', bota: 'boots', resquebraja: 'cracking', rie: 'laughing', golpetea: 'tapping',
+  tamborilea: 'drumming', palpita: 'pulsing', retumbo: 'rumble', estruendo: 'din', estrepito: 'clatter',
+  alboroto: 'commotion', bullicio: 'bustle', silencio: 'silence', calma: 'calm', quietud: 'stillness',
+  sereno: 'serene', inquieto: 'restless', nervioso: 'nervous', frenetico: 'frantic', enorme: 'huge',
+  grande: 'large', pequeno: 'small', diminuto: 'tiny', lleno: 'full',
+});
+const SPANISH_IDEA = /[áéíóúñ¿¡]|\b(?:el|la|los|las|un|una|unos|unas|de|del|que|se|su|sobre|y|con|en|al)\b/i;
+function glossIdeaWord(word) {
+  // Plural nouns/adjectives, feminine forms and the verb forms an idea typically uses
+  // (gerund, 3rd-person plural, infinitive + se) all resolve to one lexicon entry.
+  const forms = [word, word.replace(/es$/, ''), word.replace(/s$/, ''), word.replace(/ando$/, 'a'),
+    word.replace(/[iy]endo$/, 'e'), word.replace(/an$/, 'a'), word.replace(/en$/, 'e'),
+    word.replace(/ar(?:se)?$/, 'a'), word.replace(/[ei]r(?:se)?$/, 'e'), word.replace(/amente$/, 'o'),
+    word.replace(/ad[oa]s?$/, 'a'), word.replace(/id[oa]s?$/, 'e'),
+    word.replace(/mente$/, '')];
+  for (const form of [...forms, ...forms.map(item => item.replace(/as?$/, 'o'))]) {
+    if (Object.hasOwn(IDEA_GLOSSARY, form)) return IDEA_GLOSSARY[form];
+  }
+  return null;
+}
+const renderedIn = (text, word) => {
+  const stem = word.replace(/(?:ing|ly|ed|es|s)$/, '');
+  return new RegExp(`\\b${(stem.length >= 3 ? stem : word).replace(/[^a-z -]/g, '')}`).test(text);
+};
+
+/**
+ * Which content words of an approved cue idea the English prompt does not render.
+ * `add`: English descriptors to append; `untranslated`: Spanish words with no
+ * gloss that the compiler did not consume (evidence spans in `explicitElements`).
+ */
+export function approvedDetailCoverage(idea, prompt, explicitElements = []) {
+  // Idea-independent boilerplate (e.g. the generic "Dry theatrical sound effect") is not evidence.
+  const promptText = fold([...Object.values(CATEGORY_TAILS), SPACE_PHRASES.UNSPECIFIED]
+    .reduce((text, phrase) => text.split(phrase).join(' '), String(prompt ?? '')));
+  const consumed = fold(explicitElements.map(item => /«([^»]*)»/.exec(item)?.[1] ?? '').join(' '));
+  const text = String(idea ?? '');
+  const spanish = SPANISH_IDEA.test(text);
+  const add = [], untranslated = [], rendered = [];
+  // Mixed-case ideas write character names in capitals ("JULIO cierra la puerta").
+  const names = /[a-zà-ÿ]/.test(text) ? new Set(fold((text.match(/\b[A-ZÁÉÍÓÚÑ]{2,}\b/g) ?? []).join(' ')).split(' ')) : new Set();
+  let folded = fold(text);
+  if (spanish) {
+    for (const [phrase, english] of IDEA_IDIOMS) {
+      if (!folded.includes(phrase)) continue;
+      folded = folded.split(phrase).join(' ');
+      if (!renderedIn(promptText, english) && !add.includes(english)) add.push(english);
+    }
+  }
+  for (const word of new Set(folded.match(/[a-zñ]{3,}/g) ?? [])) {
+    if (IDEA_STOPWORDS.has(word) || IDEA_OPERATIONAL.has(word) || names.has(word) || Object.hasOwn(NUMBER_WORD_VALUES, word)) continue;
+    const english = spanish ? glossIdeaWord(word) : word;
+    if (english) {
+      if (renderedIn(promptText, english)) rendered.push(word);
+      else if (!add.includes(english)) add.push(english);
+    } else if (!new RegExp(`\\b${word}\\b`).test(consumed)) {
+      untranslated.push(word);
+    }
+  }
+  return { add, untranslated, rendered };
+}
+
 export function prepareCueSoundDraft({ cue, scriptText = '', sourceLines = [] } = {}) {
   if (!cue || typeof cue !== 'object' || Array.isArray(cue) ||
       typeof cue.id !== 'string' || typeof cue.label !== 'string' ||
@@ -967,8 +1144,12 @@ export function prepareCueSoundDraft({ cue, scriptText = '', sourceLines = [] } 
     /[áéíóúñ¿¡]|\b(?:el|la|los|las|un|una|unos|unas|de|del|que|se|su|sobre|puerta|pasos|lluvia|viento|biblioteca|misterio|misteriosa|silencio|sombra|pasillo|bosque|habitación|habitacion|jardín|jardin)\b/i.test(direction);
   const cueReference = `Cue ${String(cue.number ?? cue.id).trim()}` +
     (sourceLineId ? `, script reference ${sourceLineId}` : '');
+  const coverage = proposal && cueIdea && !ideaIsLabel
+    ? approvedDetailCoverage(cueIdea, proposal.prompt, proposal.explicitElements)
+    : { add: [], untranslated: [] };
   const basePrompt = proposal
-    ? `${cueReference}. ${proposal.prompt}`
+    ? `${cueReference}. ${proposal.prompt}` +
+      (coverage.add.length ? ` Approved cue detail to preserve: ${coverage.add.join(', ')}.` : '')
     : `${cueReference}. Create a clean, isolated theatrical ${kind === 'ENVIRONMENT' ? 'ambience' : 'sound effect'} based on this approved cue idea: "${direction}". Do not add dialogue, music, or unrelated sounds.`;
   const durationPrompt = kind === 'ENVIRONMENT'
     ? ` Sustain as a consistent atmospheric bed for approximately ${durationSeconds} seconds.`
@@ -981,6 +1162,7 @@ export function prepareCueSoundDraft({ cue, scriptText = '', sourceLines = [] } 
     sourceLineId,
     interpretation: proposal ? 'SCRIPT_COMPILER' : 'CUE_BRIEF',
     requiresTranslation,
+    untranslatedDetail: coverage.untranslated,
   };
 }
 
