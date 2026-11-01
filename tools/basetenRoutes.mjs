@@ -7,6 +7,7 @@ import { addModelProposals } from '../src/core/workspace.mjs';
 import { normalizeScriptLanguageHint } from '../src/core/scriptLanguage.mjs';
 import { callBasetenCueModel, BASETEN_MODEL, BASETEN_PROVIDER, BasetenOutputError } from '../src/core/basetenCueProvider.mjs';
 import {campaignBasetenFetch} from './campaignFetch.mjs';
+import {isCampaignProviderProhibited} from '../src/qa/campaignPolicy.mjs';
 const prohibitedCampaignClient=options=>callBasetenCueModel({...options,fetchImpl:campaignBasetenFetch});
 
 function reply(res, status, object, headers) {
@@ -46,6 +47,8 @@ async function parseBody(req) {
 export function makeBasetenRoute({
   modelClient = prohibitedCampaignClient,
   getKey = () => process.env.BASETEN_API_KEY,
+  // Offline adapter-contract tests may pass false with an injected mock client.
+  campaignProhibited = isCampaignProviderProhibited('baseten'),
 } = {}) {
   let busy = false;
   return async function handle(req, res, path, headers) {
@@ -59,7 +62,8 @@ export function makeBasetenRoute({
       reply(res, 200, {
         provider: BASETEN_PROVIDER,
         model: BASETEN_MODEL,
-        configured: typeof getKey() === 'string' && Boolean(getKey().trim()),
+        campaignProhibited,
+        configured: !campaignProhibited && typeof getKey() === 'string' && Boolean(getKey().trim()),
         externalRequestRequiresConfirmation: true,
         strictOutputGuaranteed: false,
       }, headers);
@@ -67,6 +71,10 @@ export function makeBasetenRoute({
     }
     if (path !== '/api/baseten/proposals' || req.method !== 'POST') {
       reply(res, 405, { code: 'BASETEN_METHOD' }, headers);
+      return true;
+    }
+    if (campaignProhibited) {
+      reply(res, 403, { code: 'BASETEN_CAMPAIGN_PROHIBITED' }, headers);
       return true;
     }
     if (req.headers.origin !== origin ||

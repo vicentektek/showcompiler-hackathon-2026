@@ -168,13 +168,17 @@ export function createAppServer(options = {}) {
   const basetenRoute = makeBasetenRoute({
     modelClient: options.basetenClient,
     getKey: options.getBasetenKey,
+    campaignProhibited: options.basetenCampaignProhibited,
   });
   const sfxRoute = makeSfxRoute(options);
-  const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
-  const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
+  const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch,
+    campaignProhibited:options.voiceCampaignProhibited});
+  const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket,
+    campaignProhibited:options.voiceCampaignProhibited});
   const cueConversationRoute = makeCueConversationRoute({getKey:options.getCueChatKey,fetchImpl:options.cueChatFetch});
   const agentRoute = makeAgentRoute({getKey:options.getAgentKey,
-    getBasetenKey:options.getBasetenAgentKey,fetchImpl:options.agentFetch});
+    getBasetenKey:options.getBasetenAgentKey,fetchImpl:options.agentFetch,
+    basetenCampaignProhibited:options.basetenCampaignProhibited});
   return createServer(async (request, response) => {
     const headers = {
       'Cache-Control': 'no-store',

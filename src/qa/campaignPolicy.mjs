@@ -6,6 +6,12 @@ export const CAMPAIGN_POLICY=Object.freeze({
  requestCaps:Object.freeze({meta:400,modal:100,baseten:0,fireworks:0,voice:0}),
 });
 
+/** Unknown providers and zero-cap providers are prohibited (fail closed). */
+export function isCampaignProviderProhibited(provider){
+ return typeof provider!=='string'||!Object.hasOwn(CAMPAIGN_POLICY.capsUsd,provider)||
+  CAMPAIGN_POLICY.capsUsd[provider]===0||CAMPAIGN_POLICY.requestCaps[provider]===0;
+}
+
 /**
  * Owner declaration recorded for this campaign. This is authorization to use
  * the bounded local budget, not a provider balance check or billing promise.

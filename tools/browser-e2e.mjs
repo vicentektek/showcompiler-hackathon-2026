@@ -640,7 +640,8 @@ try {
   await capture('10-ai-three-pane.png');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
   await page.locator('#rqShowBuilderOpenAiTools').click();
-  await page.locator('#modelProviderSelect').selectOption('baseten');
+  assert.equal(await page.locator('#modelProviderSelect option[value="baseten"]').isDisabled(), true,
+    'Baseten is excluded by campaign policy');
   await page.locator('#modelProviderSelect').selectOption('meta');
   await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
   await page.locator('#metaDesignMode').selectOption('expressive');

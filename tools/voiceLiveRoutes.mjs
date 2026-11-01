@@ -4,6 +4,7 @@
  * Events are polled over the local loopback HTTP connection. No player or GO access.
  */
 import {randomUUID} from 'node:crypto';
+import {isCampaignProviderProhibited} from '../src/qa/campaignPolicy.mjs';
 
 const ENDPOINT='wss://api.meta.ai/v1/asr/realtime';
 const MAX_SESSION_MS=180_000;
@@ -33,7 +34,8 @@ function externalEvent(data){
  if(type==='error')event.message='META_STREAM_ERROR';
  return event;
 }
-export function makeVoiceLiveRoute({getKey=()=>process.env.MODEL_API_KEY,WebSocketCtor=globalThis.WebSocket,clock=()=>Date.now()}={}){
+export function makeVoiceLiveRoute({getKey=()=>process.env.MODEL_API_KEY,WebSocketCtor=globalThis.WebSocket,clock=()=>Date.now(),
+ campaignProhibited=isCampaignProviderProhibited('voice')}={}){
  let session=null;
  const close=(s,reason='stopped')=>{
   if(!s||s.closed)return;
@@ -65,6 +67,7 @@ export function makeVoiceLiveRoute({getKey=()=>process.env.MODEL_API_KEY,WebSock
    try{data=JSON.parse((await body(req)).toString('utf8'));}catch{json(res,headers,400,{error:'INVALID_REQUEST'});return true;}
    const language=data?.language;
    if(!Object.hasOwn(LANGUAGES,language)){json(res,headers,400,{error:'INVALID_LANGUAGE'});return true;}
+   if(campaignProhibited){json(res,headers,403,{error:'VOICE_CAMPAIGN_PROHIBITED'});return true;}
    const key=getKey();
    if(typeof key!=='string'||!key.trim()){json(res,headers,503,{error:'MODEL_API_KEY_NOT_CONFIGURED'});return true;}
    if(typeof WebSocketCtor!=='function'){json(res,headers,503,{error:'NODE_WEBSOCKET_UNAVAILABLE'});return true;}

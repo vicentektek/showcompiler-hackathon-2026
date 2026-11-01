@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import {isCampaignProviderProhibited} from '../src/qa/campaignPolicy.mjs';
 
 const MAX_BYTES=2_200_000;
 const MAX_DURATION=10.5;
@@ -51,7 +52,9 @@ async function readBounded(request){
  return Buffer.concat(chunks);
 }
 /** Explicit, single-request, fail-closed Muse transcription. No auto retry. */
-export function makeVoiceTranscribeRoute({getKey=()=>process.env.MODEL_API_KEY,fetchImpl=fetch}={}){
+// Voice requests have no ledger-backed transport, so a zero campaign cap refuses them.
+export function makeVoiceTranscribeRoute({getKey=()=>process.env.MODEL_API_KEY,fetchImpl=fetch,
+ campaignProhibited=isCampaignProviderProhibited('voice')}={}){
  let active=false;
  return async(request,response,pathname,headers)=>{
   if(pathname!=='/api/voice/transcribe')return false;
@@ -67,6 +70,7 @@ export function makeVoiceTranscribeRoute({getKey=()=>process.env.MODEL_API_KEY,f
   if(Number(request.headers['content-length'])>MAX_BYTES){
    respond(response,headers,413,{error:'TOO_LARGE'});return true;
   }
+  if(campaignProhibited){respond(response,headers,403,{error:'VOICE_CAMPAIGN_PROHIBITED'});return true;}
   const key=getKey();
   if(typeof key!=='string'||!key.trim()){
    respond(response,headers,503,{error:'MODEL_API_KEY_NOT_CONFIGURED'});return true;

@@ -136,7 +136,10 @@ const availableWorkspaces = Object.freeze(['home', 'script', 'ai', 'cues', 'audi
 let operatorQueue = startOperatorQueue(show.cues);
 let lastGoCueId = null;
 let auditionAcknowledged = false;
-const selectedModelProvider = () => $('modelProviderSelect').value === 'meta' ? 'meta' : 'baseten';
+const selectedModelProvider = () => {
+  const select = $('modelProviderSelect');
+  return select.value === 'baseten' && !select.selectedOptions[0]?.disabled ? 'baseten' : 'meta';
+};
 const expectedProviderId = p => p === 'meta' ? 'META_MODEL_API' : 'BASETEN_MUSE_SPARK_OPEN';
 let player = createBrowserAudioBackend({
  outputDeviceId: operatorPreferences.outputDeviceId,
@@ -2949,6 +2952,7 @@ const remoteErrors = Object.freeze({
   BASETEN_OUTPUT_SCHEMA: 'errors.basetenOutputSchema',
   BASETEN_OUTPUT_EMPTY_OR_OVERSIZED: 'errors.basetenOutputEmpty',
   BASETEN_BAD_REFERENCES: 'errors.basetenBadReferences',
+  BASETEN_CAMPAIGN_PROHIBITED: 'errors.basetenCampaignProhibited',
 });
 $('modelProviderSelect').addEventListener('change', () => {
   refreshMetaStatus();

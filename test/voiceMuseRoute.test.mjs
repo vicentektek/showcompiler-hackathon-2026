@@ -12,7 +12,8 @@ function makeWav(rate=48000,seconds=1){
  return b;
 }
 async function withServer(options,fn){
- const server=createAppServer(options);
+ // Offline mocked transport; the zero voice campaign cap is covered in campaignProviderGates.test.mjs.
+ const server=createAppServer({voiceCampaignProhibited:false,...options});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  try{return await fn('http://127.0.0.1:'+server.address().port);}
  finally{await new Promise(resolve=>server.close(resolve));}

@@ -112,6 +112,7 @@ test('model may not fabricate voice triggers without evidence from the original 
 test('Baseten fallback uses independent server-side key and never requests unsupported JSON mode',async()=>{
  let called=0;
  await withServer({
+  basetenCampaignProhibited:false,
   getAgentKey:()=>'',getBasetenAgentKey:()=> 'baseten-test-secret',
   agentFetch:async(url,request)=>{
    called++;

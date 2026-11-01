@@ -104,6 +104,9 @@ export function createCommandDictation({owner,contextKey,onTranscript,onStatus,o
    if(!current(token,saved.key)){
     if(token===epoch)onStatus('context_changed',false);return;
    }
+   if(response.status===403&&data?.error==='VOICE_CAMPAIGN_PROHIBITED'){
+    request=null;phase='idle';publish();onStatus('voice_campaign_prohibited',true);return;
+   }
    if(!response.ok||typeof data.transcript!=='string'||!data.transcript.trim())
     throw new Error('INVALID_TRANSCRIPTION');
    request=null;phase='idle';publish();
@@ -153,6 +156,7 @@ export function commandDictationMessage(code,language){
   transcribing:['Transcribiendo…','Transcribing…'],
   recognized:['Texto reconocido; revísalo antes de proponer cambios.','Speech recognized; review before proposing changes.'],
   transcription_failed:['No se pudo transcribir. No se reintentará automáticamente.','Transcription failed. No automatic retry.'],
+  voice_campaign_prohibited:['La transcripción por voz está desactivada por la política de gasto (voz: 0 USD). No se ha enviado audio al proveedor; escribe la instrucción.','Voice transcription is disabled by the spend policy (voice: USD 0). No audio was sent to the provider; type the instruction instead.'],
  };
  if(!Object.hasOwn(messages,code))throw new TypeError('Unknown dictation status');
  return messages[code][language==='es'?0:1];

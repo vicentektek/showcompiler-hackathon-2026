@@ -7,6 +7,7 @@ import {AGENT_DESIGN_WORKSPACES,validateAgentOperations} from '../src/core/agent
 import {normalizeSpeech} from '../src/core/voiceFollow.mjs';
 import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
 import {campaignMetaFetch,campaignBasetenFetch} from './campaignFetch.mjs';
+import {isCampaignProviderProhibited} from '../src/qa/campaignPolicy.mjs';
 const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
 export const AGENT_PROMPT_VERSION='agent-design-context-rcv4';
@@ -102,7 +103,8 @@ function enforceModelScope(plan,context){
  return plan;
 }
 export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
- getBasetenKey=()=>process.env.BASETEN_API_KEY,fetchImpl,model=MODEL}={}){
+ getBasetenKey=()=>process.env.BASETEN_API_KEY,fetchImpl,model=MODEL,
+ basetenCampaignProhibited=isCampaignProviderProhibited('baseten')}={}){
  let busy=false;
  return async(req,res,path,headers)=>{
   if(path!=='/api/agent/interpret')return false;
@@ -139,6 +141,9 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
        typeof turn.text!=='string'||turn.text.length>400))
     throw new TypeError('INVALID_INPUT');
    const provider=input.provider==='baseten'?'baseten':'meta';
+   if(provider==='baseten'&&basetenCampaignProhibited){
+    send(res,headers,403,{error:'PROVIDER_PROHIBITED_BY_CAMPAIGN'});return true;
+   }
    const key=provider==='baseten'?getBasetenKey():getKey();
    if(typeof key!=='string'||!key.trim()){
     send(res,headers,503,{error:'MODEL_API_KEY_NOT_CONFIGURED'});return true;

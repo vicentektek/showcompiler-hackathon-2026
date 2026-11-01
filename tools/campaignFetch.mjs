@@ -3,7 +3,7 @@
  * lock released before network I/O. Inject transports/ledgers in offline tests.
  */
 import {randomUUID} from 'node:crypto';
-import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
+import {isCampaignProviderProhibited} from '../src/qa/campaignPolicy.mjs';
 import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
 
 export function estimateCampaignMetaReserve(options){
@@ -19,7 +19,7 @@ export function estimateCampaignMetaReserve(options){
 }
 export function createCampaignFetch(provider,{fetchImpl=fetch,ledgerFactory=acquireGlobalSpendLedger}={}){
  return async(url,options)=>{
-  if(!Object.hasOwn(CAMPAIGN_POLICY.capsUsd,provider)||CAMPAIGN_POLICY.capsUsd[provider]===0)
+  if(isCampaignProviderProhibited(provider))
    throw new Error('CAMPAIGN_PROVIDER_PROHIBITED');
   if(provider!=='meta'||String(url)!=='https://api.meta.ai/v1/chat/completions')
    throw new TypeError('UNSUPPORTED_CAMPAIGN_ENDPOINT');

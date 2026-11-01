@@ -11,7 +11,8 @@ const show = () => addAudioReference(
 );
 
 async function server(t, overrides={}) {
-  const s=createAppServer(overrides);
+  // Offline adapter-contract tests: mocked client/key, campaign gate explicitly lifted.
+  const s=createAppServer({basetenCampaignProhibited:false,...overrides});
   await new Promise((resolve,reject)=>{
     s.once('error',reject);
     s.listen(0,'127.0.0.1',resolve);

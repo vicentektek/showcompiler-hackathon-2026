@@ -35,7 +35,8 @@ function transport(){
  return {WebSocketCtor:FakeMuseSocket,messages};
 }
 async function withServer(fn){
- const upstream=transport(),server=createAppServer({getVoiceKey:()=> 'mock-key',voiceWebSocket:upstream.WebSocketCtor});
+ const upstream=transport(),server=createAppServer({getVoiceKey:()=> 'mock-key',voiceWebSocket:upstream.WebSocketCtor,
+  voiceCampaignProhibited:false});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  try{await fn('http://127.0.0.1:'+server.address().port,upstream);}
  finally{upstream.WebSocketCtor.latest?.close();await new Promise(resolve=>server.close(resolve));}

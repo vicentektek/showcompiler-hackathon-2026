@@ -571,8 +571,8 @@ function mount(){
  const providerLabel=make('label','rq-agent-provider');
  providerLabel.append(make('span','',lang('Proveedor para consulta opcional','Provider for optional request')));
  const providerSelect=make('select','');providerSelect.id='rqAgentProvider';
- for(const [id,title] of [['meta','Meta Muse Spark'],['baseten','Baseten · Muse Spark Open']]){
-  const option=make('option','',title);option.value=id;providerSelect.append(option);
+ for(const [id,title] of [['meta','Meta Muse Spark'],['baseten',lang('Baseten · excluido por la política de campaña','Baseten · excluded by campaign policy')]]){
+  const option=make('option','',title);option.value=id;option.disabled=id==='baseten';providerSelect.append(option);
  }
  providerLabel.append(providerSelect);
  const consentLabel=make('label','rq-agent-consent');
