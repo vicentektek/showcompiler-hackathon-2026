@@ -304,6 +304,13 @@ function tokens(value) {
     .replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().match(TOKEN) ?? []);
 }
 
+function isGuidedWorkflowQuestion(queryTokens) {
+  const stepByStep = (queryTokens.has('step') && queryTokens.has('by')) ||
+    (queryTokens.has('paso') && queryTokens.has('a'));
+  const guide = ['guide', 'guiame', 'guia', 'walk', 'acompaname'].some(token => queryTokens.has(token));
+  return stepByStep && guide;
+}
+
 function isWholeCatalogueQuestion(queryTokens) {
   const catalogueTerms = ['catalog', 'catalogue', 'overview', 'catalogo'];
   const allTerms = ['all', 'todas'];
@@ -313,7 +320,8 @@ function isWholeCatalogueQuestion(queryTokens) {
     (allTerms.some(token => queryTokens.has(token)) &&
       capabilityTerms.some(token => queryTokens.has(token))) ||
     (queryTokens.has('what') && queryTokens.has('can') && queryTokens.has('runq')) ||
-    (queryTokens.has('que') && queryTokens.has('puede') && queryTokens.has('runq'));
+    (queryTokens.has('que') && queryTokens.has('puede') && queryTokens.has('runq')) ||
+    isGuidedWorkflowQuestion(queryTokens);
 }
 
 export function retrieveCapabilities(prompt, limit = 5) {

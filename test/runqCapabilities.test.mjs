@@ -51,6 +51,15 @@ test('retrieval is deterministic, relevant, bounded, and expands whole-catalogue
   assert.deepEqual(retrieveCapabilities('help with an unknown topic').map(item => item.id), ['runtime-capability-overview']);
   const overview = retrieveCapabilities('What can RUNQ do?');
   assert.deepEqual(overview.map(item => item.id), RUNQ_CAPABILITIES.map(item => item.id));
+  for (const prompt of [
+    'Tengo un guion escolar. Guíame paso a paso sin mandarme a otras pestañas.',
+    'I have a school script. Guide me step by step without sending me to other tabs.',
+  ]) {
+    const workflow = retrieveCapabilities(prompt);
+    assert.deepEqual(workflow.map(item => item.id).sort(), RUNQ_CAPABILITIES.map(item => item.id).sort());
+    assert.ok(Buffer.byteLength(JSON.stringify(workflow)) < 5000);
+    assert.equal(retrieveCapabilities(prompt, 2).length, 2);
+  }
   assert.ok(Buffer.byteLength(JSON.stringify(overview)) <= 5000);
   assert.ok(overview.every(item => item.evidence.every(ref =>
     Object.keys(ref).sort().join(',') === 'file,line')));

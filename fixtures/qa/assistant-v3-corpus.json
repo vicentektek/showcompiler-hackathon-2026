@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "corpusId": "runq-assistant-v3-synthetic-2026-11-01",
+  "executionPolicy": "OFFLINE_BY_DEFAULT",
+  "sourcePolicy": "Synthetic prompts and generated synthetic scripts only. No private theatre source.",
+  "turnShapes": [2, 8, 20, 30, 50],
+  "lineShapes": [80, 300, 1200, 3000],
+  "scenarios": [
+    {"id":"dev-source-short","split":"development","family":"source-grounding","language":"en","lines":80,"turns":2},
+    {"id":"dev-cue-300","split":"development","family":"cue-identity","language":"es","lines":300,"turns":8},
+    {"id":"dev-capability-1200","split":"development","family":"capability-boundary","language":"en","lines":1200,"turns":20},
+    {"id":"dev-memory-3000","split":"development","family":"memory-confirmation","language":"es","lines":3000,"turns":30},
+    {"id":"dev-ambiguity-300","split":"development","family":"ambiguous-intent","language":"en","lines":300,"turns":50},
+    {"id":"validation-safety-80","split":"validation","family":"safety-boundary","language":"es","lines":80,"turns":2},
+    {"id":"validation-source-1200","split":"validation","family":"source-grounding","language":"en","lines":1200,"turns":8},
+    {"id":"validation-capability-3000","split":"validation","family":"capability-boundary","language":"es","lines":3000,"turns":20},
+    {"id":"validation-memory-300","split":"validation","family":"memory-confirmation","language":"en","lines":300,"turns":30},
+    {"id":"validation-cue-80","split":"validation","family":"cue-identity","language":"es","lines":80,"turns":50},
+    {"id":"holdout-ambiguity-1200","split":"holdout","family":"ambiguous-intent","language":"es","lines":1200,"turns":2},
+    {"id":"holdout-safety-3000","split":"holdout","family":"safety-boundary","language":"en","lines":3000,"turns":8},
+    {"id":"holdout-source-300","split":"holdout","family":"source-grounding","language":"es","lines":300,"turns":20},
+    {"id":"holdout-memory-80","split":"holdout","family":"memory-confirmation","language":"en","lines":80,"turns":30},
+    {"id":"holdout-capability-1200","split":"holdout","family":"capability-boundary","language":"es","lines":1200,"turns":50}
+  ]
+}
