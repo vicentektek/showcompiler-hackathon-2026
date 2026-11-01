@@ -1,0 +1,84 @@
+{
+  "schema": "runq-defect-backlog-v1",
+  "campaign": "runq-long-campaign-2026-11-01",
+  "note": "Curated by the coding agent from reproducible evidence. Severity: P0 safety/cost/data loss, P1 blocks a core flow, P2 friction or misleading state, P3 minor.",
+  "defects": [
+    {
+      "id": "D1", "severity": "P0", "status": "FIXED", "area": "Provider gates",
+      "summary": "Baseten could still be selected in the UI and reached through status/proposal/agent routes although the campaign cap for Baseten is 0.",
+      "repro": "test/campaignProviderGates.test.mjs: 'Baseten status reports campaign exclusion...', 'Baseten proposals are refused...', 'agent route refuses provider baseten...', 'browser UI cannot select Baseten...'",
+      "fix": "f7c190a: single isCampaignProviderProhibited predicate; routes return CAMPAIGN_PROVIDER_PROHIBITED before reading any key; UI hides the engine and explains the exclusion (ES/EN).",
+      "reevaluation": "Red before, green after; no Baseten request is possible from UI, routes or agent."
+    },
+    {
+      "id": "D2", "severity": "P0", "status": "FIXED", "area": "Provider gates",
+      "summary": "Paid voice transcription/realtime routes were reachable without a ledger reservation while the campaign voice cap is 0.",
+      "repro": "test/campaignProviderGates.test.mjs: 'voice transcription is refused...', 'realtime voice session is refused...'",
+      "fix": "f7c190a: voice routes and dictation UI refuse while the voice cap is 0.",
+      "reevaluation": "Green; dictation and voice-follow are DISABLED in this campaign and documented as such."
+    },
+    {
+      "id": "D3", "severity": "P0", "status": "FIXED", "area": "Paid runners",
+      "summary": "Baseten seminar runner accepted --live and could read BASETEN_API_KEY before checking the campaign policy.",
+      "repro": "test/campaignProviderGates.test.mjs: 'Baseten seminar runner refuses live mode before corpus, key use or any transport'",
+      "fix": "6e13ac9: throws CAMPAIGN_PROVIDER_PROHIBITED before key or corpus access; CLI exits 2 before reading the env var.",
+      "reevaluation": "Red before, green after; dry-run unchanged (0 requests)."
+    },
+    {
+      "id": "D4", "severity": "P2", "status": "FIXED", "area": "CI browser smoke",
+      "summary": "tools/browser-e2e.mjs (run by CI) timed out on #rqShowBuilderOpenAiTools, a control the Show Builder never renders; it failed identically on the baseline snapshot.",
+      "repro": "node tools/browser-e2e.mjs on 929c475",
+      "fix": "37f8dde: opens the details#rqShowBuilderAiControls summary and waits for the model selector.",
+      "reevaluation": "BROWSER_SMOKE_OK on candidate."
+    },
+    {
+      "id": "D5", "severity": "P0", "status": "FIXED", "area": "Automation runtime",
+      "summary": "Re-GO of an AUTO_FOLLOW cue during its follow delay kept the stale timer, so the next cue started on its own while the restarted cue played; a failed re-GO also left the pending follow.",
+      "repro": "node tools/runq-state-machine-campaign.mjs --scenarios 40 --steps 30; test/cueAutomationRuntime.test.mjs 're-GO of a cue cancels the follow left by its previous natural end'",
+      "fix": "20a9536: GO clears the cue's pending follow before calling transport.",
+      "reevaluation": "State machine 400x40 seed 20261101: baseline 10 invariant failures (7 stale follow, 3 failed GO leaving pending) -> candidate 0."
+    },
+    {
+      "id": "D6", "severity": "P1", "status": "FIXED", "area": "Cue editing",
+      "summary": "Deleting/moving/reordering so that a follow/continue cue ends last failed with 'last cue has no next cue' and blocked the operator's edit.",
+      "repro": "test/manualCues.test.mjs 'structural edits that leave a follow cue last make it MANUAL instead of blocking'",
+      "fix": "a63c6d9: the trailing cue is downgraded to MANUAL (never upgraded); fades, loop and stop targets are kept and the UI says so.",
+      "reevaluation": "State machine 400x40: 18 valid edits rejected + 9 domain refusals -> 0."
+    },
+    {
+      "id": "D7", "severity": "P2", "status": "FIXED", "area": "Operator feedback",
+      "summary": "After a drag/list reorder that preserves the prepared cue, the notice still claimed the next GO was positioned at the first cue.",
+      "repro": "src/ui/app.mjs editCueSequence with preserveQueue",
+      "fix": "a63c6d9: separate 'prepared next GO is unchanged' message (ES/EN).",
+      "reevaluation": "Interface browser suites green."
+    },
+    {
+      "id": "D8", "severity": "P3", "status": "FIXED", "area": "Quality audit tooling",
+      "summary": "Show-assistant quality audit crashed with ENOENT in a clean checkout without live evidence or ledger.",
+      "repro": "test/runqShowAssistantQualityAudit.test.mjs 'quality audit degrades to NOT_RUN in a clean checkout...'",
+      "fix": "289e416: sections report NOT_RUN/AVAILABLE; paths are injectable.",
+      "reevaluation": "CLI exit 0 in a clean checkout."
+    },
+    {
+      "id": "F1", "severity": "P2", "status": "HUMAN_REVIEW_PENDING", "area": "Operator queue policy",
+      "summary": "Insert/duplicate/delete from the editor resets the prepared GO to the first cue even when the prepared cue still exists (documented reset policy).",
+      "repro": "state-machine finding PREPARED_CUE_REMOVED_BY_EDIT (95 of 16,000 steps); src/ui/app.mjs editCueSequence",
+      "fix": "Not changed: safety policy decision for the show owner (keep prepared cue vs explicit reset).",
+      "reevaluation": "Pending human decision."
+    },
+    {
+      "id": "F2", "severity": "P2", "status": "OPEN_KNOWN_LIMITATION", "area": "Automation runtime",
+      "summary": "AUTO_FOLLOW/AUTO_CONTINUE plans are validated and tested in the core runtime but not wired to browser GO; the inspector shows the 'automation not wired' notice.",
+      "repro": "src/ui/app.mjs workspace.autoNotWired",
+      "fix": "Out of scope: wiring changes the live GO path and needs separate approval and hardware rehearsal.",
+      "reevaluation": "n/a"
+    },
+    {
+      "id": "F3", "severity": "P2", "status": "OPEN_NEEDS_REAL_AI", "area": "Agent reasoning",
+      "summary": "Gauntlet v2 reports LOCAL_GAP turns (most require AI reasoning; some missing local functions, legitimate ambiguity or not implemented).",
+      "repro": "node tools/runq-show-assistant-gauntlet-v2.mjs; node tools/runq-show-assistant-quality-audit.mjs",
+      "fix": "Requires measured Muse responses against human-reviewed gold; not claimable offline.",
+      "reevaluation": "Pending live pilot and human review."
+    }
+  ]
+}
