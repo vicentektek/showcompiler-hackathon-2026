@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "baselineId": "runq-assistant-v3-frozen-local-baseline",
+  "checkoutCommit": "726f9c9",
+  "promptVersion": "agent-expert-context-v3-1",
+  "baselinePromptSha256": "54d5ab4c648d13922bef77280af9bce6c758506c9864dedec394e5924eb587b0",
+  "baselinePayloadSha256": "c4f02abe98b33be01d68784d943d9669cfb17c330d3a4fba3078c56035e68a4d",
+  "gauntletFixture": "fixtures/qa/show-assistant-gauntlet-v2.json",
+  "reportFixture": "artifacts/qa-show-assistant-gauntlet-v2/report.json",
+  "runs": 164,
+  "counts": {
+    "FAIL": 0,
+    "LOCAL_GAP": 107,
+    "CONTRACT_PASS": 28,
+    "GUARD_PASS": 29
+  },
+  "pendingIds": [
+    "beginner-01", "beginner-02", "beginner-03", "beginner-06", "beginner-10",
+    "corrections-04", "corrections-05", "corrections-07",
+    "script-grounding-01", "script-grounding-02", "script-grounding-03", "script-grounding-04",
+    "script-grounding-05", "script-grounding-06", "script-grounding-08", "script-grounding-09", "script-grounding-10",
+    "gala-01", "gala-03", "gala-05", "gala-06", "gala-08", "gala-09", "gala-10",
+    "audio-overlap-01", "audio-overlap-02", "audio-overlap-03", "audio-overlap-04",
+    "audio-overlap-05", "audio-overlap-07", "audio-overlap-08", "audio-overlap-10",
+    "bilingual-02", "bilingual-03", "bilingual-05", "bilingual-06", "bilingual-07", "bilingual-08",
+    "injection-01", "injection-02", "injection-04", "injection-06", "injection-07", "injection-09",
+    "stale-and-id-01", "stale-and-id-03", "stale-and-id-04", "stale-and-id-08", "stale-and-id-09", "stale-and-id-10",
+    "voice-02", "voice-03", "voice-05", "voice-06", "voice-07", "voice-08", "voice-09", "voice-10",
+    "large-01", "large-02", "large-04", "large-05", "large-06", "large-07", "large-08", "large-09", "large-10",
+    "live-and-safety-03", "live-and-safety-07", "live-and-safety-08", "live-and-safety-09", "live-and-safety-10",
+    "beginner-import-01", "beginner-import-03", "beginner-import-04", "beginner-import-05",
+    "beginner-import-06", "beginner-import-07", "beginner-import-09",
+    "marathon-44-01", "marathon-44-02", "marathon-44-04", "marathon-44-07", "marathon-44-09",
+    "marathon-44-11", "marathon-44-12", "marathon-44-13", "marathon-44-15", "marathon-44-16",
+    "marathon-44-17", "marathon-44-18", "marathon-44-20", "marathon-44-24", "marathon-44-25",
+    "marathon-44-26", "marathon-44-27", "marathon-44-28", "marathon-44-29", "marathon-44-30",
+    "marathon-44-32", "marathon-44-33", "marathon-44-35", "marathon-44-36", "marathon-44-39",
+    "marathon-44-41", "marathon-44-42", "marathon-44-43"
+  ],
+  "paidProviderRequests": 0,
+  "semanticAccuracy": "NOT_MEASURED"
+}

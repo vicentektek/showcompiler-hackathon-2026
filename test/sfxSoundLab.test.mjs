@@ -60,7 +60,7 @@ test('Sound Lab is served separately and app/Cue Editor entrypoint remains uncha
   assert.equal(page.status,200);
   assert.match(html,/Waveform & audition/);
   assert.match(html,/explicitly approved preparation/);
-  assert.match(html,/id="confirmRequest"/);
+  assert.doesNotMatch(html,/id="confirmRequest"/);
   assert.match(html,/id="exportBtn"/);
   assert.doesNotMatch(html,/MODEL_API_KEY|MODAL_PROXY_TOKEN_SECRET/);
   for(const item of [

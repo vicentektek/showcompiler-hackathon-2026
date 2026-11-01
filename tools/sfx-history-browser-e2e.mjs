@@ -116,11 +116,10 @@ try{
   await page.locator('[data-workspace-nav="audio"]').click();
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   await page.locator('#soundPrompt').fill('Original short sound fixture');
-  await page.locator('#confirmRequest').check();
   await page.waitForFunction(()=>!document.querySelector('#generateBtn')?.disabled);
   await page.locator('#sfxShortTakeBtn').click();
   assert.equal(await page.locator('#duration').inputValue(),'3');
-  assert.equal(await page.locator('#confirmRequest').isChecked(),false);
+  assert.equal(await page.locator('#confirmRequest').count(),0);
   assert.equal(providerCalls,0,'Short duration shortcut never submits a generation');
   if(captures&&i===0){
    const before=path.join(captures,'sfx-history-before.png');

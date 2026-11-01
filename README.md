@@ -54,7 +54,8 @@ to the existing proposal flow; the Sound step shows each approved cue's
 suggested sound and opens the sound desk with that cue selected. The review
 step can approve all pending proposals together, with the existing explicit
 confirmation and undo. Provider settings stay under optional advanced settings,
-while each AI or sound request still requires its own consent and cost controls.
+while explicit AI action buttons start bounded requests through server cost controls,
+without a second permission checkbox or dialog.
 Opening **Prepare sound for this cue** now fills the English sound prompt,
 estimates duration from a recognized script direction, and pins its L# and cue
 destination. For a cue with an active generation, RUNQ checks readiness and
@@ -73,16 +74,22 @@ providers; they do not measure live-model quality or generate billable audio.
 
 - **Accept all cues** confirms all reviewed pending proposals together, creating
   DRAFT cues without playback. Individual rejection and approval remain available.
-- **Generate audio for all** plans pending single-action sound cues without
-  replacing existing audio. Review/edit English prompts, select cues, and authorize
-  the displayed maximum estimate before sending. This is also available in
+- **Generate audio for all** immediately starts a serial batch for pending
+  single-action sound cues, without replacing existing audio or asking for repeated
+  permissions. **Adjust batch · optional** lets you edit prompts or select cues.
+  This is also available in
   **Sound > Generate**. Unsupported music/voice and non-sound cues are excluded.
-- **Auto prepare entire show** starts analysis of remaining script windows, then
-  pauses for proposal approval and audio authorization. A shortcut is on Project.
+- **Auto prepare entire show** starts analysis of remaining script windows.
+  **Include all sounds** is on by default: after reviewing proposals, choose
+  **Accept all and generate sounds** to continue directly with every eligible cue.
+  Turn that option off for analysis only. A shortcut is on Project.
   It is one preparation entry point, not unattended approval or execution.
 
 Meta and Modal requests run serially, without retries, through the existing
-server-side reservation and spending gates. **Cancel batch**, STOP ALL and show
+server-side reservation and spending gates. If a selected batch exceeds the configured
+daily maximum, only the bounded first part runs and the rest is explicitly reported
+as pending. Each server reservation still checks remaining historical budgets and
+job limits; nothing raises limits or refunds unknown requests. **Cancel batch**, STOP ALL and show
 replacement prevent further submissions and discard late results; cancellation
 does not revoke already reserved costs. Listen to each ready take and explicitly
 accept it for its original cue. No preparation action executes GO.
@@ -105,19 +112,27 @@ RUNQ AI keeps alternate entry routes, one focused task and the active show
 context together. **Ask RUNQ AI** opens the optional assistant in the context
 panel without submitting a request. Expand the selected cue to inspect its
 original L# evidence or open the editor. Starter actions only fill the request;
-edit it and choose **Prepare
-proposal**, then review and apply the selected changes. Local preparation does
-not call an AI provider. Paid consultation remains inside **AI service and
-permissions**, with explicit one-request consent. Sound attachment and dictation
+edit it and choose **Work with AI**, then review and apply selected changes.
+This button and Ctrl+Enter start one bounded Meta consultation directly.
+**Plan without AI** remains an explicitly offline alternative. Provider/context
+details stay under **AI details · optional**. Sound attachment and dictation
 are optional expandable controls. Discarding a proposal clears its pending task;
 navigation and preparation never execute GO.
 Dictation cancellation uses the shared supported status messages, so STOP ALL
 also restores the recording controls without accepting late transcription.
 Requests such as "prepara los cues" / "prepare the cues" now show numbered steps
 and open the existing script-to-cue tools. Unsupported local requests explain
-how to prepare an explicitly authorized AI consultation rather than just saying
-"complex request". Guidance buttons never submit, approve or play anything;
-this is guided task preparation, not autonomous completion of arbitrary tasks.
+how to start an AI consultation rather than just saying "complex request".
+The AI consultation action submits directly; navigation and script guidance never
+submit, approve or play anything.
+
+**Generate sound**, **Work with AI**, cue-editor **Send**, **Transcribe** and
+voice **Start listening** are the explicit request authorization, without additional
+permission checkboxes. Record still starts microphone capture explicitly; opening
+a panel never uploads audio. Request authorization headers, exact SFX cost caps,
+campaign/daily reservations and server rejection of unauthorized API calls remain
+unchanged. Generated cues and sound takes still require human review before being
+applied; voice-triggered rehearsal playback still needs separate explicit arming.
 
 Read-only questions such as "Which audio is still unresolved?", "Is cue 2
 ready?" and "¿Está listo el cue seleccionado?" use the local preflight checks.

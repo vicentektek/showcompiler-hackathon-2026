@@ -1,4 +1,4 @@
-import { planShowAudio, cueSoundIdentity, runPreparationQueue, validateAudioBatch } from '../core/showPreparation.mjs';
+import { planShowAudio, cueSoundIdentity, runPreparationQueue, limitAudioBatch } from '../core/showPreparation.mjs';
 import { showBuilderProjectKey } from '../core/showBuilder.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { parseScript } from '../core/script.mjs';
@@ -23,12 +23,18 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
   const prepare = button('rqPrepareShow');
   const acceptAll = button('rqAcceptAllCues');
   const audioAll = button('rqGenerateAllAudio');
+  const editAudio = button('rqEditAudioBatch');
+  editAudio.className = 'btn subtle small';
+  const includeLabel = make('label', 'rq-preparation-authorize');
+  const includeAudio = make('input');
+  includeAudio.id = 'rqIncludeShowAudio'; includeAudio.type = 'checkbox'; includeAudio.checked = true;
+  const includeText = make('span'); includeLabel.append(includeAudio, includeText);
   const cancel = button('rqCancelPreparation');
   cancel.className = 'btn subtle small';
   const status = make('p', 'rq16-builder-task-help');
   status.id = 'rqPreparationStatus'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   const results = make('div', 'rq-preparation-results'); results.id = 'rqPreparationResults';
-  bar.append(actions, status, results); panel.prepend(bar);
+  bar.append(actions, includeLabel, status, results); panel.prepend(bar);
   const placeToolbar = () => {
     const welcome = $('rq16AIWelcome');
     if (!welcome) return false;
@@ -47,6 +53,8 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
   const soundCancel = button('rqSoundCancelPreparation', soundBar);
   soundCancel.className = 'btn subtle small';
   const soundStatus = make('span', 'caption'); soundBar.append(soundStatus);
+  const soundReview = button('rqSoundReviewBatch', soundBar);
+  soundReview.className = 'btn subtle small';
   $('generateForm')?.before(soundBar);
   const home = document.querySelector('.home-panel');
   const homeBar = make('div', 'rq-preparation rq16-builder-actions');
@@ -58,15 +66,12 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
   const title = make('h2'); title.id = 'rqPreparationTitle';
   const help = make('p');
   const rows = make('div', 'rq-preparation-plan');
-  const authorizationLabel = make('label', 'rq-preparation-authorize');
-  const authorization = make('input'); authorization.type = 'checkbox'; authorization.id = 'rqBatchAuthorize';
-  const authorizationText = make('span'); authorizationLabel.append(authorization, authorizationText);
   const cost = make('p'); cost.id = 'rqBatchCost';
   const dialogError = make('p'); dialogError.id = 'rqBatchError'; dialogError.setAttribute('role', 'alert');
   const dialogActions = make('div', 'rq16-builder-actions');
   const startAudio = button('rqStartAudioBatch', dialogActions);
   const close = button('rqCloseAudioBatch', dialogActions); close.className = 'btn subtle small';
-  dialog.append(title, help, rows, cost, authorizationLabel, dialogError, dialogActions); document.body.append(dialog);
+  dialog.append(title, help, rows, cost, dialogError, dialogActions); document.body.append(dialog);
 
   let controller = null, busy = false, planning = false, historyAvailable = true, stage = 'idle', message = '', projectKey = null;
   let records = [], planned = [], policy = null, planState = null, automatic = false;
@@ -83,8 +88,8 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
         'Show or edit state changed. Batch stopped; previous takes remain in history.'),
       BATCH_EXCEEDS_DAILY_CEILING: tr('El lote supera el límite diario configurado. Deselecciona cues; no se ampliará el límite.',
         'Batch exceeds the configured daily ceiling. Deselect cues; the limit will not be raised.'),
-      BATCH_AUTHORIZATION_REQUIRED: tr('Revisa los prompts y autoriza el importe antes de generar.',
-        'Review prompts and authorize the amount before generating.'),
+      BATCH_AUTHORIZATION_REQUIRED: tr('No hay un lote válido o límites de gasto configurados. No se enviaron generaciones.',
+        'No valid batch or configured spending limits. No generations were sent.'),
       BATCH_PROMPT_INVALID: tr('Revisa el prompt en inglés, tipo y duración (1–12 s) de cada cue.',
         'Review the English prompt, kind and duration (1–12 s) for each cue.'),
       SFX_WAIT_LIMIT: tr('La toma sigue pendiente tras dos minutos. Consulta el historial; no se enviará otro trabajo.',
@@ -146,20 +151,28 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
     const available = eligible(state);
     prepare.textContent = homePrepare.textContent = tr('Auto preparar show completo', 'Auto prepare entire show');
     acceptAll.textContent = automatic && stage === 'review-proposals'
-      ? tr(`Aceptar todos (${pending.length}) y continuar`, `Accept all (${pending.length}) and continue`)
+      ? tr(`Aceptar todos (${pending.length}) y generar sonidos`, `Accept all (${pending.length}) and generate sounds`)
       : tr(`Aceptar todos los cues (${pending.length})`, `Accept all cues (${pending.length})`);
     audioAll.textContent = soundAll.textContent = tr(`Generar audio para todos (${available.length})`,
       `Generate audio for all (${available.length})`);
+    editAudio.textContent = tr('Ajustar lote · opcional', 'Adjust batch · optional');
+    includeText.textContent = tr('Incluir todos los sonidos al preparar el show',
+      'Include all sounds when preparing the show');
+    includeAudio.disabled = busy || planning;
+    soundReview.textContent = tr('Ver tomas del lote', 'View batch takes');
+    soundReview.hidden = !records.length;
     cancel.textContent = soundCancel.textContent = tr('Cancelar lote', 'Cancel batch');
     prepare.disabled = homePrepare.disabled = busy || planning || !state.canApply || !state.metaAvailable || !state.project.scriptText.trim();
     acceptAll.disabled = busy || planning || !state.canApply || pending.length === 0;
     audioAll.disabled = soundAll.disabled = busy || planning || !historyAvailable || !state.canApply || available.length === 0;
+    editAudio.disabled = audioAll.disabled;
     cancel.hidden = soundCancel.hidden = !busy;
     status.textContent = message || tr(
-      'Una acción inicia la preparación. Revisa las propuestas antes de aceptarlas y escucha cada toma antes de incorporarla. Nada ejecuta GO.',
-      'One action starts preparation. Review proposals before accepting them and listen to each take before importing. Nothing executes GO.');
-    soundStatus.textContent = busy ? status.textContent : tr('En serie · sin reemplazar audio existente · revisión antes de incorporar',
-      'Serial · no replacement of existing audio · review before import');
+      'IA directa con límites de gasto. Revisa cues y tomas; GO siempre manual.',
+      'Direct AI with spending limits. Review cues and takes; GO always manual.');
+    const excluded = planShowAudio(state.project).excluded.length;
+    soundStatus.textContent = message || tr(`${available.length} pendientes · ${excluded} excluidos (audio existente, música/voz o acciones no sonoras). En serie, sin reemplazos.`,
+      `${available.length} pending · ${excluded} excluded (existing audio, music/voice or non-sound actions). Serial, no replacements.`);
     results.replaceChildren();
     const latest = records.filter(r => state.project.cues.some(c => c.id === r.cueId)).slice(-100);
     for (const r of latest) {
@@ -212,12 +225,11 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
   }
   function updateCost() {
     const count = readSelected().length;
-    authorization.checked = false;
     cost.textContent = tr(`Modal: ${count} solicitudes en serie. Máximo estimado del lote: $${(count * policy.estimatedMaxCostUsdPerRequest).toFixed(4)} USD. Límite diario: $${policy.dailyBudgetUsd}. Cada solicitud se reserva en el ledger; el saldo y los límites restantes se validan en el servidor.`,
       `Modal: ${count} serial requests. Estimated batch maximum: $${(count * policy.estimatedMaxCostUsdPerRequest).toFixed(4)} USD. Daily ceiling: $${policy.dailyBudgetUsd}. Each request is reserved in the ledger; remaining budget and limits are checked on the server.`);
     startAudio.disabled = count === 0;
   }
-  async function showAudioPlan() {
+  async function showAudioPlan(edit) {
     const revision = cancelRevision;
     if (!historyAvailable) throw new Error('PREPARATION_STORAGE_UNAVAILABLE');
     if (!getState().canApply || busy) throw new Error('SHOW_CHANGED');
@@ -238,9 +250,7 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
     help.textContent = tr(
       `${plan.excluded.length} cues con audio existente, acciones no sonoras o música/voz no compatibles quedan fuera. Revisa y edita los prompts en inglés. Puedes deseleccionar cues. Las tomas quedan pendientes de escucha y aceptación; cancelar detiene nuevos envíos, no revoca costes ya reservados.`,
       `${plan.excluded.length} cues with existing audio, non-sound actions or unsupported music/voice are excluded. Review and edit English prompts. You can deselect cues. Takes await listening and acceptance; cancel stops new submissions, not already reserved costs.`);
-    authorizationText.textContent = tr('He revisado los prompts seleccionados y autorizo las solicitudes y el máximo estimado indicado.',
-      'I reviewed the selected prompts and authorize these requests and the displayed estimated maximum.');
-    startAudio.textContent = tr('Generar lote autorizado', 'Generate authorized batch');
+    startAudio.textContent = tr('Generar sonidos seleccionados', 'Generate selected sounds');
     close.textContent = tr('Volver sin generar', 'Back without generating');
     dialogError.textContent = ''; rows.replaceChildren(); planned = [];
     for (const item of items) {
@@ -268,15 +278,16 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
       for (const input of [selected, prompt, kind, duration]) input.addEventListener('input', updateCost);
       rows.append(row); planned.push({ item, selected, prompt, kind, duration });
     }
-    updateCost(); dialog.showModal(); authorization.focus();
+    updateCost();
+    if (edit) { dialog.showModal(); startAudio.focus(); }
   }
   async function generateAudio() {
-    if (busy || planning || !dialog.open) return;
+    if (busy || planning) return;
     const revision = cancelRevision;
     planning = true; startAudio.disabled = true;
     try {
-      const items = readSelected();
-      validateAudioBatch(items, policy, authorization.checked);
+      const selected = readSelected();
+      const { items, deferred } = limitAudioBatch(selected, policy);
       assertEditable(); await ensureAudioIdle(); assertEditable();
       if (revision !== cancelRevision) throw new Error('PREPARATION_CANCELLED');
       controller = new AbortController(); const signal = controller.signal;
@@ -329,6 +340,8 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
       stage = 'review-audio';
       message = tr(`${completed}/${items.length} tomas generadas. Escucha y acepta cada una para su cue. El show sigue en borrador; GO es manual.`,
         `${completed}/${items.length} takes generated. Listen and accept each for its cue. Show remains a draft; GO is manual.`);
+      if (deferred) message += tr(` ${deferred} cues siguen pendientes por el límite diario; no se ha ampliado.`,
+        ` ${deferred} cues remain pending due to the daily ceiling; it was not raised.`);
     } catch (error) {
       if (controller?.signal.aborted) throw new Error('PREPARATION_CANCELLED');
       throw error;
@@ -345,11 +358,8 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
     const plan = planScriptAnalysis(state.project.scriptText);
     const start = state.coverage?.complete ? plan.windows.length : state.coverage?.nextWindowStart ?? 0;
     const count = Math.ceil((plan.windows.length - start) / state.windowsPerRequest);
-    if (!window.confirm(tr(
-      `Preparar este show con Meta Muse: hasta ${count} solicitudes para las ventanas pendientes del guion. El servidor reserva cada solicitud y bloquea al alcanzar los límites. No se reintentará un error. Después revisarás los cues; el audio necesitará autorización por importe y escucha. No se ejecutará GO.`,
-      `Prepare this show with Meta Muse: up to ${count} requests for remaining script windows. The server reserves each request and blocks at the limits. No error retries. Then review cues; audio requires amount-specific authorization and listening. GO will not run.`))) return;
     openWorkspace('ai'); identity = sourceIdentity(state); expectedProject = null;
-    automatic = true; stage = 'analysis'; controller = new AbortController();
+    automatic = includeAudio.checked; stage = 'analysis'; controller = new AbortController();
     const signal = controller.signal; status.classList.remove('error'); setBusy(true);
     try {
       await runPreparationQueue(Array.from({ length: count }, (_, i) => i), {
@@ -365,19 +375,22 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
         },
       });
       stage = 'review-proposals';
-      message = tr('Guion analizado. Revisa las propuestas y pulsa «Aceptar todos y continuar» o acepta/rechaza individualmente. Aún no se ha generado audio.',
-        'Script analyzed. Review proposals and choose “Accept all and continue” or decide individually. No audio generated yet.');
+      message = automatic
+        ? tr('Guion analizado. Revisa los cues: «Aceptar todos y generar sonidos» continúa directamente con audio para todos. GO sigue siendo manual.',
+          'Script analyzed. Review cues: “Accept all and generate sounds” continues directly with audio for all. GO remains manual.')
+        : tr('Guion analizado. Revisa y acepta las propuestas; puedes generar todos los sonidos después.',
+          'Script analyzed. Review and accept proposals; generate all sounds afterwards.');
     } catch (error) {
       if (signal.aborted) throw new Error('PREPARATION_CANCELLED');
       throw error;
     } finally { controller = null; setBusy(false); }
+    if (automatic && !getState().project.proposals.some(p => p.status === 'PENDING') && eligible(getState()).length)
+      await openAudioPlan();
   }
   async function acceptPending() {
     if (busy || !getState().canApply) throw new Error('SHOW_CHANGED');
     const pending = getState().project.proposals.filter(p => p.status === 'PENDING');
     if (!pending.length) return;
-    if (!window.confirm(tr(`¿Aceptar las ${pending.length} propuestas pendientes revisadas? Se crearán cues DRAFT; no se reproducirá audio.`,
-      `Accept all ${pending.length} reviewed pending proposals? DRAFT cues will be created; no audio will play.`))) return;
     approve(pending.map(p => p.id));
     if (automatic && stage === 'review-proposals') await openAudioPlan();
   }
@@ -404,13 +417,19 @@ export function mountShowPreparation({ getState, analyzeNext, approve, ensureAud
   }
   for (const b of [prepare, homePrepare]) b.addEventListener('click', () => void prepareShow().catch(fail));
   acceptAll.addEventListener('click', () => void acceptPending().catch(fail));
-  async function openAudioPlan() {
+  async function openAudioPlan(edit = false) {
     if (planning || busy) return;
     planning = true; render();
-    try { await showAudioPlan(); }
+    stage = 'planning';
+    try { await showAudioPlan(edit); }
     finally { planning = false; render(); }
+    if (!edit) await generateAudio();
   }
   for (const b of [audioAll, soundAll]) b.addEventListener('click', () => void openAudioPlan().catch(fail));
+  editAudio.addEventListener('click', () => void openAudioPlan(true).catch(fail));
+  soundReview.addEventListener('click', () => {
+    openWorkspace('ai'); results.scrollIntoView({ block: 'center' });
+  });
   startAudio.addEventListener('click', () => void generateAudio().catch(error => {
     if (dialog.open) dialogError.textContent = errorText(error);
     fail(error);

@@ -131,7 +131,6 @@ function controls(){
  $('rqLiveStop').disabled=!busy||stopping;
  $('rqLiveLang').disabled=busy;
  $('rqLiveMode').disabled=busy;
- $('rqLiveConsent').disabled=busy;
  $('rqLiveFocus').disabled=busy;
  $('rqLiveMeter').value=active?$('rqLiveMeter').value:0;
 }
@@ -169,8 +168,6 @@ async function start(){
   report('Stop the other microphone recording first.',
    'Detén primero la otra grabación de micrófono.');return;
  }
- if(!$('rqLiveConsent').checked){report('Authorize microphone streaming first.',
-  'Autoriza primero el envío del micrófono.');return;}
  document.body.dataset.runqVoiceCapture='live';
  starting=true;controls();refreshShow();
  transcriptHistory=[];$('rqLiveTranscript').replaceChildren();$('rqLivePartial').textContent='';
@@ -240,7 +237,6 @@ async function stop(force=false,reason='manual'){
  }
  if(document.body?.dataset.runqVoiceCapture==='live')delete document.body.dataset.runqVoiceCapture;
  session=null;stopping=false;starting=false;queue=Promise.resolve();queuedFrames=0;
- $('rqLiveConsent').checked=false;
  report(reason==='manual'?'Session finished. No GO performed.':'Session ended safely: '+reason,
   reason==='manual'?'Sesión finalizada. Sin ejecutar GO.':'Sesión finalizada de forma segura: '+reason);
  controls();
@@ -254,8 +250,8 @@ function localized(){
  $('rqLiveLangLabel').textContent=local('Spoken language','Idioma hablado');
  $('rqLiveContextHintsText').textContent=local('Optional: share up to 12 cue-name words to improve proper-name recognition.',
   'Opcional: compartir hasta 12 palabras de nombres de cues para mejorar su reconocimiento.');
- $('rqLiveConsentText').textContent=local('I authorize sending my microphone to Meta Muse for this session (max 3 min).',
-  'Autorizo enviar mi micrófono a Meta Muse durante esta sesión (máximo 3 min).');
+ $('rqLiveConsentText').textContent=local('Start listening sends microphone audio to Meta for up to 3 minutes within spending limits. Automatic GO requires separate arming.',
+  'Empezar escucha envía el micrófono a Meta hasta 3 minutos dentro de los límites de gasto. GO automático necesita armado aparte.');
  $('rqLiveFocusLabel').textContent=local('Script focus line','Línea de referencia');
  $('rqLivePartialTitle').textContent=local('RECOGNIZING','RECONOCIENDO');
  $('rqLiveFinalTitle').textContent=local('FINAL TRANSCRIPT','TRANSCRIPCIÓN FINAL');

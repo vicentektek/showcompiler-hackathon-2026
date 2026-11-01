@@ -425,9 +425,9 @@ try {
         assert.equal(await page.locator('#rqAgentDrawer').count(),1);
         const prompt=await page.locator('#rqAgentPrompt').boundingBox();
         assert.ok(prompt&&prompt.width>=240,`Main AI composer usable at ${size.width}`);
-        assert.equal(await page.locator('#rqAgentSubmit').isVisible(),true);
+        assert.equal(await page.locator('#rqAgentAskAI').isVisible(),true);
         if(size.width>=1440){
-          const submit=await page.locator('#rqAgentSubmit').boundingBox();
+          const submit=await page.locator('#rqAgentAskAI').boundingBox();
           assert.ok(submit.y+submit.height<=size.height,
             `Main AI action is above the fold on desktop (bottom=${submit.y+submit.height}, viewport=${size.height})`);
         }
@@ -822,8 +822,8 @@ try {
     'The English sound request includes its cue number and original script reference');
   assert.match(generatedSoundPrompt,/approximately \d+ seconds/,
     'The cue sound request includes an estimated duration');
-  assert.equal(await page.locator('#confirmRequest').isChecked(),false,
-    'Opening the sound request never grants generation consent');
+  assert.equal(await page.locator('#confirmRequest').count(),0,
+    'Sound generation uses the explicit Generate action, not a repeated permission checkbox');
   assert.equal(await page.evaluate(()=>window.audioStarts),0,'Opening the sound workspace never executes GO');
   await route('ai');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="project"]').click();

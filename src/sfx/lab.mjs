@@ -161,11 +161,6 @@ function showCost(settings) {
       ux('. No son cargos confirmados.','. These are safety ceilings, not billed amounts.')
     : ux('La generación no está configurada. Revisa la conexión y los límites en el servidor local.',
       'Generation is not configured. Check connection and spending limits in local server settings.');
-  text('confirmRequestLabel',ready
-    ? ux('Autorizo esta generación (máximo estimado ',
-         'I authorize this generation (estimated maximum ')+money(policy.perRequest)+').'
-    : ux('Autorizo esta generación al activar el servicio.',
-         'I authorize this generation when the service is available.'));
 }
 async function request(path,{method='GET',data,signal}={}) {
   const options={method,cache:'no-store',...(signal?{signal}:{})};
@@ -210,8 +205,9 @@ function updateControls(){
   const costReady=policy.perRequest!==null&&policy.daily!==null;
   const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity();
   const allowed=!preparationBusy&&state.enabled&&!state.working&&!resultWatcher.active&&
-    !ACTIVE_STATUS.has(job?.status)&&costReady&&promptReady&&$('confirmRequest').checked;
+    !ACTIVE_STATUS.has(job?.status)&&costReady&&promptReady;
   $('generateBtn').disabled=!allowed;
+  text('generateBtn',ux('Generar sonido', 'Generate sound')+(costReady?' · '+money(policy.perRequest):''));
   $('generationHint').textContent=preparationBusy?ux('Lote en curso. Cancélalo antes de generar una toma individual.',
     'Batch running. Cancel it before generating an individual take.'):
     state.working?ux('Generando sonido…','Generating sound…'):
@@ -222,7 +218,6 @@ function updateControls(){
     !state.enabled?ux('La generación no está disponible. Puedes seguir editando audio.','Generation is unavailable. You can still edit audio.'):
     !costReady?ux('Revisa la configuración del servicio de IA.','Check the AI service settings.'):
     !promptReady?ux('Describe el sonido y elige su duración.','Describe your sound and choose its duration.'):
-    !$('confirmRequest').checked?ux('Autoriza esta generación para continuar.','Authorize this generation to continue.'):
     ux('Listo para generar.','Ready to generate.');
   const reconnect=$('sfxReconnectBtn');
   if(reconnect) reconnect.disabled=state.working;
@@ -503,7 +498,7 @@ function applyPreset(){
   if(!preset){inform('Choose one of the three prepared acceptance cases.',true);return;}
   $('soundKind').value=preset.kind;$('soundPrompt').value=preset.prompt;
   $('duration').value=String(preset.durationSeconds);$('seed').value=String(preset.seed);
-  $('confirmRequest').checked=false;updateControls();
+  updateControls();
   inform(ux('Ejemplo cargado. Puedes editar la descripción antes de generar.','Example loaded. You can edit the description before generating.'));
 }
 const scriptProposalState={proposals:[],selected:0};
@@ -567,11 +562,10 @@ function bindScriptCompiler(){
     $('sfxAdvanced').open=false;
     $('sfxScriptDetails').open=false;
     $('soundPrompt').dispatchEvent(new Event('input',{bubbles:true}));
-    $('confirmRequest').checked=false;
     updateControls();
     inform(ux(
-      `Contexto fijado: ${taskContext.title}. Revisa la propuesta y autoriza antes de generar.`,
-      `Pinned context: ${taskContext.title}. Review the suggestion and authorize before generating.`,
+      `Contexto fijado: ${taskContext.title}. Pulsa Generar sonido para empezar con IA.`,
+      `Pinned context: ${taskContext.title}. Choose Generate sound to start AI work.`,
     ));
   });
   $('scriptSfxCompile').addEventListener('click',()=>{
@@ -624,7 +618,7 @@ function bindScriptCompiler(){
     $('sourceLine').value=p.scriptReference??'';
     $('soundPrompt').value=finalPrompt;
     $('duration').value=String(p.suggestedDurationSeconds??8);
-    $('confirmRequest').checked=false;updateControls();
+    updateControls();
     $('scriptSfxStatus').textContent=ux('Descripción preparada. Puedes revisarla antes de generar.','Sound description ready. Review it before generating.');
     $('sfxScriptDetails').open=false;
     $('soundPrompt').focus();
@@ -638,9 +632,9 @@ function bindEvents(){
   $('rq10TargetCue')?.addEventListener('change',updateControls);
   $('sfxShortTakeBtn')?.addEventListener('click',()=>{
     $('duration').value='3';
-    $('confirmRequest').checked=false;updateControls();
-    inform(ux('Duración preparada: 3 segundos. Revisa la descripción y autoriza si quieres generar. No se ha enviado nada.',
-      'Duration set to 3 seconds. Review the description and authorize if you want to generate. Nothing was submitted.'));
+    updateControls();
+    inform(ux('Duración preparada: 3 segundos. Pulsa Generar sonido para empezar. No se ha enviado nada.',
+      'Duration set to 3 seconds. Choose Generate sound to start. Nothing was submitted.'));
   });
   $('sfxWatchBtn')?.addEventListener('click',()=>{
     if(state.working||!state.enabled||!state.job||!ACTIVE_STATUS.has(state.job.status))return;
@@ -675,7 +669,6 @@ function bindEvents(){
     const job=await(await request('/jobs/'+encodeURIComponent(requestId))).json();
     if(job.requestId!==requestId)throw new Error('Saved take identity mismatch');
     state.recoveredJob=true;
-    $('confirmRequest').checked=false;
     viewJob(job);
     inform(ux('Registro anterior abierto. Comprueba el WAV antes de aceptar.',
       'Earlier record opened. Check the WAV before accepting.'));
@@ -685,7 +678,7 @@ function bindEvents(){
     void action(async()=>{
       const policy=costPolicy();
       if(preparationBusy||resultWatcher.active||ACTIVE_STATUS.has(state.job?.status))throw new Error('SFX_ACTIVE_LIMIT');
-      if(!state.enabled||!$('confirmRequest').checked||policy.perRequest===null||policy.daily===null)throw new Error('SFX_NOT_CONFIGURED');
+      if(!state.enabled||policy.perRequest===null||policy.daily===null)throw new Error('SFX_NOT_CONFIGURED');
       const source=$('sourceLine').value.trim();
       const requestData={
         requestId:'req-'+crypto.randomUUID(),authorizationId:'auth-'+crypto.randomUUID(),confirmed:true,
@@ -693,13 +686,12 @@ function bindEvents(){
         durationSeconds:Number($('duration').value),seed:Number($('seed').value),
         acknowledgedMaxCostUsd:policy.perRequest,
       };
-      // The explicit, amount-specific checkbox is the sole user authorization.
-      // The server still validates confirmed, authorizationId, the exact cost cap
-      // and daily budget before any billable request. Never retry automatically.
+      // Clicking Generate authorizes this request at the displayed cost cap.
+      // Server reservations and daily limits remain mandatory; never retry.
       const response=await request('/jobs',{method:'POST',data:requestData});
       const job=await response.json();
       state.recoveredJob=false;
-      viewJob(job);$('confirmRequest').checked=false;
+      viewJob(job);
       if(state.contextTask?.cueId&&ACTIVE_STATUS.has(job.status)){
         text('sfxWatchStatus',ux('Generación enviada. RUNQ comprobará cuándo está lista; no iniciará la reproducción.',
           'Generation submitted. RUNQ will check when it is ready; playback will not start automatically.'));
@@ -714,7 +706,6 @@ function bindEvents(){
       }
     });
   });
-  $('confirmRequest').addEventListener('change',updateControls);
   $('uiLocaleSelect')?.addEventListener('change',()=>{
     updateSfxEditorLocale();
     if(state.job)viewJob(state.job);
@@ -722,8 +713,8 @@ function bindEvents(){
   });
   $('sfxReconnectBtn')?.addEventListener('click',()=>void checkConnection());
   for(const id of ['soundPrompt','duration','seed','soundKind','sourceLine']){
-    $(id).addEventListener('input',()=>{$('confirmRequest').checked=false;updateControls();});
-    $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
+    $(id).addEventListener('input',updateControls);
+    $(id).addEventListener('change',updateControls);
   }
   $('loadPresetBtn').addEventListener('click',applyPreset);
   // One explicit check combines the two safe steps users previously had to

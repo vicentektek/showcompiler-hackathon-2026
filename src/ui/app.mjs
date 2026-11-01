@@ -2221,6 +2221,7 @@ document.addEventListener('runq:agent-read',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
  respond({project:show,generation:projectGeneration,selectedCueId,workspace:activeWorkspace,
+  preparedCueId:operatorQueue.preparedCueId,activeCueIds:player.getActiveCues().map(c=>c.cueId),
   language:uiLocale,canApply:safeAgentEditState(),
   undoAvailable:Boolean(runqAgentUndo&&JSON.stringify(show)===runqAgentUndo.afterSnapshot),
   assets:show.assets.map(a=>({id:a.id,ready:player.hasAsset(a.id)}))});
@@ -2390,7 +2391,6 @@ document.addEventListener('runq:open-contextual-ia',event=>{
   document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
   const prompt=$('soundPrompt');if(prompt&&hint)prompt.value=hint;
   if(lineId&&$('sourceLine'))$('sourceLine').value=lineId;
-  if($('confirmRequest'))$('confirmRequest').checked=false;
   prompt?.focus();
  }else{
   if(!setWorkspace('ai'))return;
@@ -2970,7 +2970,6 @@ async function analyzeNextMeta({ confirmed = false, signal, isCurrent = () => tr
   if (confirmed && provider !== 'meta') throw uiError('errors.projectChanged');
   let analysisWindowStart;
   let activityScope = { provider, startedAt: 0 };
-  const isRepeat = provider === 'meta' && metaCoverage?.complete === true;
   const designMode = provider === 'meta' ? $('metaDesignMode').value : null;
   const performanceKind = provider === 'meta' ? $('performanceKindSelect').value : null;
   const documentKind = provider === 'meta' ? $('documentKindSelect').value : null;
@@ -2986,13 +2985,6 @@ async function analyzeNextMeta({ confirmed = false, signal, isCurrent = () => tr
       endWindow: analysisWindowStart + batch.length,
       totalWindows: plan.windows.length,
     };
-    if (!confirmed && !window.confirm(t('status.confirmMeta', {
-      windowCount: batch.length,
-      lineCount,
-      startWindow: analysisWindowStart + 1,
-      endWindow: analysisWindowStart + batch.length,
-      totalWindows: plan.windows.length,
-    }) + (isRepeat ? '\n\n' + t('status.confirmMetaRepeat') : ''))) return null;
   } else if (!window.confirm(t('status.confirmBaseten'))) return;
   const generation = projectGeneration;
   metaActivity = { ...activityScope, startedAt: Date.now() };

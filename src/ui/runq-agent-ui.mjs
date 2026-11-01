@@ -2,7 +2,11 @@
  * RUNQ AI Agent Studio drawer. A plan is never applied by a provider response.
  * Model consultations use explicit one-shot permission and are never retried.
  */
-import {buildAgentContext,prepareAgentPlan} from '../core/agentCore.mjs';
+import {prepareAgentPlan} from '../core/agentCore.mjs';
+import {buildExpertAgentContext,agentProjectIdentity} from '../core/agentExpertContext.mjs';
+import {createAgentTaskMemory,validateAgentTaskMemory,recordAgentTaskMemory,
+ agentMemoryContext,explicitAgentMemoryInstruction,forgetAllAgentDecisions,revokeAgentDecisions} from '../core/agentTaskMemory.mjs';
+import {retrieveCapabilities} from '../core/runqCapabilities.mjs';
 import {resolveAgentDialogue,boundedAgentConversation,updateAgentDialogueTask} from '../core/agentDialogue.mjs';
 import {userFacingError} from './userFacingErrors.mjs';
 import {createCommandDictation,commandDictationMessage} from './command-dictation.mjs';
@@ -19,6 +23,7 @@ const make=(tag,cls='',text='')=>{
 let proposed=null,working=false,history=[],lastPrompt='';
 let sessionProjectId=null,sessionGeneration=null;
 let dialogueTask=null;
+let taskMemory=null;
 let selectedBatch=null;
 let displayPhase='idle',chromeCopies=[];
 let requestEpoch=0,requestController=null,requestBase=null,dictation=null,dictationContext=null;
@@ -26,6 +31,18 @@ function state(){
  let result=null;
  document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{result=value;}}}));
  return result;
+}
+function projectTaskMemory(project){
+ const identity=agentProjectIdentity(project);
+ if(taskMemory?.identity===identity)return validateAgentTaskMemory(taskMemory,project);
+ const raw=localStorage.getItem('runq.agent-memory.v3.'+identity);
+ taskMemory=raw===null?createAgentTaskMemory(project):validateAgentTaskMemory(JSON.parse(raw),project);
+ return taskMemory;
+}
+function rememberTask(project,entry){
+ const next=recordAgentTaskMemory(projectTaskMemory(project),project,entry);
+ localStorage.setItem('runq.agent-memory.v3.'+next.identity,JSON.stringify(next));
+ taskMemory=next;
 }
 function selectedScriptLines(){
  let result=[];
@@ -109,11 +126,18 @@ function refreshControls(){
  $('rqAgentRecord').textContent=dictation.phase==='recording'
   ?lang('Detener grabación','Stop recording'):lang('Grabar instrucción (10 s)','Record instruction (10 s)');
  $('rqAgentTranscribe').disabled=working||!dictation.canTranscribe;
- if(['idle','transcribing'].includes(dictation.phase))$('rqAgentVoiceConsent').checked=false;
 }
 function cancelPending(reason='cancelled'){
  dictation?.cancel(reason==='context_changed'?'context_changed':'cancelled');
  const explicit=['cancelled','stop_all','pagehide','context_changed'].includes(reason);
+ if(explicit&&taskMemory?.entries.some(entry=>entry.id==='task-current'&&entry.status==='PENDING')){
+  const current=state();
+  if(current&&taskMemory.identity===agentProjectIdentity(current.project)){
+   try{rememberTask(current.project,{id:'task-current',kind:'TASK',
+    text:lang('Tarea cancelada; no aplicada.','Task cancelled; not applied.'),status:'REVOKED'});}
+   catch(error){notify(userFacingError(error,es()?'es':'en'),true);}
+  }
+ }
  if(explicit||working)dialogueTask=null;
  if(!working){
   if(explicit&&proposed){
@@ -124,7 +148,7 @@ function cancelPending(reason='cancelled'){
   refreshControls();return;
  }
  requestEpoch++;requestController?.abort();requestController=null;requestBase=null;
- working=false;displayPhase='idle';$('rqAgentConsent').checked=false;showPlan(null);refreshControls();
+ working=false;displayPhase='idle';showPlan(null);refreshControls();
  notify(lang('Consulta cancelada. Los resultados tardíos no se aplicarán.',
   'Request cancelled. Late results will not be applied.'));
 }
@@ -178,9 +202,7 @@ function addMessage(role,text,sound=null,workflow=null){
       'Cue preparation tools are unavailable. Open RUNQ AI to continue.'),true);return;}
      task.scrollIntoView({block:'start'});
     }else{
-     $('rqAgentAiOptions').open=true;
-     $('rqAgentAiOptions').scrollIntoView({block:'center'});
-     $('rqAgentConsent').focus();
+     void sendRequest(true,lastPrompt);
     }
    });
    item.append(action);
@@ -358,12 +380,6 @@ async function sendRequest(forceAI=false,custom=null){
  if(instruction.length<3||instruction.length>1600){
   notify(lang('Escribe una instrucción de 3 a 1600 caracteres.','Enter 3–1600 characters.'),true);return;
  }
- if(forceAI&&!$('rqAgentConsent').checked){
-  const settings=$('rqAgentAiOptions');if(settings)settings.open=true;
-  $('rqAgentConsent')?.focus();
-  notify(lang('Autoriza el envío de la instrucción y el contexto del show antes de consultar IA.',
-   'Authorize sending the instruction and show context before using AI.'),true);return;
- }
  const conversation=boundedAgentConversation(history,{project:s.project,task:dialogueTask});
  const epoch=++requestEpoch;requestBase=contextKey();
  const selectedLineIds=selectedScriptLines();
@@ -375,20 +391,34 @@ async function sendRequest(forceAI=false,custom=null){
   lang('Analizando proyecto localmente...','Analyzing local project...'));
  try{
   let reply;
-  if(forceAI){
-   const focus=s.project.cues.find(c=>c.id===s.selectedCueId)?.sourceLineIds[0];
-   const context=buildAgentContext(s.project,{focusLineId:focus??null,
-    workspace:s.workspace,mode:'design-manual',selectedCueId:s.selectedCueId??null,
-    selectedLineIds:selectedLineIds.length?selectedLineIds:null,
-    assetAvailable:id=>assetReady(id,s)});
-   if(context.truncated.cues){
-    throw new Error(lang('El proyecto supera el contexto seguro de 80 cues. Divide la tarea por escena.',
-     'Show exceeds the safe 80-cue context. Narrow the task by scene.'));
+  const memoryInstruction=explicitAgentMemoryInstruction(instruction);
+  if(forgetAllAgentDecisions(instruction)){
+   const next=revokeAgentDecisions(projectTaskMemory(s.project),s.project);
+   localStorage.setItem('runq.agent-memory.v3.'+next.identity,JSON.stringify(next));taskMemory=next;
+   reply={status:'ANSWER',operations:[],message:lang('Decisiones recordadas revocadas. El show no ha cambiado.',
+    'Remembered decisions revoked. The show was not changed.')};
+  }else if(memoryInstruction){
+   rememberTask(s.project,{id:'decision-'+crypto.randomUUID(),kind:'DECISION',
+    text:memoryInstruction,status:'APPROVED'});
+   reply={status:'ANSWER',operations:[],message:lang(
+    'Decisión recordada para este proyecto. No se ha aplicado ningún cambio.',
+    'Decision remembered for this project. No show changes were applied.')};
+  }else if(forceAI){
+   const context=buildExpertAgentContext(s.project,instruction,{
+    capabilities:retrieveCapabilities(instruction),memory:agentMemoryContext(projectTaskMemory(s.project),s.project),
+    workspace:s.workspace,selectedCueId:s.selectedCueId??null,
+    preparedCueId:s.preparedCueId??null,activeCueIds:s.activeCueIds??null,generation:s.generation,
+    selectedLineIds,assetAvailable:id=>assetReady(id,s)});
+   const input={prompt:instruction,language:s.language,context,
+    provider:$('rqAgentProvider')?.value??'meta',conversation:[...conversation]};
+   while(new TextEncoder().encode(JSON.stringify(input)).length>24000&&input.conversation.length){
+    input.conversation.shift();
    }
+   if(new TextEncoder().encode(JSON.stringify(input)).length>24000)
+    throw new Error('EXPERT_CONTEXT_TOO_LARGE');
    const response=await fetch('/api/agent/interpret',{method:'POST',headers:{
     'Content-Type':'application/json','X-Runq-Agent-Consent':'yes'
-   },signal:requestController.signal,body:JSON.stringify({prompt:instruction,language:s.language,context,
-     provider:$('rqAgentProvider')?.value??'meta',conversation})});
+   },signal:requestController.signal,body:JSON.stringify(input)});
    const result=await response.json();
    if(epoch!==requestEpoch)return;
    if(!response.ok)throw new Error(result.error??'AGENT_PROVIDER_UNAVAILABLE');
@@ -399,7 +429,6 @@ async function sendRequest(forceAI=false,custom=null){
     selectedCueId:s.selectedCueId??null,
     selectedAssetId:$('rqAgentSelectedSound').value||null});
   }
-  // One-shot model permission, including error paths.
   const latest=state();
   if(epoch!==requestEpoch)return;
   if(!latest||requestBase!==contextKey()||JSON.stringify(latest.project)!==JSON.stringify(s.project)||
@@ -425,6 +454,8 @@ async function sendRequest(forceAI=false,custom=null){
    const plan=prepareAgentPlan(s.project,reply.operations,{assetAvailable:id=>assetReady(id,s)});
    dialogueTask=updateAgentDialogueTask(s.project,instruction,reply,dialogueTask);
    showPlan(plan,s.project);
+   rememberTask(s.project,{id:'task-current',kind:'TASK',text:instruction.slice(0,300),
+    status:'PENDING',cueIds:reply.operations.flatMap(op=>op.cueId?[op.cueId]:[]).slice(0,30)});
    notify(lang('Propuesta preparada: revisa los cambios antes de aplicar.',
     'Plan ready: review all changes before applying.'));
   }else{
@@ -443,7 +474,6 @@ async function sendRequest(forceAI=false,custom=null){
     'Request failed. No changes were applied.'),true);
  }finally{
   if(epoch!==requestEpoch)return;
-  $('rqAgentConsent').checked=false;
   working=false;requestController=null;requestBase=null;refreshControls();
  }
 }
@@ -455,6 +485,16 @@ function apply(){
  }}));
  if(response?.ok){
   dialogueTask=null;
+  try{
+   const current=state();
+   rememberTask(current.project,{id:'task-current',kind:'APPLIED_BATCH',
+    text:lang('Lote aprobado y aplicado: ','Approved and applied batch: ')+response.changes.length,
+    status:'APPLIED',cueIds:response.changes.map(item=>item.cueId).slice(0,30)});
+  }catch(error){
+   notify(lang('Cambios aplicados, pero no se pudo guardar su memoria. Revisa el almacenamiento local del navegador.',
+    'Changes applied, but their memory could not be saved. Review browser local storage.'),true);
+   showPlan(null);return;
+  }
   addMessage('assistant',lang('Cambios aplicados: ','Changes applied: ')+response.changes.length);
   showPlan(null);
   displayPhase='applied';
@@ -468,6 +508,15 @@ function undo(){
  document.dispatchEvent(new CustomEvent('runq:agent-undo',{detail:{respond:value=>{response=value;}}}));
  if(response?.ok){
   dialogueTask=null;
+  try{
+   const current=state();
+   rememberTask(current.project,{id:'task-current',kind:'APPLIED_BATCH',
+    text:lang('Último lote deshecho.','Last batch undone.'),status:'REVOKED'});
+  }catch(error){
+   notify(lang('Lote deshecho, pero no se pudo guardar su memoria. Revisa el almacenamiento local del navegador.',
+    'Batch undone, but its memory could not be saved. Review browser local storage.'),true);
+   showPlan(null);return;
+  }
   showPlan(null);displayPhase='idle';addMessage('assistant',lang('Último lote deshecho.','Last batch undone.'));
   notify(lang('Operación revertida.','Operation reverted.'));
  }else notify(userFacingError(response?.error,es()?'es':'en'),true);
@@ -550,11 +599,9 @@ function mount(){
  const optionalSummary=make('summary');optional.append(optionalSummary,soundLabel);
  const voice=make('details','rq-agent-ai-options');voice.id='rqAgentVoice';
  voice.append(make('summary','',lang('Dictar instrucción · revisión manual','Dictate instruction · manual review')));
- const voiceConsentLabel=make('label','rq-agent-consent');
- const voiceConsent=make('input','');voiceConsent.type='checkbox';voiceConsent.id='rqAgentVoiceConsent';
- voiceConsentLabel.append(voiceConsent,make('span','',lang(
-  'Autorizo enviar esta grabación a Meta para transcribirla (puede tener coste).',
-  'I authorize this recording to be sent to Meta for transcription (may incur a charge).')));
+ const voiceHelp=make('p','rq-agent-consent',lang(
+  'Transcribir envía esta grabación a Meta dentro de los límites de gasto.',
+  'Transcribe sends this recording to Meta within spending limits.'));
  const voiceActions=make('div','rq-agent-actions');
  const record=make('button','btn subtle small',lang('Grabar instrucción (10 s)','Record instruction (10 s)'));
  record.type='button';record.id='rqAgentRecord';
@@ -563,39 +610,33 @@ function mount(){
  voiceActions.append(record,transcribe);
  const voiceStatus=make('output','rq-agent-status');voiceStatus.id='rqAgentVoiceStatus';
  voiceStatus.setAttribute('role','status');
- voice.append(voiceConsentLabel,voiceActions,voiceStatus);
+ voice.append(voiceHelp,voiceActions,voiceStatus);
  const aiOptions=make('details','rq-agent-ai-options');
  aiOptions.id='rqAgentAiOptions';
- const aiSummary=make('summary','',lang('Servicio de IA y permisos','AI service and permissions'));
+ const aiSummary=make('summary','',lang('Detalles de IA · opcional','AI details · optional'));
  aiOptions.append(aiSummary);
  const providerLabel=make('label','rq-agent-provider');
  providerLabel.append(make('span','',lang('Proveedor para consulta opcional','Provider for optional request')));
  const providerSelect=make('select','');providerSelect.id='rqAgentProvider';
- for(const [id,title] of [['meta','Meta Muse Spark'],['baseten','Baseten · Muse Spark Open']]){
+ for(const [id,title] of [['meta','Meta Muse Spark']]){
   const option=make('option','',title);option.value=id;providerSelect.append(option);
  }
  providerLabel.append(providerSelect);
- const consentLabel=make('label','rq-agent-consent');
- const consent=make('input','');consent.type='checkbox';consent.id='rqAgentConsent';
- consentLabel.append(consent,make('span','',lang(
-  'Autorizo una consulta con la instrucción y el contexto acotado del show al proveedor elegido (puede tener coste).',
-  'I authorize one request with this instruction and bounded show context to the selected AI provider (may incur a charge).')));
  const consentDetails=make('small','rq-agent-consent-disclosure',lang(
   'Incluye hasta 80 cues, 120 líneas originales del guion, nombres/estado de medios y hasta 8 mensajes recientes. No se envían archivos de audio.',
   'Includes up to 80 cues, 120 original script lines, media names/status and up to 8 recent messages. Audio files are never sent.'));
  consentDetails.id='rqAgentConsentDisclosure';
- aiOptions.append(providerLabel,consentLabel,consentDetails);
+ aiOptions.append(providerLabel,consentDetails);
  const actions=make('div','rq-agent-actions');
- const local=make('button','btn accent small',lang('Proponer localmente','Plan locally'));
+ const local=make('button','btn subtle small',lang('Proponer localmente','Plan locally'));
  local.id='rqAgentSubmit';local.type='button';
- const cloud=make('button','btn subtle small',lang('Pedir ayuda a la IA','Ask AI'));
+ const cloud=make('button','btn accent small',lang('Trabajar con IA','Work with AI'));
  cloud.id='rqAgentAskAI';cloud.type='button';
  const undoButton=make('button','btn subtle small',lang('Deshacer lote','Undo batch'));
  undoButton.id='rqAgentUndo';undoButton.type='button';
  const cancel=make('button','btn subtle small',lang('Cancelar pendiente','Cancel pending'));
  cancel.type='button';cancel.id='rqAgentCancel';cancel.disabled=true;
- actions.append(local);
- aiOptions.append(cloud);
+ actions.append(cloud,local);
  const sessionActions=make('div','rq-agent-actions rq-agent-session-actions');
  sessionActions.append(undoButton,cancel);
  const status=make('output','rq-agent-status',
@@ -611,21 +652,19 @@ function mount(){
   [title.querySelector('small'),'Propón · Revisa · Decide','Prepare · Review · Decide'],
   [viewSource,'Ver guion','View script'],[openCue,'Abrir Cue Editor','Open Cue Editor'],
   [library,'Abrir Biblioteca','Open Library'],[label,'¿Qué quieres cambiar en este espectáculo?','What would you like to change in this show?'],
-  [local,'Preparar propuesta','Prepare proposal'],[cloud,'Consultar IA','Ask AI'],[undoButton,'Deshacer cambios','Undo changes'],
+  [local,'Proponer sin IA','Plan without AI'],[cloud,'Trabajar con IA','Work with AI'],[undoButton,'Deshacer cambios','Undo changes'],
   [cancel,'Cancelar propuesta','Cancel proposal'],[approve,'Aplicar cambios seleccionados','Apply selected changes'],
-  [discard,'Descartar','Discard'],[aiSummary,'Servicio de IA y permisos','AI service and permissions'],
+  [discard,'Descartar','Discard'],[aiSummary,'Detalles de IA · opcional','AI details · optional'],
   [soundTitle,'Sonido para un cue nuevo','Sound for a new cue'],
   [optionalSummary,'Adjuntar sonido o dictar','Attach sound or dictate'],
-  [composeHelp,'Sin coste de IA. Nada cambia hasta que revises y apliques. Ctrl+Enter para preparar.',
-   'No AI charge. Nothing changes until you review and apply. Ctrl+Enter to prepare.'],
+  [composeHelp,'Trabajar con IA envía una consulta dentro de los límites de gasto. Nada se aplica sin revisión. Ctrl+Enter para consultar IA.',
+   'Work with AI sends one request within spending limits. Nothing is applied without review. Ctrl+Enter to ask AI.'],
   [voice.querySelector('summary'),'Dictar instrucción · revisión manual','Dictate instruction · manual review'],
   [providerLabel.querySelector('span'),'Proveedor para consulta opcional','Provider for optional request'],
-  [consentLabel.querySelector('span'),'Autorizo una consulta con la instrucción y el contexto acotado del show al proveedor elegido (puede tener coste).',
-   'I authorize one request with this instruction and bounded show context to the selected AI provider (may incur a charge).'],
   [consentDetails,'Incluye hasta 80 cues, 120 líneas originales, nombres/estado de medios y 8 mensajes: puede incluir un resumen de la tarea pendiente y 7 mensajes recientes. No se envían archivos de audio.',
    'Includes up to 80 cues, 120 original script lines, media names/status and 8 messages: may include a pending-task summary and 7 recent messages. Audio files are never sent.'],
-  [voiceConsentLabel.querySelector('span'),'Autorizo enviar esta grabación a Meta para transcribirla (puede tener coste).',
-   'I authorize this recording to be sent to Meta for transcription (may incur a charge).'],
+  [voiceHelp,'Transcribir envía esta grabación a Meta dentro de los límites de gasto.',
+   'Transcribe sends this recording to Meta within spending limits.'],
   [transcribe,'Transcribir grabación','Transcribe recording'],
  ];
  const navigate=workspace=>document.querySelector(`[data-workspace-nav="${workspace}"]`)?.click();
@@ -653,7 +692,7 @@ function mount(){
  record.addEventListener('click',()=>{
   dictationContext=contextKey();void dictation.record();
  });
- transcribe.addEventListener('click',()=>void dictation.transcribe(voiceConsent.checked,es()?'es':'en'));
+ transcribe.addEventListener('click',()=>void dictation.transcribe(true,es()?'es':'en'));
  cancel.addEventListener('click',()=>cancelPending());
  window.addEventListener('resize',positionDrawer);
  window.addEventListener('scroll',()=>{if(!panel.hidden)positionDrawer();},{passive:true});
@@ -669,7 +708,7 @@ function mount(){
  discard.addEventListener('click',()=>{dialogueTask=null;showPlan(null);notify(lang('Propuesta descartada.','Plan discarded.'));});
  undoButton.addEventListener('click',undo);
  input.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();void sendRequest(false);}
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();void sendRequest(true);}
  });
  document.addEventListener('runq:show-state-changed',sync);
  document.addEventListener('runq:script-selection-changed',()=>{
