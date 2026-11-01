@@ -145,6 +145,22 @@ test('live mode is a dry run without explicit flags and blocks without ledger he
   assert.equal((await planLive({ provider: 'modal', maxRequests: 1, live: true, ackPaid: true, ledger: missing })).code, 'LEDGER_UNAVAILABLE');
 });
 
+test('live mode passes an external verified snapshot only to the Meta runner', async () => {
+  const ok = async () => ({ available: true, remainingUsd: 40, perProvider: { meta: { requestsRemaining: 25, remainingUsd: 12 }, modal: { requestsRemaining: 72, remainingUsd: 33 } } });
+  const snapshot = await mkdtemp(join(tmpdir(), 'runq-snap-'));
+  try {
+    const meta = await planLive({ provider: 'meta', maxRequests: 1, live: true, ackPaid: true, ledger: ok, verifiedSnapshot: snapshot });
+    assert.equal(meta.status, 'READY');
+    assert.deepEqual(meta.args.slice(-2), ['--verified-snapshot', snapshot]);
+    const modal = await planLive({ provider: 'modal', maxRequests: 1, live: true, ackPaid: true, ledger: ok, verifiedSnapshot: snapshot });
+    assert.equal(modal.code, 'VERIFIED_SNAPSHOT_META_ONLY');
+    const absent = await planLive({ provider: 'meta', maxRequests: 1, live: true, ackPaid: true, ledger: ok, verifiedSnapshot: join(snapshot, 'missing') });
+    assert.equal(absent.code, 'VERIFIED_SNAPSHOT_NOT_FOUND');
+  } finally {
+    await rm(snapshot, { recursive: true, force: true });
+  }
+});
+
 test('compare flags a suite that regressed from baseline', async () => {
   const root = await fakeRoot();
   try {

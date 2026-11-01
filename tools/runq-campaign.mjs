@@ -10,7 +10,7 @@
  *   node tools/runq-campaign.mjs status  --id ID
  *   node tools/runq-campaign.mjs report  --id ID
  *   node tools/runq-campaign.mjs compare --base ID --candidate ID
- *   node tools/runq-campaign.mjs live    --provider meta|modal --max-requests N [--live --ack-paid]
+ *   node tools/runq-campaign.mjs live    --provider meta|modal --max-requests N [--live --ack-paid] [--verified-snapshot <external dir, meta only>]
  *
  * Offline/browser suites run existing repository runners with every provider
  * credential removed from the child environment. Results are checkpointed
@@ -437,12 +437,17 @@ export async function compareCampaigns({ base, candidate, root = REPO_ROOT, suit
 /**
  * Paid pilots: fail-closed and delegated to the existing ledger-enforced
  * runners. Without both --live and --ack-paid this only prints the plan.
+ * verifiedSnapshot forwards an external snapshot of untracked/dirty files so the
+ * Meta runner can hash-verify the exact source instead of refusing to run.
  */
-export async function planLive({ provider, maxRequests, live = false, ackPaid = false, ledger = ledgerStatus, root = REPO_ROOT }) {
+export async function planLive({ provider, maxRequests, live = false, ackPaid = false, ledger = ledgerStatus, root = REPO_ROOT, verifiedSnapshot = null }) {
   if (typeof provider !== 'string' || !LIVE_PROVIDERS.includes(provider) || isCampaignProviderProhibited(provider))
     return { status: 'REFUSED', code: 'CAMPAIGN_PROVIDER_PROHIBITED', exitCode: 2 };
   if (!Number.isSafeInteger(maxRequests) || maxRequests < 1 || maxRequests > MAX_LIVE_REQUESTS_PER_INVOCATION)
     return { status: 'REFUSED', code: 'MAX_REQUESTS_OUT_OF_RANGE', exitCode: 2 };
+  if (verifiedSnapshot !== null && provider !== 'meta') return { status: 'REFUSED', code: 'VERIFIED_SNAPSHOT_META_ONLY', exitCode: 2 };
+  if (verifiedSnapshot !== null && (typeof verifiedSnapshot !== 'string' || !existsSync(verifiedSnapshot)))
+    return { status: 'REFUSED', code: 'VERIFIED_SNAPSHOT_NOT_FOUND', exitCode: 2 };
   const status = await ledger();
   if (!status.available) return { status: 'BLOCKED', code: 'LEDGER_UNAVAILABLE', reason: status.reason, exitCode: 3 };
   const p = status.perProvider?.[provider];
@@ -451,7 +456,8 @@ export async function planLive({ provider, maxRequests, live = false, ackPaid = 
     return { status: 'BLOCKED', code: 'INSUFFICIENT_LEDGER_HEADROOM', provider: p ?? null, exitCode: 3 };
   const args = provider === 'meta'
     ? ['tools/runq-agent-live-eval.mjs', '--live', '--ack-paid', '--cases', String(maxRequests), '--providers', 'meta',
-      '--budget-usd', '65', '--reserve-usd', String(reserveUsd), '--seed', '20261101']
+      '--budget-usd', '65', '--reserve-usd', String(reserveUsd), '--seed', '20261101',
+      ...(verifiedSnapshot ? ['--verified-snapshot', verifiedSnapshot] : [])]
     : ['tools/runq-modal-live-batch.mjs', '--live', '--ack-paid', '--count', String(maxRequests)];
   if (!existsSync(join(root, args[0]))) return { status: 'BLOCKED', code: 'RUNNER_NOT_AVAILABLE', exitCode: 3 };
   const plan = { status: live && ackPaid ? 'READY' : 'DRY_RUN', provider, maxRequests, retries: 0, command: ['node', ...args].join(' '),
@@ -474,13 +480,14 @@ function parseCli(argv) {
   for (let i = 0; i < rest.length; i += 1) {
     const flag = rest[i];
     if (['--force', '--retry-failed', '--live', '--ack-paid'].includes(flag)) { options[flag.slice(2).replace(/-(\w)/g, (_, c) => c.toUpperCase())] = true; continue; }
-    const key = { '--id': 'id', '--only': 'only', '--base': 'base', '--candidate': 'candidate', '--provider': 'provider', '--max-requests': 'maxRequests', '--root': 'root' }[flag];
+    const key = { '--id': 'id', '--only': 'only', '--base': 'base', '--candidate': 'candidate', '--provider': 'provider', '--max-requests': 'maxRequests', '--root': 'root', '--verified-snapshot': 'verifiedSnapshot' }[flag];
     if (!key || rest[i + 1] === undefined) throw new TypeError('UNKNOWN_OR_INCOMPLETE_OPTION ' + flag);
     options[key] = rest[++i];
   }
   if (options.only) options.only = options.only.split(',');
   if (options.maxRequests !== undefined) options.maxRequests = /^\d+$/.test(options.maxRequests) ? Number(options.maxRequests) : NaN;
   if (options.root) options.root = resolve(options.root);
+  if (options.verifiedSnapshot) options.verifiedSnapshot = resolve(options.verifiedSnapshot);
   return options;
 }
 
@@ -518,7 +525,7 @@ async function main(argv) {
     case 'report': { const s = await writeReport({ id, root }); console.log(JSON.stringify(s.totals)); return 0; }
     case 'compare': { const r = await compareCampaigns({ base: o.base, candidate: o.candidate, root }); console.log(r.regressions.length ? 'REGRESSIONS ' + r.regressions.join(',') : 'NO_REGRESSIONS', r.file); return r.regressions.length ? 1 : 0; }
     case 'live': {
-      const r = await runLive({ provider: o.provider, maxRequests: o.maxRequests, live: o.live, ackPaid: o.ackPaid, root });
+      const r = await runLive({ provider: o.provider, maxRequests: o.maxRequests, live: o.live, ackPaid: o.ackPaid, root, verifiedSnapshot: o.verifiedSnapshot ?? null });
       const { args, ...visible } = r;
       console.log(JSON.stringify(visible, null, 2));
       return r.exitCode ?? 1;
