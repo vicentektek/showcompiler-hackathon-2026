@@ -35,16 +35,23 @@ export function classifyLocalGap(turn,result){
 }
 function counts(rows,key){return Object.fromEntries([...new Set(rows.map(row=>row[key]))].sort().map(value=>
  [value,rows.filter(row=>row[key]===value).length]));}
-async function latestLiveReport(){
+async function latestLiveReport(liveDir=LIVE_DIR){
  const {readdir}=await import('node:fs/promises');
- const names=(await readdir(resolve(LIVE_DIR))).filter(name=>/^eval-.*\.json$/.test(name));
+ let names;
+ try{names=(await readdir(resolve(liveDir))).filter(name=>/^eval-.*\.json$/.test(name));}
+ catch(error){if(error?.code==='ENOENT')return null;throw error;}
  const reports=[];
  for(const name of names){
-  const report=JSON.parse(await readFile(resolve(LIVE_DIR,name),'utf8'));
+  const report=JSON.parse(await readFile(resolve(liveDir,name),'utf8'));
   if(report.corpus==='gauntlet-v2'&&report.realProviderEvaluations===true)reports.push({name,report});
  }
+ if(!reports.length)return null;
  assert.equal(reports.length,1,'EXPECTED_ONE_GAUNTLET_LIVE_REPORT');
  return reports[0];
+}
+async function readOptionalJson(path){
+ try{return JSON.parse(await readFile(path,'utf8'));}
+ catch(error){if(error?.code==='ENOENT')return null;throw error;}
 }
 function reviewLive(row){
  const retained={httpStatus:row.httpStatus,latencyMs:row.latencyMs,
@@ -74,39 +81,53 @@ function reconcileLedger(ledger,live){
    amountUsd:row.amountMicros/1e6,status:row.status})),
   conclusion:'The 16 gauntlet reservations match 16 HTTP attempts. The seventeenth was a separate design reservation immediately before the run; RESERVED alone does not prove a completed provider response.'};
 }
-export async function auditShowAssistantQuality({write=true}={}){
+export async function auditShowAssistantQuality({write=true,offlinePath=OFFLINE,liveDir=LIVE_DIR,
+ ledgerPath=globalLedgerDefaultPath()}={}){
  const corpus=JSON.parse(await readFile(resolve(GAUNTLET),'utf8'));
- const offline=JSON.parse(await readFile(resolve(OFFLINE),'utf8'));
+ const offline=JSON.parse(await readFile(resolve(offlinePath),'utf8'));
  const turns=new Map(corpus.scenarios.flatMap(s=>s.turns.map(turn=>[turn.id,{...turn,journey:s.id}])));
  const gaps=offline.results.filter(row=>row.outcome==='LOCAL_GAP').map(row=>{
   const turn=turns.get(row.id);assert.ok(turn);return {...row,prompt:turn.prompt,...classifyLocalGap(turn,row)};
  });
  assert.ok(gaps.length<=125,'LOCAL_GAP_COUNT_INCREASED');
- const {name:liveFile,report:live}=await latestLiveReport();
- const pending=live.results.filter(row=>row.reviewRequired).map(reviewLive);
- const ledger=JSON.parse(await readFile(globalLedgerDefaultPath(),'utf8'));
- const report={version:1,mode:'READ_ONLY_NO_PAID_CALLS',source:{liveFile},
-  semanticReview:{requested:10,rows:pending.filter(row=>row.id!=='gauntlet-voice-01'),
-   conclusion:'No semantic accuracy denominator is available because response content/status was not retained.'},
-  voice01:{classification:'ORACLE_AND_EVIDENCE_RETENTION_DEFECT',modelFailureProven:false,
-   schemaFailure:false,parserFailure:false,retained:reviewLive(live.results.find(row=>row.id==='gauntlet-voice-01')).retained,
-   analysis:'HTTP 200 and a valid parsed reply with zero operations reached the judge. The oracle required ANSWER for an ambiguity where CLARIFY can be safe, but the missing observed status prevents retrospective regrading.'},
-  localGaps:{baselineTotal:125,total:gaps.length,byCategory:counts(gaps,'category'),byIntent:counts(gaps,'intent'),rows:gaps},
-  reservationReconciliation:reconcileLedger(ledger,live)};
+ const latest=await latestLiveReport(liveDir);
+ const ledger=latest?await readOptionalJson(ledgerPath):null;
+ const localGaps={baselineTotal:125,total:gaps.length,byCategory:counts(gaps,'category'),byIntent:counts(gaps,'intent'),rows:gaps};
+ const notRun=reason=>({status:'NOT_RUN',reason});
+ let report;
+ if(!latest){
+  const reason='NO_LIVE_GAUNTLET_REPORT in '+liveDir+'; live evidence is local-only and is never fetched by this audit';
+  report={version:1,mode:'READ_ONLY_NO_PAID_CALLS',source:{liveFile:null},liveEvidence:notRun(reason),
+   semanticReview:notRun(reason),voice01:notRun(reason),localGaps,reservationReconciliation:notRun(reason)};
+ }else{
+  const {name:liveFile,report:live}=latest;
+  const pending=live.results.filter(row=>row.reviewRequired).map(reviewLive);
+  report={version:1,mode:'READ_ONLY_NO_PAID_CALLS',source:{liveFile},liveEvidence:{status:'AVAILABLE'},
+   semanticReview:{status:'AVAILABLE',requested:10,rows:pending.filter(row=>row.id!=='gauntlet-voice-01'),
+    conclusion:'No semantic accuracy denominator is available because response content/status was not retained.'},
+   voice01:{status:'AVAILABLE',classification:'ORACLE_AND_EVIDENCE_RETENTION_DEFECT',modelFailureProven:false,
+    schemaFailure:false,parserFailure:false,retained:reviewLive(live.results.find(row=>row.id==='gauntlet-voice-01')).retained,
+    analysis:'HTTP 200 and a valid parsed reply with zero operations reached the judge. The oracle required ANSWER for an ambiguity where CLARIFY can be safe, but the missing observed status prevents retrospective regrading.'},
+   localGaps,
+   reservationReconciliation:ledger?{status:'AVAILABLE',...reconcileLedger(ledger,live)}:notRun('NO_LOCAL_LEDGER')};
+ }
  if(write){
   const dir=resolve(OUTPUT);await mkdir(dir,{recursive:true});
   await writeFile(join(dir,'audit.json'),JSON.stringify(report,null,2)+'\n');
+  const rec=report.reservationReconciliation;
   const lines=['# RUNQ Show Assistant quality audit','',
    '**Read-only analysis. No paid requests.**','',
    '## Retained Muse evidence','',
+   report.liveEvidence.status==='NOT_RUN'?'NOT_RUN: '+report.liveEvidence.reason+'.':
    'The ten requested semantic reviews are **unrateable from retained evidence**: raw text and observed status were not saved. Two stagecraft/artistic cases remain explicitly pending human review; none is promoted to correct.','',
-   '## voice-01','',report.voice01.analysis,'',
-   '## 125 LOCAL_GAP','',
+   '## voice-01','',report.voice01.analysis??'NOT_RUN.','',
+   '## '+report.localGaps.total+' LOCAL_GAP','',
    ...Object.entries(report.localGaps.byCategory).map(([key,value])=>'- '+key+': '+value),'',
    ...Object.entries(report.localGaps.byIntent).map(([key,value])=>'- '+key+': '+value),'',
-   '## Ledger reconciliation','',report.reservationReconciliation.conclusion,'',
-   'Runner reservations/HTTP attempts/HTTP 200: '+[report.reservationReconciliation.runnerReservations,
-    report.reservationReconciliation.runnerHttpAttempts,report.reservationReconciliation.runnerCompletedHttp200].join(' / ')+'.'];
+   '## Ledger reconciliation','',
+   ...(rec.status==='AVAILABLE'?[rec.conclusion,'',
+    'Runner reservations/HTTP attempts/HTTP 200: '+[rec.runnerReservations,rec.runnerHttpAttempts,rec.runnerCompletedHttp200].join(' / ')+'.']:
+    ['NOT_RUN: '+rec.reason+'.'])];
   await writeFile(join(dir,'audit.md'),lines.join('\n')+'\n');
  }
  return report;

@@ -1,8 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {classifyLocalGap} from '../tools/runq-show-assistant-quality-audit.mjs';
+import {classifyLocalGap,auditShowAssistantQuality} from '../tools/runq-show-assistant-quality-audit.mjs';
 import {getStatefulConversationDefinitions,runStatefulConversations} from '../tools/runq-agent-stateful-conversations.mjs';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+
+test('quality audit degrades to NOT_RUN in a clean checkout without live evidence or ledger',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'runq-audit-'));
+ try{
+  const corpus=JSON.parse(readFileSync(new URL('../fixtures/qa/show-assistant-gauntlet-v2.json',import.meta.url),'utf8'));
+  const turn=corpus.scenarios[0].turns[0];
+  const offlinePath=join(dir,'offline.json');
+  writeFileSync(offlinePath,JSON.stringify({results:[{id:turn.id,journey:corpus.scenarios[0].id,outcome:'LOCAL_GAP',observed:'NEEDS_AI'}]}));
+  const report=await auditShowAssistantQuality({write:false,offlinePath,
+   liveDir:join(dir,'missing-live'),ledgerPath:join(dir,'missing-ledger.json')});
+  assert.equal(report.mode,'READ_ONLY_NO_PAID_CALLS');
+  assert.equal(report.liveEvidence.status,'NOT_RUN');
+  assert.match(report.liveEvidence.reason,/NO_LIVE_GAUNTLET_REPORT/);
+  assert.equal(report.semanticReview.status,'NOT_RUN');
+  assert.equal(report.reservationReconciliation.status,'NOT_RUN');
+  assert.equal(report.localGaps.total,1);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
 
 test('LOCAL_GAP taxonomy separates ambiguity, missing local functions, AI reasoning and unavailable capabilities',()=>{
  assert.equal(classifyLocalGap({prompt:'Move the next cue before that one',expect:'C'},{journey:'x',observed:'NEEDS_AI'}).category,'LEGITIMATE_AMBIGUITY');
