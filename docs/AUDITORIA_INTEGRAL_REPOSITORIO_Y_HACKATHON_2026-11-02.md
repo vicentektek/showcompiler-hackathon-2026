@@ -5,7 +5,7 @@
 **Rama de preparación:** `release/runq-hackathon-2026`; antes de este informe, `762e999802dc9af78cb660675b3e97ace0c65017`. Nuevos commits de documentación/auditoría no revalidan automáticamente la aplicación.
 
 ## 0. Dictamen ejecutivo
-**NO PUBLICAR AÚN** este repositorio de desarrollo. La estrategia recomendada es:
+**NO PUBLICAR AÚN** este repositorio de desarrollo. La matriz completa identifica **67 ramas ancestrales candidatas** a retirada con controles, **67 divergentes a preservar/revisar**, **1 idéntica** y **2 de entrega**. La estrategia recomendada es:
 1. Congelar la versión verificada como ancla y preservar un espejo privado completo.
 2. Inventariar las 137 referencias de rama y sus PR asociados con el script de comparación de ancestros; no inferir seguridad de borrado por nombres.
 3. Cerrar PR obsoletos documentando sus sucesores, tras confirmar que el trabajo está integrado o archivado.
@@ -67,7 +67,7 @@ Las comparaciones encontraron código exclusivo en, entre otras:
 **No basta con `git diff` ni con el número de commits:** comparar archivos, contexto, tests y riesgo de regresión. En las ramas divergentes, los commits pueden representar intentos alternativos, NO mejoras acumulables. No hacer `git merge` masivo de 109 PR.
 
 ### D. Pendientes de clasificación individual
-**No se ha ejecutado aún una comparación Git para todas las 137 ramas**. Hay un inventario por nombre y un muestreo dirigido arriba, pero no sería correcto dar una cifra exacta de ramas eliminables. El script `tools/audit-git-refs-readonly.ps1`, en esta rama release, produce un CSV/JSON para TODOS los refs en un espejo y marca `DeleteApproved=NO` en cada fila. Ese CSV + revisión de los PR será el inventario decisorio definitivo.
+**Clasificación de relaciones Git completada para las 137 ramas:** **67 antecesoras exactas** del tag, **1 idéntica**, **2 descendientes** y **67 divergentes con commits exclusivos**. La [matriz completa con cada nombre](BRANCH_DECISION_MATRIX_137_2026-11-02.md) documenta las 137 decisiones provisionales. La cifra 67 es el total de *candidatas técnicas* a retirar, no de ramas cuyo borrado haya sido aprobado. El script `tools/audit-git-refs-readonly.ps1`, en esta rama release, produce un CSV/JSON para TODOS los refs en un espejo y marca `DeleteApproved=NO` en cada fila. Ese CSV + revisión de los PR será el inventario decisorio definitivo.
 
 ## 3. Estrategia para 109 PR abiertos
 - NO fusionar o cerrar los 109 de una sola vez. Primero generar matriz: `PR | base | head | estado | SHA | commits únicos | test | sucesor | decisión | fecha`.
@@ -204,4 +204,4 @@ Grabar captura del commit final, versión/fecha, QA, vídeo público/unlisted ac
 - Discord official questions: https://discord.com/channels/1557169028080869426/1564043204725182484
 - Stability AI audio model/license: https://huggingface.co/stabilityai/stable-audio-3-small-sfx ; https://stability.ai/license
 
-**Limitaciones de esta auditoría:** lectura remota de metadatos, árbol y ficheros clave, comparación dirigida de ramas y logs reales. NO se ha podido ejecutar todavía el escáner de todos los objetos Git ni inspeccionar el interior de todos los binarios; NO se dispone del PDF de Official Rules aceptadas, ni de un run integral verde del SHA final. Esas tareas son condición para cerrar el diagnóstico, no detalles opcionales.
+**Limitaciones de esta auditoría:** lectura remota de metadatos, árbol y ficheros clave, comparación de relaciones de ancestros de **las 137 ramas** y logs reales; la revisión semántica de todos los cambios exclusivos queda pendiente. NO se ha podido ejecutar todavía el escáner de todos los objetos Git ni inspeccionar el interior de todos los binarios; NO se dispone del PDF de Official Rules aceptadas, ni de un run integral verde del SHA final. Esas tareas son condición para cerrar el diagnóstico, no detalles opcionales.
