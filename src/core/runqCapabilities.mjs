@@ -44,7 +44,7 @@ export const RUNQ_CAPABILITIES = Object.freeze([
     evidence: [
       { file: 'src/core/script.mjs', line: 5, contains: 'export function parseScript(input)' },
       { file: 'src/core/script.mjs', line: 12, contains: 'id: `L${index + 1}`' },
-      { file: 'src/core/agentCore.mjs', line: 73, contains: 'sourceLineIds:[...c.sourceLineIds]' },
+      { file: 'src/core/agentCore.mjs', line: 78, contains: 'sourceLineIds:[...c.sourceLineIds]' },
     ],
     tests: [
       { file: 'test/script.test.mjs', name: 'parses CRLF and preserves source line numbers and blank lines' },
@@ -65,8 +65,8 @@ export const RUNQ_CAPABILITIES = Object.freeze([
     evidence: [
       { file: 'src/core/theatreCueAnalysis.mjs', line: 2, contains: 'Transient, scene-aware theatre sound analysis' },
       { file: 'src/core/theatreCueAnalysis.mjs', line: 16, contains: 'THEATRE_ANALYSIS_WINDOWS_PER_REQUEST = 1' },
-      { file: 'src/core/showPreparation.mjs', line: 49, contains: 'export function validateAudioBatch' },
-      { file: 'src/core/showPreparation.mjs', line: 58, contains: "!['SFX', 'ENVIRONMENT'].includes(draft.kind)" },
+      { file: 'src/core/showPreparation.mjs', line: 66, contains: 'export function validateAudioBatch' },
+      { file: 'src/core/showPreparation.mjs', line: 76, contains: "!['SFX', 'ENVIRONMENT'].includes(draft.kind)" },
     ],
     tests: [
       { file: 'test/theatreCueAnalysis.test.mjs', name: 'parses explicit, suggested, continuing, silence and stop classifications' },
@@ -88,10 +88,10 @@ export const RUNQ_CAPABILITIES = Object.freeze([
     evidence: [
       { file: 'src/core/agentCore.mjs', line: 2, contains: 'RUNQ Agent: read-only context' },
       { file: 'src/core/agentCore.mjs', line: 3, contains: 'NO transport, model calls, file I/O, or automatic application.' },
-      { file: 'src/core/agentCore.mjs', line: 83, contains: 'export function auditAgentProject' },
-      { file: 'src/core/agentCore.mjs', line: 174, contains: 'export function prepareAgentPlan' },
-      { file: 'src/core/agentCore.mjs', line: 204, contains: 'export function commitAgentPlan' },
-      { file: 'src/core/agentCore.mjs', line: 216, contains: 'export function undoAgentPlan' },
+      { file: 'src/core/agentCore.mjs', line: 92, contains: 'export function auditAgentProject' },
+      { file: 'src/core/agentCore.mjs', line: 219, contains: 'export function prepareAgentPlan' },
+      { file: 'src/core/agentCore.mjs', line: 288, contains: 'export function commitAgentPlan' },
+      { file: 'src/core/agentCore.mjs', line: 300, contains: 'export function undoAgentPlan' },
     ],
     tests: [
       { file: 'test/agentCore.test.mjs', name: 'atomic edit/delete/reorder, source and media preserved, undo works' },
@@ -115,7 +115,7 @@ export const RUNQ_CAPABILITIES = Object.freeze([
       { file: 'src/core/operatorQueue.mjs', line: 20, contains: 'export function prepareOperatorCue' },
       { file: 'src/core/browserAudio.mjs', line: 3, contains: 'Plays operator-approved DRAFT cues only after an explicit GO.' },
       { file: 'src/core/browserAudio.mjs', line: 472, contains: 'async go(cue)' },
-      { file: 'src/core/browserAudio.mjs', line: 642, contains: 'stopAll()' },
+      { file: 'src/core/browserAudio.mjs', line: 464, contains: 'stopAll()' },
     ],
     tests: [
       { file: 'test/operatorQueue.test.mjs', name: 'preparing one cue never plays audio or marks it complete' },

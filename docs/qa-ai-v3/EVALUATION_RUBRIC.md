@@ -9,8 +9,10 @@ The V2 local interpreter baseline is frozen in
 separate developer/schema payload fingerprint,
 164 turns, 107 `LOCAL_GAP`, 28 `CONTRACT_PASS`, 29 `GUARD_PASS`, zero `FAIL`.
 `baseline` re-runs the offline V2 harness and fails if those values or the
-prompt hash change. These measurements describe the local harness only; they
-are not Muse results.
+prompt hash change. Its payload fingerprint remains pinned to the historical
+schema; current route-schema changes are validated by their own contract tests
+and do not rewrite this local baseline. These measurements describe the local
+harness only; they are not Muse results.
 The exact 107 `LOCAL_GAP` turn IDs from that frozen run are imported into
 `fixtures/qa/assistant-v3-baseline.json`, checked against a fresh offline
 baseline reproduction, and scheduled before supplemental synthetic cases.

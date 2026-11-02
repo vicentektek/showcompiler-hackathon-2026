@@ -26,6 +26,9 @@ const sha256 = value => createHash('sha256').update(value).digest('hex');
 const stable = value => JSON.stringify(value);
 const EXPECTED_MEMORY = 'Confirmed creative decision: use the quiet blue door texture only for the closing scene.';
 const FIXTURE_TIME = Date.parse('2026-11-01T22:00:00.000Z');
+const FROZEN_BASELINE_PROMPT_VERSION = 'agent-expert-context-v3-1';
+const FROZEN_BASELINE_PAYLOAD_SHA256 =
+  'c4f02abe98b33be01d68784d943d9669cfb17c330d3a4fba3078c56035e68a4d';
 const BASELINE_SOURCE_FILES = [
   'src/qa/assistantV3Budget.mjs',
   'src/qa/assistantV3Evaluation.mjs',
@@ -625,9 +628,9 @@ export async function offlineAssistantV3Evaluation({split = 'development', sampl
 
 export async function baselineAssistantV3Evaluation() {
   const baseline = JSON.parse(await readFile(resolve(ASSISTANT_V3_BASELINE), 'utf8'));
-  if (baseline.promptVersion !== AGENT_PROMPT_VERSION ||
-      baseline.baselinePromptSha256 !== await baselinePromptFingerprint() ||
-      baseline.baselinePayloadSha256 !== await baselinePayloadFingerprint()) {
+  if (baseline.promptVersion !== FROZEN_BASELINE_PROMPT_VERSION ||
+      baseline.baselinePayloadSha256 !== FROZEN_BASELINE_PAYLOAD_SHA256 ||
+      baseline.baselinePromptSha256 !== await baselinePromptFingerprint()) {
     throw new Error('V3_BASELINE_PROMPT_FROZEN_HASH_MISMATCH');
   }
   const {runShowAssistantGauntlet} = await import('../../tools/runq-show-assistant-gauntlet-v2.mjs');
