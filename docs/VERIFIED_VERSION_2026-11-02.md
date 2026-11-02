@@ -12,10 +12,10 @@ npm test
 npm run check:syntax
 ```
 
-Compare the commit printed by `git rev-parse HEAD` with the commit shown by:
+Compare the `^{} ` line (the peeled commit) with the commit printed by `git rev-parse HEAD`:
 
 ```powershell
-git ls-remote origin 'refs/tags/verified-working-2026-11-02^{}'
+git ls-remote origin "refs/tags/verified-working-2026-11-02*"
 ```
 
 The test suite is offline and makes no Meta, Modal, Baseten or Fireworks requests. It verifies that Meta and Modal do not stop at the former local budget ceilings, that duplicate submissions remain blocked, and that Baseten and Fireworks remain prohibited. Passing these checks does not verify provider account balance, service availability, audible hardware output or live model quality.
