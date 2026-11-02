@@ -85,10 +85,14 @@ function configuration() {
   };
 }
 
+export function defaultSfxStoreDirectory() {
+  return join(dirname(globalLedgerDefaultPath()), 'shared-modal-jobs-v1');
+}
+
 function defaultSfxStore() {
   const campaign = supervisedQaCampaignFromEnv();
   return createSfxJobStore({
-    directory: join(dirname(globalLedgerDefaultPath()), 'shared-modal-jobs-v1'),
+    directory: defaultSfxStoreDirectory(),
     maxDailyStarts: campaign?.maxDailyStarts ?? STANDARD_MAX_DAILY_STARTS,
     supervisedQaCampaign: campaign !== null,
   });

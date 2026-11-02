@@ -91,6 +91,13 @@ in **Sound > Generate**:
   permissions. **Adjust batch · optional** lets you edit prompts or select cues.
   This is also available in
   **Sound > Generate**. Unsupported music/voice and non-sound cues are excluded.
+  The batch records each cue separately (submitted, generating, ready, failed or
+  uncertain), preserves completed WAV references and can resume an already
+  submitted job by request ID after a reload. A failed cue does not erase or
+  re-send completed work; daily/provider limits still stop new submissions.
+  **Stop batch** only stops local tracking and new submissions; requesting
+  remote cancellation is a separate per-take action. Checking a take never
+  creates a duplicate or starts playback.
 - **Auto prepare entire show** starts analysis of remaining script windows.
   **Include all sounds** is on by default: after reviewing proposals, choose
   **Accept all and generate sounds** to continue directly with every eligible cue.

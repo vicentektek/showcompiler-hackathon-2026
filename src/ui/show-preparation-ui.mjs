@@ -1,4 +1,7 @@
 import { planShowAudio, cueSoundIdentity, runPreparationQueue, limitAudioBatch } from '../core/showPreparation.mjs';
+import {
+  normalizeBatchRecords, reconcileRecoveredRecords, runSfxBatch,
+} from '../core/sfxBatch.mjs';
 import { showBuilderProjectKey } from '../core/showBuilder.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { parseScript } from '../core/script.mjs';
@@ -131,12 +134,20 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
         'No valid batch or configured spending limits. No generations were sent.'),
       BATCH_PROMPT_INVALID: tr('Revisa el prompt en inglés, tipo y duración (1–12 s) de cada cue.',
         'Review the English prompt, kind and duration (1–12 s) for each cue.'),
-      SFX_WAIT_LIMIT: tr('La toma sigue pendiente tras dos minutos. Consulta el historial; no se enviará otro trabajo.',
-        'Take still pending after two minutes. Check history; no new job will be sent.'),
+      SFX_WAIT_LIMIT: tr('La toma sigue generándose. Puedes comprobar su estado; no se enviará otro trabajo.',
+        'The take is still generating. Check its status; no new job will be sent.'),
       SFX_IDENTITY: tr('La respuesta no coincide con la toma solicitada. Lote detenido.',
         'Response does not match the requested take. Batch stopped.'),
       SFX_NOT_CONFIGURED: tr('Modal no está configurado. No se enviaron generaciones.',
         'Modal is not configured. No generations were sent.'),
+      SFX_GENERATION_FAILED: tr('Una generación falló. Los demás cues continúan; revisa el estado por cue.',
+        'One generation failed. Other cues continue; review the status per cue.'),
+      SFX_SUBMISSION_UNKNOWN: tr('El envío no pudo confirmarse. No se reenviará automáticamente; comprueba su estado.',
+        'Submission could not be confirmed. It will not be resent automatically; check its status.'),
+      SFX_BUSY: tr('El servicio local está ocupado con otra operación. Espera y comprueba el estado; no se ha creado un duplicado.',
+        'The local service is busy with another operation. Wait and check status; no duplicate was created.'),
+      SFX_SERVICE: tr('El servicio de sonido no respondió. El trabajo puede seguir en curso; comprueba su estado antes de actuar.',
+        'The sound service did not respond. The job may still be running; check its status before acting.'),
       PREPARATION_STORAGE_UNAVAILABLE: tr('No se puede guardar el historial del lote. Generación bloqueada para evitar duplicar costes.',
         'Batch history cannot be saved. Generation blocked to avoid duplicate costs.'),
       NO_PENDING_SOUND_CUES: tr('No quedan cues de sonido pendientes sin una toma en el historial.',
@@ -159,20 +170,26 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     try {
       const raw = localStorage.getItem('runq.preparation.v1.' + projectKey);
       if (raw) {
-        const saved = JSON.parse(raw);
-        if (!Array.isArray(saved) || saved.length > 500 || saved.some(r =>
-          !ID.test(r.requestId ?? '') || typeof r.cueId !== 'string' || typeof r.cueIdentity !== 'string' ||
-          !['SUBMITTED', 'UNKNOWN', 'QUEUED', 'RUNNING', 'READY_FOR_REVIEW', 'ACCEPTED_FOR_MANUAL_IMPORT',
-            'FAILED', 'CANCELLED', 'REJECTED'].includes(r.status)))
-          throw new Error('INVALID_PREPARATION_HISTORY');
-        records = saved;
+        // Shared validation preserves phases, WAV hashes and tracking times
+        // while remaining compatible with records written by the old loop.
+        // The core returns immutable snapshots; the view owns editable copies.
+        records = normalizeBatchRecords(JSON.parse(raw)).map(record => ({ ...record }));
       }
-    } catch (error) { historyAvailable = false; message = tr('No se pudo recuperar el historial del lote. No se generará automáticamente.',
+    } catch { historyAvailable = false; message = tr('No se pudo recuperar el historial del lote. No se generará automáticamente.',
       'Batch history could not be recovered. Nothing will be generated automatically.'); status.classList.add('error'); }
+  }
+  function syncRecords(next) {
+    records = normalizeBatchRecords(next).map(record => ({ ...record }));
+    persist();
   }
   const eligible = state => planShowAudio(state.project).items.filter(item =>
     !records.some(r => r.cueId === item.cueId && r.cueIdentity === item.cueIdentity &&
       !['FAILED', 'CANCELLED', 'REJECTED'].includes(r.status)));
+  // The batch button also resumes tracking for live records. runSfxBatch
+  // distinguishes them by requestId and never creates a second submission.
+  const resumable = state => planShowAudio(state.project).items.some(item =>
+    records.some(r => r.cueId === item.cueId && r.cueIdentity === item.cueIdentity &&
+      ['SUBMITTED', 'QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(r.status)));
   const recordStatus = record => ({
     SUBMITTED: tr('Enviada', 'Submitted'),
     UNKNOWN: tr('Sin confirmar: consulta el historial', 'Unconfirmed: check history'),
@@ -180,6 +197,7 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     RUNNING: tr('Generando', 'Generating'),
     READY_FOR_REVIEW: tr('Lista para escuchar', 'Ready to listen'),
     ACCEPTED_FOR_MANUAL_IMPORT: tr('Revisada', 'Reviewed'),
+    CANCEL_REQUESTED: tr('Cancelación remota solicitada', 'Remote cancellation requested'),
     FAILED: tr('Generación fallida', 'Generation failed'),
     CANCELLED: tr('Cancelada', 'Cancelled'),
     REJECTED: tr('Rechazada', 'Rejected'),
@@ -239,12 +257,16 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     includeAudio.disabled = busy || planning;
     soundReview.textContent = tr('Ver tomas del lote', 'View batch takes');
     soundReview.hidden = !records.length;
-    const cancelLabel = tr('Cancelar lote', 'Cancel batch');
+    const cancelLabel = tr('Detener lote', 'Stop batch');
     labelButton(cancel, cancelLabel); labelButton(soundCancel, cancelLabel, cancel.id);
+    cancel.title = soundCancel.title = tr(
+      'Detiene nuevos envíos y el seguimiento local. No solicita cancelar la generación ya enviada.',
+      'Stops new submissions and local tracking. It does not request cancellation of an already submitted generation.');
     prepare.disabled = homePrepare.disabled = busy || planning || !state.canApply || !state.metaAvailable || !state.project.scriptText.trim();
     acceptAll.disabled = busy || planning || !state.canApply || pending.length === 0;
-    audioAll.disabled = soundAll.disabled = busy || planning || !historyAvailable || !state.canApply || available.length === 0;
-    editAudio.disabled = audioAll.disabled;
+    audioAll.disabled = soundAll.disabled = busy || planning || !historyAvailable || !state.canApply ||
+      (available.length === 0 && !resumable(state));
+    editAudio.disabled = busy || planning || !historyAvailable || !state.canApply || available.length === 0;
     cancel.hidden = soundCancel.hidden = !busy;
     for (const p of [progress, soundProgress]) {
       p.box.hidden = !busy && !planning && !progressTotal;
@@ -273,6 +295,25 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       label.textContent = `${cue.number} · ${cue.label} · ${assigned ? tr('Asignada', 'Assigned') : changed
         ? tr('Cue modificado', 'Cue changed') : recordStatus(r)}`;
       const controls = make('div', 'rq-preparation-take-actions');
+      if (!READY.has(r.status)) {
+        const check = make('button', 'btn subtle small'); check.type = 'button';
+        check.dataset.batchCheck = r.requestId;
+        check.textContent = tr('Comprobar estado', 'Check status');
+        check.disabled = busy || planning || previewLoading || !(state.canAssign ?? state.canApply) ||
+          ['FAILED', 'CANCELLED', 'REJECTED'].includes(r.status);
+        check.addEventListener('click', () => void checkTake(r).catch(fail));
+        controls.append(check);
+        if (ACTIVE.has(r.status)) {
+          const cancelRemote = make('button', 'btn subtle small'); cancelRemote.type = 'button';
+          cancelRemote.dataset.batchCancelRemote = r.requestId;
+          cancelRemote.textContent = tr('Solicitar cancelación', 'Request cancellation');
+          cancelRemote.title = tr('Acción remota separada: pide cancelar esta generación; no detiene el resto del lote.',
+            'Separate remote action: requests cancellation of this generation; it does not stop the rest of the batch.');
+          cancelRemote.disabled = busy || planning || previewLoading || !(state.canAssign ?? state.canApply);
+          cancelRemote.addEventListener('click', () => void cancelRemoteTake(r).catch(fail));
+          controls.append(cancelRemote);
+        }
+      }
       const listen = make('button', 'btn subtle small'); listen.type = 'button'; listen.dataset.batchListen = r.requestId;
       listen.textContent = previewRequestId === r.requestId
         ? previewLoading ? tr('Cargando…', 'Loading…') : tr('Detener escucha', 'Stop preview')
@@ -350,7 +391,11 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
         settings.estimatedMaxCostUsdPerRequest <= 0 || !Number.isFinite(settings.dailyBudgetUsd))
       throw new Error('SFX_NOT_CONFIGURED');
     const plan = planShowAudio(planState.project);
-    const items = eligible(planState);
+    const fresh = eligible(planState);
+    const resumeOnly = fresh.length === 0 && resumable(planState);
+    const items = resumeOnly ? plan.items.filter(item => records.some(r =>
+      r.cueId === item.cueId && r.cueIdentity === item.cueIdentity &&
+      ['SUBMITTED', 'QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(r.status))) : fresh;
     if (!items.length) throw new Error('NO_PENDING_SOUND_CUES');
     title.textContent = tr('Generar audio para todos los cues pendientes', 'Generate audio for all pending cues');
     help.textContent = tr(
@@ -387,6 +432,84 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     updateCost();
     if (edit) { dialog.showModal(); startAudio.focus(); }
   }
+  function batchTransport(signal) {
+    return Object.freeze({
+      async start(item, ids) {
+        return request('/jobs', { signal, data: {
+          requestId: ids.requestId, authorizationId: ids.authorizationId, confirmed: true,
+          sourceLineId: item.draft.sourceLineId, kind: item.draft.kind, prompt: item.draft.prompt,
+          durationSeconds: item.draft.durationSeconds, seed: 42,
+          acknowledgedMaxCostUsd: policy.estimatedMaxCostUsdPerRequest,
+        } });
+      },
+      read: requestId => request('/jobs/' + encodeURIComponent(requestId), { signal }),
+      refresh: requestId => request('/jobs/' + encodeURIComponent(requestId) + '/refresh',
+        { signal, data: {} }),
+      cancel: requestId => request('/jobs/' + encodeURIComponent(requestId) + '/cancel',
+        { signal, data: {} }),
+    });
+  }
+  async function checkTake(record) {
+    if (busy || planning) return;
+    planning = true; render();
+    try {
+      const state = getState();
+      const cue = state.project.cues.find(entry => entry.id === record.cueId);
+      if (!cue || cueSoundIdentity(cue) !== record.cueIdentity) throw new Error('SHOW_CHANGED');
+      const scope = Object.freeze({
+        projectId: state.project.id, projectGeneration: state.generation,
+        cueId: record.cueId, cueIdentity: record.cueIdentity,
+        requestId: record.requestId,
+      });
+      const withScope = job => job && job.requestId === record.requestId ? {
+        ...job, projectId: scope.projectId, projectGeneration: scope.projectGeneration,
+        cueId: scope.cueId, cueIdentity: scope.cueIdentity,
+      } : job;
+      const transport = batchTransport(controller?.signal);
+      const local = withScope(await transport.read(record.requestId));
+      if (!local || local.requestId !== record.requestId) throw new Error('SFX_IDENTITY');
+      let latest = local;
+      if (['QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(local.status)) {
+        latest = withScope(await transport.refresh(record.requestId));
+      }
+      if (!latest || latest.requestId !== record.requestId) throw new Error('SFX_IDENTITY');
+      const reconciled = reconcileRecoveredRecords(records, [latest], scope);
+      const currentRecord = reconciled.records.find(entry => entry.requestId === record.requestId);
+      syncRecords(reconciled.records);
+      message = currentRecord?.status === 'READY_FOR_REVIEW'
+        ? tr('Toma recuperada y lista para escuchar. No se ha creado ningún duplicado.',
+          'Take recovered and ready to listen. No duplicate was created.')
+        : tr('Estado actualizado sin reenviar la generación.',
+          'Status updated without resubmitting the generation.');
+      render();
+    } finally { planning = false; render(); }
+  }
+  async function cancelRemoteTake(record) {
+    if (busy || planning) return;
+    if (!ACTIVE.has(record.status)) throw new Error('SFX_NOT_REVIEWABLE');
+    planning = true; render();
+    try {
+      const state = getState();
+      const cue = state.project.cues.find(entry => entry.id === record.cueId);
+      if (!cue || cueSoundIdentity(cue) !== record.cueIdentity) throw new Error('SHOW_CHANGED');
+      const result = await batchTransport(controller?.signal).cancel(record.requestId);
+      if (!result || result.requestId !== record.requestId || result.status !== 'CANCEL_REQUESTED')
+        throw new Error('SFX_IDENTITY');
+      const reconciled = reconcileRecoveredRecords(records, [{
+        ...result, projectId: state.project.id, projectGeneration: state.generation,
+        cueId: record.cueId, cueIdentity: record.cueIdentity,
+      }], Object.freeze({
+        projectId: state.project.id, projectGeneration: state.generation,
+        cueId: record.cueId, cueIdentity: record.cueIdentity,
+        requestId: record.requestId,
+      }));
+      syncRecords(reconciled.records);
+      message = tr('Cancelación remota solicitada para esta generación. No se ha detenido el resto del lote.',
+        'Remote cancellation requested for this generation. The rest of the batch was not stopped.');
+      render();
+    } finally { planning = false; render(); }
+  }
+
   async function generateAudio() {
     if (busy || planning) return;
     const revision = cancelRevision;
@@ -400,53 +523,38 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       const startKey = projectKey;
       stage = 'audio'; progressKind = 'audio'; progressDone = 0; progressTotal = items.length;
       status.classList.remove('error'); dialog.close(); setBusy(true);
-      let completed = 0;
-      await runPreparationQueue(items, {
-        signal, assertCurrent: assertEditable,
-        async execute(item) {
-          const record = { cueId: item.cueId, cueIdentity: item.cueIdentity,
-            requestId: 'req-' + crypto.randomUUID(), status: 'SUBMITTED' };
-          records.push(record); persist();
-          message = tr(`Generando ${completed + 1}/${items.length}: ${item.label}. Sin reproducción automática.`,
-            `Generating ${completed + 1}/${items.length}: ${item.label}. No automatic playback.`); render();
-          try {
-            let job = await request('/jobs', { signal, data: {
-              requestId: record.requestId, authorizationId: 'auth-' + crypto.randomUUID(), confirmed: true,
-              sourceLineId: item.draft.sourceLineId, kind: item.draft.kind, prompt: item.draft.prompt,
-              durationSeconds: item.draft.durationSeconds, seed: 42,
-              acknowledgedMaxCostUsd: policy.estimatedMaxCostUsdPerRequest,
-            } });
-            const deadline = Date.now() + 120000;
-            for (;;) {
-              if (job.requestId !== record.requestId || ![...ACTIVE, ...READY, 'FAILED', 'CANCELLED'].includes(job.status))
-                throw new Error('SFX_IDENTITY');
-              record.status = job.status;
-              if (startKey === projectKey) { persist(); render(); }
-              if (!ACTIVE.has(job.status)) break;
-              if (Date.now() >= deadline) throw new Error('SFX_WAIT_LIMIT');
-              await new Promise((resolve, reject) => {
-                const abort = () => { clearTimeout(timer); reject(new Error('PREPARATION_CANCELLED')); };
-                const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, 2000);
-                signal.addEventListener('abort', abort, { once: true });
-                if (signal.aborted) abort();
-              });
-              if (signal.aborted) throw new Error('PREPARATION_CANCELLED');
-              assertEditable();
-              job = await request('/jobs/' + encodeURIComponent(record.requestId) + '/refresh', { signal, data: {} });
-            }
-            if (!READY.has(job.status)) throw new Error('SFX_GENERATION_FAILED');
-            return record;
-          } catch (error) {
-            if (!['FAILED', 'CANCELLED'].includes(record.status)) record.status = 'UNKNOWN';
-            if (startKey === projectKey) persist();
-            throw error;
-          }
+      const result = await runSfxBatch({
+        items, records, transport: batchTransport(signal), signal,
+        assertCurrent: assertEditable,
+        createRequestIds: () => ({
+          requestId: 'req-' + crypto.randomUUID(),
+          authorizationId: 'auth-' + crypto.randomUUID(),
+        }),
+        onChange(state) {
+          if (startKey !== projectKey) return;
+          // Keep the render-facing list mutable without mutating core snapshots.
+          records = state.records.map(record => ({ ...record })); persist();
+          progressDone = state.summary.ready + state.summary.failed +
+            state.summary.cancelled + state.summary.rejected;
+          progressTotal = items.length;
+          const active = state.records.find(record =>
+            ['SUBMITTED', 'QUEUED', 'RUNNING'].includes(record.status));
+          const item = active && items.find(entry => entry.cueId === active.cueId);
+          message = item
+            ? tr(`Generando: ${item.label}. Sin reproducción automática.`,
+              `Generating: ${item.label}. No automatic playback.`)
+            : tr('Actualizando el estado de las tomas. Sin reproducción automática.',
+              'Updating take status. No automatic playback.');
+          render();
         },
-        onComplete() { completed += 1; progressDone = completed; render(); },
       });
       stage = 'review-audio';
-      message = tr(`${completed}/${items.length} tomas generadas. Puedes escucharlas aquí o aceptar todos los sonidos directamente. GO es manual.`,
-        `${completed}/${items.length} takes generated. Listen here or accept all sounds directly. GO is manual.`);
+      const summary = result.summary;
+      message = tr(
+        `Lote terminado: ${summary.ready} listas, ${summary.generating} generando, ${summary.failed} fallidas, ${summary.uncertain} inciertas. Puedes escuchar o aceptar las listas; GO es manual.`,
+        `Batch finished: ${summary.ready} ready, ${summary.generating} generating, ${summary.failed} failed, ${summary.uncertain} uncertain. Listen to or accept ready takes; GO is manual.`);
+      if (result.stopped) message = tr('Lote detenido. No se enviaron más cues; las generaciones ya enviadas conservan su referencia y pueden comprobarse.',
+        'Batch stopped. No more cues were submitted; already submitted generations keep their reference and can be checked.');
       if (deferred) message += tr(` ${deferred} cues siguen pendientes por el límite diario; no se ha ampliado.`,
         ` ${deferred} cues remain pending due to the daily ceiling; it was not raised.`);
     } catch (error) {
@@ -516,8 +624,18 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     };
     const job = await request('/jobs/' + encodeURIComponent(record.requestId));
     if (!isCurrent() || job.requestId !== record.requestId) throw new Error('SFX_IDENTITY');
-    record.status = job.status; persist(); render();
-    if (!READY.has(job.status)) throw new Error('SFX_NOT_REVIEWABLE');
+    const reconciled = reconcileRecoveredRecords(records, [{
+      ...job, projectId: state.project.id, projectGeneration: generation,
+      cueId: record.cueId, cueIdentity: record.cueIdentity,
+    }], Object.freeze({
+      projectId: state.project.id, projectGeneration: generation,
+      cueId: record.cueId, cueIdentity: record.cueIdentity,
+      requestId: record.requestId,
+    }));
+    const currentRecord = reconciled.records.find(entry => entry.requestId === record.requestId);
+    syncRecords(reconciled.records);
+    record.status = currentRecord?.status ?? record.status; render();
+    if (!READY.has(record.status)) throw new Error('SFX_NOT_REVIEWABLE');
     const sourceLines = parseScript(state.project.scriptText).filter(line => cue.sourceLineIds.includes(line.id));
     await reviewTake({ requestId: record.requestId, isCurrent, taskContext: {
       projectId: state.project.id, generation, cueId: cue.id, cueNumber: cue.number, cueLabel: cue.label,

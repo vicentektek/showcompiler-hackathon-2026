@@ -90,10 +90,14 @@ try {
             byteLength: audio.length, durationSeconds: 3, sampleRateHz: 16000, channels: 1 } };
         jobs.set(input.requestId, job); return json(job);
       }
-      const match = /^\/api\/sfx\/jobs\/([^/]+)(?:\/(refresh|audio|review))?$/.exec(path);
+      const match = /^\/api\/sfx\/jobs\/([^/]+)(?:\/(refresh|cancel|audio|review))?$/.exec(path);
       if (match) {
         const job = jobs.get(match[1]);
         if (!job) return json({ code: 'SFX_NOT_FOUND' }, 404);
+        if (match[2] === 'cancel') {
+          job.status = 'CANCEL_REQUESTED';
+          return json({ requestId: job.requestId, status: 'CANCEL_REQUESTED' });
+        }
         if (match[2] === 'refresh' && mode !== 'hold') { job.status = 'READY_FOR_REVIEW'; active = 0; }
         if (match[2] === 'audio') {
           if (holdBatchAudio) await new Promise(resolve => { releaseBatchAudio = resolve; });
@@ -129,7 +133,7 @@ try {
     assert.equal((await read()).project.proposals.length, 2);
     assert.equal(await page.locator('#rqIncludeShowAudio').isChecked(), true);
     await page.locator('#rqAcceptAllCues').click();
-    await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/2\/2 tomas generadas|2\/2 takes generated/));
+    await page.waitForFunction(() => /Lote terminado: 2 listas|Batch finished: 2 ready/.test(document.querySelector('#rqPreparationStatus')?.textContent));
     assert.equal((await read()).project.cues.length, 2);
     assert.deepEqual((await read()).project.cues.map(c => c.trigger),
       ['Please open the main door now', 'We should leave before the storm arrives'],
@@ -211,7 +215,7 @@ try {
     await page.locator('#rqPrepareShow').click();
     await page.waitForFunction(() => /Guion analizado|Script analyzed/.test(document.querySelector('#rqPreparationStatus')?.textContent));
     await page.locator('#rqAcceptAllCues').click();
-    await page.waitForFunction(() => /2\/2 tomas generadas|2\/2 takes generated/.test(document.querySelector('#rqPreparationStatus')?.textContent));
+    await page.waitForFunction(() => /Lote terminado: 2 listas|Batch finished: 2 ready/.test(document.querySelector('#rqPreparationStatus')?.textContent));
     const beforeBatch = await read(), beforeBatchStarts = starts.length, beforeReviews = reviews;
     for (let i = 0; i < 1; i++) {
       const requestId = await page.locator('[data-batch-review]').nth(i).getAttribute('data-batch-review');
@@ -326,6 +330,19 @@ try {
     await page.waitForFunction(() => document.querySelector('#rqCancelPreparation')?.hidden);
     await page.waitForTimeout(2200);
     assert.equal(starts.length, beforeButtonCancel + 1, 'Cancel button prevents remaining audio requests');
+    await page.locator('[data-workspace-nav="ai"]').click();
+    assert.equal(await page.locator('[data-batch-check]').count(), 1,
+      'A stopped batch leaves the submitted take visibly recoverable');
+    assert.equal(await page.locator('[data-batch-cancel-remote]').count(), 1,
+      'Remote cancellation remains a separate explicit action');
+    const remoteCancelResponse = page.waitForResponse(r =>
+      /\/api\/sfx\/jobs\/[^/]+\/cancel$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST');
+    await page.locator('[data-batch-cancel-remote]').click();
+    await remoteCancelResponse;
+    await page.waitForFunction(() => /Cancelación remota solicitada|Remote cancellation requested/
+      .test(document.querySelector('#rqPreparationStatus')?.textContent));
+    assert.equal(starts.length, beforeButtonCancel + 1,
+      'Requesting remote cancellation never submits another generation');
     for (const job of jobs.values()) if (job.status === 'QUEUED') job.status = 'READY_FOR_REVIEW';
     active = 0; // The already submitted remote fixture finishes without another generation.
     await page.locator('[data-workspace-nav="audio"]').click();
@@ -355,7 +372,7 @@ try {
     await page.locator('.rq-preparation-row input[type="checkbox"]').last().uncheck();
     const beforeEdited = starts.length;
     await page.locator('#rqStartAudioBatch').click();
-    await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/1\/1 tomas generadas|1\/1 takes generated/));
+    await page.waitForFunction(() => /Lote terminado: 1 listas|Batch finished: 1 ready/.test(document.querySelector('#rqPreparationStatus')?.textContent));
     assert.equal(starts.length, beforeEdited + 1, 'Optional adjustments retain selected cue scope with no additional permission');
 
     await importScript('batch-analysis-only.txt');
@@ -368,7 +385,7 @@ try {
     assert.equal(starts.length, beforeAnalysisOnly, 'Analysis-only option approves cues without generating any sound');
     limitedPolicy = true;
     await page.locator('#rqGenerateAllAudio').click();
-    await page.waitForFunction(() => document.querySelector('#rqPreparationStatus')?.textContent.match(/1\/1 tomas generadas|1\/1 takes generated/));
+    await page.waitForFunction(() => /Lote terminado: 1 listas|Batch finished: 1 ready/.test(document.querySelector('#rqPreparationStatus')?.textContent));
     assert.equal(starts.length, beforeAnalysisOnly + 1, 'Direct batch starts its bounded first part instead of rejecting the entire show');
     assert.match(await page.locator('#rqPreparationStatus').textContent(), /1 cues (siguen pendientes|remain pending)/);
     assert.equal(await page.locator('.rq-preparation-dialog').isVisible(), false);

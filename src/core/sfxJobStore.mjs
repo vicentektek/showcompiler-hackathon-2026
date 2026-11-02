@@ -199,6 +199,28 @@ function validateReconciliation(record) {
   }
 }
 
+export function summarizeSfxJournal(entries = []) {
+  if (!Array.isArray(entries)) throw new TypeError('Invalid SFX journal summary');
+  const counts = {};
+  let active = 0;
+  for (const entry of entries) {
+    // Aggregate diagnostics intentionally need only durable status fields.
+    // They must stay compatible with historical journal entries whose cost
+    // metadata predates the current bounded-cost schema; never inspect,
+    // serialize or expose prompts, provenance or billing fields here.
+    if (!entry || entry.version !== 1 || !STATES.has(entry.status)) {
+      throw new Error('Invalid persisted SFX journal');
+    }
+    counts[entry.status] = (counts[entry.status] ?? 0) + 1;
+    if (ACTIVE.has(entry.status)) active += 1;
+  }
+  return Object.freeze({
+    total: entries.length,
+    active,
+    counts: Object.freeze(counts),
+  });
+}
+
 export function createSfxJobStore({
   directory,
   maxDailyStarts = 3,
@@ -267,6 +289,16 @@ export function createSfxJobStore({
       limit,
       truncated: entries.length > limit,
     });
+  }
+
+  async function journalSummary() {
+    await dir();
+    const entries = [];
+    for (const name of await readdir(root)) {
+      if (!/^job-[a-f0-9]{64}\.json$/.test(name)) continue;
+      entries.push(JSON.parse(await readFile(join(root, name), 'utf8')));
+    }
+    return summarizeSfxJournal(entries);
   }
 
   async function atomicWrite(entry) {
@@ -525,7 +557,8 @@ export function createSfxJobStore({
   }
 
   return Object.freeze({
-    reserve, update, read, list, publicView, storeWav, wavBytes, reconcileCancelled,
+    reserve, update, read, list, journalSummary, publicView, storeWav, wavBytes,
+    reconcileCancelled,
     maxDailyStarts,
     supervisedQaCampaign: supervisedQaCampaign === true,
   });

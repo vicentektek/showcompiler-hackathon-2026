@@ -2,10 +2,14 @@
  * RUNQ SFX readiness diagnostic. Offline only: never sends an HTTP request,
  * never reads billed ledgers and never prints endpoint, keys or .env values.
  */
+import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadLocalSfxEnvironment } from './dev-server.mjs';
-import { normalizeSfxCostPolicy } from '../src/core/sfxJobStore.mjs';
+import {
+  createSfxJobStore, normalizeSfxCostPolicy,
+} from '../src/core/sfxJobStore.mjs';
+import { defaultSfxStoreDirectory } from './sfxRoutes.mjs';
 
 const REVISION = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 const MODEL_REVISION_HINT = 'Use the confirmed SHA of stabilityai/stable-audio-3-small-sfx weights.';
@@ -69,6 +73,21 @@ export async function inspectLocalSfxConfiguration({filePath,baseEnv=process.env
   return inspectSfxConfiguration(env);
 }
 
+export async function inspectSfxJournal({ directory = defaultSfxStoreDirectory() } = {}) {
+  const path = resolve(directory);
+  try {
+    const info = await stat(path);
+    if (!info.isDirectory()) throw new Error('SFX_JOURNAL_NOT_DIRECTORY');
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return Object.freeze({ path, exists: false, total: 0, active: 0, counts: Object.freeze({}) });
+    }
+    throw error;
+  }
+  const summary = await createSfxJobStore({ directory: path }).journalSummary();
+  return Object.freeze({ path, exists: true, ...summary });
+}
+
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   try {
     const r = await inspectLocalSfxConfiguration();
@@ -80,6 +99,13 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
       r.costLimits.estimatedMaxCostUsdPerRequest+
       '/request; daily configured cap $'+r.costLimits.dailyBudgetUsd+
       ' (local reservation, NOT provider billing guarantee).');
+    try {
+      const journal = await inspectSfxJournal();
+      console.log('  Journal (offline, aggregate only): '+journal.path+' · '+
+        journal.total+' job(s), '+journal.active+' active/unresolved.');
+    } catch {
+      console.log('  Journal (offline, aggregate only): unreadable; investigate before submitting.');
+    }
     for (const issue of r.issues) console.log('  - '+issue);
     if (r.readyForOneAuthorizedRequest) {
       console.log('LOCAL CONFIGURATION READY. Deployment, account permissions, provider balance and actual GPU inference remain UNVERIFIED.');
