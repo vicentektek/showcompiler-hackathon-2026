@@ -38,3 +38,17 @@ Official event overview: submission due **2026-11-04 21:00 ET** (2026-11-05 03:0
 ## Current status
 
 **NOT CLEARED FOR PUBLICATION**: binding rules, historical secret scan, asset provenance and source distribution scope remain open.
+
+## Organizer answer found on 2026-11-02 (Discord)
+
+An official, verified **Cerebral Valley** reply to “what are the license requirements for the submission repo!” states:
+
+> “The submission repo must be public on GitHub. The organizer answers say no specific license is required, and any source-available license is fine as long as the repo is public.”
+
+The reply also requires runnable setup instructions and disclosure/compliance for upstream open-source code and models. This supports a **public, source-available, non-open-source** RUNQ distribution model. It does **not** expressly adjudicate an exact all-rights-reserved notice, nor replace the binding Official Rules. The final notice should be reviewed for consistency with GitHub's terms and upstream dependencies.
+
+Source: Meta Global AI Developer Hackathon Discord, `#questions`, verified Cerebral Valley response dated November 2, 2026. Channel: https://discord.com/channels/1557169028080869426/1564043204725182484
+
+A separate official answer dated October 28 confirms that hosting is not mandatory; judges need a working demo with setup instructions and a video, and recorded evidence is acceptable when hardware/assets prevent independent execution. Judges should not need to connect their own external service accounts.
+
+**Decision:** proceed with rights-reserved publication preparation; **do not change visibility** until history/security and third-party rights checks are complete and the owner explicitly approves.
