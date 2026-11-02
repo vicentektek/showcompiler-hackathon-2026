@@ -7,7 +7,7 @@
 
 ## One-line pitch
 
-RUNQ turns a theatre script into a reviewable, script-linked sound-cue workflow, combining AI-assisted preparation with deterministic local playback controlled by a human operator.
+RUNQ is an intelligent show-production workstation that helps professionals and small theatre companies create, rehearse and run shows — with contextual AI, few-click whole-show preparation, professional audio tools and voice-following rehearsal autopilot.
 
 ## The problem
 
@@ -15,7 +15,7 @@ Sound operators preparing theatre, galas and scripted performances must translat
 
 ## The solution
 
-RUNQ keeps script references, cue planning, sound preparation, review and show operation in one browser-based workspace. AI helps propose and edit; the operator remains responsible for approval and live transport.
+RUNQ brings script references, whole-show AI preparation, cue planning, sound editing, voice-following autonomous rehearsal and show operation into one local workstation. Its AI assistant works with the current show's context; operators review AI proposals and retain manual override. Small companies and drama schools can rehearse without a dedicated cue operator at every moment.
 
 ## Product walkthrough
 
@@ -23,8 +23,8 @@ RUNQ keeps script references, cue planning, sound preparation, review and show o
 2. **Prepare cues.** Ask RUNQ AI to suggest sound cues tied to script evidence; inspect and approve proposals.
 3. **Prepare sound.** Import audio or generate sound effects through the configured provider, then review and assign assets.
 4. **Edit.** Configure playback, layers, fades, loops, stops and other cue properties.
-5. **Rehearse.** Use script context and rehearsal tools to iterate.
-6. **Operate.** Use explicit local GO/STOP controls; AI suggestions never directly trigger playback.
+5. **Rehearse autonomously.** Configure voice-following feet and rehearsal autopilot to trigger audio as dialogue is recognized, with support for repeated passages and manual override.
+6. **Operate.** Use explicit local GO/STOP controls. Small productions may use supervised voice-following assistance, but RUNQ is not a certified unattended live system; AI suggestions never directly authorize live playback.
 7. **Export.** Use the complete-show ZIP when audio media must travel with the show.
 
 ## Technical architecture
@@ -40,7 +40,7 @@ RUNQ keeps script references, cue planning, sound preparation, review and show o
 - Script-linked cue provenance instead of detached cue lists.
 - Human-reviewed AI proposals instead of AI-operated live playback.
 - An integrated route from script to sound asset to cue.
-- Rehearsal-oriented workflow with explicit separation between preparation and operation.
+- Autonomous voice-following rehearsal and supervised cue assistance for smaller companies and drama schools.
 - A dependency-light local browser architecture.
 
 ## Verified evidence
@@ -57,4 +57,4 @@ The owner reports the `6d1d65d` version works with real AI integrations. The pub
 
 ## Safety and scope
 
-RUNQ is a prototype. AI-generated plans require human review. No AI call is added to deterministic GO/STOP operations. It does not claim isolated PFL, ASIO, multichannel hardware certification or professional live-show certification.
+RUNQ is a prototype. AI-generated plans require human review. Voice recognition may miss, misidentify or mistime cues due to noise or performance changes; operators must retain override. No AI call is added to deterministic GO/STOP operations. It does not claim isolated PFL, ASIO, multichannel hardware certification or professional live-show certification.
