@@ -70,3 +70,28 @@ Explain the underlying Meta Muse Spark and Modal integrations after the product 
 ## Source of decisions
 
 Owner's project conversations dated 29–31 October 2026 about Studio/Stage architecture, professional workstation positioning, RUNQ AI specialization, few-click show preparation and the visual redesign; and the current RUNQ screenshot supplied 2 November 2026.
+
+## Rehearsal autopilot and broader audience
+
+RUNQ is not exclusively for sound technicians. Its voice-following rehearsal autopilot is a key product capability and a reason the product can serve small theatre companies, amateur groups and performing arts schools.
+
+### Two distinct use cases
+
+1. **Autonomous rehearsal:** Actors rehearse while RUNQ listens for configured script cues and can trigger corresponding audio. The rehearsal workflow is designed to tolerate scene repetition, backward/forward movement and cue skips, with manual override.
+2. **Assisted or automated triggering for small productions:** A small company may use voice-following audio triggers to reduce the need for a dedicated cue operator during simple performances. Present this as a potential supervised operating mode, not as a claim of fail-safe unattended live operation.
+
+### Target audiences
+
+- **Professional operators and sound designers:** Full cue/audio workstation with AI-assisted preparation.
+- **Small and amateur theatre companies:** A practical route from script to cues and voice-following playback with fewer dedicated technical resources.
+- **Drama schools and educational groups:** Repeated autonomous rehearsals and approachable show preparation.
+
+### Messaging
+
+**English:** “RUNQ helps anyone create, rehearse and run a show — from professional cue editing and AI-assisted whole-show preparation to voice-following rehearsal autopilot.”
+
+**Spanish:** “RUNQ permite crear, ensayar y ejecutar un espectáculo, desde la edición profesional de cues y la preparación automática con IA hasta el autopiloto de ensayo que sigue las voces de los actores.”
+
+### Safety and validation boundary
+
+Autopilot reliability depends on microphones, acoustics, background noise, dialogue variations and recognition quality. Keep manual GO/STOP, STOP ALL, operator override and explicit arming. Verify actual implementation and demonstrate voice-triggered operation in the submitted build before claiming unattended performance support. Do not equate rehearsal autopilot with safety-certified live automation.
