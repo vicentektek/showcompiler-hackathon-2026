@@ -15,9 +15,9 @@ import {
   sanitizeMetaDiagnostic,
   validateMetaModelId,
 } from '../src/core/metaCueProvider.mjs';
-import {campaignMetaFetch} from './campaignFetch.mjs';
-
-const campaignMetaClient=options=>callMetaCueModel({...options,fetchImpl:campaignMetaFetch});
+// Manual requests are operator initiated, not autonomous QA campaign traffic.
+// Keep Meta client validation, single-flight and transport error handling intact.
+const campaignMetaClient=options=>callMetaCueModel(options);
 
 function answer(response, code, data, headers) {
   response.writeHead(code, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
