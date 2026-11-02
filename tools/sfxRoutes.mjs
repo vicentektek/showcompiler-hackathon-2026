@@ -165,7 +165,7 @@ export function makeSfxRoute({
 
     let config = {};
     try { config = sfxConfig() ?? {}; } catch {}
-    const policy = safePolicy(config);
+    const policy = safePolicy({...config,budgetLimitsDisabled:sfxStore.budgetLimitsDisabled===true});
     const revision = safeRevision(config);
     const transportConfigured = Boolean(sfxPilotClient ||
       (config.endpointUrl && config.proxyTokenId && config.proxyTokenSecret));
@@ -183,7 +183,8 @@ export function makeSfxRoute({
         ? sfxStore.maxDailyStarts : null,
       supervisedQaCampaign: sfxStore.supervisedQaCampaign === true,
       requiresExplicitConfirmation: true,
-      requiresExactCostAcknowledgement: true,
+      budgetLimitsDisabled: sfxStore.budgetLimitsDisabled === true,
+      requiresExactCostAcknowledgement: sfxStore.budgetLimitsDisabled !== true,
       estimatedMaxCostUsdPerRequest:
         policy?.estimatedMaxCostUsdPerRequest ?? null,
       dailyBudgetUsd: policy?.dailyBudgetUsd ?? null,
@@ -338,7 +339,7 @@ export function makeSfxRoute({
         if(await sfxStore.read(input.requestId)){
           const error=new Error('Duplicate SFX job');error.code='SFX_DUPLICATE';throw error;
         }
-        await reserveCampaign(requestData);
+        if(sfxStore.budgetLimitsDisabled!==true)await reserveCampaign(requestData);
         const job = await sfxStore.reserve(requestData, { confirm: true });
         const submittedAt = performance.now();
         try {

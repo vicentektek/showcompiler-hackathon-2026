@@ -20,5 +20,6 @@ test('microphone control shares Setup device and language preferences with expli
  for(const bad of ['api.meta.ai','MODEL_API_KEY','operatorGoBtn','operatorQueue','XMLHttpRequest','WebSocket('])
   assert.equal(js.includes(bad),false,'Mic preflight cannot call '+bad);
  assert.ok(js.includes("fetch('/api/voice/transcribe'"));
- assert.ok(js.includes("$('rqMicConsent').checked"));
+ assert.equal(js.includes("$('rqMicConsent').checked"),false);
+ assert.ok(js.includes("'X-RunQ-Voice-Consent':'yes'"));
 });

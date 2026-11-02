@@ -7,10 +7,10 @@ import {mkdir,open,readFile,writeFile,rename,unlink} from 'node:fs/promises';
 import {resolve,dirname} from 'node:path';
 
 const FILE=resolve('.runq-local/agent-live-eval-budget.json');
-const MAX_LIMIT=100;
+const MAX_LIMIT=Number.MAX_SAFE_INTEGER/1e6;
 const cents=n=>Math.round((n+Number.EPSILON)*1e6)/1e6;
 const amount=n=>typeof n==='number'&&Number.isFinite(n)&&n>0&&n<=MAX_LIMIT;
-export async function acquireAgentEvalBudget({file=FILE,limitUsd=65}={}){
+export async function acquireAgentEvalBudget({file=FILE,limitUsd=65,enforceBudget=false}={}){
  if(!amount(limitUsd)||typeof file!=='string'||file.length<8||file.length>400)
   throw new TypeError('INVALID_PAID_BUDGET');
  const filename=resolve(file);
@@ -34,7 +34,7 @@ export async function acquireAgentEvalBudget({file=FILE,limitUsd=65}={}){
   const spent=()=>cents(records.reduce((sum,x)=>sum+x.reserveUsd,0));
   async function reserve(usd){
    if(closed||!amount(usd))throw new TypeError('INVALID_BUDGET_RESERVATION');
-   if(spent()+usd>limitUsd+0.0000001)return false;
+   if(enforceBudget&&spent()+usd>limitUsd+0.0000001)return false;
    records.push({sequence:records.length+1,reserveUsd:cents(usd)});
    const tmp=filename+'.tmp-'+process.pid;
    try{
@@ -47,7 +47,7 @@ export async function acquireAgentEvalBudget({file=FILE,limitUsd=65}={}){
    if(closed)return;closed=true;
    await lock.close();await unlink(filename+'.lock').catch(()=>{});
   }
-  return {reserve,committedUsd:spent,remainingUsd:()=>cents(Math.max(0,limitUsd-spent())),close};
+  return {reserve,committedUsd:spent,remainingUsd:()=>enforceBudget?cents(Math.max(0,limitUsd-spent())):Infinity,close};
  }catch(error){
   await lock.close().catch(()=>{});await unlink(filename+'.lock').catch(()=>{});
   throw error;

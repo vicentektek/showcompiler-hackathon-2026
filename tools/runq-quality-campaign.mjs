@@ -174,7 +174,7 @@ export async function qualityCli(argv){
    liveGate:'OWNER_ATTESTATION_WITH_SHARED_LEDGER_AND_CLEAN_COMMIT_CONTROLS'});
   return {mode:'DRY_RUN_NO_PROVIDER_REQUESTS',counts:matrix.counts,phases,
    estimatedConservativeMaximumUsd:{meta:60,modal:5},
-   note:'Existing historical reservations still reduce provider/global balances.'};
+   note:'Historical reservations are retained; local Meta/Modal budget caps are disabled.'};
  }
  const state=await runQualityCampaign(options,{candidate});
  return {id:state.id,scored:state.results.length,stopReason:state.stopReason,

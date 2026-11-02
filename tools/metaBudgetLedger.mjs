@@ -1,7 +1,7 @@
 /**
  * Cross-run local budget gate for the Muse Spark stress lab.
  * The ledger records conservative PREPAID RESERVATIONS, not Meta invoices.
- * Lock is exclusive so two VS Code terminals cannot bypass the cap.
+ * Lock is exclusive so concurrent terminals preserve every accounting entry.
  * Never store tokens, API keys, scripts or model outputs.
  */
 import { mkdir, open, readFile, writeFile, rename, unlink } from 'node:fs/promises';
@@ -14,7 +14,7 @@ const VERSION=1;
 const LIMIT_USD=CAMPAIGN_POLICY.capsUsd.meta;
 const DEFAULT_LEDGER=resolve('.runq-local/meta-eval-budget.json');
 function money(v){return Number(v.toFixed(6));}
-function valid(v){return typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=LIMIT_USD+0.000001}
+function valid(v){return typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=Number.MAX_SAFE_INTEGER/1e6}
 
 /** Keep the old local history AND enforce the cross-checkout campaign ceiling. */
 export async function acquireCampaignMetaBudget({localOptions={},sharedOptions={}}={}){
@@ -44,7 +44,7 @@ export async function acquireCampaignMetaBudget({localOptions={},sharedOptions={
    };
 }
 
-export async function acquireMetaBudgetLedger({file=DEFAULT_LEDGER,limitUsd=LIMIT_USD}={}){
+export async function acquireMetaBudgetLedger({file=DEFAULT_LEDGER,limitUsd=LIMIT_USD,enforceBudget=false}={}){
   if(typeof file!=='string'||file.length<5||file.length>320||!valid(limitUsd)||limitUsd===0){
     throw new TypeError('Invalid persistent Meta evaluation budget');
   }
@@ -60,7 +60,7 @@ export async function acquireMetaBudgetLedger({file=DEFAULT_LEDGER,limitUsd=LIMI
     try{raw=await readFile(filename,'utf8');}catch(e){if(e?.code!=='ENOENT')throw e}
     if(raw){
       const state=JSON.parse(raw);
-      if(state.version!==VERSION||!Array.isArray(state.entries)||state.entries.length>1000){
+      if(state.version!==VERSION||!Array.isArray(state.entries)){
         throw new TypeError('Unrecognized Meta evaluation ledger');
       }
       entries=state.entries;
@@ -72,7 +72,7 @@ export async function acquireMetaBudgetLedger({file=DEFAULT_LEDGER,limitUsd=LIMI
     async function reserve(amount){
       if(closed)throw new Error('BUDGET_LEDGER_CLOSED');
       if(!valid(amount)||amount===0)throw new TypeError('Invalid request reserve');
-      if(reserved()+amount>limitUsd+1e-7)return false;
+      if(enforceBudget&&reserved()+amount>limitUsd+1e-7)return false;
       entries.push({sequence:entries.length+1,reserveUsd:money(amount)});
       const temp=filename+'.temp-'+process.pid;
       try{
@@ -91,7 +91,7 @@ export async function acquireMetaBudgetLedger({file=DEFAULT_LEDGER,limitUsd=LIMI
       await lockHandle.close();
       await unlink(filename+'.lock').catch(()=>{});
     }
-    return {reserve,remainingUsd:()=>money(Math.max(0,limitUsd-reserved())),
+    return {reserve,remainingUsd:()=>enforceBudget?money(Math.max(0,limitUsd-reserved())):Infinity,
       committedReserveUsd:reserved,close};
   }catch(e){
     await lockHandle.close().catch(()=>{});

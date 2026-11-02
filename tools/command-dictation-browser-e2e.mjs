@@ -60,9 +60,9 @@ try{
  });
  await page.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
  await page.locator('[data-workspace-nav="ai"]').click();
+ await page.locator('#rqShowBuilderAskAssistant').click();
  await page.locator('#rqAgentAiOptions summary').click();
  await page.locator('#rqAgentPrompt').fill('Rename cue one to Late result');
- await page.locator('#rqAgentConsent').check();
  const request=page.waitForRequest('**/api/agent/interpret');
  const settled=Promise.race([
   page.waitForResponse('**/api/agent/interpret'),
@@ -101,7 +101,7 @@ try{
   await page.waitForFunction(id=>document.getElementById(id)?.disabled===false,prefix+'Transcribe');
  };
  const upload=async prefix=>{
-  await page.locator('#'+prefix+'VoiceConsent').check();
+  assert.equal(await page.locator('#'+prefix+'VoiceConsent').count(),0);
   const request=page.waitForRequest('**/api/voice/transcribe');
   const settled=Promise.race([
    page.waitForResponse('**/api/voice/transcribe'),
@@ -119,7 +119,7 @@ try{
  assert.equal(voiceRequests[0].headers['x-runq-voice-consent'],'yes');
  assert.equal(voiceRequests[0].headers['content-type'],'audio/wav');
  assert.equal(voiceRequests[0].bytes.subarray(0,4).toString(),'RIFF');
- assert.equal(await page.locator('#rqAgentVoiceConsent').isChecked(),false);
+ assert.equal(await page.locator('#rqAgentVoiceConsent').count(),0);
  assert.equal((await read()).cueCount,3,'Recognized command only fills the editor');
  assert.equal(await page.locator('#rqAgentProposal').isVisible(),false);
  await page.locator('#rqAgentSelectedSound').selectOption(built.project.assets[0].id);
@@ -165,7 +165,6 @@ try{
  assert.equal(await page.locator('#rqChatPrompt').inputValue(),'Keep this cue text');
  await page.locator('#cueInspector .rq-chat-open').click();
  await page.locator('#rqChatPrompt').fill('Suggest a carefully balanced volume change informed by the original dialogue');
- await page.locator('#rqChatAiConsent').check();
  const cueRequest=page.waitForRequest('**/api/cue-chat/interpret');
  const cueSettled=Promise.race([
   page.waitForResponse('**/api/cue-chat/interpret'),

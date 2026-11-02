@@ -159,7 +159,7 @@ try {
     'The editable sound brief includes its estimated duration');
   assert.equal(await page.locator('#sourceLine').inputValue(),firstCue.sourceLineIds[0],
     'Sound generation retains the cue original source-line reference');
-  assert.equal(await page.locator('#confirmRequest').isChecked(),false,
+  assert.equal(await page.locator('#confirmRequest').count(),0,
     'Opening contextual sound clears generation authorization');
   assert.equal((await readState()).preparedCueId,pinnedQueueId,
     'Opening contextual sound does not alter NEXT');

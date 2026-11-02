@@ -74,7 +74,7 @@ function opts(argv){
     new Set(o.providers).size!==o.providers.length||
     o.providers.some(x=>x!=='meta')||
     o.cases%o.providers.length!==0||o.cases/o.providers.length<1||
-    !Number.isFinite(o.budgetUsd)||o.budgetUsd<0.10||o.budgetUsd>CAMPAIGN_POLICY.capsUsd.meta||
+    !Number.isFinite(o.budgetUsd)||o.budgetUsd<0.10||
     !Number.isFinite(o.reserveUsd)||o.reserveUsd<0.15||o.reserveUsd>5||
     !Number.isSafeInteger(o.startIndex)||o.startIndex<0||o.startIndex>=424||
     (o.targetTotal!==null&&(!Number.isSafeInteger(o.targetTotal)||o.targetTotal<1||o.targetTotal>424))||
@@ -647,7 +647,7 @@ if(invoked){
    const attempts=plan.newRequestTarget,estimated=attempts*config.reserveUsd;
    console.log('DRY RUN: '+attempts+' NEW real AI evaluations requested when authorized; '+
     config.providers.join(' vs ')+'; reserve budget estimate $'+estimated.toFixed(2)+
-    ' of configured $'+config.budgetUsd+'.');
+    ' (no local budget cap).');
    console.log('Corpus: '+plan.uniqueCorpusCases+' unique inputs ('+plan.legacyCorpusUnique+
     ' legacy + 400 quality contracts); historical completed unique: '+plan.alreadyCompleted+
     '; available new: '+plan.availableNewCases+'; excluded by history: '+plan.skipped.length+'.');

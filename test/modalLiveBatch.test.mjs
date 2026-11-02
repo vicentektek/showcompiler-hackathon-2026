@@ -151,7 +151,7 @@ test('technical audio metrics do not fabricate semantic, artistic or distortion 
 test('nine serial cases use real local routes, distinct approvals and shared journal without changing a show',async t=>{
  const directory=await mkdtemp(join(tmpdir(),'runq-modal-http-'));
  t.after(()=>rm(directory,{recursive:true,force:true}));
- const store=createSfxJobStore({directory:join(directory,'jobs'),maxDailyStarts:10});
+ const store=createSfxJobStore({budgetLimitsDisabled:false,directory:join(directory,'jobs'),maxDailyStarts:10});
  const outputs=new Map();let starts=0,reserves=0;
  const server=createAppServer({
   sfxStore:store,reserveCampaign:async()=>{reserves++;},

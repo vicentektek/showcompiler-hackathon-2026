@@ -1,7 +1,7 @@
 /**
  * Contextual conversational Cue Editor. One selected cue only, one draft,
- * explicit approval and reversible commit. Remote AI and dictation require
- * separate, one-shot consents. No GO or playback transport in this module.
+ * explicit approval and reversible commit. Sending or transcribing explicitly
+ * starts one bounded request. No GO or playback transport in this module.
  */
 import {stageCueConversationChange,parseLocalCueChat,validateCueChatModelReply,buildCueChatContext}
  from '../core/cueConversation.mjs';
@@ -30,7 +30,7 @@ function cancelPending(reason='cancelled'){
  dictation?.cancel(reason);
  if(!processing)return;
  requestEpoch++;requestController?.abort();requestController=null;requestBase=null;
- processing=false;$('rqChatAiConsent').checked=false;renderDraft();
+ processing=false;renderDraft();
  notify(t('Consulta cancelada. Los resultados tardíos se descartarán.',
   'Request cancelled. Late results will be discarded.'));
 }
@@ -38,7 +38,6 @@ function syncDictation(){
  $('rqChatRecord').disabled=processing||['acquiring','transcribing'].includes(dictation.phase);
  $('rqChatTranscribe').disabled=processing||!dictation.canTranscribe;
  $('rqChatCancel').disabled=!processing&&!dictation.hasWork;
- if(['idle','transcribing'].includes(dictation.phase))$('rqChatVoiceConsent').checked=false;
  localized();renderDraft();
 }
 function notify(message,isError=false){
@@ -169,7 +168,6 @@ async function submit(){
   if(changes){
    changes={...prior,...changes};
   }else{
-   if(!$('rqChatAiConsent').checked)throw Error('AI_CONSENT_REQUIRED');
    const request={
     prompt:val,language:es()?'es':'en',
     cue:{id:cue.id,number:cue.number,label:cue.label,
@@ -186,7 +184,6 @@ async function submit(){
    if(epoch!==requestEpoch)return;
    if(!response.ok)throw Error(data.error||'HTTP_'+response.status);
    const reply=validateCueChatModelReply(data);
-   $('rqChatAiConsent').checked=false;
    if(reply.status!=='PATCH'){
     addMessage('assistant',reply.message||t('Necesito una aclaración','Clarification needed'));
     notify(reply.status==='CLARIFY'
@@ -213,10 +210,7 @@ async function submit(){
     t('Propuesta de Muse Spark · pendiente de aprobar','Muse Spark suggestion · review before applying'));
  }catch(error){
   if(epoch!==requestEpoch)return;
-  const message=error?.message==='AI_CONSENT_REQUIRED'
-   ?t('Marca la autorización a Meta para interpretar esta instrucción compleja.',
-     'Enable Meta consent to interpret this complex instruction.')
-   :error?.message==='STALE_CUE_OR_PROJECT'
+  const message=error?.message==='STALE_CUE_OR_PROJECT'
     ?t('Se modificó el cue o el espectáculo. Revisa antes de reintentar.',
       'The cue or show changed. Review before retrying.')
     :userFacingError(error,es()?'es':'en');
@@ -224,7 +218,7 @@ async function submit(){
  }finally{
   if(epoch===requestEpoch){
    processing=false;requestController=null;requestBase=null;
-   $('rqChatAiConsent').checked=false;renderDraft();
+   renderDraft();
   }
  }
 }
@@ -265,15 +259,15 @@ function localized(){
  $('rqChatPrompt').placeholder=t('Ej.: Baja el volumen a −9 dB y pon un fade in de 3 segundos.',
   'E.g. Set gain to -9 dB and a 3-second fade in.');
  $('rqChatAiConsentText').textContent=t(
-  'Autorizo una consulta a Meta con mi instrucción, este cue, la escena, sus líneas vinculadas, hasta dos líneas cercanas, el estado y los títulos del audio asociado. No se envían archivos de audio.',
-  'I authorize one Meta request with my instruction, this cue, its scene, linked lines, up to two nearby script lines, linked audio status and linked audio titles. No audio files are sent.');
+  'Enviar consulta Meta si hace falta, sin topes locales de presupuesto, con este cue, la escena, sus líneas vinculadas, hasta dos líneas cercanas, el estado y los títulos del audio asociado. No se envían archivos de audio ni se aplican cambios automáticamente.',
+  'Send consults Meta when needed, without local budget caps, with this cue, its scene, linked lines, up to two nearby script lines, linked audio status and linked audio titles. No audio files are sent and no changes are applied automatically.');
  $('rqChatSubmit').textContent=t('Proponer cambios','Propose changes');
  $('rqChatApply').textContent=t('Aplicar cambios','Apply changes');
  $('rqChatDiscard').textContent=t('Descartar','Discard');
  $('rqChatUndo').textContent=t('Deshacer última aplicación','Undo last application');
  $('rqChatVoiceSummary').textContent=t('Dictado opcional · Muse Voice','Optional dictation · Muse Voice');
- $('rqChatVoiceConsentText').textContent=t('Autorizo enviar esta grabación a Meta para transcribirla',
-  'I authorize this recording to be sent to Meta for transcription');
+ $('rqChatVoiceConsentText').textContent=t('Transcribir envía esta grabación a Meta sin topes locales de presupuesto.',
+  'Transcribe sends this recording to Meta without local budget caps.');
  $('rqChatRecord').textContent=dictation?.phase==='recording'?t('Detener grabación','Stop recording'):
   t('Grabar instrucción (10 s)','Record instruction (10 s)');
  $('rqChatTranscribe').textContent=t('Transcribir grabación','Transcribe recording');
@@ -307,7 +301,7 @@ function mount(){
   dictationContext=contextKey();void dictation.record();
  });
  $('rqChatTranscribe').addEventListener('click',()=>void dictation.transcribe(
-  $('rqChatVoiceConsent').checked,es()?'es':'en'));
+  true,es()?'es':'en'));
  $('rqChatCancel').addEventListener('click',()=>cancelPending());
  document.addEventListener('runq:cue-chat-open',()=>setOpen(true));
  document.addEventListener('runq:cue-chat-selection',()=>{

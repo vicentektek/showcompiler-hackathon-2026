@@ -189,7 +189,7 @@
   #rqAgentWorkspace .rq-agent-context { background:#1b291e; }
   #rqAgentWorkspace .rq-agent-compose>.rq-agent-actions { position:sticky; top:0; background:#1a211a; padding:6px 0; z-index:1; }
   #rqAgentWorkspace :is(#rqAgentSubmit,#rqAgentAskAI) { min-height:36px!important; padding:8px 12px!important; border-radius:7px!important; font-size:12px!important; }
-  #rqAgentWorkspace #rqAgentSubmit { background:#a7b28f!important; color:#111a0e!important; border-color:#c2d4aa!important; font-weight:700!important; }
+  #rqAgentWorkspace #rqAgentAskAI { background:#a7b28f!important; color:#111a0e!important; border-color:#c2d4aa!important; font-weight:700!important; }
   #rqAgentWorkspace #rqAgentPrompt { font-size:14px!important; padding:12px!important; border-radius:8px!important; border-color:#526648!important; background:#101810!important; color:#e6ecd9!important; }
 }
 @media(max-width:1249px) {

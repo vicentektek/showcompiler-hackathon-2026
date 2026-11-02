@@ -71,6 +71,12 @@ function usdFromMicros(micros) {
 
 /** Canonical, bounded USD policy shared by status, route acknowledgement and journal. */
 export function normalizeSfxCostPolicy(value = {}, { requireAcknowledgement = false } = {}) {
+  if(value.budgetLimitsDisabled===true) {
+    const estimate=Number.isFinite(value.estimatedMaxCostUsdPerRequest)&&value.estimatedMaxCostUsdPerRequest>0
+      ? value.estimatedMaxCostUsdPerRequest : null;
+    return Object.freeze({budgetLimitsDisabled:true,estimatedMaxCostUsdPerRequest:estimate,
+      dailyBudgetUsd:null,acknowledgedMaxCostUsd:null,estimateMicros:estimate===null?null:Math.round(estimate*USD_SCALE),budgetMicros:null});
+  }
   const estimateMicros = usdMicros(
     value.estimatedMaxCostUsdPerRequest,
     'estimated SFX maximum cost',
@@ -139,6 +145,7 @@ function validateStoredCost(cost) {
     throw new Error('Invalid persisted SFX cost metadata');
   }
   return normalizeSfxCostPolicy({
+    budgetLimitsDisabled: cost.budgetLimitsDisabled === true,
     estimatedMaxCostUsdPerRequest: cost.estimatedMaxCostUsd,
     dailyBudgetUsd: cost.dailyBudgetUsdAtReservation,
     acknowledgedMaxCostUsd: cost.operatorAcknowledgedMaxCostUsd,
@@ -202,6 +209,7 @@ function validateReconciliation(record) {
 export function createSfxJobStore({
   directory,
   maxDailyStarts = 3,
+  budgetLimitsDisabled = true,
   supervisedQaCampaign = false,
   clock = () => new Date(),
 } = {}) {
@@ -288,7 +296,7 @@ export function createSfxJobStore({
       ? null : sourceLineId;
     const revision = normalizeSfxModelRevision(modelRevision);
     const costPolicy = normalizeSfxCostPolicy({
-      estimatedMaxCostUsdPerRequest, dailyBudgetUsd, acknowledgedMaxCostUsd,
+      budgetLimitsDisabled, estimatedMaxCostUsdPerRequest, dailyBudgetUsd, acknowledgedMaxCostUsd,
     }, { requireAcknowledgement: true });
     if (confirm !== true || !(sourceReference === null || LINE.test(sourceReference)) ||
         !['SFX','ENVIRONMENT'].includes(kind) ||
@@ -318,7 +326,7 @@ export function createSfxJobStore({
           error.code = 'SFX_DUPLICATE';
           throw error;
         }
-        if (entry.createdAt.slice(0, 10) === today) {
+        if (!budgetLimitsDisabled && entry.createdAt.slice(0, 10) === today) {
           startsToday++;
           if (!entry.cost) {
             const error = new Error('Existing SFX cost is unknown');
@@ -334,12 +342,12 @@ export function createSfxJobStore({
         error.code = 'SFX_ACTIVE_LIMIT';
         throw error;
       }
-      if (startsToday >= maxDailyStarts) {
+      if (!budgetLimitsDisabled && startsToday >= maxDailyStarts) {
         const error = new Error('SFX daily quota reached');
         error.code = 'SFX_DAILY_LIMIT';
         throw error;
       }
-      if (estimatedMicrosToday + costPolicy.estimateMicros > costPolicy.budgetMicros) {
+      if (!budgetLimitsDisabled && estimatedMicrosToday + costPolicy.estimateMicros > costPolicy.budgetMicros) {
         const error = new Error('SFX daily cost budget reached');
         error.code = 'SFX_DAILY_BUDGET';
         throw error;
@@ -352,6 +360,7 @@ export function createSfxJobStore({
         createdAt: now, updatedAt: now, remoteJobId: null, wav: null,
         cost: {
           currency: 'USD',
+          ...(budgetLimitsDisabled ? {budgetLimitsDisabled:true} : {}),
           estimatedMaxCostUsd: costPolicy.estimatedMaxCostUsdPerRequest,
           dailyBudgetUsdAtReservation: costPolicy.dailyBudgetUsd,
           operatorAcknowledgedMaxCostUsd: costPolicy.acknowledgedMaxCostUsd,
@@ -526,7 +535,8 @@ export function createSfxJobStore({
 
   return Object.freeze({
     reserve, update, read, list, publicView, storeWav, wavBytes, reconcileCancelled,
-    maxDailyStarts,
+    budgetLimitsDisabled,
+    maxDailyStarts: budgetLimitsDisabled ? null : maxDailyStarts,
     supervisedQaCampaign: supervisedQaCampaign === true,
   });
 }

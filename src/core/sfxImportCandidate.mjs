@@ -24,7 +24,8 @@ export async function prepareReviewedSfxImport({
       !Number.isFinite(job.wav.durationSeconds) || job.wav.durationSeconds <= 0 ||
       job.wav.durationSeconds > 13 || !Number.isSafeInteger(job.wav.sampleRateHz) ||
       ![1,2].includes(job.wav.channels) || !Number.isSafeInteger(job.wav.byteLength) ||
-      !job.cost || !Number.isFinite(job.cost.estimatedMaxCostUsd) ||
+      !job.cost || !(Number.isFinite(job.cost.estimatedMaxCostUsd) ||
+        (job.cost.budgetLimitsDisabled === true && job.cost.estimatedMaxCostUsd === null)) ||
       job.cost.estimatedMaxCostUsd < 0 || job.cost.actualBilledUsd !== null ||
       typeof job.createdAt !== 'string' || typeof job.updatedAt !== 'string' ||
       !reviewedRegion || !Number.isFinite(reviewedRegion.inSeconds) ||

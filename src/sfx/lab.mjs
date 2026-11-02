@@ -82,7 +82,7 @@ const state = {
   historyJobs:[],recoveredJob:false,preparingPreview:false,
   contextTask:null,
   sourceBytes:null, context:null, source:null, gain:null, monitorGain:null, peaks:null,
-  fileOrigin:null, loadedRemoteRequestId:null, auditionedRemoteRequestId:null,
+  fileOrigin:null, loadedRemoteRequestId:null,
   inSeconds:0, outSeconds:0, fadeInSeconds:0, fadeOutSeconds:0, dragStart:null, settings:null,
   onImportReviewed:null,
   onReservePreview:null, onPreviewReleased:null, previewReserved:false, previewEpoch:0,
@@ -90,6 +90,23 @@ const state = {
 };
 const $ = id => document.getElementById(id);
 let preparationBusy = false;
+const preparedReviews = new Map();
+const reviewRegion = () => Object.freeze({
+  inSeconds:state.inSeconds,outSeconds:state.outSeconds,
+  fadeInSeconds:state.fadeInSeconds,fadeOutSeconds:state.fadeOutSeconds,
+});
+function rememberPreparedRegion(){
+  if(state.fileOrigin!=='remote'||!state.contextTask?.cueId||
+     state.loadedRemoteRequestId!==state.job?.requestId)return;
+  for(const [id,review] of preparedReviews){
+    if(review.taskContext.projectId!==state.contextTask.projectId||
+       review.taskContext.generation!==state.contextTask.generation)preparedReviews.delete(id);
+  }
+  preparedReviews.set(state.job.requestId,{
+    requestId:state.job.requestId,sha256:state.job.wav.sha256,
+    taskContext:structuredClone(state.contextTask),reviewedRegion:reviewRegion(),
+  });
+}
 const text = (id,value) => { const element=$(id); if(element)element.textContent=value; };
 const resultWatcher=createSfxResultWatcher({
   check:async signal=>{
@@ -119,8 +136,8 @@ const resultWatcher=createSfxResultWatcher({
     updateControls();
     if(reason==='complete'&&ready&&state.contextTask?.cueId){
       void loadRemoteAudio().then(()=>{
-        inform(ux('Toma lista y cargada. Escúchala antes de aceptarla para este cue.',
-          'Take ready and loaded. Listen before accepting it for this cue.'));
+        inform(ux('Toma lista. Puedes escucharla o aceptarla directamente.',
+          'Take ready. Listen or accept it directly.'));
       }).catch(loadError=>{
         inform(userFacingError(loadError,isSpanish()?'es':'en','sound'),true);
       });
@@ -153,6 +170,10 @@ function showCost(settings) {
   const element=$('costEstimate');
   const policy=costPolicy(settings);
   if(!element)return;
+  if(settings?.budgetLimitsDisabled===true){
+    element.classList.add('ready');
+    element.textContent=ux('Sin topes locales de presupuesto. El proveedor factura el uso.', 'No local budget caps. Provider usage is billed.');return;
+  }
   const ready=policy.perRequest!==null&&policy.daily!==null;
   element.classList.toggle('ready',ready);
   element.textContent=ready
@@ -161,11 +182,6 @@ function showCost(settings) {
       ux('. No son cargos confirmados.','. These are safety ceilings, not billed amounts.')
     : ux('La generación no está configurada. Revisa la conexión y los límites en el servidor local.',
       'Generation is not configured. Check connection and spending limits in local server settings.');
-  text('confirmRequestLabel',ready
-    ? ux('Autorizo esta generación (máximo estimado ',
-         'I authorize this generation (estimated maximum ')+money(policy.perRequest)+').'
-    : ux('Autorizo esta generación al activar el servicio.',
-         'I authorize this generation when the service is available.'));
 }
 async function request(path,{method='GET',data,signal}={}) {
   const options={method,cache:'no-store',...(signal?{signal}:{})};
@@ -191,6 +207,12 @@ function canUseAcceptedSource(){
 function updateControls(){
   if(!requiredDom())return;
   const job=state.job;
+  const activity=$('sfxActivityProgress');
+  if(activity){
+    activity.hidden=!(state.working||state.preparingPreview||ACTIVE_STATUS.has(job?.status));
+    activity.querySelector('label').textContent=state.preparingPreview?ux('Cargando audio…','Loading audio…'):
+      ACTIVE_STATUS.has(job?.status)?jobLabel(job.status):ux('Procesando sonido…','Processing sound…');
+  }
   if($('sfxWatchBtn'))$('sfxWatchBtn').disabled=state.working||resultWatcher.active||
     !state.enabled||!job||!ACTIVE_STATUS.has(job.status);
   if($('sfxStopWatchBtn'))$('sfxStopWatchBtn').disabled=!resultWatcher.active;
@@ -207,11 +229,12 @@ function updateControls(){
       'Audio is not ready. Check status when you wish; no new takes are generated.'):
     ux('Selecciona una toma lista para escuchar.','Select a ready take to listen.'));
   const policy=costPolicy();
-  const costReady=policy.perRequest!==null&&policy.daily!==null;
+  const costReady=state.settings?.budgetLimitsDisabled===true||(policy.perRequest!==null&&policy.daily!==null);
   const promptReady=$('soundPrompt').value.trim().length>0 && $('generateForm').checkValidity();
   const allowed=!preparationBusy&&state.enabled&&!state.working&&!resultWatcher.active&&
-    !ACTIVE_STATUS.has(job?.status)&&costReady&&promptReady&&$('confirmRequest').checked;
+    !ACTIVE_STATUS.has(job?.status)&&costReady&&promptReady;
   $('generateBtn').disabled=!allowed;
+  text('generateBtn',ux('Generar sonido', 'Generate sound')+(policy.perRequest!==null?' · '+money(policy.perRequest):''));
   $('generationHint').textContent=preparationBusy?ux('Lote en curso. Cancélalo antes de generar una toma individual.',
     'Batch running. Cancel it before generating an individual take.'):
     state.working?ux('Generando sonido…','Generating sound…'):
@@ -222,7 +245,6 @@ function updateControls(){
     !state.enabled?ux('La generación no está disponible. Puedes seguir editando audio.','Generation is unavailable. You can still edit audio.'):
     !costReady?ux('Revisa la configuración del servicio de IA.','Check the AI service settings.'):
     !promptReady?ux('Describe el sonido y elige su duración.','Describe your sound and choose its duration.'):
-    !$('confirmRequest').checked?ux('Autoriza esta generación para continuar.','Authorize this generation to continue.'):
     ux('Listo para generar.','Ready to generate.');
   const reconnect=$('sfxReconnectBtn');
   if(reconnect) reconnect.disabled=state.working;
@@ -235,7 +257,6 @@ function updateControls(){
   $('refreshBtn').disabled=state.working||!state.enabled||!job||!ACTIVE_STATUS.has(job.status);
   $('cancelBtn').disabled=state.working||!state.enabled||!job||!['QUEUED','RUNNING'].includes(job.status);
   $('loadGeneratedBtn').disabled=state.working||!job||!STATUS_WITH_AUDIO.has(job.status);
-  const listened=job?.requestId===state.auditionedRemoteRequestId;
   const taskCueId=state.contextTask?.cueId;
   const acceptButton=$('acceptBtn');
   if(acceptButton){
@@ -247,10 +268,9 @@ function updateControls(){
         :ux(`Aceptar y asignar al cue ${cueNumber??''}`.trim(),
           `Accept and assign to cue ${cueNumber??''}`.trim())
       :ux('Aceptar sonido','Accept sound');
-    acceptButton.disabled=state.working||
+    acceptButton.disabled=preparationBusy||state.working||
       (taskCueId?!(job?.status==='READY_FOR_REVIEW'||job?.status==='ACCEPTED_FOR_MANUAL_IMPORT')
-        :job?.status!=='READY_FOR_REVIEW')||
-      state.loadedRemoteRequestId!==job?.requestId||!listened;
+        :job?.status!=='READY_FOR_REVIEW');
   }
   $('rejectBtn').disabled=state.working||job?.status!=='READY_FOR_REVIEW';
   $('playBtn').disabled=!state.audio||state.working;
@@ -260,7 +280,7 @@ function updateControls(){
   $('sfxFadeIn').disabled=!state.audio;
   $('sfxFadeOut').disabled=!state.audio;
   $('exportBtn').disabled=state.working||!canUseAcceptedSource();
-  $('importLibraryBtn').disabled=state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
+  $('importLibraryBtn').disabled=preparationBusy||state.working||!canUseAcceptedSource()||typeof state.onImportReviewed!=='function';
   $('importCueBtn').disabled=$('importLibraryBtn').disabled;
   const assignGenerated=$('importAssignCueBtn');
   const exportPanel=$('exportBtn')?.closest('.sfx-export');
@@ -268,15 +288,21 @@ function updateControls(){
     exportPanel.hidden=Boolean(taskCueId);
     exportPanel.style.setProperty('display',taskCueId?'none':'','important');
   }
-  if(assignGenerated)assignGenerated.disabled=state.working||!canUseAcceptedSource()||
+  if(assignGenerated)assignGenerated.disabled=preparationBusy||state.working||!canUseAcceptedSource()||
     typeof state.onImportReviewed!=='function'||!$('rq10TargetCue')?.value;
   const fromLibrary=state.fileOrigin==='library'&&typeof state.libraryAssetId==='string'&&!!state.audio;
   const libraryActions=$('rq10LibraryEditActions');
+  const targetLabel=$('rq10TargetCue')?.closest('label');
+  const targetContainer=fromLibrary?libraryActions?.querySelector('.rq10-local-buttons'):
+    exportPanel?.querySelector('.sfx-buttons');
+  if(targetLabel&&targetContainer&&targetLabel.parentElement!==targetContainer){
+    targetContainer.insertBefore(targetLabel,fromLibrary?$('rq10AssignLibraryCue'):assignGenerated);
+  }
   if(libraryActions)libraryActions.hidden=!fromLibrary;
   const create=$('rq10CreateLibraryCue');
-  if(create)create.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
+  if(create)create.disabled=preparationBusy||state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
   const assign=$('rq10AssignLibraryCue');
-  if(assign)assign.disabled=state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
+  if(assign)assign.disabled=preparationBusy||state.working||!fromLibrary||typeof state.onCommitLibraryReview!=='function';
 }
 function clearReviewedAudio(){
   stopSoundLabAudition();
@@ -300,7 +326,6 @@ function viewJob(job){
   if($('sfxHistoryNotice'))$('sfxHistoryNotice').hidden=!job||!state.recoveredJob;
   if(changed){
     state.loadedRemoteRequestId=null;
-    state.auditionedRemoteRequestId=null;
   }
   text('jobState',job ? jobLabel(job.status) : ux('Sin sonido generado','No sound generated yet'));
   const cost=job?.cost??{};
@@ -391,6 +416,7 @@ function updateFades(fadeIn,fadeOut){
  const spanish=$('uiLocaleSelect')?.value==='es';
  text('sfxFadeInLabel',(spanish?'Entrada gradual':'Fade in')+' · '+first.toFixed(2)+' s');
  text('sfxFadeOutLabel',(spanish?'Salida gradual':'Fade out')+' · '+last.toFixed(2)+' s');
+ rememberPreparedRegion();
  drawWave();
 }
 function updateSfxEditorLocale(){
@@ -456,7 +482,6 @@ async function loadAudio(bytes,name,origin='local',libraryAssetId=null){
   $('sfxWaveEmpty')?.setAttribute('hidden','');
   $('waveCanvas')?.classList.add('sfx-has-audio');
   state.loadedRemoteRequestId=origin==='remote'?state.job?.requestId:null;
-  state.auditionedRemoteRequestId=null;
   state.inSeconds=0;state.outSeconds=decoded.duration;state.fadeInSeconds=0;state.fadeOutSeconds=0;
   state.peaks=waveformPeaks(Array.from({length:decoded.numberOfChannels},(_,channel)=>decoded.getChannelData(channel)),600);
   text('audioName',`${name} · ${decoded.numberOfChannels} ch · ${decoded.sampleRate} Hz`);
@@ -503,7 +528,7 @@ function applyPreset(){
   if(!preset){inform('Choose one of the three prepared acceptance cases.',true);return;}
   $('soundKind').value=preset.kind;$('soundPrompt').value=preset.prompt;
   $('duration').value=String(preset.durationSeconds);$('seed').value=String(preset.seed);
-  $('confirmRequest').checked=false;updateControls();
+  updateControls();
   inform(ux('Ejemplo cargado. Puedes editar la descripción antes de generar.','Example loaded. You can edit the description before generating.'));
 }
 const scriptProposalState={proposals:[],selected:0};
@@ -567,11 +592,10 @@ function bindScriptCompiler(){
     $('sfxAdvanced').open=false;
     $('sfxScriptDetails').open=false;
     $('soundPrompt').dispatchEvent(new Event('input',{bubbles:true}));
-    $('confirmRequest').checked=false;
     updateControls();
     inform(ux(
-      `Contexto fijado: ${taskContext.title}. Revisa la propuesta y autoriza antes de generar.`,
-      `Pinned context: ${taskContext.title}. Review the suggestion and authorize before generating.`,
+      `Contexto fijado: ${taskContext.title}. Pulsa Generar sonido para empezar con IA.`,
+      `Pinned context: ${taskContext.title}. Choose Generate sound to start AI work.`,
     ));
   });
   $('scriptSfxCompile').addEventListener('click',()=>{
@@ -624,11 +648,59 @@ function bindScriptCompiler(){
     $('sourceLine').value=p.scriptReference??'';
     $('soundPrompt').value=finalPrompt;
     $('duration').value=String(p.suggestedDurationSeconds??8);
-    $('confirmRequest').checked=false;updateControls();
+    updateControls();
     $('scriptSfxStatus').textContent=ux('Descripción preparada. Puedes revisarla antes de generar.','Sound description ready. Review it before generating.');
     $('sfxScriptDetails').open=false;
     $('soundPrompt').focus();
   });
+}
+async function previewSelection({inline=false}={}){
+  if(!state.audio)throw new Error('Generated WAV is not ready');
+  stopSoundLabAudition();
+  // Reserve the shared preview lease before awaiting device unlock.
+  if(typeof state.onReservePreview!=='function'||state.onReservePreview({inline})!==true)
+    throw new Error('Detén los cues activos o la preescucha antes de escuchar un sonido.');
+  state.previewReserved=true;
+  const epoch=state.previewEpoch;
+  try{
+    const context=await ensureContext();
+    if(epoch!==state.previewEpoch||!state.previewReserved)
+      throw new Error('Preescucha cancelada por PARAR TODO.');
+    const source=context.createBufferSource(),gain=context.createGain(),monitorGain=context.createGain();
+    source.buffer=state.audio;
+    const level=Number($('monitorLevel').value)/100;
+    const now=context.currentTime,length=state.outSeconds-state.inSeconds;
+    gain.gain.cancelScheduledValues(now);
+    monitorGain.gain.setValueAtTime(level,now);
+    gain.gain.setValueAtTime(state.fadeInSeconds>0?0:1,now);
+    if(state.fadeInSeconds>0)gain.gain.linearRampToValueAtTime(1,now+state.fadeInSeconds);
+    if(state.fadeOutSeconds>0){
+      gain.gain.setValueAtTime(1,now+length-state.fadeOutSeconds);
+      gain.gain.linearRampToValueAtTime(0,now+length);
+    }
+    source.connect(gain);gain.connect(monitorGain);monitorGain.connect(context.destination);
+    state.source=source;state.gain=gain;state.monitorGain=monitorGain;
+    source.onended=()=>{
+      if(state.source===source){
+        state.source=null;
+        try{gain.disconnect();}catch{}
+        try{monitorGain.disconnect();}catch{}
+        state.monitorGain=null;state.gain=null;
+        if(state.previewReserved){
+          state.previewReserved=false;
+          try{state.onPreviewReleased?.();}catch{}
+        }
+        updateControls();
+      }
+    };
+    source.start(0,state.inSeconds,length);
+    if(state.fileOrigin==='remote'&&state.contextTask?.cueId){
+      rememberPreparedRegion();
+      const review=preparedReviews.get(state.loadedRemoteRequestId);
+      document.dispatchEvent(new CustomEvent('runq:sfx-auditioned',{detail:structuredClone(review)}));
+    }
+    updateControls();inform(ux('Escuchando la selección por la salida de audio predeterminada.','Previewing through the default audio output.'));
+  }catch(error){stopSoundLabAudition();throw error;}
 }
 function bindEvents(){
   document.addEventListener('runq:preparation-busy', event => {
@@ -638,9 +710,9 @@ function bindEvents(){
   $('rq10TargetCue')?.addEventListener('change',updateControls);
   $('sfxShortTakeBtn')?.addEventListener('click',()=>{
     $('duration').value='3';
-    $('confirmRequest').checked=false;updateControls();
-    inform(ux('Duración preparada: 3 segundos. Revisa la descripción y autoriza si quieres generar. No se ha enviado nada.',
-      'Duration set to 3 seconds. Review the description and authorize if you want to generate. Nothing was submitted.'));
+    updateControls();
+    inform(ux('Duración preparada: 3 segundos. Pulsa Generar sonido para empezar. No se ha enviado nada.',
+      'Duration set to 3 seconds. Choose Generate sound to start. Nothing was submitted.'));
   });
   $('sfxWatchBtn')?.addEventListener('click',()=>{
     if(state.working||!state.enabled||!state.job||!ACTIVE_STATUS.has(state.job.status))return;
@@ -663,8 +735,8 @@ function bindEvents(){
     state.historyJobs=result.jobs;
     renderHistoryOptions();
     text('sfxHistoryStatus',result.jobs.length
-      ?ux(result.jobs.length+' toma(s) locales. Elige y escucha antes de aceptar.',
-        result.jobs.length+' local take(s). Choose and listen before accepting.')
+      ?ux(result.jobs.length+' toma(s) locales. Escuchar antes de aceptar es opcional.',
+        result.jobs.length+' local take(s). Listening before acceptance is optional.')
       :ux('No hay tomas guardadas en este historial local.','No saved takes in this local history.'));
   }));
   $('sfxHistorySelect')?.addEventListener('change',()=>void action(async()=>{
@@ -675,7 +747,6 @@ function bindEvents(){
     const job=await(await request('/jobs/'+encodeURIComponent(requestId))).json();
     if(job.requestId!==requestId)throw new Error('Saved take identity mismatch');
     state.recoveredJob=true;
-    $('confirmRequest').checked=false;
     viewJob(job);
     inform(ux('Registro anterior abierto. Comprueba el WAV antes de aceptar.',
       'Earlier record opened. Check the WAV before accepting.'));
@@ -685,7 +756,7 @@ function bindEvents(){
     void action(async()=>{
       const policy=costPolicy();
       if(preparationBusy||resultWatcher.active||ACTIVE_STATUS.has(state.job?.status))throw new Error('SFX_ACTIVE_LIMIT');
-      if(!state.enabled||!$('confirmRequest').checked||policy.perRequest===null||policy.daily===null)throw new Error('SFX_NOT_CONFIGURED');
+      if(!state.enabled||(state.settings?.budgetLimitsDisabled!==true&&(policy.perRequest===null||policy.daily===null)))throw new Error('SFX_NOT_CONFIGURED');
       const source=$('sourceLine').value.trim();
       const requestData={
         requestId:'req-'+crypto.randomUUID(),authorizationId:'auth-'+crypto.randomUUID(),confirmed:true,
@@ -693,28 +764,26 @@ function bindEvents(){
         durationSeconds:Number($('duration').value),seed:Number($('seed').value),
         acknowledgedMaxCostUsd:policy.perRequest,
       };
-      // The explicit, amount-specific checkbox is the sole user authorization.
-      // The server still validates confirmed, authorizationId, the exact cost cap
-      // and daily budget before any billable request. Never retry automatically.
+      // Clicking Generate authorizes this request at the displayed cost cap.
+      // The server journals submissions and prevents duplicates; never retry.
       const response=await request('/jobs',{method:'POST',data:requestData});
       const job=await response.json();
       state.recoveredJob=false;
-      viewJob(job);$('confirmRequest').checked=false;
+      viewJob(job);
       if(state.contextTask?.cueId&&ACTIVE_STATUS.has(job.status)){
         text('sfxWatchStatus',ux('Generación enviada. RUNQ comprobará cuándo está lista; no iniciará la reproducción.',
           'Generation submitted. RUNQ will check when it is ready; playback will not start automatically.'));
         resultWatcher.start();
       }else if(state.contextTask?.cueId&&STATUS_WITH_AUDIO.has(job.status)){
         await loadRemoteAudio();
-        inform(ux('Toma lista y cargada. Escúchala antes de aceptarla para este cue.',
-          'Take ready and loaded. Listen before accepting it for this cue.'));
+        inform(ux('Toma lista. Puedes escucharla o aceptarla directamente.',
+          'Take ready. Listen or accept it directly.'));
       }else{
         inform(ux('Solicitud enviada. Puedes seguir trabajando. Cuando esté lista, pulsa Escuchar junto a la toma.',
           'Request submitted. Keep working. When ready, choose Listen beside the take.'));
       }
     });
   });
-  $('confirmRequest').addEventListener('change',updateControls);
   $('uiLocaleSelect')?.addEventListener('change',()=>{
     updateSfxEditorLocale();
     if(state.job)viewJob(state.job);
@@ -722,8 +791,8 @@ function bindEvents(){
   });
   $('sfxReconnectBtn')?.addEventListener('click',()=>void checkConnection());
   for(const id of ['soundPrompt','duration','seed','soundKind','sourceLine']){
-    $(id).addEventListener('input',()=>{$('confirmRequest').checked=false;updateControls();});
-    $(id).addEventListener('change',()=>{$('confirmRequest').checked=false;updateControls();});
+    $(id).addEventListener('input',updateControls);
+    $(id).addEventListener('change',updateControls);
   }
   $('loadPresetBtn').addEventListener('click',applyPreset);
   // One explicit check combines the two safe steps users previously had to
@@ -766,16 +835,16 @@ function bindEvents(){
     if(!state.job||!STATUS_WITH_AUDIO.has(state.job.status))throw new Error('Generated WAV is not ready');
     const result=await request('/jobs/'+encodeURIComponent(state.job.requestId)+'/audio');
     await loadAudio(await result.arrayBuffer(),'Generated · '+state.job.requestId+'.wav','remote');
-    inform(ux('Audio generado cargado. Escúchalo antes de aceptar.','Generated audio loaded. Listen before accepting.'));
+    inform(ux('Audio generado cargado. Puedes escucharlo o aceptarlo directamente.','Generated audio loaded. Listen or accept it directly.'));
   }));
   $('acceptBtn').addEventListener('click',()=>void action(async()=>{
     const taskContext=state.contextTask?.cueId?structuredClone(state.contextTask):null;
-    if(!state.job||!['READY_FOR_REVIEW','ACCEPTED_FOR_MANUAL_IMPORT'].includes(state.job.status)||
-      state.auditionedRemoteRequestId!==state.job.requestId)throw new Error('Listen to this generated take before accepting it');
+    if(!state.job||!STATUS_WITH_AUDIO.has(state.job.status))throw new Error('SFX_NOT_REVIEWABLE');
+    await loadRemoteAudio();
     if(taskContext&&(
       state.loadedRemoteRequestId!==state.job.requestId||state.fileOrigin!=='remote'||
       !(state.sourceBytes instanceof ArrayBuffer)||typeof state.onImportReviewed!=='function'
-    ))throw new Error('Listen to and load this generated take before assigning it to the cue');
+    ))throw new Error('Generated take is not loaded for assignment');
     if(taskContext&&$('rq10TargetCue').value!==taskContext.cueId)
       throw new Error('Selected cue differs from the pinned sound destination');
     let acceptedJob=state.job;
@@ -815,55 +884,6 @@ function bindEvents(){
     await loadAudio(await file.arrayBuffer(),file.name,'local');
     inform(ux('Archivo local cargado. No se ha enviado a ningún proveedor de IA.','Local audio loaded. It was not sent to an AI provider.'));
   }));
-  async function previewSelection(){
-    if(!state.audio)throw new Error('Generated WAV is not ready');
-    stopSoundLabAudition();
-    // The show controller owns the global GO/preview lease. Reserve it
-    // synchronously BEFORE awaiting device unlock to prevent a concurrent GO.
-    if(typeof state.onReservePreview!=='function'||state.onReservePreview()!==true)
-      throw new Error('Detén los cues activos o la preescucha antes de escuchar un sonido.');
-    state.previewReserved=true;
-    const epoch=state.previewEpoch;
-    try{
-    const context=await ensureContext();
-    if(epoch!==state.previewEpoch||!state.previewReserved)
-      throw new Error('Preescucha cancelada por PARAR TODO.');
-    const source=context.createBufferSource();const gain=context.createGain();
-    const monitorGain=context.createGain();
-    source.buffer=state.audio;
-    const level=Number($('monitorLevel').value)/100;
-    const now=context.currentTime;
-    const length=state.outSeconds-state.inSeconds;
-    gain.gain.cancelScheduledValues(now);
-    monitorGain.gain.setValueAtTime(level,now);
-    gain.gain.setValueAtTime(state.fadeInSeconds>0?0:1,now);
-    if(state.fadeInSeconds>0)gain.gain.linearRampToValueAtTime(1,now+state.fadeInSeconds);
-    if(state.fadeOutSeconds>0){
-      const fadeOutAt=now+length-state.fadeOutSeconds;
-      gain.gain.setValueAtTime(1,fadeOutAt);
-      gain.gain.linearRampToValueAtTime(0,now+length);
-    }
-    source.connect(gain);gain.connect(monitorGain);monitorGain.connect(context.destination);
-    state.source=source;state.gain=gain;state.monitorGain=monitorGain;
-    source.onended=()=>{
-      if(state.source===source){
-        state.source=null;
-        try{gain.disconnect();}catch{}
-        try{monitorGain.disconnect();}catch{}
-        state.monitorGain=null;
-        state.gain=null;
-        if(state.previewReserved){
-          state.previewReserved=false;
-          try{state.onPreviewReleased?.();}catch{}
-        }
-        updateControls();
-      }
-    };
-    source.start(0,state.inSeconds,state.outSeconds-state.inSeconds);
-    if(state.fileOrigin==='remote')state.auditionedRemoteRequestId=state.loadedRemoteRequestId;
-    updateControls();inform(ux('Escuchando la selección por la salida de audio predeterminada.','Previewing through the default audio output.'));
-    }catch(error){stopSoundLabAudition();throw error;}
-  }
   $('playBtn').addEventListener('click',()=>void action(previewSelection));
   $('sfxListenBtn')?.addEventListener('click',()=>void action(async()=>{
     state.preparingPreview=true;updateControls();
@@ -966,7 +986,7 @@ function bindEvents(){
     const targetLabel=$('rq10TargetCue')?.selectedOptions?.[0]?.textContent?.trim()??targetCueId;
     if(!targetCueId)throw new Error('Elige el cue de destino.');
     if(!canUseAcceptedSource()||typeof state.onImportReviewed!=='function')
-      throw new Error('Acepta y escucha una toma antes de asignarla.');
+      throw new Error('Accept a ready take before assigning it.');
     if(!confirm(ux(
       `Guardar esta toma y asignar el audio principal a ${targetLabel}? GO y NEXT no cambiarán.`,
       `Save this take and assign its primary audio to ${targetLabel}? GO and NEXT will not change.`,
@@ -988,6 +1008,43 @@ export function assertSfxGenerationIdle() {
     throw new Error('SFX_ACTIVE_LIMIT');
 }
 
+export async function assignPreparedTake({requestId,taskContext,isCurrent}){
+  const saved=preparedReviews.get(requestId);
+  const review=saved&&saved.taskContext.projectId===taskContext.projectId&&
+    saved.taskContext.generation===taskContext.generation&&saved.taskContext.cueId===taskContext.cueId?saved:null;
+  const check=()=>{if(!isCurrent())throw new Error('SHOW_CHANGED');};
+  check();
+  stopSoundLabAudition();
+  let job=await(await request('/jobs/'+encodeURIComponent(requestId))).json();
+  check();
+  if(job.requestId!==requestId||!job.wav||review&&job.wav.sha256!==review.sha256||!STATUS_WITH_AUDIO.has(job.status))
+    throw new Error('SFX_IDENTITY');
+  const sha256=job.wav.sha256;
+  const region=state.loadedRemoteRequestId===requestId&&state.fileOrigin==='remote'?reviewRegion():
+    review?.reviewedRegion??{inSeconds:0,outSeconds:job.wav.durationSeconds,fadeInSeconds:0,fadeOutSeconds:0};
+  const audioBytes=new Uint8Array(await(await request('/jobs/'+encodeURIComponent(requestId)+'/audio')).arrayBuffer());
+  check();
+  if(job.status==='READY_FOR_REVIEW'){
+    job=await(await request('/jobs/'+encodeURIComponent(requestId)+'/review',{
+      method:'POST',data:{decision:'ACCEPT'},
+    })).json();
+    check();
+  }
+  if(job.requestId!==requestId||job.wav?.sha256!==sha256||
+     job.status!=='ACCEPTED_FOR_MANUAL_IMPORT')throw new Error('SFX_IDENTITY');
+  const result=await state.onImportReviewed({
+    job,audioBytes,reviewedRegion:region,targetCueId:taskContext.cueId,taskContext,isCurrent,navigate:false,
+  });
+  if(state.job?.requestId===requestId)viewJob(job);
+  return result;
+}
+
+export async function previewPreparedTake(options){
+  await openPreparedTake(options);
+  if(!options.isCurrent())throw new Error('SHOW_CHANGED');
+  await previewSelection({inline:true});
+}
+
 export async function openPreparedTake({ requestId, taskContext, isCurrent = () => true }) {
   assertSfxGenerationIdle();
   if (!isCurrent()) throw new Error('SHOW_CHANGED');
@@ -998,9 +1055,9 @@ export async function openPreparedTake({ requestId, taskContext, isCurrent = () 
   state.recoveredJob = true;
   viewJob(job);
   await loadRemoteAudio();
-  if (!isCurrent()) { viewJob(null); throw new Error('SHOW_CHANGED'); }
-  inform(ux('Toma del lote cargada. Escúchala y acéptala para este cue; no se reproduce automáticamente.',
-    'Batch take loaded. Listen and accept it for this cue; playback never starts automatically.'));
+  if (!isCurrent()) { if(state.job?.requestId===requestId)viewJob(null); throw new Error('SHOW_CHANGED'); }
+  inform(ux('Toma del lote cargada. Puedes escucharla o aceptarla; no se reproduce automáticamente.',
+    'Batch take loaded. Listen or accept it; playback never starts automatically.'));
 }
 
 function connectionProblem(settings){
@@ -1050,6 +1107,10 @@ export async function initializeSoundLab({onImportReviewed,onReservePreview,onPr
   if(typeof onPreviewReleased==='function')state.onPreviewReleased=onPreviewReleased;
   if(typeof onCommitLibraryReview==='function')state.onCommitLibraryReview=onCommitLibraryReview;
   if(!state.initialized){
+    const activity=document.createElement('div');activity.id='sfxActivityProgress';activity.hidden=true;
+    const label=document.createElement('label');label.htmlFor='sfxActivityMeter';
+    const meter=document.createElement('progress');meter.id='sfxActivityMeter';
+    activity.append(label,meter);$('jobState').parentElement.append(activity);
     state.initialized=true;bindEvents();bindScriptCompiler();
     try{$('requestId').value=localStorage.getItem('runq-sfx-last-id-v1')??'';}catch{}
   }

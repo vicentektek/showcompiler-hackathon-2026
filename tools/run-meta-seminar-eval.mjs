@@ -18,7 +18,7 @@ try{
     });
   }finally{await ledger?.close()}
   console.log('RunQ '+run.kind);
-  console.log('Meta requests sent: '+run.submittedRequests+'; conservative reserve $'+run.conservativeReservedUsd.toFixed(4)+' of $'+run.budgetCapUsd.toFixed(2));
+  console.log('Meta requests sent: '+run.submittedRequests+'; conservative reserve $'+run.conservativeReservedUsd.toFixed(4)+' (no local budget cap)');
   console.log('Estimated usage charge: '+(run.observedUsageEstimatedUsd===null?'not available':'$'+run.observedUsageEstimatedUsd.toFixed(4)));
   console.log('Scored complete cases: '+run.scoredCases+'; halt reason: '+(run.haltReason??'none'));
   if(options.live)console.log('Persistent Meta history max $65 AND per-user shared campaign max $100; command limit remains $2.');

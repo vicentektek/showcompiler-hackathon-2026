@@ -25,6 +25,7 @@ import { createShowEventLog } from '../core/showEventLog.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 import { mountShowPreparation } from './show-preparation-ui.mjs';
+import { prepareShowOperationTriggers } from '../core/showPreparation.mjs';
 
 const $ = (id) => document.getElementById(id);
 const sampleTexts = {
@@ -186,9 +187,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 // authoritative STOP ALL synchronously invalidates its pending/active preview.
 let soundLabPreviewReserved = false;
 let stopSoundLabPreview = () => {};
-function reserveSoundLabPreview(){
+function reserveSoundLabPreview({inline=false}={}){
   const status=player.getStatus();
-  if(activeWorkspace!=='audio'||goTransportPending||audioInFlight||bundleInFlight||
+  if(!(activeWorkspace==='audio'||inline&&activeWorkspace==='ai')||goTransportPending||audioInFlight||bundleInFlight||
      status.activeCueCount||status.pendingGoCount||status.auditionActive||
      status.auditionPending||soundLabPreviewReserved)return false;
   soundLabPreviewReserved=true;
@@ -425,7 +426,7 @@ function setWorkspace(workspace) {
   // Legacy deep links and old navigation enter the new unified audio desk.
   const legacySoundLab=workspace==='soundlab';
   if(legacySoundLab)workspace='audio';
-  if (activeWorkspace === 'audio' && workspace !== 'audio') {
+  if ((activeWorkspace === 'audio' || activeWorkspace === 'ai') && workspace !== activeWorkspace) {
     stopSoundLabPreview();
     player.stopAudition(); // Prevent lingering library preview on entering Live.
   }
@@ -670,7 +671,7 @@ function safeOperation(operation, successKey, values = {}) {
   }
 }
 document.addEventListener('runq:proposal-batch-decision', event => {
-  const { proposalIds, decision, respond } = event.detail ?? {};
+  const { proposalIds, decision, respond, operationTriggers = false } = event.detail ?? {};
   const answer = value => { if (typeof respond === 'function') respond(value); };
   if (!safeAgentEditState()) {
     answer({ ok: false, error: 'EDIT_BLOCKED_BY_SHOW_STATE' });
@@ -679,7 +680,9 @@ document.addEventListener('runq:proposal-batch-decision', event => {
   const before = show;
   const beforeQueue = operatorQueue;
   try {
-    const next = decideProposalBatch(show, proposalIds, decision);
+    const decided = decideProposalBatch(show, proposalIds, decision);
+    const next = decision === 'APPROVE' && operationTriggers
+      ? prepareShowOperationTriggers(decided).project : decided;
     if (!before.cues.length && next.cues.length && !operatorQueue.preparedCueId) {
       operatorQueue = startOperatorQueue(next.cues);
     }
@@ -2208,11 +2211,11 @@ document.addEventListener('runq:cue-chat-undo',event=>{
  * All proposals are revalidated against the current show at approval time.
  */
 let runqAgentUndo=null;
-function safeAgentEditState(){
+function safeAgentEditState({allowSoundLabPreview=false}={}){
  const status=player.getStatus();
  return !['operation','rehearsal'].includes(activeWorkspace)&&
   !audioInFlight&&!bundleInFlight&&!metaInFlight&&!goTransportPending&&
-  !soundLabPreviewReserved&&!inspectorPendingChanges&&
+  (allowSoundLabPreview||!soundLabPreviewReserved)&&!inspectorPendingChanges&&
   !status.activeCueCount&&!status.pendingGoCount&&
   !status.auditionActive&&!status.auditionPending&&
   $('rqLiveArm')?.getAttribute('aria-pressed')!=='true';
@@ -2249,8 +2252,9 @@ document.addEventListener('runq:agent-undo',event=>{
  if(!safeAgentEditState()){answer({ok:false,error:'EDIT_BLOCKED_BY_SHOW_STATE'});return;}
  try{
   const previous=undoAgentPlan(show,runqAgentUndo,{editable:true});
+  const structural=JSON.stringify(show.cues.map(c=>c.id))!==JSON.stringify(previous.cues.map(c=>c.id));
   show=previous;runqAgentUndo=null;cueChatUndo=null;dirty=true;
-  operatorQueue=startOperatorQueue(show.cues);lastGoCueId=null;
+  if(structural){operatorQueue=startOperatorQueue(show.cues);lastGoCueId=null;}
   selectedCueId=show.cues.some(c=>c.id===selectedCueId)?selectedCueId:show.cues[0]?.id??null;
   editingCueId=null;render();answer({ok:true});
  }catch(error){answer({ok:false,error:String(error.code??error.message).slice(0,100)});}
@@ -2390,7 +2394,6 @@ document.addEventListener('runq:open-contextual-ia',event=>{
   document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
   const prompt=$('soundPrompt');if(prompt&&hint)prompt.value=hint;
   if(lineId&&$('sourceLine'))$('sourceLine').value=lineId;
-  if($('confirmRequest'))$('confirmRequest').checked=false;
   prompt?.focus();
  }else{
   if(!setWorkspace('ai'))return;
@@ -2970,7 +2973,6 @@ async function analyzeNextMeta({ confirmed = false, signal, isCurrent = () => tr
   if (confirmed && provider !== 'meta') throw uiError('errors.projectChanged');
   let analysisWindowStart;
   let activityScope = { provider, startedAt: 0 };
-  const isRepeat = provider === 'meta' && metaCoverage?.complete === true;
   const designMode = provider === 'meta' ? $('metaDesignMode').value : null;
   const performanceKind = provider === 'meta' ? $('performanceKindSelect').value : null;
   const documentKind = provider === 'meta' ? $('documentKindSelect').value : null;
@@ -2986,13 +2988,6 @@ async function analyzeNextMeta({ confirmed = false, signal, isCurrent = () => tr
       endWindow: analysisWindowStart + batch.length,
       totalWindows: plan.windows.length,
     };
-    if (!confirmed && !window.confirm(t('status.confirmMeta', {
-      windowCount: batch.length,
-      lineCount,
-      startWindow: analysisWindowStart + 1,
-      endWindow: analysisWindowStart + batch.length,
-      totalWindows: plan.windows.length,
-    }) + (isRepeat ? '\n\n' + t('status.confirmMetaRepeat') : ''))) return null;
   } else if (!window.confirm(t('status.confirmBaseten'))) return;
   const generation = projectGeneration;
   metaActivity = { ...activityScope, startedAt: Date.now() };
@@ -3247,7 +3242,7 @@ cueDropSurface.addEventListener('drop',event=>{
 $('loadAudioBtn').addEventListener('click', () => pickAudioFile());
 async function importSingleAudioFile(file, {
   cueId = null, provenance = undefined, refuseReplacement = false,
-  reviewedRegion = null, sourceDurationMs = null,
+  reviewedRegion = null, sourceDurationMs = null, assertCurrent = () => {}, reuseGenerated = false,
 } = {}) {
   if (!file || audioInFlight) return null;
   audioInFlight = true;
@@ -3257,15 +3252,22 @@ async function importSingleAudioFile(file, {
   const button = $('loadAudioBtn');
   button.disabled = true;
   try {
+    assertCurrent();
     if (file.name.length > 200) throw uiError('errors.audioFilenameLong');
     const existing = before.assets.filter(asset => asset.name === file.name);
     if (existing.length > 1) throw uiError('errors.duplicateAudioName');
+    let verifiedExisting = false;
     if (provenance) {
       const alreadyImported = before.assets.find(asset =>
         asset.provenance?.origin === 'AI_GENERATED_SFX' &&
         asset.provenance.requestId === provenance.requestId);
-      if (alreadyImported) throw new Error('This generated request is already in the library as ' + alreadyImported.name);
-      if (existing.length || refuseReplacement && player.hasAsset(existing[0]?.id)) {
+      if (alreadyImported) {
+        if (!cueId && !reuseGenerated) throw new Error('SFX_ALREADY_IMPORTED');
+        if (alreadyImported.provenance.sha256 !== provenance.sha256 ||
+            existing[0]?.id !== alreadyImported.id) throw new Error('SFX_IDENTITY');
+        verifiedExisting = true;
+      }
+      if (!verifiedExisting && (existing.length || refuseReplacement && player.hasAsset(existing[0]?.id))) {
         throw new Error('Generated audio cannot replace an existing library asset');
       }
     }
@@ -3321,10 +3323,11 @@ async function importSingleAudioFile(file, {
     // cue sharing that asset ID. Require explicit confirmation before doing so.
     const shared = before.cues.some(cue => cue.id !== cueId &&
       cue.actions.some(action => action.type === 'PLAY' && action.assetId === assetId));
-    if (player.hasAsset(assetId) && shared &&
+    if (!verifiedExisting && player.hasAsset(assetId) && shared &&
         !window.confirm(t('soundPlan.sharedAudioConfirm', { name: file.name }))) return;
     feedback('status.decoding');
     const info = await player.loadFile(file, assetId);
+    assertCurrent();
     if (generation !== projectGeneration || show !== before) throw uiError('errors.projectChanged');
     show = nextShow;
     originalAudioFiles.set(assetId, file);
@@ -3354,8 +3357,10 @@ $('audioFileInput').addEventListener('change', async event => {
 
 async function importReviewedGeneratedSfx({
   job,audioBytes,reviewedRegion,createCue=false,linkSource=true,targetCueId=null,taskContext=null,
+  isCurrent=()=>true,navigate=true,
 }={}){
   const assertCurrentTaskContext=()=>{
+    if(!isCurrent())throw new Error('PROJECT_CHANGED');
     if(taskContext&&(taskContext.projectId!==show.id||
        taskContext.generation!==projectGeneration))
       throw new Error('The show changed after this sound task was pinned');
@@ -3365,6 +3370,8 @@ async function importReviewedGeneratedSfx({
   assertCurrentTaskContext();
   const candidate=await prepareReviewedSfxImport({job,audioBytes,reviewedRegion});
   assertCurrentTaskContext();
+  // Release only Sound Lab's own preview lease, never stop the show transport.
+  stopSoundLabPreview();
   if(targetCueId){
     const target=show.cues.find(cue=>cue.id===targetCueId);
     if(!target||target.status!=='DRAFT'||target.actions.length!==1||
@@ -3377,11 +3384,13 @@ async function importReviewedGeneratedSfx({
     refuseReplacement:true,
     reviewedRegion:targetCueId?reviewedRegion:null,
     sourceDurationMs:targetCueId?job.wav.durationSeconds*1000:null,
+    assertCurrent:assertCurrentTaskContext,
+    reuseGenerated:createCue,
   });
   if(!result)throw new Error('Generated WAV was not imported');
   if(targetCueId){
     selectedCueId=targetCueId;
-    setWorkspace('cues');
+    if(navigate)setWorkspace('cues');
     return {assetId:result.assetId,cueId:targetCueId,
       message:'Generated WAV saved and assigned to the selected cue. GO and NEXT were not changed.'};
   }
@@ -3443,6 +3452,7 @@ async function commitReviewedLibraryAudio({assetId,reviewedRegion,targetCueId=nu
   if(!chosen||chosen.assetId!==assetId||chosen.generation!==projectGeneration||
     !show.assets.some(a=>a.id===assetId)||originalAudioFiles.get(assetId)!==chosen.file)
     throw new Error('El archivo revisado ya no pertenece al espectáculo activo.');
+  stopSoundLabPreview();
   const busy=player.getStatus();
   if(goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved||
     busy.activeCueCount||busy.pendingGoCount||busy.auditionActive||busy.auditionPending)
@@ -3533,6 +3543,9 @@ mountShowPreparation({
   getState: () => ({
     project: show, generation: projectGeneration, language: uiLocale,
     canApply: safeAgentEditState(), coverage: metaCoverage,
+    canAssign: safeAgentEditState({allowSoundLabPreview:true}),
+    previewActive: soundLabPreviewReserved,
+    workspace: activeWorkspace,
     metaAvailable: metaAvailable && selectedModelProvider() === 'meta',
     windowsPerRequest: metaWindowsPerRequest,
   }),
@@ -3540,9 +3553,18 @@ mountShowPreparation({
   approve: proposalIds => {
     let result;
     document.dispatchEvent(new CustomEvent('runq:proposal-batch-decision', {
-      detail: { proposalIds, decision: 'APPROVE', respond: value => { result = value; } },
+      detail: { proposalIds, decision: 'APPROVE', operationTriggers: true, respond: value => { result = value; } },
     }));
     if (!result?.ok) throw new Error(result?.error ?? 'BATCH_APPROVAL_FAILED');
+  },
+  prepareTriggers: () => {
+    if (!safeAgentEditState()) throw new Error('EDIT_BLOCKED_BY_SHOW_STATE');
+    const result = prepareShowOperationTriggers(show);
+    if (result.added.length) {
+      show = result.project; dirty = true; runqAgentUndo = null; cueChatUndo = null;
+      render();
+    }
+    return result;
   },
   ensureAudioIdle: async () => {
     await ensureSoundLabInitialized();
@@ -3555,6 +3577,17 @@ mountShowPreparation({
     setWorkspace('soundlab');
     const module = await soundLabModulePromise;
     await module.openPreparedTake(options);
+  },
+  stopPreview: () => stopSoundLabPreview(),
+  previewTake: async options => {
+    await ensureSoundLabInitialized();
+    const module = await soundLabModulePromise;
+    await module.previewPreparedTake(options);
+  },
+  assignTake: async options => {
+    await ensureSoundLabInitialized();
+    const module = await soundLabModulePromise;
+    return module.assignPreparedTake(options);
   },
   openWorkspace: setWorkspace,
 });

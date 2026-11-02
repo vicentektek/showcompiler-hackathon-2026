@@ -4,8 +4,9 @@
 import { parseScript } from './script.mjs';
 import { normalizeSpeech } from './voiceFollow.mjs';
 
-export function makeProjectVoiceScenario(project,{maxCues=20}={}){
+export function makeProjectVoiceScenario(project,{maxCues=20,minimumWords=3}={}){
   if(!Number.isInteger(maxCues)||maxCues<1||maxCues>200)throw new TypeError('Invalid simulation limit');
+  if(![2,3].includes(minimumWords))throw new TypeError('Invalid trigger minimum');
   const scriptText=typeof project?.scriptText==='string'?project.scriptText:'';
   if(!scriptText)return null;
   const validLines=new Set(parseScript(scriptText).map(row=>row.id));
@@ -13,7 +14,7 @@ export function makeProjectVoiceScenario(project,{maxCues=20}={}){
     if(!cue||typeof cue.id!=='string')return [];
     const lineId=(Array.isArray(cue.sourceLineIds)?cue.sourceLineIds:[]).find(id=>validLines.has(id));
     const trigger=typeof cue.trigger==='string'?cue.trigger.trim():'';
-    if(!lineId||normalizeSpeech(trigger).split(' ').filter(Boolean).length<3)return [];
+    if(!lineId||normalizeSpeech(trigger).split(' ').filter(Boolean).length<minimumWords)return [];
     return [{id:cue.id,number:cue.number,label:cue.label,trigger,lineId}];
   }).sort((a,b)=>Number(a.lineId.slice(1))-Number(b.lineId.slice(1)));
   if(!cues.length)return null;

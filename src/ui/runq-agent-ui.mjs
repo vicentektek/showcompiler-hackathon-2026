@@ -109,7 +109,6 @@ function refreshControls(){
  $('rqAgentRecord').textContent=dictation.phase==='recording'
   ?lang('Detener grabación','Stop recording'):lang('Grabar instrucción (10 s)','Record instruction (10 s)');
  $('rqAgentTranscribe').disabled=working||!dictation.canTranscribe;
- if(['idle','transcribing'].includes(dictation.phase))$('rqAgentVoiceConsent').checked=false;
 }
 function cancelPending(reason='cancelled'){
  dictation?.cancel(reason==='context_changed'?'context_changed':'cancelled');
@@ -124,7 +123,7 @@ function cancelPending(reason='cancelled'){
   refreshControls();return;
  }
  requestEpoch++;requestController?.abort();requestController=null;requestBase=null;
- working=false;displayPhase='idle';$('rqAgentConsent').checked=false;showPlan(null);refreshControls();
+ working=false;displayPhase='idle';showPlan(null);refreshControls();
  notify(lang('Consulta cancelada. Los resultados tardíos no se aplicarán.',
   'Request cancelled. Late results will not be applied.'));
 }
@@ -178,9 +177,7 @@ function addMessage(role,text,sound=null,workflow=null){
       'Cue preparation tools are unavailable. Open RUNQ AI to continue.'),true);return;}
      task.scrollIntoView({block:'start'});
     }else{
-     $('rqAgentAiOptions').open=true;
-     $('rqAgentAiOptions').scrollIntoView({block:'center'});
-     $('rqAgentConsent').focus();
+     void sendRequest(true,lastPrompt);
     }
    });
    item.append(action);
@@ -209,7 +206,13 @@ function showPlan(plan,baseProject=null,keepSelection=false){
    const cue=selectedBatch.project.cues.find(c=>c.id===cueId);
    const names={UPDATE_CUE:['Editar cue','Edit cue'],DELETE_CUE:['Eliminar cue','Delete cue'],
     CREATE_CUE:['Añadir cue sin audio','Add cue without audio'],
-    CREATE_CONFIGURED_CUE:['Añadir cue con sonido','Add cue with sound'],REORDER_CUE:['Mover cue','Move cue']};
+    CREATE_CONFIGURED_CUE:['Añadir cue con sonido','Add cue with sound'],REORDER_CUE:['Mover cue','Move cue'],
+    SET_CUE_STOP:['Configurar parada / fade','Configure stop / fade'],
+    REMOVE_CUE_STOP:['Quitar parada configurada','Remove configured stop'],
+    ASSIGN_AUDIO:['Asignar audio','Assign audio'],ADD_AUDIO_TRACK:['Añadir capa de audio','Add audio layer'],
+    UPDATE_AUDIO_TRACK:['Editar capa de audio','Edit audio layer'],
+    REMOVE_AUDIO_TRACK:['Quitar capa de audio','Remove audio layer'],
+    SET_ENTRY_POLICY:['Configurar solapamiento','Configure overlap']};
    const summary=(names[operation.op]?lang(...names[operation.op]):operation.op)+
     (cue?' · '+cue.number+' '+cue.label:operation.label?' · '+operation.label:'');
    label.append(box,make('span','',summary));
@@ -255,7 +258,7 @@ function showPlan(plan,baseProject=null,keepSelection=false){
     playback:['Ajustes de audio','Audio settings'],number:['Número','Number'],
     sourceLineIds:['Referencias del guion','Script references'],actions:['Sonido / acciones','Sound / actions'],
     automation:['Continuidad','Follow settings'],audioTracks:['Pistas de audio','Audio tracks'],
-    entryPolicy:['Audio anterior','Previous audio']};
+    entryPolicy:['Audio anterior','Previous audio'],stopFadeOverrides:['Fundidos de parada','Stop fades']};
    const title=names[field.field]?lang(...names[field.field]):field.field;
    const row=make('small','',title+': '+short(field.from)+' → '+short(field.to));
    item.append(row);
@@ -268,7 +271,8 @@ function showPlan(plan,baseProject=null,keepSelection=false){
 }
 function short(value){
  if(value===null||value===undefined)return '—';
- const result=typeof value==='object'?JSON.stringify(value):String(value);
+ if(typeof value==='object')return JSON.stringify(value);
+ const result=String(value);
  return result.length>180?result.slice(0,177)+'…':result;
 }
 function sync(){
@@ -358,12 +362,6 @@ async function sendRequest(forceAI=false,custom=null){
  if(instruction.length<3||instruction.length>1600){
   notify(lang('Escribe una instrucción de 3 a 1600 caracteres.','Enter 3–1600 characters.'),true);return;
  }
- if(forceAI&&!$('rqAgentConsent').checked){
-  const settings=$('rqAgentAiOptions');if(settings)settings.open=true;
-  $('rqAgentConsent')?.focus();
-  notify(lang('Autoriza el envío de la instrucción y el contexto del show antes de consultar IA.',
-   'Authorize sending the instruction and show context before using AI.'),true);return;
- }
  const conversation=boundedAgentConversation(history,{project:s.project,task:dialogueTask});
  const epoch=++requestEpoch;requestBase=contextKey();
  const selectedLineIds=selectedScriptLines();
@@ -399,7 +397,6 @@ async function sendRequest(forceAI=false,custom=null){
     selectedCueId:s.selectedCueId??null,
     selectedAssetId:$('rqAgentSelectedSound').value||null});
   }
-  // One-shot model permission, including error paths.
   const latest=state();
   if(epoch!==requestEpoch)return;
   if(!latest||requestBase!==contextKey()||JSON.stringify(latest.project)!==JSON.stringify(s.project)||
@@ -409,6 +406,8 @@ async function sendRequest(forceAI=false,custom=null){
   }
   const workflow=!forceAI&&reply.workflow==='PREPARE_CUES'?'PREPARE_CUES':
    reply.status==='NEEDS_AI'?'AI_CONSULTATION':null;
+  const plan=reply.status==='PLAN'
+   ?prepareAgentPlan(s.project,reply.operations,{assetAvailable:id=>assetReady(id,s)}):null;
   addMessage('assistant',reply.message,reply.sound??null,workflow);
   if(reply.report){
    const counts=new Map();
@@ -422,7 +421,6 @@ async function sendRequest(forceAI=false,custom=null){
     [...counts].map(([reason,n])=>reason+': '+n).join(' · '));
   }
   if(reply.status==='PLAN'){
-   const plan=prepareAgentPlan(s.project,reply.operations,{assetAvailable:id=>assetReady(id,s)});
    dialogueTask=updateAgentDialogueTask(s.project,instruction,reply,dialogueTask);
    showPlan(plan,s.project);
    notify(lang('Propuesta preparada: revisa los cambios antes de aplicar.',
@@ -443,7 +441,6 @@ async function sendRequest(forceAI=false,custom=null){
     'Request failed. No changes were applied.'),true);
  }finally{
   if(epoch!==requestEpoch)return;
-  $('rqAgentConsent').checked=false;
   working=false;requestController=null;requestBase=null;refreshControls();
  }
 }
@@ -550,11 +547,9 @@ function mount(){
  const optionalSummary=make('summary');optional.append(optionalSummary,soundLabel);
  const voice=make('details','rq-agent-ai-options');voice.id='rqAgentVoice';
  voice.append(make('summary','',lang('Dictar instrucción · revisión manual','Dictate instruction · manual review')));
- const voiceConsentLabel=make('label','rq-agent-consent');
- const voiceConsent=make('input','');voiceConsent.type='checkbox';voiceConsent.id='rqAgentVoiceConsent';
- voiceConsentLabel.append(voiceConsent,make('span','',lang(
-  'Autorizo enviar esta grabación a Meta para transcribirla (puede tener coste).',
-  'I authorize this recording to be sent to Meta for transcription (may incur a charge).')));
+ const voiceHelp=make('p','rq-agent-consent',lang(
+  'Transcribir envía esta grabación a Meta sin topes locales de presupuesto.',
+  'Transcribe sends this recording to Meta without local budget caps.'));
  const voiceActions=make('div','rq-agent-actions');
  const record=make('button','btn subtle small',lang('Grabar instrucción (10 s)','Record instruction (10 s)'));
  record.type='button';record.id='rqAgentRecord';
@@ -563,39 +558,33 @@ function mount(){
  voiceActions.append(record,transcribe);
  const voiceStatus=make('output','rq-agent-status');voiceStatus.id='rqAgentVoiceStatus';
  voiceStatus.setAttribute('role','status');
- voice.append(voiceConsentLabel,voiceActions,voiceStatus);
+ voice.append(voiceHelp,voiceActions,voiceStatus);
  const aiOptions=make('details','rq-agent-ai-options');
  aiOptions.id='rqAgentAiOptions';
- const aiSummary=make('summary','',lang('Servicio de IA y permisos','AI service and permissions'));
+ const aiSummary=make('summary','',lang('Detalles de IA · opcional','AI details · optional'));
  aiOptions.append(aiSummary);
  const providerLabel=make('label','rq-agent-provider');
  providerLabel.append(make('span','',lang('Proveedor para consulta opcional','Provider for optional request')));
  const providerSelect=make('select','');providerSelect.id='rqAgentProvider';
- for(const [id,title] of [['meta','Meta Muse Spark'],['baseten','Baseten · Muse Spark Open']]){
+ for(const [id,title] of [['meta','Meta Muse Spark']]){
   const option=make('option','',title);option.value=id;providerSelect.append(option);
  }
  providerLabel.append(providerSelect);
- const consentLabel=make('label','rq-agent-consent');
- const consent=make('input','');consent.type='checkbox';consent.id='rqAgentConsent';
- consentLabel.append(consent,make('span','',lang(
-  'Autorizo una consulta con la instrucción y el contexto acotado del show al proveedor elegido (puede tener coste).',
-  'I authorize one request with this instruction and bounded show context to the selected AI provider (may incur a charge).')));
  const consentDetails=make('small','rq-agent-consent-disclosure',lang(
   'Incluye hasta 80 cues, 120 líneas originales del guion, nombres/estado de medios y hasta 8 mensajes recientes. No se envían archivos de audio.',
   'Includes up to 80 cues, 120 original script lines, media names/status and up to 8 recent messages. Audio files are never sent.'));
  consentDetails.id='rqAgentConsentDisclosure';
- aiOptions.append(providerLabel,consentLabel,consentDetails);
+ aiOptions.append(providerLabel,consentDetails);
  const actions=make('div','rq-agent-actions');
- const local=make('button','btn accent small',lang('Proponer localmente','Plan locally'));
+ const local=make('button','btn subtle small',lang('Proponer localmente','Plan locally'));
  local.id='rqAgentSubmit';local.type='button';
- const cloud=make('button','btn subtle small',lang('Pedir ayuda a la IA','Ask AI'));
+ const cloud=make('button','btn accent small',lang('Trabajar con IA','Work with AI'));
  cloud.id='rqAgentAskAI';cloud.type='button';
  const undoButton=make('button','btn subtle small',lang('Deshacer lote','Undo batch'));
  undoButton.id='rqAgentUndo';undoButton.type='button';
  const cancel=make('button','btn subtle small',lang('Cancelar pendiente','Cancel pending'));
  cancel.type='button';cancel.id='rqAgentCancel';cancel.disabled=true;
- actions.append(local);
- aiOptions.append(cloud);
+ actions.append(cloud,local);
  const sessionActions=make('div','rq-agent-actions rq-agent-session-actions');
  sessionActions.append(undoButton,cancel);
  const status=make('output','rq-agent-status',
@@ -611,21 +600,19 @@ function mount(){
   [title.querySelector('small'),'Propón · Revisa · Decide','Prepare · Review · Decide'],
   [viewSource,'Ver guion','View script'],[openCue,'Abrir Cue Editor','Open Cue Editor'],
   [library,'Abrir Biblioteca','Open Library'],[label,'¿Qué quieres cambiar en este espectáculo?','What would you like to change in this show?'],
-  [local,'Preparar propuesta','Prepare proposal'],[cloud,'Consultar IA','Ask AI'],[undoButton,'Deshacer cambios','Undo changes'],
+  [local,'Proponer sin IA','Plan without AI'],[cloud,'Trabajar con IA','Work with AI'],[undoButton,'Deshacer cambios','Undo changes'],
   [cancel,'Cancelar propuesta','Cancel proposal'],[approve,'Aplicar cambios seleccionados','Apply selected changes'],
-  [discard,'Descartar','Discard'],[aiSummary,'Servicio de IA y permisos','AI service and permissions'],
+  [discard,'Descartar','Discard'],[aiSummary,'Detalles de IA · opcional','AI details · optional'],
   [soundTitle,'Sonido para un cue nuevo','Sound for a new cue'],
   [optionalSummary,'Adjuntar sonido o dictar','Attach sound or dictate'],
-  [composeHelp,'Sin coste de IA. Nada cambia hasta que revises y apliques. Ctrl+Enter para preparar.',
-   'No AI charge. Nothing changes until you review and apply. Ctrl+Enter to prepare.'],
+  [composeHelp,'Trabajar con IA envía una consulta sin topes locales de presupuesto. Nada se aplica sin revisión. Ctrl+Enter para consultar IA.',
+   'Work with AI sends one request without local budget caps. Nothing is applied without review. Ctrl+Enter to ask AI.'],
   [voice.querySelector('summary'),'Dictar instrucción · revisión manual','Dictate instruction · manual review'],
   [providerLabel.querySelector('span'),'Proveedor para consulta opcional','Provider for optional request'],
-  [consentLabel.querySelector('span'),'Autorizo una consulta con la instrucción y el contexto acotado del show al proveedor elegido (puede tener coste).',
-   'I authorize one request with this instruction and bounded show context to the selected AI provider (may incur a charge).'],
   [consentDetails,'Incluye hasta 80 cues, 120 líneas originales, nombres/estado de medios y 8 mensajes: puede incluir un resumen de la tarea pendiente y 7 mensajes recientes. No se envían archivos de audio.',
    'Includes up to 80 cues, 120 original script lines, media names/status and 8 messages: may include a pending-task summary and 7 recent messages. Audio files are never sent.'],
-  [voiceConsentLabel.querySelector('span'),'Autorizo enviar esta grabación a Meta para transcribirla (puede tener coste).',
-   'I authorize this recording to be sent to Meta for transcription (may incur a charge).'],
+  [voiceHelp,'Transcribir envía esta grabación a Meta sin topes locales de presupuesto.',
+   'Transcribe sends this recording to Meta without local budget caps.'],
   [transcribe,'Transcribir grabación','Transcribe recording'],
  ];
  const navigate=workspace=>document.querySelector(`[data-workspace-nav="${workspace}"]`)?.click();
@@ -653,7 +640,7 @@ function mount(){
  record.addEventListener('click',()=>{
   dictationContext=contextKey();void dictation.record();
  });
- transcribe.addEventListener('click',()=>void dictation.transcribe(voiceConsent.checked,es()?'es':'en'));
+ transcribe.addEventListener('click',()=>void dictation.transcribe(true,es()?'es':'en'));
  cancel.addEventListener('click',()=>cancelPending());
  window.addEventListener('resize',positionDrawer);
  window.addEventListener('scroll',()=>{if(!panel.hidden)positionDrawer();},{passive:true});
@@ -669,7 +656,7 @@ function mount(){
  discard.addEventListener('click',()=>{dialogueTask=null;showPlan(null);notify(lang('Propuesta descartada.','Plan discarded.'));});
  undoButton.addEventListener('click',undo);
  input.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();void sendRequest(false);}
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();void sendRequest(true);}
  });
  document.addEventListener('runq:show-state-changed',sync);
  document.addEventListener('runq:script-selection-changed',()=>{

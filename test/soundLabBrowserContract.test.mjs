@@ -49,10 +49,10 @@ test('Sound Lab prioritizes free prompt generation with optional script interpre
   assert.ok(prompt>=0&&script>prompt,'Free text prompt must be the first step');
   assert.match(html,/<details[^>]+id="sfxScriptDetails"/);
   assert.match(html,/<button[^>]+id="sfxReconnectBtn"/);
-  assert.match(html,/<input[^>]+id="confirmRequest"/);
+  assert.doesNotMatch(html,/id="confirmRequest"/);
   assert.match(html,/<button[^>]+id="generateBtn"[^>]+disabled/);
   const count=(id)=>[...html.matchAll(new RegExp('id="'+id+'"','g'))].length;
-  for(const id of ['soundPrompt','duration','seed','sourceLine','scriptSfxCompile','generateBtn','confirmRequest','sfxReconnectBtn']) {
+  for(const id of ['soundPrompt','duration','seed','sourceLine','scriptSfxCompile','generateBtn','sfxReconnectBtn']) {
     assert.equal(count(id),1,id+' must be unique');
   }
 });

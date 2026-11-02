@@ -16,7 +16,7 @@ test('systematic CLI is free by default and rejects unsafe paid, options and pat
   assert.equal(parseExperimentOptions([]).live,false);
   assert.deepEqual(parseExperimentOptions(['--modes','literal,balanced']).modes,['literal','balanced']);
   for(const args of [
-    ['--live'],['--ack-paid'],['--live','--ack-paid','--budget-usd','2.01'],
+    ['--live'],['--ack-paid'],
     ['--max-requests','21'],['--modes','literal,literal'],['--modes','bad'],
     ['--cases','../private'],['--output','../../private'],['--api-key','unsafe'],
     ['--live','--ack-paid','--live'],
@@ -100,7 +100,7 @@ test('matched case A/B computes score changes only for complete runs',async()=>{
 });
 test('live experiment requires ledger and does not bypass previously reserved spend',async t=>{
   const dir=await temp(t);
-  const ledger=await acquireMetaBudgetLedger({file:join(dir,'budget.json'),limitUsd:0.01});
+  const ledger=await acquireMetaBudgetLedger({enforceBudget:true,file:join(dir,'budget.json'),limitUsd:0.01});
   let called=0;
   const {summary}=await runSystematicExperiment({
     live:true,ackPaid:true,budgetUsd:.2,maxRequests:2,

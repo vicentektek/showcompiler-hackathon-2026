@@ -9,7 +9,7 @@ import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
 import {campaignMetaFetch,campaignBasetenFetch} from './campaignFetch.mjs';
 const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
-export const AGENT_PROMPT_VERSION='agent-design-context-rcv4';
+export const AGENT_PROMPT_VERSION='agent-audio-editing-v5';
 const MAX_BODY=24500,MAX_RESPONSE=24000;
 const validAgentFocusContext=context=>
  (context.workspace===undefined||AGENT_DESIGN_WORKSPACES.includes(context.workspace))&&
@@ -27,16 +27,20 @@ const schema={
   operations:{type:'array',maxItems:20,items:{
    type:'object',additionalProperties:false,
    properties:{
-    op:{type:'string',enum:['UPDATE_CUE','DELETE_CUE','CREATE_CUE','REORDER_CUE']},
+    op:{type:'string',enum:['UPDATE_CUE','DELETE_CUE','CREATE_CUE','REORDER_CUE',
+     'SET_CUE_STOP','REMOVE_CUE_STOP','ASSIGN_AUDIO','ADD_AUDIO_TRACK','UPDATE_AUDIO_TRACK','REMOVE_AUDIO_TRACK','SET_ENTRY_POLICY']},
     cueId:{type:['string','null']},afterCueId:{type:['string','null']},
     targetCueId:{type:['string','null']},position:{type:['string','null'],enum:['before','after',null]},
     label:{type:['string','null']},
+    assetId:{type:['string','null']},trackId:{type:['string','null']},
+    fadeMs:{type:['integer','null'],minimum:0,maximum:10000},
+    mode:{type:['string','null'],enum:['OVERLAP','STOP_PREVIOUS',null]},
     edits:{type:'array',maxItems:8,items:{type:'object',additionalProperties:false,
      properties:{field:{type:'string',enum:['gainDb','fadeInMs','fadeOutMs','startDelayMs',
        'startAtMs','endAtMs','playbackRate','pan','loop','repeatCount','label','trigger','notes']},
       numeric:{type:['number','null']},text:{type:['string','null']},boolean:{type:['boolean','null']}},
      required:['field','numeric','text','boolean']}},
-   },required:['op','cueId','afterCueId','targetCueId','position','label','edits'],
+   },required:['op','cueId','afterCueId','targetCueId','position','label','assetId','trackId','fadeMs','mode','edits'],
   }},
  },required:['status','message','operations']
 };
@@ -59,20 +63,31 @@ function decode(raw){
  const operations=output.operations.map(item=>{
   if(!isObj(item))throw new TypeError('BAD_OPERATION');
   const op=item.op;
-  if(op==='UPDATE_CUE'){
-   if(!Array.isArray(item.edits)||!item.edits.length)throw new TypeError('BAD_EDITS');
+  if(op==='UPDATE_CUE'||op==='UPDATE_AUDIO_TRACK'||op==='ADD_AUDIO_TRACK'){
+   if(!Array.isArray(item.edits)||(!item.edits.length&&op!=='ADD_AUDIO_TRACK'&&
+      !(op==='UPDATE_AUDIO_TRACK'&&item.assetId)))throw new TypeError('BAD_EDITS');
    const changes={};
    for(const edit of item.edits){
     if(!isObj(edit)||Object.hasOwn(changes,edit.field))throw new TypeError('BAD_EDITS');
+    if(edit.field==='endAtMs'&&edit.numeric===null&&edit.text===null&&edit.boolean===null){
+     changes.endAtMs=null;continue;
+    }
     const values=[edit.numeric,edit.text,edit.boolean].filter(v=>v!==null&&v!==undefined);
     if(values.length!==1)throw new TypeError('BAD_EDITS');
     changes[edit.field]=values[0];
    }
-   return {op,cueId:item.cueId,changes};
+   return {op,cueId:item.cueId,...(op==='UPDATE_AUDIO_TRACK'?{trackId:item.trackId}:{}),
+    ...(item.assetId?{assetId:item.assetId}:{}),
+    ...(Object.keys(changes).length?{changes}:{})};
   }
   if(op==='DELETE_CUE')return {op,cueId:item.cueId};
   if(op==='CREATE_CUE')return {op,label:item.label,afterCueId:item.afterCueId};
   if(op==='REORDER_CUE')return {op,cueId:item.cueId,targetCueId:item.targetCueId,position:item.position};
+  if(op==='SET_CUE_STOP')return {op,cueId:item.cueId,targetCueId:item.targetCueId,fadeMs:item.fadeMs};
+  if(op==='REMOVE_CUE_STOP')return {op,cueId:item.cueId,targetCueId:item.targetCueId};
+  if(op==='ASSIGN_AUDIO')return {op,cueId:item.cueId,assetId:item.assetId};
+  if(op==='REMOVE_AUDIO_TRACK')return {op,cueId:item.cueId,trackId:item.trackId};
+  if(op==='SET_ENTRY_POLICY')return {op,cueId:item.cueId,mode:item.mode,fadeMs:item.fadeMs};
   throw new TypeError('BAD_OPERATION');
  });
  return {status:'PLAN',message:output.message,operations:validateAgentOperations(operations)};
@@ -84,6 +99,10 @@ function enforceModelScope(plan,context){
   if(op.cueId&&!cueMap.has(op.cueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
   if(op.targetCueId&&!cueMap.has(op.targetCueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
   if(op.afterCueId&&!cueMap.has(op.afterCueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
+  if(op.assetId&&!context.assets?.some(a=>a.id===op.assetId&&a.available===true))
+   throw new TypeError('MODEL_AUDIO_NOT_IN_CONTEXT');
+  if(op.trackId&&!cueMap.get(op.cueId)?.audioTracks?.some(t=>t.id===op.trackId))
+   throw new TypeError('MODEL_TRACK_NOT_IN_CONTEXT');
   if(op.op==='UPDATE_CUE'&&typeof op.changes.trigger==='string'){
    const cue=cueMap.get(op.cueId);
    const normalized=normalizeSpeech(op.changes.trigger);
@@ -151,7 +170,7 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
       'Never execute GO, STOP, NEXT, ARM or any playback operation. Never invent cue IDs, source lines or assets.',
       'Only use cue IDs explicitly present in context.cues. Their numbers are presentation-only and may change.',
       'Use context.workspace, context.mode and context.selectedCueId only as orientation; all edits still need explicit user intent.',
-      'Valid plan operations: UPDATE_CUE, DELETE_CUE, CREATE_CUE, REORDER_CUE. No file deletion, audio generation,',
+      'Valid plan operations: UPDATE_CUE, DELETE_CUE, CREATE_CUE, REORDER_CUE, ASSIGN_AUDIO, ADD_AUDIO_TRACK, UPDATE_AUDIO_TRACK, REMOVE_AUDIO_TRACK, SET_CUE_STOP, REMOVE_CUE_STOP, SET_ENTRY_POLICY. No file deletion, audio generation,',
       'payment, hardware manipulation or project-wide destructive changes are permitted.',
       'Never pretend to have generated or listened to audio. Offer Sound Lab suggestions in a textual ANSWER.',
       'For reversible creative tasks propose a concrete plan; do not over-ask for details.',
@@ -161,11 +180,16 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
       'Keep each interpretation tied to its exact source line, and do not invent sound where the script gives no acoustic evidence.',
       'When asked to close a show, suggest up to three appropriate MANUAL cues with creative labels.',
       'Manual CREATE_CUE placeholders need no asset or script reference. Clearly say that audio remains unconfigured.',
-      'Never claim invented cues are in the source script, and never invent or assign a file or voice trigger.',
+      'Never claim invented cues are in the source script. Audio assignment may use only an assetId with available:true in context.assets. Spoken triggers require verbatim original dialogue evidence.',
       'CLARIFY only when the intended action or target cannot be inferred safely from the conversation.',
       'If context is truncated and essential evidence is missing, CLARIFY with no operations.',
       'For PLAN, return a complete operations array; all other statuses must have operations [].',
       'For UPDATE_CUE, use editable field names and exactly one non-null numeric/text/boolean per edit.',
+      'UPDATE_AUDIO_TRACK uses cueId, trackId and playback edits for an existing extra track, plus optional assetId to replace its file. ASSIGN_AUDIO replaces or resolves primary audio; ADD_AUDIO_TRACK layers an available asset with optional playback edits in the same operation; REMOVE_AUDIO_TRACK removes only the cue link.',
+      'SET_CUE_STOP configures cueId to stop targetCueId on its later manual GO, with fadeMs 0 for immediate or 1-10000 for fading. REMOVE_CUE_STOP removes only that relationship. This is design, not executing STOP now.',
+      'A continuous loop is UPDATE_CUE loop:true, repeatCount:1, fadeOutMs:0. A loop has no automatic ending fade. To fade a loop from the last cue use a separate SET_CUE_STOP on the last cue targeting the loop cue; never set a positive fadeOutMs on a looping source.',
+      'SET_ENTRY_POLICY uses mode OVERLAP or STOP_PREVIOUS with fadeMs for previous sounds on manual GO. Do not configure timed automatic GO or ARM.',
+      'For endAtMs, all value slots null means use the full source duration. Existing cue playback, stop relationships and tracks are included in context.',
       'Use milliseconds for time fields, gainDb in [-60,0], source trigger as dialogue of 3+ distinct words.',
       'If a voice trigger lacks text evidence or is ambiguous, do not propose it. Prefer CLARIFY.',
       'All operation properties are required by the schema; unused fields must be null and edits empty.',
@@ -181,8 +205,8 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
     payload.messages[0].role='system';
     payload.messages[0].content+=' Return exactly one valid JSON object following this required shape: '+
      JSON.stringify({status:'PLAN|ANSWER|CLARIFY',message:'text',operations:[{
-      op:'UPDATE_CUE|DELETE_CUE|CREATE_CUE|REORDER_CUE',cueId:'cue-id-or-null',
-      afterCueId:null,targetCueId:null,position:null,label:null,edits:[]}]})+
+      op:'UPDATE_CUE|DELETE_CUE|CREATE_CUE|REORDER_CUE|SET_CUE_STOP|REMOVE_CUE_STOP|ASSIGN_AUDIO|ADD_AUDIO_TRACK|UPDATE_AUDIO_TRACK|REMOVE_AUDIO_TRACK|SET_ENTRY_POLICY',cueId:'cue-id-or-null',
+      afterCueId:null,targetCueId:null,position:null,label:null,assetId:null,trackId:null,fadeMs:null,mode:null,edits:[]}]})+
      '. For absent fields use JSON null and never invent IDs. No markdown.';
     delete payload.response_format;delete payload.reasoning_effort;
     delete payload.max_completion_tokens;delete payload.store;

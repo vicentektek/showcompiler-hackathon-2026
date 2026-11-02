@@ -95,6 +95,65 @@ test('model may not target cues absent from consented context',async()=>{
    assert.equal((await response.json()).error,'AGENT_INFERENCE_FAILED');
   });
 });
+test('model audio tools decode strict plans, expose context and reject invented assets, tracks and stop targets',async()=>{
+   let output;
+   const inputs=[];
+   const audioContext={...context,cues:[
+    {...context.cues[0],sourceLineIds:['L2'],playback:{},audioTracks:[{id:'track-1',assetId:'asset-1'}]},
+    {id:'cue-3',number:3,label:'End',sourceLineIds:['L3'],audioTracks:[]},
+   ],assets:[{id:'asset-1',name:'rain.wav',available:true},{id:'asset-2',name:'missing.wav',available:false}],
+   lines:[{id:'L2',text:'(Rain falls.)'},{id:'L3',text:'(Rain stops.)'}]};
+   const operation=(op,fields={})=>({...proposal.operations[0],op,cueId:'cue-2',
+    assetId:null,trackId:null,mode:null,fadeMs:null,...fields});
+   await withServer({getAgentKey:()=> 'test-key',agentFetch:async(_url,request)=>{
+    inputs.push(JSON.parse(request.body));return reply({...proposal,operations:output});
+   }},async root=>{
+    async function send(operations){
+     output=operations;
+     const input=params(root);input.body=JSON.stringify({...JSON.parse(input.body),context:audioContext});
+     return fetch(root+'/api/agent/interpret',input);
+    }
+    const tools=[
+     operation('UPDATE_CUE',{edits:[{field:'loop',boolean:true,numeric:null,text:null}]}),
+     operation('SET_CUE_STOP',{cueId:'cue-3',targetCueId:'cue-2',fadeMs:5000}),
+     operation('ASSIGN_AUDIO',{assetId:'asset-1'}),
+     operation('ADD_AUDIO_TRACK',{assetId:'asset-1',edits:[
+      {field:'gainDb',numeric:-9,text:null,boolean:null},
+     ]}),
+     operation('UPDATE_AUDIO_TRACK',{trackId:'track-1',edits:[
+      {field:'endAtMs',numeric:null,text:null,boolean:null},
+      {field:'gainDb',numeric:-12,text:null,boolean:null},
+     ]}),
+     operation('REMOVE_AUDIO_TRACK',{trackId:'track-1'}),
+     operation('SET_ENTRY_POLICY',{mode:'STOP_PREVIOUS',fadeMs:2000}),
+     operation('REMOVE_CUE_STOP',{cueId:'cue-3',targetCueId:'cue-2'}),
+    ];
+    const response=await send(tools);
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.deepEqual(body.operations[1],{op:'SET_CUE_STOP',cueId:'cue-3',targetCueId:'cue-2',fadeMs:5000});
+    assert.equal(body.operations[4].changes.endAtMs,null);
+    assert.equal(body.operations[3].changes.gainDb,-9);
+    const replaced=await send([operation('UPDATE_AUDIO_TRACK',{trackId:'track-1',assetId:'asset-1'})]);
+    assert.equal(replaced.status,200);
+    assert.deepEqual((await replaced.json()).operations,[{
+     op:'UPDATE_AUDIO_TRACK',cueId:'cue-2',trackId:'track-1',assetId:'asset-1',
+    }]);
+    assert.deepEqual(inputs[0].messages[1]&&JSON.parse(inputs[0].messages[1].content).context,audioContext);
+    const schema=inputs[0].response_format.json_schema.schema.properties.operations.items;
+    assert.ok(schema.properties.op.enum.includes('SET_CUE_STOP'));
+    assert.ok(schema.required.includes('fadeMs'));
+    for(const bad of [
+     operation('SET_CUE_STOP',{targetCueId:'cue-999',fadeMs:1000}),
+     operation('SET_CUE_STOP',{targetCueId:'cue-2',fadeMs:1000}),
+     operation('ASSIGN_AUDIO',{assetId:'asset-999'}),
+     operation('ASSIGN_AUDIO',{assetId:'asset-2'}),
+     operation('UPDATE_AUDIO_TRACK',{trackId:'track-999',edits:[{field:'pan',numeric:1,text:null,boolean:null}]}),
+     operation('UPDATE_AUDIO_TRACK',{trackId:'track-1',edits:[{field:'label',numeric:null,text:'Not playback',boolean:null}]}),
+     operation('SET_ENTRY_POLICY',{mode:'AUTO_GO',fadeMs:0}),
+    ])assert.equal((await send([bad])).status,502,JSON.stringify(bad));
+   });
+  });
 test('model may not fabricate voice triggers without evidence from the original script',async()=>{
  const invalid={...proposal,operations:[{
   op:'UPDATE_CUE',cueId:'cue-2',afterCueId:null,targetCueId:null,

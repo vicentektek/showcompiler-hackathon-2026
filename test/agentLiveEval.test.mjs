@@ -18,10 +18,10 @@ test('paid experiment is off by default and requires BOTH explicit flags',()=>{
  assert.deepEqual(parseAgentLiveOptions([]).providers,['meta']);
  assert.throws(()=>parseAgentLiveOptions(['--providers','meta,baseten']));
  assert.throws(()=>parseAgentLiveOptions(['--providers','fireworks']));
- assert.throws(()=>parseAgentLiveOptions(['--budget-usd','65.000001']));
+ assert.equal(parseAgentLiveOptions(['--budget-usd','65.000001']).budgetUsd,65.000001);
  assert.throws(()=>parseAgentLiveOptions(['--live','--cases','200']));
  assert.throws(()=>parseAgentLiveOptions(['--ack-paid']));
- assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--budget-usd','1000']));
+ assert.equal(parseAgentLiveOptions(['--live','--ack-paid','--budget-usd','1000']).budgetUsd,1000);
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--cases','401']));
  assert.throws(()=>parseAgentLiveOptions(['--live','--ack-paid','--providers','meta,meta']));
  assert.equal(parseAgentLiveOptions(['--verified-snapshot','C:\\safe-snapshot']).verifiedSnapshot,
@@ -153,18 +153,18 @@ test('paid ledger records cumulative reservations, rejects overlapping runs and 
  const directory=await mkdtemp(join(tmpdir(),'runq-agent-live-'));
  const file=join(directory,'budget.json');
  try{
-  const ledger=await acquireAgentEvalBudget({file,limitUsd:0.55});
+  const ledger=await acquireAgentEvalBudget({file,limitUsd:0.55,enforceBudget:true});
   assert.equal(await ledger.reserve(0.2),true);
   assert.equal(await ledger.reserve(0.2),true);
   assert.equal(await ledger.reserve(0.2),false);
-  await assert.rejects(()=>acquireAgentEvalBudget({file,limitUsd:0.55}),
+  await assert.rejects(()=>acquireAgentEvalBudget({file,limitUsd:0.55,enforceBudget:true}),
    /AGENT_EVAL_BUDGET_LOCKED/);
   await ledger.close();
-  const next=await acquireAgentEvalBudget({file,limitUsd:0.55});
+  const next=await acquireAgentEvalBudget({file,limitUsd:0.55,enforceBudget:true});
   assert.equal(next.committedUsd(),0.4);
   assert.equal(await next.reserve(0.1),true);
   await next.close();
-  const check=await acquireAgentEvalBudget({file,limitUsd:0.55});
+  const check=await acquireAgentEvalBudget({file,limitUsd:0.55,enforceBudget:true});
   assert.equal(check.committedUsd(),0.5);
   await check.close();
  }finally{await rm(directory,{recursive:true,force:true});}

@@ -32,7 +32,7 @@
                 <label>Seed<input id="seed" type="number" min="0" max="2147483647" value="42" step="1" required></label>
               </div>
               <div class="notice">Requests may use paid GPU resources. No remote generation occurs on page load, during preview or when entering a prompt.</div>
-              <label class="checkline"><input id="confirmRequest" type="checkbox"><span>I authorize exactly one generation request.</span></label>
+              <p class="muted">Generate starts one AI request without local budget caps.</p>
               <div class="buttons"><button class="btn primary" id="generateBtn" type="submit" disabled>Generate one take</button><span id="generationHint" class="muted">Checking connection…</span></div>
             </form>
           </section>

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Sequential Meta lab: baseline/candidate matched cases, capped shared budget,
+// Sequential Meta lab: baseline/candidate matched cases, shared accounting without spending caps,
 // typed local diagnostics and prioritized Codex task. No automatic self-editing.
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
@@ -37,7 +37,7 @@ export function parseExperimentOptions(args=[]){
     o.modes.some(x=>!MODES.includes(x))||
     (o.cases&&(!o.cases.length||o.cases.length>20||!unique(o.cases)||o.cases.some(x=>!ID.test(x))))||
     !Number.isSafeInteger(o.maxRequests)||o.maxRequests<1||o.maxRequests>20||
-    !Number.isFinite(o.budgetUsd)||o.budgetUsd<=0||o.budgetUsd>2||
+    !Number.isFinite(o.budgetUsd)||o.budgetUsd<=0||
     typeof o.output!=='string'||!/^artifacts\/[a-z0-9/-]{3,80}$/.test(o.output)||
     o.output.includes('..'))throw new TypeError('Unsafe systematic experiment configuration');
   return o;
@@ -102,7 +102,7 @@ export function formatExperimentReport(summary){
   lines.push('','## Budget','',
     'Calls '+summary.submittedRequests+'; reserved $'+summary.reservedUsd.toFixed(4)+
     '; observed usage estimate $'+summary.estimatedSpendUsd.toFixed(4)+'.',
-    'Meta cumulative ceiling $65 and shared per-user campaign $100; command ceiling remains $2.',
+    'No local Meta/Modal spending caps. Historical reservations remain recorded.',
     'Billing platform remains authoritative. Failed calls are not retried.','',
     '## Measured request telemetry','',
     'Latency samples '+summary.measurements.latencyMs.sampled+', average '+
@@ -148,8 +148,7 @@ export async function runSystematicExperiment(options={},deps={}){
     if(opt.live)ledger=await (deps.acquireLedger??acquireCampaignMetaBudget)();
     for(const {caseId,mode} of plan){
       if(opt.live&&calls>=opt.maxRequests)break;
-      const left=round(opt.budgetUsd-reservedUsd);
-      if(opt.live&&left<=0)break;
+      const left=opt.budgetUsd; // Compatibility estimate only; no monetary stop.
       const report=await (deps.runEval??runMetaSeminarEval)({
         live:opt.live,ackPaid:opt.live,
         budgetUsd:opt.live?left:opt.budgetUsd,

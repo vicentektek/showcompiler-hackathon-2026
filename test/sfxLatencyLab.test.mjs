@@ -13,7 +13,7 @@ test('SFX latency lab is read-only by default and strictly bounded', () => {
   assert.throws(()=>parseSfxLatencyArgs(['--live']), /authorization/i);
   assert.throws(()=>parseSfxLatencyArgs(['--ack-paid']), /authorization/i);
   assert.throws(()=>parseSfxLatencyArgs(['--live','--ack-paid','--max-calls','4']));
-  assert.throws(()=>parseSfxLatencyArgs(['--live','--ack-paid','--budget-usd','1.1']));
+  assert.equal(parseSfxLatencyArgs(['--live','--ack-paid','--budget-usd','1.1']).budgetUsd,1.1);
   assert.throws(()=>parseSfxLatencyArgs(['--live','--ack-paid','--timeout-seconds','5']));
   assert.throws(()=>parseSfxLatencyArgs(['--live','--ack-paid','--output','../secrets']));
 });

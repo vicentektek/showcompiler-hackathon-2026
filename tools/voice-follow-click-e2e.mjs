@@ -56,11 +56,7 @@ try{
   assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
   assert.equal(await page.locator('#rqvfAdvanced').evaluate(el=>el.open),true,
     'Diagnostic panel remains operator-controlled after earlier opening');
-  const checkbox=await page.locator('#rqLiveConsent').evaluate(el=>{
-    const style=getComputedStyle(el);
-    return {width:parseFloat(style.width),height:parseFloat(style.height)};
-  });
-  assert.ok(checkbox.width<=20&&checkbox.height<=20,'Voice consent checkbox must not occupy the entire row');
+  assert.equal(await page.locator('#rqLiveConsent').count(),0,'Listening uses its explicit Start action, without another permission checkbox');
   assert.ok(await page.locator('#rqvfPrimaryState').isVisible());
   // Voice Live remains strictly opt-in even when the microphone is available.
   assert.equal(await page.locator('#rqLivePanel').isVisible(),true);
@@ -68,8 +64,7 @@ try{
   assert.equal(await page.locator('#rqLivePrepare').isDisabled(),true);
   assert.equal(await page.locator('#rqLiveDismiss').isDisabled(),true);
   await page.locator('#rqLiveSettingsSummary').click();
-  await tryClick('#rqLiveStart');
-  assert.match(await page.locator('#rqLiveStatus').textContent(),/Authorize|Autoriza/);
+  assert.ok(await page.locator('#rqLiveStart').isEnabled(),'Listening is available without extra permissions; this navigation test does not start capture');
   assert.equal(await page.locator('#rqLiveStop').isDisabled(),true);
   await tryClick('[data-workspace-nav="setup"]');
   await tryClick('#setupTabRehearsal');

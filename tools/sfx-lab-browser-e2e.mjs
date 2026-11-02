@@ -59,9 +59,9 @@ try{
   const mockWavHash=createHash('sha256').update(mockWav).digest('hex');
   let mockedGenerationRequests=0,mockedRefreshRequests=0,mockedReviewRequests=0,mockJob=null;
   const mockSettings={
-    enabled:true,estimatedMaxCostUsdPerRequest:0.1,dailyBudgetUsd:10,
+    enabled:true,budgetLimitsDisabled:true,estimatedMaxCostUsdPerRequest:null,dailyBudgetUsd:null,
     actualBillingStatus:'UNKNOWN',requiresExplicitConfirmation:true,
-    requiresExactCostAcknowledgement:true,manualImportOnly:true,
+    requiresExactCostAcknowledgement:false,manualImportOnly:true,
   };
   await page.route('**/*',async route=>{
     const url=new URL(route.request().url());
@@ -81,7 +81,7 @@ try{
         seed:input.seed,status:'QUEUED',modelCandidate:'stabilityai/stable-audio-3-small-sfx',
         modelRevision:'a'.repeat(40),createdAt:new Date().toISOString(),
         updatedAt:new Date().toISOString(),
-        cost:{estimatedMaxCostUsd:0.05,actualBilledUsd:null},
+        cost:{budgetLimitsDisabled:true,estimatedMaxCostUsd:null,actualBilledUsd:null},
         wav:{fileName:'mock-reviewed.wav',sha256:mockWavHash,durationSeconds:1,
           sampleRateHz:16000,channels:1,byteLength:mockWav.length},
       };
@@ -261,19 +261,14 @@ try{
     'Contextual generation opens without configuration detours');
   assert.equal(await page.locator('.sfx-export').isHidden(),true,
     'Cue flow hides unrelated export/import actions');
-  await page.locator('#confirmRequest').check();
   await page.locator('#generateBtn').click();
   await page.waitForFunction(()=>document.querySelector('#audioName')?.textContent.includes('Generated ·'));
   assert.equal(mockedGenerationRequests,1);
   assert.equal(mockedRefreshRequests,1);
   assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
     'Ready audio is loaded but never played automatically');
-  await page.locator('#sfxListenBtn').click();
-  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts+1,
-    'The operator explicitly listens to the generated cue sound');
-  await page.locator('#stopBtn').click();
   assert.equal(await page.locator('#acceptBtn').isEnabled(),true,
-    'After listening, one explicit action accepts and assigns the take');
+    'One explicit action accepts and assigns a ready take without listening first');
   await page.locator('#acceptBtn').click();
   await page.waitForFunction(()=>document.querySelector('.shell')?.getAttribute('data-active-workspace')==='cues');
   assert.equal(mockedReviewRequests,1);
@@ -285,8 +280,8 @@ try{
   assert.equal(assignedState.assets.length,4,'The accepted WAV is added to the show library');
   assert.match(await page.locator('#cueList [data-cue-state="cue-5"]').textContent(),/ready/i,
     'The requesting cue now has its reviewed audio assigned');
-  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts+1,
-    'Accepting and assigning audio does not execute GO');
+  assert.equal(await page.evaluate(()=>window.__labStarted),beforeReviewStarts,
+    'Accepting and assigning unheard audio does not start preview or GO');
   await page.locator('[data-workspace-nav="cues"]').click();
   await page.locator('#cueList [data-cue-select]').first().click();
   assert.equal(await page.locator('#cuePlaybackForm [name="startAtMs"]').inputValue(),'50',

@@ -5,6 +5,15 @@
  * This module does not affect server-side cost, consent or safety checks.
  */
 const MESSAGES = Object.freeze({
+  LOOP_NEEDS_TARGETED_STOP: ['A continuous loop has no automatic ending fade. Set its fade-out to zero and configure another cue to stop it with a fade.', 'Un loop continuo no tiene fundido de fin automático. Pon su salida a cero y configura otro cue para detenerlo con fade.'],
+  AUDIO_ASSET_UNAVAILABLE: ['Load and decode the selected sound in the library before assigning it. No changes were applied.', 'Carga y decodifica el sonido seleccionado en la biblioteca antes de asignarlo. No se han aplicado cambios.'],
+  INVALID_STOP_TARGET: ['Choose a different, existing cue to stop. No changes were applied.', 'Elige otro cue existente como destino de la parada. No se han aplicado cambios.'],
+  INVALID_AUDIO_TRACK: ['That audio layer is no longer available or its settings are invalid. Review the cue and try again.', 'Esa capa de audio ya no existe o sus ajustes no son válidos. Revisa el cue e inténtalo de nuevo.'],
+  AGENT_PLAN_FAILED: ['The proposed settings are not compatible with this cue. Review its audio, loop, trims and stop targets; no changes were applied.', 'Los ajustes propuestos no son compatibles con este cue. Revisa audio, loop, recortes y destinos de parada; no se han aplicado cambios.'],
+  UNSUPPORTED_AGENT_OPERATION: ['This operation is not supported as a show edit. Ask for playback settings, audio assignment, layers or a configured stop; live transport stays manual.', 'Esa operación no está disponible como edición. Pide ajustes de audio, asignación, capas o una parada configurada; el transporte sigue siendo manual.'],
+  SFX_ALREADY_IMPORTED: ['This take is already in the library. Select a destination cue and use Save + assign.', 'Esta toma ya está en la biblioteca. Elige un cue y pulsa Guardar y asignar.'],
+  SFX_NOT_REVIEWABLE: ['This take is not ready to accept. Check its status first.', 'Esta toma aún no está lista para aceptar. Comprueba su estado.'],
+  SFX_IDENTITY: ['This take no longer matches the reviewed sound. Reopen it before assigning.', 'Esta toma ya no coincide con el sonido revisado. Vuelve a abrirla antes de asignar.'],
   SFX_NOT_CONFIGURED: ['Sound generation is not available. Check your AI connection settings.', 'La generación de sonidos no está disponible. Revisa la configuración de IA.'],
   SFX_DAILY_LIMIT: ['The daily generation limit has been reached. Try again later.', 'Se ha alcanzado el límite diario de generación. Inténtalo más tarde.'],
   SFX_DAILY_BUDGET: ['Sound generation has reached its configured spending limit.', 'La generación ha alcanzado el límite de gasto configurado.'],
@@ -20,6 +29,7 @@ const MESSAGES = Object.freeze({
   PROJECT_CHANGED: ['The show has changed. Review it before trying again.', 'El espectáculo ha cambiado. Revísalo antes de volver a intentarlo.'],
   STALE_PROJECT_OR_SELECTION: ['The selected cue or show has changed. Review it before applying.', 'El cue seleccionado o el espectáculo ha cambiado. Revísalo antes de aplicar.'],
   NO_CHANGES: ['There are no new changes to apply.', 'No hay cambios nuevos que aplicar.'],
+  AGENT_PLAN_NO_CHANGES: ['These settings are already applied. There are no new changes.', 'Estos ajustes ya están aplicados. No hay cambios nuevos.'],
   STALE_CUE_OR_PROJECT: ['The show changed while you were editing. Review it and try again.', 'El espectáculo cambió durante la edición. Revísalo y vuelve a intentarlo.'],
   HTTP_400: ['Please check the information entered and try again.', 'Revisa los datos introducidos e inténtalo de nuevo.'],
   HTTP_401: ['The AI service credentials need attention in Settings.', 'Debes revisar las credenciales del servicio de IA en Ajustes.'],

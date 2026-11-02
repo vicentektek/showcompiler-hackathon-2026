@@ -58,6 +58,13 @@ function fileFor(bytes = audioBytes) {
   };
 }
 
+test('unknown generation estimate roundtrips without inventing a zero cost',()=>{
+ const project=projectWithProvenance(provenance({estimatedMaxCostUsd:null}));
+ const restored=deserializeShowProject(serializeShowProject(project));
+ assert.equal(restored.assets[0].provenance.estimatedMaxCostUsd,null);
+ assert.deepEqual(restored,project);
+});
+
 test('legacy schema-v1 assets remain unchanged and generated provenance roundtrips', () => {
   const legacy = addAudioReference(createNewShow(), 'legacy.wav');
   assert.deepEqual(deserializeShowProject(serializeShowProject(legacy)), legacy);

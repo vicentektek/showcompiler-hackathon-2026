@@ -15,7 +15,7 @@ const ID=/^[A-Za-z0-9][A-Za-z0-9_.:-]{3,127}$/;
 const isId=id=>typeof id==='string'&&ID.test(id);
 const usd=n=>n/1e6;
 function micros(n,{zero=false}={}){
- if(typeof n!=='number'||!Number.isFinite(n)||n<0||(!zero&&n===0)||n>1000)
+ if(typeof n!=='number'||!Number.isFinite(n)||n<0||(!zero&&n===0)||n>Number.MAX_SAFE_INTEGER/1e6)
   throw new TypeError('INVALID_AMOUNT');
  const value=Math.round(n*1e6);
  if(!Number.isSafeInteger(value)||(n>0&&value===0)||Math.abs(value/1e6-n)>1e-9)
@@ -28,7 +28,7 @@ export function globalLedgerDefaultPath(){
   :join(homedir(),'.local','state');
  return join(base,'RunQ','Evaluation','global-spend-v1.json');
 }
-export function checkLedgerAuthorization(state,{requireCurrent=true}={}){
+export function checkLedgerAuthorization(state,{requireCurrent=true,enforceBudget=false}={}){
  if(!state||state.schemaVersion!==1||state.authorizationStatus!=='LOCAL_OPERATOR_APPROVED'||
    !isId(state.campaignId)||!Array.isArray(state.reservations)||state.reservations.length>20000||
    !state.capsUsd||typeof state.capsUsd!=='object'||Array.isArray(state.capsUsd))
@@ -63,12 +63,12 @@ export function checkLedgerAuthorization(state,{requireCurrent=true}={}){
  }
  // Forbidden legacy spend still reduces the global balance, but a zero NEW
  // allocation must not invalidate the preserved Baseten/voice history.
- if(spent>total||providers.some(p=>caps[p]>0&&reserved[p]>caps[p]))
+ if(enforceBudget&&(spent>total||providers.some(p=>caps[p]>0&&reserved[p]>caps[p])))
   throw new TypeError('SPEND_RESERVATIONS_OVER_CAP');
  const requestCaps=current?CAMPAIGN_POLICY.requestCaps:null;
  if(current&&(!requestCaps||Object.keys(requestCaps).sort().join(',')!==[...providers].sort().join(',')||
    providers.some(p=>!Number.isSafeInteger(requestCaps[p])||requestCaps[p]<0||
-    (caps[p]>0&&counts[p]>requestCaps[p]))))
+    (enforceBudget&&caps[p]>0&&counts[p]>requestCaps[p]))))
   throw new TypeError('REQUEST_RESERVATIONS_OVER_CAP');
  return {totalMicros:total,capsMicros:caps,reservedMicros:spent,
   providerReservedMicros:reserved,requestCounts:counts,requestCaps,ids};
@@ -125,7 +125,7 @@ async function writeState(file,state){
   throw error;
  }
 }
-export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),allowUpgrade=false}={}){
+export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),allowUpgrade=false,enforceBudget=false}={}){
  const filename=resolve(file);
  await mkdir(dirname(filename),{recursive:true,mode:0o700});
  let lock;
@@ -136,19 +136,25 @@ export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),a
   if(closed)return;closed=true;await lock.close();await unlink(filename+'.lock');
  };
  try{
-  state=(await readState(filename)).state;
-  checkLedgerAuthorization(state,{requireCurrent:!allowUpgrade});
+  try {state=(await readState(filename)).state;}
+  catch(error){
+   if(enforceBudget||error.message!=='NO_APPROVED_LOCAL_BUDGET_FILE')throw error;
+   state={schemaVersion:1,authorizationStatus:'LOCAL_OPERATOR_APPROVED',campaignId:'operator-unlimited-20261102',
+    policyRevision:CAMPAIGN_POLICY.revision,totalCapUsd:CAMPAIGN_POLICY.totalCapUsd,
+    capsUsd:{...CAMPAIGN_POLICY.capsUsd},reservations:[]};
+  }
+  checkLedgerAuthorization(state,{requireCurrent:enforceBudget&&!allowUpgrade,enforceBudget});
   const status=()=>{
    if(closed)throw new Error('LEDGER_ALREADY_CLOSED');
-   const s=checkLedgerAuthorization(state,{requireCurrent:!allowUpgrade});
-   return {globalCapUsd:usd(s.totalMicros),reservedUsd:usd(s.reservedMicros),
-    remainingUsd:usd(s.totalMicros-s.reservedMicros),
+   const s=checkLedgerAuthorization(state,{requireCurrent:enforceBudget&&!allowUpgrade,enforceBudget});
+   return {historicalGlobalCapUsd:usd(s.totalMicros),globalCapUsd:enforceBudget?usd(s.totalMicros):null,reservedUsd:usd(s.reservedMicros),
+    budgetLimitsDisabled:!enforceBudget,remainingUsd:enforceBudget?usd(s.totalMicros-s.reservedMicros):Infinity,
     policyRevision:state.policyRevision??'legacy',
     perProvider:Object.fromEntries(Object.keys(s.capsMicros).map(p=>[p,{
-     capUsd:usd(s.capsMicros[p]),reservedUsd:usd(s.providerReservedMicros[p]),
-     remainingUsd:usd(Math.max(0,s.capsMicros[p]-s.providerReservedMicros[p])),
-    requestCount:s.requestCounts[p],requestCap:s.requestCaps?.[p]??null,
-    requestsRemaining:s.requestCaps?Math.max(0,s.requestCaps[p]-s.requestCounts[p]):null,
+     historicalCapUsd:usd(s.capsMicros[p]),capUsd:!enforceBudget&&['meta','modal'].includes(p)?null:usd(s.capsMicros[p]),reservedUsd:usd(s.providerReservedMicros[p]),
+     remainingUsd:!enforceBudget&&['meta','modal'].includes(p)?Infinity:usd(Math.max(0,s.capsMicros[p]-s.providerReservedMicros[p])),
+    requestCount:s.requestCounts[p],requestCap:enforceBudget?s.requestCaps?.[p]??null:null,
+    requestsRemaining:enforceBudget&&s.requestCaps?Math.max(0,s.requestCaps[p]-s.requestCounts[p]):null,
     }]))};
   };
   async function upgrade({authorizedAt,backupFile,legacyReservations=[]}){
@@ -169,12 +175,12 @@ export async function acquireGlobalSpendLedger({file=globalLedgerDefaultPath(),a
   async function reserve({requestId,runId,provider,estimatedMaximumUsd}={}){
    if(closed)throw new Error('LEDGER_ALREADY_CLOSED');
    if(!isId(requestId)||!isId(runId)||!PROVIDERS.includes(provider))throw new TypeError('BAD_RESERVATION_ID');
-   const amount=micros(estimatedMaximumUsd),s=checkLedgerAuthorization(state);
-   if(s.capsMicros[provider]===0)return {accepted:false,reason:'PROVIDER_PROHIBITED'};
+   const amount=micros(estimatedMaximumUsd),s=checkLedgerAuthorization(state,{requireCurrent:enforceBudget,enforceBudget});
+   if(CAMPAIGN_POLICY.capsUsd[provider]===0)return {accepted:false,reason:'PROVIDER_PROHIBITED'};
    if(s.ids.has(requestId))return {accepted:false,reason:'DUPLICATE_ID'};
-   if(s.requestCaps&&s.requestCounts[provider]>=s.requestCaps[provider])
+   if(enforceBudget&&s.requestCaps&&s.requestCounts[provider]>=s.requestCaps[provider])
     return {accepted:false,reason:'REQUEST_LIMIT'};
-   if(s.reservedMicros+amount>s.totalMicros||s.providerReservedMicros[provider]+amount>s.capsMicros[provider])
+   if(enforceBudget&&(s.reservedMicros+amount>s.totalMicros||s.providerReservedMicros[provider]+amount>s.capsMicros[provider]))
     return {accepted:false,reason:'BUDGET_LIMIT'};
    state.reservations.push({requestId,runId,provider,amountMicros:amount,status:'RESERVED'});
    try{await writeState(filename,state);}catch(error){state.reservations.pop();throw error;}

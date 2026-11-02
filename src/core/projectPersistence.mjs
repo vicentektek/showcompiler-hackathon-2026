@@ -139,7 +139,7 @@ function audioAssetProvenance(value, sourceLines, where) {
   if (outMs <= inMs || outMs > Math.round(generatedDurationSeconds * 1000)) {
     invalid(where + '.reviewedRegion must be nonempty and inside generated audio');
   }
-  const estimatedMaxCostUsd = finiteInRange(
+  const estimatedMaxCostUsd = value.estimatedMaxCostUsd === null ? null : finiteInRange(
     value.estimatedMaxCostUsd, 0, Number.MAX_VALUE,
     where + '.estimatedMaxCostUsd',
   );

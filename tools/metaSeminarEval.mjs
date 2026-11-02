@@ -100,7 +100,7 @@ export function parseLiveOptions(args=[]){
     if(k==='--case')opt.caseId=value;
     if(k==='--output')opt.output=value;
   }
-  if(!finitePositive(opt.budgetUsd,MAX_EXPERIMENT_BUDGET_USD)||
+  if(!finitePositive(opt.budgetUsd,Number.MAX_VALUE)||
      !Number.isSafeInteger(opt.maxRequests)||opt.maxRequests<1||opt.maxRequests>CAP_REQUESTS||
      !['literal','balanced','expressive'].includes(opt.mode)||
      (opt.caseId!==null&&!/^[a-z][a-z0-9-]{1,60}$/.test(opt.caseId))||
@@ -119,10 +119,10 @@ export async function runMetaSeminarEval({
   live=false,ackPaid=false,budgetUsd=2,maxRequests=13,
   mode='literal',caseId=null,output='artifacts/seminar-live',
   apiKey,modelCaller=callMetaCueModel,fetchImpl=globalThis.fetch,
-  fixtures=readSeminarCorpus,ledger=null,
+  fixtures=readSeminarCorpus,ledger=null,enforceBudget=false,
 }={}){
   if(live!==ackPaid)throw new TypeError('A live test requires an explicit batch billing acknowledgement');
-  if(!finitePositive(budgetUsd,2)||!Number.isSafeInteger(maxRequests)||
+  if(!finitePositive(budgetUsd,Number.MAX_VALUE)||!Number.isSafeInteger(maxRequests)||
      maxRequests<1||maxRequests>CAP_REQUESTS||
      !['literal','balanced','expressive'].includes(mode))throw new TypeError('Invalid experiment budget');
   if(live&&(!apiKey||typeof apiKey!=='string'))throw new TypeError('MODEL_API_KEY not set; no calls attempted');
@@ -144,7 +144,7 @@ export async function runMetaSeminarEval({
       const opts=makeOpts(item,windowStart,mode);
       const planned=prepareTheatricalCueAnalysis(project,opts);
       const reserve=estimateMetaRequestReserve(planned.request);
-      if(spentReserveUsd+reserve>budgetUsd){
+      if(enforceBudget&&spentReserveUsd+reserve>budgetUsd){
         haltReason='BUDGET_ESTIMATE_REACHED';stopped=true;break;
       }
       const lineInfo={windowId:planned.coverage.analyzedWindowIds[0],
@@ -217,7 +217,7 @@ export async function runMetaSeminarEval({
     realInferenceExecuted:live&&authorizations>0,
     realModelQualityCertified:false,
     goldHumanReviewed:false,
-    model:'muse-spark-1.3',mode,budgetCapUsd:budgetUsd,maxRequests,
+    model:'muse-spark-1.3',mode,budgetLimitsDisabled:!enforceBudget,budgetCapUsd:budgetUsd,maxRequests,
     submittedRequests:live?authorizations:0,
     plannedRequests:authorizations,
     conservativeReservedUsd:spentReserveUsd,
@@ -225,7 +225,7 @@ export async function runMetaSeminarEval({
     haltReason,corpus:corpus.corpus,
     cases,score:score?score.summary:null,measurements,
     scoredCases:scored.length,
-    note:'Budget is per-run software preflight only, not a guaranteed provider-side billing cap. Human-review gold before claims about Muse.',
+    note:'Local budget caps disabled by owner on 2026-11-02. Costs are estimates, not provider invoices. Human-review gold before claims about Muse.',
   };
   await mkdir(output,{recursive:true});
   const lines=[
@@ -235,7 +235,7 @@ export async function runMetaSeminarEval({
     '',
     'Model: muse-spark-1.3 (standard). Mode: '+mode+'.',
     'Requests: '+report.submittedRequests+' real / '+report.plannedRequests+' planned.',
-    'Conservative preflight reserve: $'+spentReserveUsd.toFixed(4)+' / $'+budgetUsd.toFixed(2)+'.',
+    'Conservative preflight reserve: $'+spentReserveUsd.toFixed(4)+' (no local budget cap).',
     'Observed usage-cost estimate: '+(live?'$'+estimatedActualUsd.toFixed(4):'n/a (dry run)')+'.',
     'Stop reason: '+(haltReason??'none')+'.',
     'Cases completed for scoring: '+report.scoredCases+'.',

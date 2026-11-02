@@ -1,4 +1,4 @@
-/** Operator-authorized campaign ceilings, not provider credit or invoices. */
+/** Historical campaign metadata. Runtime spending caps removed by owner 2026-11-02. */
 export const CAMPAIGN_POLICY=Object.freeze({
  revision:'runq-meta-modal-100-20261031',
  totalCapUsd:100,

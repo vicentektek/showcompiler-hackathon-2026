@@ -53,7 +53,6 @@ function complete(){
  if(result.length<rate/5){status('No useful audio captured.','No se ha capturado audio suficiente.');return;}
  const blob=wav(result,rate);
  lastTake=blob;
- $('rqMicConsent').checked=false;
  $('rqMicTranscribe').disabled=false;
  $('rqMicTranscript').textContent='';
  $('rqMicCueMatch').textContent='';
@@ -75,7 +74,6 @@ async function begin(){
  }
  document.body.dataset.runqVoiceCapture='recording';
  lastTake=null;
- $('rqMicConsent').checked=false;
  $('rqMicTranscribe').disabled=true;
  $('rqMicTranscript').textContent='';
  try{
@@ -112,13 +110,8 @@ async function begin(){
 }
 async function transcribe(){
  if(requestInFlight||stream||!lastTake)return;
- if(!$('rqMicConsent').checked){
-  $('rqMicTranscribeStatus').textContent=t('Authorize this individual upload first.','Autoriza primero este envío concreto.');
-  return;
- }
  requestInFlight=true;
  $('rqMicTranscribe').disabled=true;
- $('rqMicConsent').disabled=true;
  $('rqMicTranscribeStatus').textContent=t('Sending one recording securely to Meta Muse...', 'Enviando una grabación a Meta Muse...');
  const startedAt=performance.now();
  try{
@@ -160,8 +153,6 @@ async function transcribe(){
   $('rqMicTranscribeStatus').textContent=t('Transcription unavailable: ','Transcripción no disponible: ')+String(error.message);
  }finally{
   requestInFlight=false;
-  $('rqMicConsent').checked=false;
-  $('rqMicConsent').disabled=false;
   $('rqMicTranscribe').disabled=!lastTake;
  }
 }
@@ -173,7 +164,7 @@ function localize(){
  'Grabación y escucha locales. Sin GO automático. No se envía nada a Meta.');
  $('rqMicDownload').textContent=t('Save WAV','Guardar WAV');
  $('rqMicTranscribe').textContent=t('Transcribe with Muse','Transcribir con Muse');
- $('rqMicConsentLabel').textContent=t('I authorize this one recording to be sent to Meta Muse for transcription.', 'Autorizo enviar esta grabación concreta a Meta Muse para transcribirla.');
+ $('rqMicConsentLabel').textContent=t('Transcribe sends this recording to Meta without local budget caps.', 'Transcribir envía esta grabación a Meta sin topes locales de presupuesto.');
  if(!stream&&!$('rqMicListen').src)status('Ready. Record a short phrase using the microphone configured in Setup.',
  'Preparado. Graba una frase con el micrófono configurado en Setup.');
 }

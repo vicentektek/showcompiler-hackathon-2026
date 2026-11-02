@@ -54,7 +54,7 @@ test('positive sub-microusd amounts cannot become free reservations or corrupt t
  try{
   await writeFile(file,JSON.stringify(updated()));
   const original=await readFile(file);
-  ledger=await acquireGlobalSpendLedger({file});
+  ledger=await acquireGlobalSpendLedger({file,enforceBudget:true});
   for(const estimatedMaximumUsd of [Number.MIN_VALUE,1e-12,1e-10,1e-9,0.0000005]){
    await assert.rejects(()=>ledger.reserve({
     requestId:'precision-test',runId:'run-test',provider:'meta',estimatedMaximumUsd,
@@ -79,7 +79,7 @@ test('failed reservation preserves pre-existing temporary evidence and does not 
   await writeFile(file,JSON.stringify(updated()));
   const original=await readFile(file),evidence='preserved uncertain write';
   await writeFile(temp,evidence);
-  ledger=await acquireGlobalSpendLedger({file});
+  ledger=await acquireGlobalSpendLedger({file,enforceBudget:true});
   const before=ledger.status();
   await assert.rejects(()=>ledger.reserve({
    requestId:'temp-conflict',runId:'run-test',provider:'meta',estimatedMaximumUsd:0.15,
@@ -97,7 +97,7 @@ test('shared ledger rejects forbidden providers, duplicates, cap overflow and ov
  const file=join(dir,'global.json');
  try{
   await writeFile(file,JSON.stringify(updated()));
-  const ledger=await acquireGlobalSpendLedger({file});
+  const ledger=await acquireGlobalSpendLedger({file,enforceBudget:true});
   const reserve=(provider,usd,id)=>ledger.reserve({
    requestId:id,runId:'run-test',provider,estimatedMaximumUsd:usd,
   });
@@ -112,9 +112,9 @@ test('shared ledger rejects forbidden providers, duplicates, cap overflow and ov
   assert.equal((await reserve('modal',34.581455,'modal-cap')).accepted,true);
   assert.equal((await reserve('modal',0.000001,'modal-over')).reason,'BUDGET_LIMIT');
   assert.equal(ledger.status().reservedUsd,100);
-  await assert.rejects(()=>acquireGlobalSpendLedger({file}),/CAMPAIGN_GLOBAL_LOCKED/);
+  await assert.rejects(()=>acquireGlobalSpendLedger({file,enforceBudget:true}),/CAMPAIGN_GLOBAL_LOCKED/);
   await ledger.close();
-  const reopened=await acquireGlobalSpendLedger({file});
+  const reopened=await acquireGlobalSpendLedger({file,enforceBudget:true});
   assert.equal(reopened.status().reservedUsd,100);
   assert.equal((await reopened.reserve({provider:'meta',estimatedMaximumUsd:0.01,
    requestId:'after-reopen',runId:'run-test'})).reason,'BUDGET_LIMIT');
@@ -141,7 +141,7 @@ test('shared ledger rejects forbidden providers, duplicates, cap overflow and ov
    }
    try{
     await writeFile(file,JSON.stringify(state));
-    const ledger=await acquireGlobalSpendLedger({file});
+    const ledger=await acquireGlobalSpendLedger({file,enforceBudget:true});
     try{
      const before=ledger.status();
      assert.equal(before.perProvider.meta.requestCount,399);
@@ -210,7 +210,8 @@ test('agent history without provider attribution cannot be imported or alter the
      /BACKUP_REQUIRED/);
     const result=await campaignBudgetCommand(['--ledger',file,'--apply-authorized-upgrade',
      '--authorized-at','2026-10-31T13:56:56Z','--backup',backup]);
-    assert.equal(result.status.globalCapUsd,100);
+    assert.equal(result.status.globalCapUsd,null);
+    assert.equal(result.status.historicalGlobalCapUsd,100);
     assert.equal(result.backupSha256.length,64);
     assert.deepEqual(await readFile(backup),original);
     assert.deepEqual(JSON.parse(await readFile(file)).reservations,legacy().reservations);
@@ -226,7 +227,7 @@ test('agent history without provider attribution cannot be imported or alter the
     assert.equal(await budget.reserve(0.1),true);
     assert.equal(budget.committedReserveUsd(),2.1);
     await budget.close();
-    const shared=await acquireGlobalSpendLedger({file});
+    const shared=await acquireGlobalSpendLedger({file,enforceBudget:true});
     assert.equal(shared.status().reservedUsd,0.79218);
     await shared.close();
    }finally{await rm(dir,{recursive:true,force:true});}

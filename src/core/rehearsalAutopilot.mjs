@@ -11,7 +11,7 @@ const wordCount=text=>normalizeSpeech(text).split(' ').filter(Boolean).length;
 
 export const REHEARSAL_AUTO_POLICY=Object.freeze({
  nearThreshold:.88,seekThreshold:.97,nearMargin:.14,seekMargin:.14,
- nearRadius:25,repeatCooldownMs:2500,minimumWords:3,seekWords:4,
+ nearRadius:25,repeatCooldownMs:2500,minimumWords:2,seekWords:4,
  maxTranscriptAgeMs:5000,
 });
 
@@ -42,7 +42,12 @@ export function decideRehearsalAutoGo({
   typeof c.trigger==='string'&&wordCount(c.trigger)>=policy.minimumWords);
  const ranked=available.map(c=>{
   const line=lineNo(c.lineId),delta=line-state.focusLine;
-  return {cueId:c.id,lineId:c.lineId,line,delta,score:compareSpeech(transcript.text,c.trigger),
+  // A short operator-authored trigger must be the entire final turn, not a
+  // fuzzy match or a common two-word fragment inside unrelated dialogue.
+  const score=wordCount(c.trigger)===2
+   ? Number(normalizeSpeech(transcript.text)===normalizeSpeech(c.trigger))
+   : compareSpeech(transcript.text,c.trigger);
+  return {cueId:c.id,lineId:c.lineId,line,delta,score,
     near:Math.abs(delta)<=policy.nearRadius};
  }).filter(x=>x.score>=Math.min(policy.nearThreshold,policy.seekThreshold))
  .sort((a,b)=>b.score-a.score||(a.near===b.near?0:a.near?-1:1)||

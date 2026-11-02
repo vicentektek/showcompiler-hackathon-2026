@@ -20,6 +20,7 @@ const validModalEndpoint = value => {
 };
 export function inspectSfxConfiguration(env={}) {
   const costInputs = {
+    budgetLimitsDisabled:true,
     estimatedMaxCostUsdPerRequest: Number(env.RUNQ_SFX_ESTIMATED_MAX_COST_USD),
     dailyBudgetUsd: Number(env.RUNQ_SFX_DAILY_BUDGET_USD),
   };
@@ -76,10 +77,7 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
     for (const [key,passed] of Object.entries(r.configurationChecks)) {
       console.log('  '+(passed?'[PASS] ':'[FAIL] ')+key);
     }
-    if (r.costLimits) console.log('  Policy caps: estimated maximum $'+
-      r.costLimits.estimatedMaxCostUsdPerRequest+
-      '/request; daily configured cap $'+r.costLimits.dailyBudgetUsd+
-      ' (local reservation, NOT provider billing guarantee).');
+    console.log('  No local budget caps. Provider usage is billed.');
     for (const issue of r.issues) console.log('  - '+issue);
     if (r.readyForOneAuthorizedRequest) {
       console.log('LOCAL CONFIGURATION READY. Deployment, account permissions, provider balance and actual GPU inference remain UNVERIFIED.');

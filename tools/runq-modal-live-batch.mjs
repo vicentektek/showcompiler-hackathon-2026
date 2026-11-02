@@ -67,7 +67,7 @@ async function campaignPreflight(maximum){
  const ledger=await acquireGlobalSpendLedger();
  try{
   const s=ledger.status();
-  if(maximum>s.remainingUsd||maximum>s.perProvider.modal.remainingUsd)
+  if(!s.budgetLimitsDisabled&&(maximum>s.remainingUsd||maximum>s.perProvider.modal.remainingUsd))
    throw new Error('CAMPAIGN_REMAINING_BUDGET_TOO_SMALL');
  }finally{await ledger.close();}
 }
@@ -94,7 +94,7 @@ export async function runModalBatch(options,{
  if(!settingsResponse.ok)throw new Error('LOCAL_SFX_STATUS_FAILED');
  const settings=await settingsResponse.json(),cost=settings.estimatedMaxCostUsdPerRequest;
  if(settings.enabled!==true||settings.model!=='stabilityai/stable-audio-3-small-sfx'||
-   typeof cost!=='number'||!Number.isFinite(cost)||cost<=0||cost>0.05||
+   (settings.budgetLimitsDisabled!==true&&(typeof cost!=='number'||!Number.isFinite(cost)||cost<=0))||
    !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(settings.modelRevision??''))
   throw new Error('SFX_CONFIGURATION_OR_PILOT_COST_CHANGED');
  await preflight(cost*config.count);

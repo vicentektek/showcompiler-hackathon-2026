@@ -136,12 +136,12 @@ test('hotel-door balanced-style optional suggestion remains human review, not ex
   assert.equal(scored.summary.dimensions.basis.f1,1);
 });
 
-test('paid mode requires explicit CLI pair; refuses unknown options and budget above $2',()=>{
+test('paid mode requires explicit CLI pair; refuses unknown options and invalid budget values',()=>{
   assert.equal(parseLiveOptions([]).live,false);
   assert.equal(parseLiveOptions(['--live','--ack-paid']).maxRequests,13);
   for(const args of [
     ['--live'],['--ack-paid'],['--max-requests','100'],
-    ['--budget-usd','2.01'],['--budget-usd','0'],
+    ['--budget-usd','0'],
     ['--mode','off'],['--case','../../secrets'],['--api-key','x'],
   ])assert.throws(()=>parseLiveOptions(args),TypeError);
   assert.equal(parseLiveOptions(['--mode','balanced','--case','hotel-door']).caseId,'hotel-door');
@@ -266,7 +266,7 @@ test('truncated Meta reply stops batch and retains no partial cues or secret',as
 test('$2 budget guard refuses a request before any model call when reserve exceeds remaining',async t=>{
   let calls=0;
   const report=await runMetaSeminarEval({live:true,ackPaid:true,apiKey:'FAKE',
-    maxRequests:10,budgetUsd:0.0001,output:await tempOutput(t),
+    enforceBudget:true,maxRequests:10,budgetUsd:0.0001,output:await tempOutput(t),
     modelCaller:async()=>{calls++;throw Error('SHOULD_NOT_CALL')}});
   assert.equal(calls,0);
   assert.equal(report.submittedRequests,0);
@@ -277,13 +277,13 @@ test('$2 budget guard refuses a request before any model call when reserve excee
 test('persistent Meta budget survives separate runs and rejects concurrent process',async t=>{
   const dir=await tempOutput(t);
   const path=join(dir,'meta-ledger.json');
-  const one=await acquireMetaBudgetLedger({file:path,limitUsd:2});
+  const one=await acquireMetaBudgetLedger({enforceBudget:true,file:path,limitUsd:2});
   assert.equal(one.remainingUsd(),2);
   assert.equal(await one.reserve(0.7),true);
   assert.equal(one.remainingUsd(),1.3);
-  await assert.rejects(acquireMetaBudgetLedger({file:path,limitUsd:2}),/LEDGER_LOCKED/);
+  await assert.rejects(acquireMetaBudgetLedger({enforceBudget:true,file:path,limitUsd:2}),/LEDGER_LOCKED/);
   await one.close();
-  const two=await acquireMetaBudgetLedger({file:path,limitUsd:2});
+  const two=await acquireMetaBudgetLedger({enforceBudget:true,file:path,limitUsd:2});
   assert.equal(two.committedReserveUsd(),0.7);
   assert.equal(await two.reserve(1.3),true);
   assert.equal(two.remainingUsd(),0);
@@ -295,7 +295,7 @@ test('persistent Meta budget survives separate runs and rejects concurrent proce
 
 test('live batch stops at cumulative ledger ceiling, without paid network calls',async t=>{
   const dir=await tempOutput(t);
-  const ledger=await acquireMetaBudgetLedger({file:join(dir,'budget.json'),limitUsd:0.065});
+  const ledger=await acquireMetaBudgetLedger({enforceBudget:true,file:join(dir,'budget.json'),limitUsd:0.065});
   let calls=0;
   try{
     const result=await runMetaSeminarEval({

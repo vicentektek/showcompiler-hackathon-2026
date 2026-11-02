@@ -25,6 +25,18 @@ test('single cue stage changes volume, fade, loop without mutating current show 
  assert.equal(Object.hasOwn(staged,'go'),false);
  assert.equal(Object.hasOwn(staged,'queue'),false);
 });
+test('switching a faded finite repeat to loop exposes every implicit change and finite repeats can undo it',()=>{
+ const {project,cueId}=sample();
+ const finite=stageCueConversationChange(project,cueId,{repeatCount:3,fadeOutMs:2000}).project;
+ const looping=stageCueConversationChange(finite,cueId,{loop:true});
+ assert.deepEqual(looping.diff.map(d=>d.field),['loop','fadeOutMs','repeatCount']);
+ assert.equal(looping.project.cues[0].playback.fadeOutMs,0);
+ assert.equal(looping.project.cues[0].playback.repeatCount,1);
+ const again=stageCueConversationChange(looping.project,cueId,{repeatCount:2});
+ assert.equal(again.project.cues[0].playback.loop,false);
+ assert.ok(again.diff.some(d=>d.field==='loop'));
+ assert.throws(()=>stageCueConversationChange(looping.project,cueId,{fadeOutMs:1500}),{code:'LOOP_NEEDS_TARGETED_STOP'});
+});
 test('conversational corrections are full staged edits and preserve previous intentions',()=>{
  const {project,cueId}=sample();
  let draft={gainDb:-9,fadeInMs:3000};
@@ -73,8 +85,8 @@ test('strict values and incompatible playback fail without partially mutating pr
   {loop:'yes'},{__proto__:null},{random:'drop table'},{repeatCount:40},{endAtMs:0}]){
   assert.throws(()=>stageCueConversationChange(project,cueId,patch));
  }
- assert.throws(()=>stageCueConversationChange(project,cueId,{loop:true,fadeOutMs:1000}),/looping playback/);
- assert.throws(()=>stageCueConversationChange(project,cueId,{loop:true,repeatCount:2}),/mutually exclusive/);
+ assert.throws(()=>stageCueConversationChange(project,cueId,{loop:true,fadeOutMs:1000}),/LOOP_NEEDS_TARGETED_STOP/);
+ assert.throws(()=>stageCueConversationChange(project,cueId,{loop:true,repeatCount:2}),/LOOP_NEEDS_TARGETED_STOP/);
  assert.equal(project.cues.length,1);
 });
 test('metadata edits preserve cue source and source action provenance',()=>{

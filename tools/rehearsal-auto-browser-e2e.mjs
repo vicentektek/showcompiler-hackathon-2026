@@ -12,7 +12,7 @@ import {normalizeShowProject} from '../src/core/projectPersistence.mjs';
 
 const sample=[
  'Nora we have ninety seconds to choose the winning project',
- 'Alex we are still debating the future together',
+ 'is holding',
  'Nora the cue is prepared the operator chooses now',
 ];
 const built=await buildDemoPackage();
@@ -84,6 +84,7 @@ try{
  assert.equal(/\b1\s*·/.test(await page.locator('#operatorLastGo').textContent()),false);
  await page.locator('#rqLiveAutoStart').click();
  await page.waitForFunction(()=>document.querySelector('#rqLiveArm')?.getAttribute('aria-pressed')==='true',null,{timeout:5000});
+ assert.equal(await page.locator('#rqLiveCueMap li').count(),3,'Two-word configured trigger is loaded');
  assert.equal(await send(0,'first'),true);
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('First'),null,{timeout:7000});
  assert.equal(/\b1\s*·/.test(await page.locator('#operatorLastGo').textContent()),true);
@@ -102,6 +103,9 @@ try{
  await send(1,'rewind');
  await page.waitForTimeout(100);
  assert.equal((await snapshot()).started.length,beforeRepeat,'Duplicate final turns never replay');
+ await send(1,'cooldown');
+ assert.match(await page.locator('#rqLiveCue').textContent(),/repeat cooldown/i);
+ assert.equal((await snapshot()).started.length,beforeRepeat,'Cooldown reports why a recognized phrase did not fire');
  await page.waitForTimeout(2600);
  await send(1,'repeat');
  await page.waitForFunction(()=>document.querySelector('#rqLiveCue')?.textContent?.includes('Repeat take'));

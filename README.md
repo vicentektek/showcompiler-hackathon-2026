@@ -1,3 +1,5 @@
+> **2026-11-02: Meta y Modal sin topes locales de presupuesto**, tanto en uso manual/demo como en baterias CLI. Las cifras anteriores son historicas. Ver [cambio y verificacion](docs/META_MODAL_UNLIMITED_2026-11-02.md).
+
 # ShowCompiler — Meta Global AI Developer Hackathon 2026
 
 ShowCompiler is a new, hackathon-only browser prototype for turning theatre scripts into human-reviewed sound-cue plans. It combines opt-in Meta Muse Spark analysis with deterministic local audio playback. No code was copied from the earlier SHOWCOMPILER repository.
@@ -54,12 +56,13 @@ to the existing proposal flow; the Sound step shows each approved cue's
 suggested sound and opens the sound desk with that cue selected. The review
 step can approve all pending proposals together, with the existing explicit
 confirmation and undo. Provider settings stay under optional advanced settings,
-while each AI or sound request still requires its own consent and cost controls.
+while explicit AI action buttons start bounded requests through server cost controls,
+without a second permission checkbox or dialog.
 Opening **Prepare sound for this cue** now fills the English sound prompt,
 estimates duration from a recognized script direction, and pins its L# and cue
 destination. For a cue with an active generation, RUNQ checks readiness and
-loads the WAV without playing it; the operator listens first, then one explicit
-accept action assigns the reviewed take to that cue. If a Spanish cue idea is
+loads the WAV without playing it; one explicit accept action assigns the take
+to that cue. Listening first is optional. If a Spanish cue idea is
 not recognized by the offline sound compiler, the interface flags that it needs
 an English rewrite rather than claiming it translated the text.
 
@@ -69,23 +72,78 @@ providers; they do not measure live-model quality or generate billable audio.
 
 ### Bulk preparation
 
-**RUNQ AI** now has three visible actions:
+**RUNQ AI** has a dedicated preparation card with four numbered stages, accessible
+progress bars and icon-labelled actions. The same sound batch controls are available
+in **Sound > Generate**:
 
 - **Accept all cues** confirms all reviewed pending proposals together, creating
-  DRAFT cues without playback. Individual rejection and approval remain available.
-- **Generate audio for all** plans pending single-action sound cues without
-  replacing existing audio. Review/edit English prompts, select cues, and authorize
-  the displayed maximum estimate before sending. This is also available in
+  DRAFT cues without playback. Preparation also fills missing **operation triggers**
+  with the last 4–8 words of nearby preceding actor dialogue (`ACTOR: speech`),
+  without overwriting operator text or changing the cue's original sound L#.
+  The local search is limited to 12 preceding lines and stops at scene boundaries;
+  repeated/ambiguous phrases, missing references and missing reliable dialogue
+  remain pending manual review instead of using unspoken stage directions.
+  The preparation card shows the feet and L# references; edit them in Cues.
+  Existing feet are preserved, including older operator/stage-direction feet:
+  review them before arming Autopilot. These are source-backed suggestions, not
+  verified speech recognition or automatic arming/GO.
+  Individual rejection and approval remain available.
+- **Generate audio for all** immediately starts a serial batch for pending
+  single-action sound cues, without replacing existing audio or asking for repeated
+  permissions. **Adjust batch · optional** lets you edit prompts or select cues.
+  This is also available in
   **Sound > Generate**. Unsupported music/voice and non-sound cues are excluded.
-- **Auto prepare entire show** starts analysis of remaining script windows, then
-  pauses for proposal approval and audio authorization. A shortcut is on Project.
+- **Auto prepare entire show** starts analysis of remaining script windows.
+  **Include all sounds** is on by default: after reviewing proposals, choose
+  **Accept all and generate sounds** to continue directly with every eligible cue.
+  Turn that option off for analysis only. A shortcut is on Project.
   It is one preparation entry point, not unattended approval or execution.
+  Existing cues also receive missing operation triggers when starting preparation
+  or a sound batch; this is local and does not require another model request.
+- **Accept all sounds** accepts and assigns all ready batch takes to their original
+  cues, without requiring prior listening. Changed or already assigned cues stay out
+  of the batch. Each result in RUNQ AI also has **Listen / Stop preview** and
+  **Accept and assign** actions that stay on that screen; **Edit take** opens Sound.
+  Existing IN/OUT/fades are preserved; an unedited take uses its full duration.
+  Reopening a show does not impose a listening prerequisite.
+
+Accepting or assigning a take releases Sound's own preview before saving, so you
+do not need to stop that preview first. It never stops a running show cue or changes
+prepared GO/NEXT. An already saved generated take can be assigned or used to create
+a cue without duplicating its verified library asset. For a free generated take,
+the destination selector is next to **Save + assign**, not hidden with the
+library-only editing controls. Assignment progress counts
+completed cue imports; generation progress counts completed jobs, not an invented
+GPU percentage. Single-take work shows indeterminate activity while loading or waiting.
+
+### Assistant audio edits
+
+The assistant can propose primary audio assignment/replacement from decoded library
+assets, extra audio layers (add, replace, edit or remove), playback gain/pan/rate,
+trims, delays, repetitions, loops and fades, overlap policies and targeted stops.
+The same strict editor validators run during preview and again on **Apply**.
+All edits remain reviewable and undoable; unavailable files cannot be assigned.
+
+For example: “cue 1 debe ser loop” and “el último cue debe detener el cue 1 con
+un fade out de 5 segundos”. Enabling a continuous loop clears an existing automatic
+ending fade and finite repeat count; these changes appear in the preview.
+The final cue's targeted 5000 ms stop fade is separate from the looping source's
+playback fade. It only takes effect on that cue's subsequent manual GO.
+Invalid plans show actionable errors instead of claiming the edit succeeded.
+No assistant tool executes GO, STOP, ARM or timed advances, or changes prepared GO
+when applying/undoing nonstructural audio settings. No live-model quality or
+hardware-output guarantee is implied by offline tests.
 
 Meta and Modal requests run serially, without retries, through the existing
-server-side reservation and spending gates. **Cancel batch**, STOP ALL and show
+server-side reservation and spending gates. If a selected batch exceeds the configured
+daily maximum, only the bounded first part runs and the rest is explicitly reported
+as pending. Each server reservation still checks remaining historical budgets and
+job limits; nothing raises limits or refunds unknown requests. **Cancel batch**, STOP ALL and show
 replacement prevent further submissions and discard late results; cancellation
-does not revoke already reserved costs. Listen to each ready take and explicitly
-accept it for its original cue. No preparation action executes GO.
+does not revoke already reserved costs. STOP ALL also invalidates pending batch
+assignments, including a late WAV download or decode. Completed assignments remain;
+there is no automatic retry. Explicitly accept ready takes for their original cues,
+individually or together; listening is optional. No preparation action executes GO.
 
 Cue/request associations persist in this browser's local storage, preventing
 automatic duplicate generations after reopening the same show. Uncertain requests
@@ -105,19 +163,27 @@ RUNQ AI keeps alternate entry routes, one focused task and the active show
 context together. **Ask RUNQ AI** opens the optional assistant in the context
 panel without submitting a request. Expand the selected cue to inspect its
 original L# evidence or open the editor. Starter actions only fill the request;
-edit it and choose **Prepare
-proposal**, then review and apply the selected changes. Local preparation does
-not call an AI provider. Paid consultation remains inside **AI service and
-permissions**, with explicit one-request consent. Sound attachment and dictation
+edit it and choose **Work with AI**, then review and apply selected changes.
+This button and Ctrl+Enter start one bounded Meta consultation directly.
+**Plan without AI** remains an explicitly offline alternative. Provider/context
+details stay under **AI details · optional**. Sound attachment and dictation
 are optional expandable controls. Discarding a proposal clears its pending task;
 navigation and preparation never execute GO.
 Dictation cancellation uses the shared supported status messages, so STOP ALL
 also restores the recording controls without accepting late transcription.
 Requests such as "prepara los cues" / "prepare the cues" now show numbered steps
 and open the existing script-to-cue tools. Unsupported local requests explain
-how to prepare an explicitly authorized AI consultation rather than just saying
-"complex request". Guidance buttons never submit, approve or play anything;
-this is guided task preparation, not autonomous completion of arbitrary tasks.
+how to start an AI consultation rather than just saying "complex request".
+The AI consultation action submits directly; navigation and script guidance never
+submit, approve or play anything.
+
+**Generate sound**, **Work with AI**, cue-editor **Send**, **Transcribe** and
+voice **Start listening** are the explicit request authorization, without additional
+permission checkboxes. Record still starts microphone capture explicitly; opening
+a panel never uploads audio. Request authorization headers, exact SFX cost caps,
+campaign/daily reservations and server rejection of unauthorized API calls remain
+unchanged. Generated cues and sound takes still require human review before being
+applied; voice-triggered rehearsal playback still needs separate explicit arming.
 
 Read-only questions such as "Which audio is still unresolved?", "Is cue 2
 ready?" and "¿Está listo el cue seleccionado?" use the local preflight checks.
@@ -232,7 +298,7 @@ $env:MODEL_API_KEY = '<set locally; never commit>'
 npm run smoke:meta -- --authorize-one-billable-meta-request
 ```
 
-Do not run it merely to execute the test suite. A timeout may still have consumed provider tokens. The user has run this guarded command successfully once. Do not rerun it routinely: every invocation may consume Meta credits. Direct audio attachment still requires manual listening acceptance.
+Do not run it merely to execute the test suite. A timeout may still have consumed provider tokens. The user has run this guarded command successfully once. Do not rerun it routinely: every invocation may consume Meta credits. Direct audio attachment still requires explicit manual acceptance, not prior listening.
 
 ## Safety and scope limits
 

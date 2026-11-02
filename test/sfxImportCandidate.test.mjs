@@ -53,3 +53,12 @@ test('review and checksum gates: rejects queued, rejected, altered, unknown-line
     /checksum mismatch/,
   );
 });
+
+test('accepted unlimited-budget sound can be imported with an unknown estimate',async()=>{
+ const staged=await prepareReviewedSfxImport({
+  job:{...job,cost:{budgetLimitsDisabled:true,estimatedMaxCostUsd:null,actualBilledUsd:null}},
+  audioBytes:bytes,...settings,reviewedRegion:{inSeconds:0,outSeconds:3},
+ });
+ assert.equal(staged.provenance.estimatedMaxCostUsd,null);
+ assert.equal(staged.provenance.actualCostUsd,null);
+});

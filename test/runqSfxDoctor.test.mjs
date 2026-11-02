@@ -14,20 +14,20 @@ const ready=()=>({
  RUNQ_SFX_DAILY_BUDGET_USD:'0.20',
  RUNQ_SFX_MODEL_REVISION:'a'.repeat(40),
 });
-test('SFX diagnostic fails closed on unset or invalid costs',()=>{
+test('SFX diagnostic does not require spending limits',()=>{
  const e=ready();
  delete e.RUNQ_SFX_ESTIMATED_MAX_COST_USD;
  const result=inspectSfxConfiguration(e);
- assert.equal(result.readyForOneAuthorizedRequest,false);
- assert.equal(result.configurationChecks.costPolicyValid,false);
- assert.match(result.issues.join(' '),/Cost policy invalid/);
+ assert.equal(result.readyForOneAuthorizedRequest,true);
+ assert.equal(result.configurationChecks.costPolicyValid,true);
+ assert.deepEqual(result.issues,[]);
  const above=inspectSfxConfiguration({...ready(),RUNQ_SFX_DAILY_BUDGET_USD:'0.02'});
- assert.equal(above.configurationChecks.costPolicyValid,false);
+ assert.equal(above.configurationChecks.costPolicyValid,true);
 });
 test('SFX diagnostic accepts valid local setup without exposing credentials',()=>{
  const cfg=ready(),result=inspectSfxConfiguration(cfg);
  assert.equal(result.readyForOneAuthorizedRequest,true);
- assert.equal(result.costLimits.dailyBudgetUsd,0.2);
+ assert.equal(result.costLimits.dailyBudgetUsd,null);
  assert.doesNotMatch(JSON.stringify(result),/PRIVATE_ID|PRIVATE_SECRET|runq-example/);
 });
 test('SFX diagnostic detects malformed endpoint, missing proxy secret and revision',()=>{

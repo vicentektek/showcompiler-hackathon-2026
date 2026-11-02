@@ -44,7 +44,7 @@ async function fixture(t, overrides={}) {
   const {storeOptions={},...rest}=overrides;
   const directory = await mkdtemp(join(tmpdir(), 'runq-sfx-'));
   t.after(()=>rm(directory,{recursive:true,force:true}));
-  const store=createSfxJobStore({
+  const store=createSfxJobStore({budgetLimitsDisabled:false,
     directory, clock:()=>new Date(TEST_DATE), maxDailyStarts:3, ...storeOptions,
   });
   return {store,directory,...rest};
@@ -176,7 +176,7 @@ test('reservation survives restart; same request or authorization never gets a s
   };
   const saved=await store.reserve(storeRequest(request),{confirm:true});
   assert.equal(saved.status,'SUBMISSION_UNKNOWN');
-  const reopened=createSfxJobStore({
+  const reopened=createSfxJobStore({budgetLimitsDisabled:false,
     directory,clock:()=>new Date(TEST_DATE),maxDailyStarts:3,
   });
   await assert.rejects(reopened.reserve(storeRequest(request),{confirm:true}),error=>error.code==='SFX_DUPLICATE');
@@ -336,18 +336,18 @@ test('SFX status refuses missing or free-form model revision even with valid cos
 test('supervised QA campaign ceilings: 150 only with explicit opt-in, standard cap unchanged',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'runq-sfx-'));
   t.after(()=>rm(directory,{recursive:true,force:true}));
-  assert.throws(()=>createSfxJobStore({directory,maxDailyStarts:26}),TypeError);
-  assert.throws(()=>createSfxJobStore({directory,maxDailyStarts:150}),TypeError);
-  assert.throws(()=>createSfxJobStore({
+  assert.throws(()=>createSfxJobStore({budgetLimitsDisabled:false,directory,maxDailyStarts:26}),TypeError);
+  assert.throws(()=>createSfxJobStore({budgetLimitsDisabled:false,directory,maxDailyStarts:150}),TypeError);
+  assert.throws(()=>createSfxJobStore({budgetLimitsDisabled:false,
     directory,maxDailyStarts:151,supervisedQaCampaign:true,
   }),TypeError);
-  assert.throws(()=>createSfxJobStore({
+  assert.throws(()=>createSfxJobStore({budgetLimitsDisabled:false,
     directory,maxDailyStarts:150,supervisedQaCampaign:'yes',
   }),TypeError);
-  const campaign=createSfxJobStore({directory,maxDailyStarts:150,supervisedQaCampaign:true});
+  const campaign=createSfxJobStore({budgetLimitsDisabled:false,directory,maxDailyStarts:150,supervisedQaCampaign:true});
   assert.equal(campaign.maxDailyStarts,150);
   assert.equal(campaign.supervisedQaCampaign,true);
-  const standard=createSfxJobStore({directory,maxDailyStarts:10});
+  const standard=createSfxJobStore({budgetLimitsDisabled:false,directory,maxDailyStarts:10});
   assert.equal(standard.maxDailyStarts,10);
   assert.equal(standard.supervisedQaCampaign,false);
 });

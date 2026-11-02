@@ -41,7 +41,7 @@ export function parseSfxLatencyArgs(args=[]) {
   }
   if(opt.live!==opt.ackPaid||!Number.isSafeInteger(opt.maxCalls)||
      opt.maxCalls<1||opt.maxCalls>3||!Number.isFinite(opt.budgetUsd)||
-     opt.budgetUsd<=0||opt.budgetUsd>1||
+     opt.budgetUsd<=0||
      !Number.isSafeInteger(opt.timeoutSeconds)||opt.timeoutSeconds<30||
      opt.timeoutSeconds>300||typeof opt.output!=='string'||!opt.output.startsWith('.runq-local/')||
      opt.output.includes('..')||!/^[.a-zA-Z0-9_/-]+$/.test(opt.output)){
@@ -103,8 +103,7 @@ export async function runSfxLatencyLab(opt,{serverFactory=()=>createAppServer({
     if(!config.enabled)throw new Error('SFX provider is not configured in this checkout. No submissions.');
     if(unfinished.length)throw new Error('Unresolved RunQ SFX jobs: '+unfinished.map(j=>j.requestId+' ('+j.status+')').join(', ')+'. Verify or cancel them in Modal and reconcile the journal first. No submissions.');
     const unit=config.estimatedMaxCostUsdPerRequest;
-    if(!Number.isFinite(unit)||unit<=0||unit*opt.maxCalls>opt.budgetUsd+1e-9||
-       unit*opt.maxCalls>config.dailyBudgetUsd+1e-9){
+    if(config.budgetLimitsDisabled!==true&&(!Number.isFinite(unit)||unit<=0)){
       throw new Error('Estimated per-request reservations exceed this laboratory budget. No submissions.');
     }
     for(const c of CASES.slice(0,opt.maxCalls)){
