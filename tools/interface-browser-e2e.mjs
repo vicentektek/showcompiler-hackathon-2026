@@ -158,7 +158,10 @@ try {
   assert.equal(await page.locator('.home-tiles .home-tile').count(),4);
   await page.locator('#rq16StartAI').click();
   await page.waitForFunction(()=>document.querySelector('.shell').dataset.activeWorkspace==='ai');
-  assert.equal(await page.locator('#rq16AIWelcome').isVisible(),true);
+  assert.equal(await page.locator('.rq-preparation[data-integrated=true]').isVisible(),true,
+    'The integrated preparation card is the primary AI entry');
+  assert.equal(await page.locator('#rq16AIWelcome').isVisible(),false,
+    'Duplicate marketing copy does not push the preparation and assistant actions down');
   assert.equal(await page.locator('#rqAgentPrompt').isVisible(),false,
     'The optional contextual assistant stays collapsed until requested');
   assert.equal(await page.locator('#rqShowBuilder').isVisible(),true,'RUNQ AI contains the guided Show Builder');

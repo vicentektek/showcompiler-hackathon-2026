@@ -1,4 +1,21 @@
 import { prepareCueSoundDraft } from './soundPromptCompiler.mjs';
+import { normalizeShowProject } from './projectPersistence.mjs';
+import { proposeAgentVoiceTriggers, MAX_VOICE_BATCH } from './agentVoice.mjs';
+
+/** Source-backed actor speech for later operator review; never arms transport. */
+export function prepareShowOperationTriggers(project) {
+  let next = normalizeShowProject(project);
+  const added = [], skipped = [];
+  for (let offset = 0; offset < next.cues.length; offset += MAX_VOICE_BATCH) {
+    const cueIds = next.cues.slice(offset, offset + MAX_VOICE_BATCH).map(cue => cue.id);
+    const batch = proposeAgentVoiceTriggers(next, { cueIds });
+    const triggers = new Map(batch.suggestions.map(item => [item.cueId, item.trigger]));
+    next = { ...next, cues: next.cues.map(cue => triggers.has(cue.id)
+      ? { ...cue, trigger: triggers.get(cue.id) } : cue) };
+    added.push(...batch.suggestions); skipped.push(...batch.skipped);
+  }
+  return { project: normalizeShowProject(next), added, skipped };
+}
 
 export const cueSoundIdentity = cue => JSON.stringify([
   cue.id, cue.label, cue.sourceLineIds, cue.actions, cue.audioTracks ?? [],
@@ -48,7 +65,8 @@ export async function runPreparationQueue(items, {
 
 export function validateAudioBatch(items, policy, confirmed) {
   if (!confirmed || !items.length || policy.enabled !== true ||
-      !Number.isFinite(policy.estimatedMaxCostUsdPerRequest) || policy.estimatedMaxCostUsdPerRequest <= 0 ||
+      !Number.isFinite(policy.estimatedMaxCostUsdPerRequest) ||
+      policy.estimatedMaxCostUsdPerRequest <= 0 ||
       !Number.isFinite(policy.dailyBudgetUsd) || policy.dailyBudgetUsd <= 0)
     throw new Error('BATCH_AUTHORIZATION_REQUIRED');
   if (items.length * policy.estimatedMaxCostUsdPerRequest > policy.dailyBudgetUsd + 1e-9 ||

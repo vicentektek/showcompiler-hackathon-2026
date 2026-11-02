@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planShowAudio, runPreparationQueue, cueSoundIdentity, validateAudioBatch, limitAudioBatch } from '../src/core/showPreparation.mjs';
+import { planShowAudio, runPreparationQueue, cueSoundIdentity, validateAudioBatch, limitAudioBatch, prepareShowOperationTriggers } from '../src/core/showPreparation.mjs';
+import { insertManualCue } from '../src/core/manualCues.mjs';
+import { makeProjectVoiceScenario } from '../src/core/voiceScenario.mjs';
+import { initialRehearsalAutoState, decideRehearsalAutoGo } from '../src/core/rehearsalAutopilot.mjs';
 import { createNewShow, addMockProposal, decideProposal, addAudioReference, assignAudioToCue } from '../src/core/workspace.mjs';
 
 function project() {
@@ -12,6 +15,74 @@ function project() {
   return show;
 }
 
+test('preparation prefers preceding actor speech over the sound direction and supports armed rehearsal matching',()=>{
+ let show=createNewShow({scriptText:'ESCENA 1\nANA: Ahora podemos abrir la puerta principal.\n(Suena una campana.)'});
+ show=addMockProposal(show,{lineId:'L3',label:'Bell'});
+ show=decideProposal(show,show.proposals[0].id,'APPROVE');
+ const before=JSON.stringify(show);
+ const result=prepareShowOperationTriggers(show);
+ assert.equal(result.project.cues[0].trigger,'Ahora podemos abrir la puerta principal');
+ assert.equal(result.added[0].evidenceLineId,'L2');
+ assert.equal(result.added[0].speaker,'ANA');
+ assert.deepEqual(result.project.cues[0].sourceLineIds,['L3']);
+ assert.equal(JSON.stringify(show),before);
+ const scenario=makeProjectVoiceScenario(result.project,{minimumWords:2});
+ const input={cues:scenario.cues,transcript:{text:'Ahora podemos abrir la puerta principal.',final:true,endMs:9960},
+  turnId:'actor-turn',atMs:10000,state:initialRehearsalAutoState()};
+ assert.equal(decideRehearsalAutoGo(input).action.reason,'NOT_ARMED');
+ const action=decideRehearsalAutoGo({...input,armed:true}).action;
+ assert.equal(action.type,'FIRE');
+ assert.equal(action.cueId,show.cues[0].id);
+ assert.equal(action.score,1);
+});
+test('preparation preserves operator feet and leaves missing dialogue for manual review',()=>{
+   let show=project();
+   show.cues[0].trigger='My manual foot';
+   show=insertManualCue(show,{label:'No source'}).project;
+   const before=JSON.stringify(show);
+   const result=prepareShowOperationTriggers(show);
+   assert.equal(JSON.stringify(show),before);
+   assert.equal(result.project.cues[0].trigger,'My manual foot');
+   assert.equal(result.project.cues[1].trigger,undefined);
+   assert.deepEqual(result.added,[]);
+   assert.deepEqual(result.skipped.map(item=>item.reason),['NO_RELIABLE_DIALOGUE','NO_SOURCE_LINE']);
+   assert.equal(result.project.cues[2].trigger,undefined);
+   assert.equal(result.project.scriptText,show.scriptText);
+   assert.deepEqual(result.project.proposals,show.proposals);
+   assert.deepEqual(result.project.cues.map(c=>c.sourceLineIds),show.cues.map(c=>c.sourceLineIds));
+   assert.deepEqual(prepareShowOperationTriggers(result.project).added,[]);
+  });
+  test('spoken feet cover more than a voice batch without duplicating phrases across batches',()=>{
+   const script=Array.from({length:30},(_,i)=>`ACTOR: We should open entrance number ${i===29?0:i}.\n(A bell rings.)`).join('\n');
+   let show=createNewShow({scriptText:script});
+   for(let i=0;i<30;i++)show=insertManualCue(show,{label:'Cue '+i}).project;
+   show.cues=show.cues.map((cue,i)=>({...cue,sourceLineIds:['L'+(2*i+2)]}));
+   const result=prepareShowOperationTriggers(show);
+   assert.equal(result.added.length,29);
+   assert.equal(result.skipped.length,1);
+   assert.ok(!result.skipped.some(item=>item.reason==='BATCH_LIMIT'));
+   const tail=result.skipped.find(item=>item.cueId===show.cues.at(-1).id);
+   assert.equal(tail.reason,'AMBIGUOUS_TRIGGER');
+   assert.equal(tail.conflictsWith,show.cues[0].id);
+  });
+
+test('preparation never borrows future dialogue, another scene or an ambiguous repeated foot',()=>{
+ for(const script of [
+  '(A bell rings.)\nANA: Please open the main door now.',
+  'ANA: Please open the main door now.\nSCENE 2\n(A bell rings.)',
+  'SFX: Please open the main door now.\n(A bell rings.)',
+  'ANA: Go now.\n(A bell rings.)',
+ ]){
+  let show=createNewShow({scriptText:script});
+  show=insertManualCue(show,{label:'Bell'}).project;
+  const line=script.split('\n').findIndex(text=>text==='(A bell rings.)')+1;
+  show.cues[0].sourceLineIds=['L'+line];
+  const result=prepareShowOperationTriggers(show);
+  assert.equal(result.added.length,0,script);
+  assert.equal(result.project.cues[0].trigger,undefined,script);
+  assert.equal(result.skipped[0].reason,'NO_RELIABLE_DIALOGUE');
+ }
+});
 test('bulk audio preserves provenance, excludes linked audio and never creates cues', () => {
   let show = project();
   const before = JSON.stringify(show);

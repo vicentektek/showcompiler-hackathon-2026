@@ -5,7 +5,7 @@
  */
 import {makeProjectVoiceScenario} from '../core/voiceScenario.mjs';
 import {initialRehearsalAutoState,decideRehearsalAutoGo,
- acknowledgeRehearsalAutoGo,discardRehearsalTurn} from '../core/rehearsalAutopilot.mjs';
+ acknowledgeRehearsalAutoGo,discardRehearsalTurn,REHEARSAL_AUTO_POLICY} from '../core/rehearsalAutopilot.mjs';
 
 const $=id=>document.getElementById(id);
 const t=(en,es)=>$('uiLocaleSelect')?.value==='es'?es:en;
@@ -176,7 +176,7 @@ function ready(){
  listening=true;
  const show=currentShow();
  fingerprint=key(show);
- scenario=makeProjectVoiceScenario(show,{maxCues:200});
+ scenario=makeProjectVoiceScenario(show,{maxCues:200,minimumWords:REHEARSAL_AUTO_POLICY.minimumWords});
  disarm('session started');
  renderCueMap();
  log(scenario?t('Loaded cue triggers: ','Pies de voz disponibles: ')+scenario.cues.length:
@@ -197,7 +197,12 @@ function quickStart(){
  pendingQuickArm=auto?{unlocked:unlockAudio(),expires:Date.now()+60000}:null;
  $('rqLiveStart').click();
 }async function finalTurn(detail){
- if(!armed||!listening||busy)return;
+ if(!armed||!listening)return;
+ if(busy){
+  const message=t('Phrase skipped: previous GO is still starting. Repeat after it starts.',
+   'Frase omitida: el GO anterior sigue arrancando. Repite cuando haya empezado.');
+  $('rqLiveCue').textContent=message;log(message);return;
+ }
  if(key(currentShow())!==fingerprint){
   disarm('show changed');
   status('Show changed · autopilot disarmed','Guion cambiado · autopiloto desarmado');
@@ -211,9 +216,20 @@ function quickStart(){
  });
  const a=proposed.action;
  if(a.type!=='FIRE'){
-  if(['AMBIGUOUS','SEEK_TOO_SHORT','LOW_CONFIDENCE'].includes(a.reason)){
-   log(t('Skipped uncertain phrase: ','Frase dudosa ignorada: ')+a.reason);
-  }
+  const messages={
+   TOO_SHORT:t('No GO: use a trigger of at least two words.', 'Sin GO: usa un pie de al menos dos palabras.'),
+   NO_MATCH:t('No GO: phrase does not match a loaded trigger. Check the trigger list below.',
+    'Sin GO: la frase no coincide con un pie cargado. Revisa la lista de pies de abajo.'),
+   AMBIGUOUS:t('No GO: more than one cue matches. Use distinct trigger phrases.',
+    'Sin GO: coincide con varios cues. Usa pies distintos.'),
+   SEEK_TOO_SHORT:t('No GO: short trigger is too far from the rehearsal focus. Set focus closer or use a longer trigger.',
+    'Sin GO: el pie corto está lejos del foco del ensayo. Acerca el foco o usa un pie más largo.'),
+   LOW_CONFIDENCE:t('No GO: uncertain phrase match. Repeat the configured trigger.',
+    'Sin GO: coincidencia poco segura. Repite el pie configurado.'),
+   REPEAT_COOLDOWN:t('No GO: repeat cooldown (2.5 seconds). Repeat after the pause.',
+    'Sin GO: pausa entre repeticiones (2,5 segundos). Repite tras la pausa.'),
+  };
+  if(messages[a.reason]){$('rqLiveCue').textContent=messages[a.reason];log(messages[a.reason]);}
   return;
  }
  // Consume this turn before asynchronous player acknowledgement.

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {makeProjectVoiceScenario} from '../src/core/voiceScenario.mjs';
 import {initialRehearsalAutoState,decideRehearsalAutoGo,acknowledgeRehearsalAutoGo,
  discardRehearsalTurn} from '../src/core/rehearsalAutopilot.mjs';
 const cues=[
@@ -117,4 +118,31 @@ test('English cues and spoken English match as strongly as Spanish',()=>{
   transcript:speech('Listen to the distant thunder coming'),atMs:10000,turnId:1,armed:true});
  assert.equal(result.action.type,'FIRE');
  assert.equal(result.action.score,1);
+});
+
+test('configured two-word trigger survives autopilot loading and fires on an exact nearby final turn',()=>{
+ const project={scriptText:'Opening\nThe stage is quiet\nA low drone',cues:[
+  {id:'short',trigger:'is holding',sourceLineIds:['L3']},
+ ]};
+ const scenario=makeProjectVoiceScenario(project,{minimumWords:2});
+ assert.equal(scenario?.cues.length,1);
+ const state=initialRehearsalAutoState({focusLine:1});
+ const result=choose(state,'Is holding.','short-turn',10000,{cues:scenario.cues});
+ assert.equal(result.action.type,'FIRE');
+ assert.equal(result.action.cueId,'short');
+});
+
+test('two-word triggers require exact whole-turn speech, proximity and uniqueness',()=>{
+ const state=initialRehearsalAutoState({focusLine:1});
+ const short=[{id:'short',lineId:'L3',trigger:'is holding'}];
+ for(const text of ['holding','is hoping','someone is holding','is holding the door']) {
+  assert.equal(choose(state,text,text,10000,{cues:short}).action.type,'NONE');
+ }
+ assert.equal(choose(state,'is holding','far',10000,{cues:[{...short[0],lineId:'L80'}]}).action.reason,'SEEK_TOO_SHORT');
+ assert.equal(choose(state,'is holding','ambiguous',10000,{cues:[...short,{...short[0],id:'other'}]}).action.reason,'AMBIGUOUS');
+ const fired=choose(state,'is holding','one',10000,{cues:short}).action;
+ const after=acknowledgeRehearsalAutoGo(state,fired);
+ assert.equal(choose(after,'is holding','one',14000,{cues:short}).action.reason,'DUPLICATE_TURN');
+ assert.equal(choose(after,'is holding','two',11000,{cues:short}).action.reason,'REPEAT_COOLDOWN');
+ assert.equal(choose(after,'is holding','three',14000,{cues:short}).action.type,'FIRE');
 });
