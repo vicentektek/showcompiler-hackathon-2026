@@ -1,9 +1,17 @@
 # RUNQ — submission readiness checklist
 
+## Publication model
+- [x] Owner chose publicly viewable source with no general open-source reuse license.
+- [x] Verified Cerebral Valley response: public GitHub repository required; no specific license mandated; source-available accepted.
+- [ ] Verify exact rights-holder attribution and third-party notices.
+- [ ] Complete whole-history secret scan and rights clearance; the documentation branch alone is not clearance.
+- [ ] Select clean public submission snapshot versus exposing the full development history.
+- [ ] Owner explicitly approves visibility change after clearance.
+
 ## Repository
 - [ ] Verify final commit SHA, branch and tag.
 - [ ] Confirm README matches the exact submitted version.
-- [ ] Confirm LICENSE and attribution/third-party notices are appropriate.
+- [ ] Confirm all-rights-reserved notice and attribution/third-party notices are appropriate; do not add an OSI license by default.
 - [ ] Check git history and tracked files for secrets and private material.
 - [ ] Verify `.gitignore` excludes local provider logs, generated audio and private scripts.
 - [ ] Ensure the demo build can be started from a clean checkout.
@@ -27,4 +35,4 @@
 - [ ] Confirm all scripts, sounds and screenshots may be shared publicly.
 - [ ] Freeze and tag the final submission commit.
 
-**Do not run paid model requests automatically as part of QA.**
+**Offline release QA must not trigger paid provider requests.** Authorized Meta/Modal live evaluations are separate and must be explicitly invoked. Existing project policy does not impose local Meta/Modal spending caps.
