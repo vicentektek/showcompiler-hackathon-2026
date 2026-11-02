@@ -141,7 +141,7 @@ export function commandDictationMessage(code,language){
   cleanup_failed:['No se pudo cerrar completamente la captura. Revisa el micrófono.','Capture cleanup failed. Check the microphone.'],
   cancelled:['Dictado cancelado. Sin aplicar cambios; un envío iniciado puede tener coste.','Dictation cancelled. No changes applied; an upload already started may incur a charge.'],
   context_changed:['El contexto cambió. Grabación y resultados pendientes descartados.','Context changed. Recording and pending results discarded.'],
-  ready:['Grabación lista. Autoriza y pulsa Transcribir.','Recording ready. Consent and press Transcribe.'],
+  ready:['Grabación lista. Pulsa Transcribir.','Recording ready. Press Transcribe.'],
   insufficient_audio:['No se capturó suficiente voz.','Not enough speech was captured.'],
   unavailable_context:['Detén el audio y selecciona un contexto de diseño editable.','Stop audio and select an editable design context.'],
   microphone_busy:['Otro micrófono está activo. Deténlo primero.','Another microphone is active. Stop it first.'],

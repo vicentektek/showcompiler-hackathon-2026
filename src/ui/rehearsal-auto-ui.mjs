@@ -192,18 +192,7 @@ function quickStart(){
   return;
  }
  const auto=$('rqLiveMode').value==='auto';
- // One dialog covers both the microphone upload and, in autopilot mode, playback.
- if(!confirmedThisSession){
-  confirmedThisSession=window.confirm(auto?t(
-   'REHEARSAL ONLY. This will (1) send your microphone audio to Meta Muse for up to 3 minutes and (2) let recognized cues start SHOW AUDIO automatically. Cues may repeat, rewind or jump. STOP ALL disarms. Continue?',
-   'SOLO ENSAYO. Esto (1) enviará el audio del micrófono a Meta Muse hasta 3 minutos y (2) permitirá que los pies reconocidos disparen AUDIO DEL SHOW automáticamente. Pueden repetirse, retroceder o saltar. PARAR TODO desarma. ¿Continuar?'
-  ):t(
-   'This will send your microphone audio to Meta Muse for up to 3 minutes to suggest cues. Nothing plays automatically. Continue?',
-   'Esto enviará el audio del micrófono a Meta Muse hasta 3 minutos para sugerir cues. Nada se reproduce automáticamente. ¿Continuar?'
-  ));
- }
- if(!confirmedThisSession)return;
- $('rqLiveConsent').checked=true;
+ if(auto&&!confirmAutoPlay())return;
  persistentWarning='';
  pendingQuickArm=auto?{unlocked:unlockAudio(),expires:Date.now()+60000}:null;
  $('rqLiveStart').click();

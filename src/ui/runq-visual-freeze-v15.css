@@ -156,7 +156,7 @@
 .rq-agent-examples .btn,.rq-agent-actions .btn{
  border-radius:5px!important;min-height:30px!important;font-weight:700!important;
 }
-.rq-agent-actions #rqAgentApply,.rq-agent-actions #rqAgentSubmit{
+.rq-agent-actions #rqAgentApply,.rq-agent-actions #rqAgentAskAI{
  background:#676e59!important;border-color:#889175!important;color:#f5faff!important;
 }
 .rq-agent-consent{font-size:11px!important;color:#c5d5e3!important}

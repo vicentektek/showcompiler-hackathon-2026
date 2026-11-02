@@ -12,7 +12,8 @@ export function planShowAudio(project) {
       excluded.push({ cueId: cue.id, reason: 'EXISTING_AUDIO_OR_NON_SOUND_CUE' });
       continue;
     }
-    const brief = cue.actions[0].prompt ?? cue.label;
+    const brief = (cue.actions[0].prompt ?? cue.label).replace(
+      /\b(?:no|without|sin)\s+(?:(?:any|background)\s+)?(?:music|m[uú]sica|song|canci[oó]n|voiceover|narraci[oó]n|speech|dialogue)\b/gi, '');
     if (/\b(music|m[uú]sica|song|canci[oó]n|voiceover|narraci[oó]n|speech|dialogue)\b/i.test(brief)) {
       excluded.push({ cueId: cue.id, reason: 'UNSUPPORTED_SOUND_KIND' });
       continue;
@@ -59,4 +60,14 @@ export function validateAudioBatch(items, policy, confirmed) {
         !Number.isInteger(draft.durationSeconds) || draft.durationSeconds < 1 || draft.durationSeconds > 12)
       throw new Error('BATCH_PROMPT_INVALID');
   }
+
+}
+
+export function limitAudioBatch(items, policy) {
+  validateAudioBatch(items.slice(0, 1), policy, true);
+  const costLimit = Math.floor((policy.dailyBudgetUsd + 1e-9) / policy.estimatedMaxCostUsdPerRequest);
+  const countLimit = Number.isSafeInteger(policy.maxDailyStarts) ? policy.maxDailyStarts : items.length;
+  const selected = items.slice(0, Math.min(costLimit, countLimit));
+  validateAudioBatch(selected, policy, true);
+  return { items: selected, deferred: items.length - selected.length };
 }
