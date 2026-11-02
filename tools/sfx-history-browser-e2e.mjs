@@ -149,7 +149,7 @@ try{
    assert.equal(statusChecks,3,'Explicit tracking discovers completion on its next 5-second check');
    assert.equal(await page.locator('#sfxStopWatchBtn').isDisabled(),true);
    assert.equal(downloads,0,'Status completion never downloads or plays audio automatically');
-   assert.equal(await page.locator('#acceptBtn').isDisabled(),true);
+   assert.equal(await page.locator('#acceptBtn').isEnabled(),true,'Ready takes can be accepted without audition');
    assert.equal((await read()).cueCount,baseline.cueCount);
    assert.equal((await read()).active.length,0);
    completeAt=Infinity;
@@ -184,8 +184,8 @@ try{
   await page.locator('#sfxStopPreviewBtn').click();
   holdAudio=false;releaseAudio();
   await page.waitForFunction(()=>!document.querySelector('#sfxListenBtn')?.disabled);
-  assert.equal(await page.locator('#acceptBtn').isDisabled(),true,
-   'Stopping a pending download cannot count as listening or restart later');
+  assert.equal(await page.locator('#acceptBtn').isEnabled(),true,
+   'Stopping a pending preview does not require listening before explicit acceptance');
   assert.equal(await page.locator('#stopBtn').isDisabled(),true);
   assert.equal(await page.locator('#playBtn').isDisabled(),true);
   await listen.click();
@@ -202,11 +202,11 @@ try{
   assert.equal(downloads,2,'Repeated preview reuses decoded audio');
   assert.equal((await read()).cueCount,baseline.cueCount);
   assert.equal((await read()).active.length,0);
-  // Reloading explicitly clears listening approval before editing this take.
+  // Loading a take enables explicit acceptance without starting playback.
   await page.locator('.sfx-technical-jobs').evaluate(el=>{el.open=true;});
   await page.locator('#loadGeneratedBtn').click();
   await page.waitForFunction(()=>!document.querySelector('#playBtn')?.disabled);
-  assert.equal(await page.locator('#acceptBtn').isDisabled(),true,'Decode is not audition/acceptance');
+  assert.equal(await page.locator('#acceptBtn').isEnabled(),true,'Decode permits acceptance without audition');
   await page.locator('#inPoint').fill('0.05');await page.locator('#inPoint').dispatchEvent('change');
   const end=Math.min(0.8,job.wav.durationSeconds*0.8);
   await page.locator('#outPoint').fill(String(end));await page.locator('#outPoint').dispatchEvent('change');
@@ -217,6 +217,14 @@ try{
   await page.locator('#stopBtn').click();
   await page.locator('#acceptBtn').click();
   await page.waitForFunction(()=>!document.querySelector('#importCueBtn')?.disabled);
+  await listen.click();
+  await page.locator('#importLibraryBtn').click();
+  await page.waitForFunction(()=>{
+   let s;document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:v=>{s=v;}}}));
+   return s.assets.length===1&&s.assets[0].ready;
+  });
+  assert.equal((await read()).cueCount,0,'Saving a previewing take to the library must not create a cue');
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
   if(captures)await page.screenshot({path:path.join(captures,'sfx-history-'+locale+'-after.png'),animations:'disabled'});
   await page.locator('#importCueBtn').click();
   await page.waitForFunction(()=>{
@@ -224,10 +232,25 @@ try{
    return s.cueCount===1&&s.assets.length===1&&s.assets[0].ready;
   });
   const imported=await read();
+  assert.equal(imported.assets.length,1,'Creating a cue from a saved generated take reuses the verified asset');
   assert.deepEqual(imported.cues[0].sourceLineIds,[],
    'A past take cannot claim a matching L# in an unrelated script');
   assert.equal(imported.active.length,0,'Manual import/create still cannot GO');
   assert.equal(imported.preparedCueId,baseline.preparedCueId,'Cue creation must not advance prepared GO');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  await page.locator('#rq10TargetCue').selectOption(imported.cues[0].id);
+  await listen.click();
+  await page.locator('#importAssignCueBtn').click();
+  await page.waitForFunction(()=>{
+   let s;document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:v=>{s=v;}}}));
+   return s.workspace==='cues';
+  });
+  const reassigned=await read();
+  assert.equal(reassigned.assets.length,1,'Assigning a saved take reuses the verified library asset');
+  assert.equal(reassigned.cueCount,1,'Assignment cannot create another cue');
+  assert.equal(reassigned.preparedCueId,baseline.preparedCueId,'Assignment during preview cannot prepare GO');
+  assert.equal(reassigned.active.length,0);
   await page.locator('[data-cue-quick-next="'+imported.cues[0].id+'"]').click();
   assert.equal((await read()).active.length,0,'Explicit NEXT preparation is silent');
   await page.locator('#operatorGoBtn').click();
