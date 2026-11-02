@@ -391,3 +391,38 @@ test('SFX_DAILY_LIMIT appears only at the configured effective limit and status 
   assert.equal(over.status,429);
   assert.equal((await over.json()).code,'SFX_DAILY_LIMIT');
 });
+
+test('unlimited journal accepts null estimates, skips daily gates and keeps the shared directory',async t=>{
+  const {defaultSfxStoreDirectory}=await import('../tools/sfxRoutes.mjs');
+  assert.match(defaultSfxStoreDirectory(),/shared-modal-jobs-v1$/);
+  const directory=await mkdtemp(join(tmpdir(),'runq-sfx-unlimited-'));
+  t.after(()=>rm(directory,{recursive:true,force:true}));
+  const store=createSfxJobStore({directory,budgetLimitsDisabled:true});
+  assert.equal(store.budgetLimitsDisabled,true);
+  assert.equal(store.maxDailyStarts,null);
+  const history=[];
+  for(let n=0;n<30;n++){
+    const id='unlimited-'+n;
+    const job=await store.reserve({
+      requestId:id,authorizationId:'auth-'+id,sourceLineId:'L1',kind:'SFX',
+      prompt:'Bell',durationSeconds:2,modelCandidate:model,modelRevision,
+      seed:42,
+    },{confirm:true});
+    history.push(job);
+    await store.update(id,'QUEUED',{remoteJobId:'remote-'+n});
+    await store.update(id,'FAILED');
+  }
+  assert.equal((await store.list()).jobs.length,30);
+  assert.ok(history.every(job=>job.cost.estimatedMaxCostUsd===null));
+  const summary=await store.journalSummary();
+  assert.equal(summary.total,30);
+  assert.equal(summary.active,0);
+  assert.equal(summary.counts.FAILED,30);
+  // Historical bounded entries stay readable in the same journal.
+  const bounded=createSfxJobStore({directory:await mkdtemp(join(tmpdir(),'runq-sfx-bounded-')),maxDailyStarts:10});
+  const kept=await bounded.reserve(storeRequest({
+    requestId:'old-1',authorizationId:'auth-old-1',sourceLineId:'L1',
+    modelCandidate:model,kind:'SFX',prompt:'Rain',durationSeconds:1,seed:0,
+  }),{confirm:true});
+  assert.equal(kept.cost.estimatedMaxCostUsd,0.04);
+});

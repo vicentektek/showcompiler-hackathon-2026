@@ -16,6 +16,16 @@ export const SFX_BATCH_PHASES = Object.freeze([
 
 const READY_STATUSES = new Set(['READY_FOR_REVIEW', 'ACCEPTED_FOR_MANUAL_IMPORT']);
 const ACTIVE_STATUSES = new Set(['QUEUED', 'RUNNING', 'CANCEL_REQUESTED']);
+// Foreground tracking budget only: how long runSfxBatch polls an active job
+// before returning it as GENERATING for later resumption. It is never a
+// remote timeout and never marks the job FAILED. The server allows a single
+// simultaneous job, so a still-generating job (SUBMITTED/QUEUED/RUNNING)
+// must block any new POST. CANCEL_REQUESTED stays reconciled through its own
+// record but does not block a fresh cue: the remote cancellation is already
+// acknowledged and the slot resolves without another generation for it.
+export const SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS = 120_000;
+const BLOCKING_STATUSES = new Set(['SUBMITTED', 'QUEUED', 'RUNNING']);
+const RECOVERABLE_STATUSES = new Set(['SUBMITTED', 'QUEUED', 'RUNNING', 'CANCEL_REQUESTED']);
 const UNCERTAIN_STATUSES = new Set(['SUBMISSION_UNKNOWN', 'UNKNOWN']);
 const RETRYABLE_RECORD_STATUSES = new Set(['FAILED', 'CANCELLED', 'REJECTED']);
 const KNOWN_STATUSES = new Set([
@@ -359,11 +369,14 @@ function assertTransport(transport) {
  * it leaves the record GENERATING and resumable; it is not a remote timeout.
  * The only operations ever repeated are read/refresh calls. A start is issued
  * once per newly-created record and never for a live or uncertain requestId.
+ * While a blocking job (SUBMITTED/QUEUED/RUNNING/CANCEL_REQUESTED) remains
+ * active, no new POST is issued: the batch keeps reconciling that job instead
+ * of provoking SFX_ACTIVE_LIMIT on a single-slot server.
  */
 export async function runSfxBatch({
   items = [], records = [], transport, createRequestIds,
   signal, assertCurrent = () => {}, onChange = () => {},
-  pollIntervalMs = 2_000, activeTrackingMs = Number.POSITIVE_INFINITY,
+  pollIntervalMs = 2_000, activeTrackingMs = SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS,
   busyRetryMs = 1_000, maxBusyRetries = 5,
   sleep = defaultSleep, now = () => Date.now(),
 } = {}) {
@@ -372,7 +385,8 @@ export async function runSfxBatch({
     throw new TypeError('SFX batch requires an explicit request authorization factory');
   }
   if (!Number.isFinite(pollIntervalMs) || pollIntervalMs < 0 ||
-      !(activeTrackingMs > 0) || !Number.isFinite(busyRetryMs) || busyRetryMs < 0 ||
+      !Number.isFinite(activeTrackingMs) || !(activeTrackingMs > 0) ||
+      !Number.isFinite(busyRetryMs) || busyRetryMs < 0 ||
       !Number.isSafeInteger(maxBusyRetries) || maxBusyRetries < 0) {
     throw new RangeError('Invalid SFX batch tracking settings');
   }
@@ -432,18 +446,48 @@ export async function runSfxBatch({
     return currentRecord;
   }
 
+  const finalize = () => {
+    const state = batch.snapshot();
+    return Object.freeze({
+      records: state.records, summary: state.summary, stopped,
+    });
+  };
+
   try {
-    // Recovery pass first: never authorize a cue that already owns a job.
+    // Recovery first: reconcile every live record before authorizing anything
+    // new. Recovery never creates an authorization or POST.
     for (const item of items) {
       check();
       const existing = batch.recordFor(item);
-      if (existing) {
-        if (ACTIVE_STATUSES.has(existing.status) || existing.status === 'SUBMITTED') {
-          const local = await transport.read(existing.requestId);
-          if (!local || local.requestId !== existing.requestId) throw new Error('SFX_IDENTITY');
-          const reconciled = batch.applyJobUpdate(local);
-          if (!reconciled.ignored) publish();
-          await track(reconciled.record ?? existing);
+      if (!existing) continue;
+      if (ACTIVE_STATUSES.has(existing.status) || existing.status === 'SUBMITTED') {
+        const local = await transport.read(existing.requestId);
+        if (!local || local.requestId !== existing.requestId) throw new Error('SFX_IDENTITY');
+        const reconciled = batch.applyJobUpdate(local);
+        if (!reconciled.ignored) publish();
+        await track(reconciled.record ?? existing);
+      }
+    }
+    // Serial submission: with a single-slot server, a still-generating job must
+    // never be followed by a new POST. Re-check the durable batch state (not
+    // a stale local variable): if cue 1 is still SUBMITTED/QUEUED/RUNNING,
+    // cue 2 waits for a later run instead of hitting SFX_ACTIVE_LIMIT.
+    // CANCEL_REQUESTED is reconciled through its own record but never blocks
+    // a fresh cue.
+    for (const item of items) {
+      check();
+      if (batch.recordFor(item)) continue;
+      const blocking = batch.records.find(record => BLOCKING_STATUSES.has(record.status));
+      if (blocking) {
+        const refreshed = await transport.read(blocking.requestId);
+        if (!refreshed || refreshed.requestId !== blocking.requestId) throw new Error('SFX_IDENTITY');
+        const reconciled = batch.applyJobUpdate(refreshed);
+        if (!reconciled.ignored) publish();
+        const current = reconciled.record ?? blocking;
+        if (BLOCKING_STATUSES.has(current.status)) {
+          await track(current);
+          const latest = batch.records.find(record => record.requestId === current.requestId);
+          if (latest && BLOCKING_STATUSES.has(latest.status)) return finalize();
         }
         continue;
       }
@@ -476,8 +520,5 @@ export async function runSfxBatch({
     if (errorCode(error) === 'PREPARATION_CANCELLED' || signal?.aborted) stopped = true;
     else throw error;
   }
-  const state = batch.snapshot();
-  return Object.freeze({
-    records: state.records, summary: state.summary, stopped,
-  });
+  return finalize();
 }

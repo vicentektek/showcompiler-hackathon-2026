@@ -26,8 +26,15 @@ directo, la asignación manual ni realiza despliegues o llamadas de proveedor.
   `POST /api/sfx/jobs`.
 - La recuperación lee el trabajo local y, solo si sigue activo, llama a
   `refresh` con el mismo `requestId`.
-- Superar el presupuesto de seguimiento en primer plano no declara fallido
-  el trabajo remoto; queda `GENERATING` y recuperable.
+- El presupuesto de seguimiento en primer plano es finito
+  (`SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS`, 120 s): agotarlo deja el trabajo
+  `GENERATING` y reanudable, nunca `FAILED`, y bloquea cualquier nuevo `POST`
+  mientras el trabajo siga en `SUBMITTED`/`QUEUED`/`RUNNING` en un servidor de
+  un solo hueco (evita `SFX_ACTIVE_LIMIT`). `showAudioPlan` reconcilia el
+  trabajo activo (solo lectura local, sin `refresh`) antes de planificar, y el
+  modo reanudación gana sobre cues nuevos mientras exista ese bloqueo.
+  `CANCEL_REQUESTED` se reconcilia por su propio registro pero nunca bloquea
+  un cue nuevo.
 - Un `FAILED` remoto queda aislado en su cue y los siguientes continúan.
 - Límites diarios, presupuesto, campaña, duplicado, trabajo activo o falta de
   configuración detienen nuevos envíos; el trabajo anterior se conserva.

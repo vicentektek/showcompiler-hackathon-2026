@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SFX_BATCH_PHASES,
+  SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS,
   createSfxBatch,
   normalizeBatchRecords,
   reconcileRecoveredRecords,
@@ -133,6 +134,63 @@ test('global provider limits stop new submissions without hiding completed work'
   assert.deepEqual(calls.starts.map(call => call.item.cueId), ['cue-1', 'cue-2']);
 });
 
+test('default tracking budget is finite (120s) and exhausting it never fails the remote job', async () => {
+  assert.equal(SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS, 120_000);
+  await assert.rejects(runSfxBatch({
+    items: items(1), transport: transport().api,
+    createRequestIds: () => ({ requestId: 'x', authorizationId: 'y' }),
+    activeTrackingMs: Number.POSITIVE_INFINITY,
+    pollIntervalMs: 0, sleep: async () => {}, now: () => 0,
+  }), /Invalid SFX batch tracking settings/);
+});
+
+test('cue 1 RUNNING past 120s blocks cue 2 POST on a single-slot server', async () => {
+  let clock = 0;
+  const { api, calls } = transport({
+    refresh: () => ({ status: 'RUNNING' }),
+    read: () => ({ status: 'RUNNING' }),
+  });
+  const result = await runSfxBatch({
+    items: items(2), transport: api,
+    createRequestIds: item => ({
+      requestId: 'req-' + item.cueId, authorizationId: 'auth-' + item.cueId,
+    }),
+    pollIntervalMs: 30_000,
+    now: () => clock, sleep: async milliseconds => { clock += milliseconds; },
+  });
+  assert.equal(result.records.length, 1);
+  assert.equal(result.records[0].cueId, 'cue-1');
+  assert.equal(result.records[0].phase, 'GENERATING');
+  assert.equal(result.summary.generating, 1);
+  assert.equal(calls.starts.length, 1);
+  assert.equal(calls.starts[0].item.cueId, 'cue-1');
+  assert.ok(clock >= SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS);
+});
+
+test('reload with cue 1 active and cue 2 unsent reconciles first without a new POST', async () => {
+  const saved = normalizeBatchRecords([{
+    cueId: 'cue-1', cueIdentity: 'identity-1', requestId: 'req-reload-1',
+    status: 'RUNNING', submittedAt: 0, lastCheckedAt: 0,
+  }]);
+  const { api, calls } = transport({
+    read: () => ({ status: 'RUNNING' }),
+    refresh: () => ({ status: 'RUNNING' }),
+  });
+  let clock = 0;
+  const result = await runSfxBatch({
+    items: items(2), records: saved, transport: api,
+    createRequestIds: () => { throw new Error('must not authorize while cue 1 is active'); },
+    pollIntervalMs: 30_000,
+    now: () => clock, sleep: async milliseconds => { clock += milliseconds; },
+  });
+  assert.equal(result.records.length, 1);
+  assert.equal(result.records[0].requestId, 'req-reload-1');
+  assert.equal(result.records[0].phase, 'GENERATING');
+  assert.deepEqual(calls.reads, ['req-reload-1', 'req-reload-1']);
+  assert.equal(calls.starts.length, 0);
+  assert.ok(clock >= SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS);
+});
+
 test('remote work older than 120 seconds remains generating, not failed', async () => {
   let clock = 0;
   const { api, calls } = transport({
@@ -150,6 +208,102 @@ test('remote work older than 120 seconds remains generating, not failed', async 
   assert.ok(clock > 120_000);
   assert.equal(calls.starts.length, 1);
   assert.ok(calls.refreshes.length >= 4);
+});
+
+test('transient refresh error followed by recovery keeps the cue resumable', async () => {
+  let reads = 0;
+  const { api, calls } = transport({
+    read: () => { reads += 1; return { status: 'RUNNING' }; },
+  });
+  let refreshes = 0;
+  api.refresh = async requestId => {
+    refreshes += 1;
+    calls.refreshes.push(requestId);
+    if (refreshes === 1) {
+      const error = new Error('offline');
+      error.code = 'NETWORK';
+      throw error;
+    }
+    return { requestId, status: 'READY_FOR_REVIEW' };
+  };
+  const saved = normalizeBatchRecords([{
+    cueId: 'cue-1', cueIdentity: 'identity-1', requestId: 'req-flaky-1',
+    status: 'RUNNING', submittedAt: 0, lastCheckedAt: 0,
+  }]);
+  const result = await runSfxBatch({
+    items: items(1), records: saved, transport: api,
+    createRequestIds: () => { throw new Error('must not authorize a duplicate'); },
+    pollIntervalMs: 0, busyRetryMs: 0, maxBusyRetries: 0,
+    sleep: async () => {}, now: () => 0,
+  });
+  assert.equal(result.records[0].phase, 'GENERATING');
+  assert.equal(result.records[0].lastErrorCode, 'NETWORK');
+  assert.equal(calls.starts.length, 0);
+  const recovered = await runSfxBatch({
+    items: items(1), records: result.records, transport: api,
+    createRequestIds: () => { throw new Error('must not authorize a duplicate'); },
+    pollIntervalMs: 0, sleep: async () => {}, now: () => 1,
+  });
+  assert.equal(recovered.records[0].phase, 'READY');
+  assert.equal(calls.starts.length, 0);
+  assert.ok(reads >= 2);
+});
+
+test('no second POST is emitted while a blocking job exists', async () => {
+  const { api, calls } = transport({
+    read: () => ({ status: 'QUEUED' }),
+    refresh: () => ({ status: 'RUNNING' }),
+  });
+  const saved = normalizeBatchRecords([{
+    cueId: 'cue-1', cueIdentity: 'identity-1', requestId: 'req-block-1',
+    status: 'QUEUED', submittedAt: 0, lastCheckedAt: 0,
+  }]);
+  let clock = 0;
+  const result = await runSfxBatch({
+    items: items(2), records: saved, transport: api,
+    createRequestIds: () => { throw new Error('cue 2 must not be authorized'); },
+    pollIntervalMs: 30_000,
+    now: () => clock, sleep: async milliseconds => { clock += milliseconds; },
+  });
+  assert.ok(result.records.every(record => record.requestId === 'req-block-1'));
+  assert.equal(calls.starts.length, 0);
+  assert.ok(calls.reads.length >= 1);
+  assert.ok(calls.reads.every(id => id === 'req-block-1'));
+  assert.ok(clock >= SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS);
+});
+
+test('batch resumes correctly after the previous job finishes', async () => {
+  const { api, calls } = transport({
+    read: () => ({ status: 'RUNNING' }),
+    refresh: () => ({ status: 'RUNNING' }),
+  });
+  let clock = 0;
+  const first = await runSfxBatch({
+    items: items(2), transport: api,
+    createRequestIds: item => ({
+      requestId: 'req-' + item.cueId, authorizationId: 'auth-' + item.cueId,
+    }),
+    pollIntervalMs: 30_000,
+    now: () => clock, sleep: async milliseconds => { clock += milliseconds; },
+  });
+  assert.equal(first.records.length, 1);
+  assert.equal(first.records[0].cueId, 'cue-1');
+  assert.equal(first.records[0].phase, 'GENERATING');
+  assert.equal(calls.starts.length, 1);
+  api.refresh = async requestId => {
+    calls.refreshes.push(requestId);
+    return { requestId, status: 'READY_FOR_REVIEW' };
+  };
+  const resumed = await runSfxBatch({
+    items: items(2), records: first.records, transport: api,
+    createRequestIds: item => ({
+      requestId: 'req-' + item.cueId, authorizationId: 'auth-' + item.cueId,
+    }),
+    pollIntervalMs: 0, sleep: async () => {}, now: () => clock,
+  });
+  assert.deepEqual(resumed.records.map(record => record.phase), ['READY', 'READY']);
+  assert.equal(calls.starts.length, 2);
+  assert.deepEqual(calls.starts.map(call => call.item.cueId), ['cue-1', 'cue-2']);
 });
 
 test('tracking timeout leaves the job resumable by requestId without resubmission', async () => {

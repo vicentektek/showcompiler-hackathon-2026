@@ -65,12 +65,12 @@ export async function runPreparationQueue(items, {
 
 export function validateAudioBatch(items, policy, confirmed) {
   if (!confirmed || !items.length || policy.enabled !== true ||
-      !Number.isFinite(policy.estimatedMaxCostUsdPerRequest) ||
+      (policy.budgetLimitsDisabled !== true && (!Number.isFinite(policy.estimatedMaxCostUsdPerRequest) ||
       policy.estimatedMaxCostUsdPerRequest <= 0 ||
-      !Number.isFinite(policy.dailyBudgetUsd) || policy.dailyBudgetUsd <= 0)
+      !Number.isFinite(policy.dailyBudgetUsd) || policy.dailyBudgetUsd <= 0)))
     throw new Error('BATCH_AUTHORIZATION_REQUIRED');
-  if (items.length * policy.estimatedMaxCostUsdPerRequest > policy.dailyBudgetUsd + 1e-9 ||
-      (Number.isSafeInteger(policy.maxDailyStarts) && items.length > policy.maxDailyStarts))
+  if (policy.budgetLimitsDisabled !== true && (items.length * policy.estimatedMaxCostUsdPerRequest > policy.dailyBudgetUsd + 1e-9 ||
+      (Number.isSafeInteger(policy.maxDailyStarts) && items.length > policy.maxDailyStarts)))
     throw new Error('BATCH_EXCEEDS_DAILY_CEILING');
   for (const { draft } of items) {
     if (!['SFX', 'ENVIRONMENT'].includes(draft.kind) || typeof draft.prompt !== 'string' ||
@@ -83,6 +83,10 @@ export function validateAudioBatch(items, policy, confirmed) {
 
 export function limitAudioBatch(items, policy) {
   validateAudioBatch(items.slice(0, 1), policy, true);
+  if (policy.budgetLimitsDisabled === true) {
+    validateAudioBatch(items, policy, true);
+    return { items, deferred: 0 };
+  }
   const costLimit = Math.floor((policy.dailyBudgetUsd + 1e-9) / policy.estimatedMaxCostUsdPerRequest);
   const countLimit = Number.isSafeInteger(policy.maxDailyStarts) ? policy.maxDailyStarts : items.length;
   const selected = items.slice(0, Math.min(costLimit, countLimit));

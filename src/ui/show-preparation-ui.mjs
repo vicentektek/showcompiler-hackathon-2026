@@ -1,6 +1,7 @@
 import { planShowAudio, cueSoundIdentity, runPreparationQueue, limitAudioBatch } from '../core/showPreparation.mjs';
 import {
   normalizeBatchRecords, reconcileRecoveredRecords, runSfxBatch,
+  SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS,
 } from '../core/sfxBatch.mjs';
 import { showBuilderProjectKey } from '../core/showBuilder.mjs';
 import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
@@ -187,9 +188,29 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       !['FAILED', 'CANCELLED', 'REJECTED'].includes(r.status)));
   // The batch button also resumes tracking for live records. runSfxBatch
   // distinguishes them by requestId and never creates a second submission.
-  const resumable = state => planShowAudio(state.project).items.some(item =>
-    records.some(r => r.cueId === item.cueId && r.cueIdentity === item.cueIdentity &&
-      ['SUBMITTED', 'QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(r.status)));
+  // A still-generating record (SUBMITTED/QUEUED/RUNNING) always wins over a
+  // fresh cue: showAudioPlan reconciles it first so the next POST never races
+  // a single-slot server into SFX_ACTIVE_LIMIT. CANCEL_REQUESTED is
+  // reconciled through its own record but never blocks a fresh cue.
+  const BLOCKING = new Set(['SUBMITTED', 'QUEUED', 'RUNNING']);
+  const RECOVERABLE = new Set(['SUBMITTED', 'QUEUED', 'RUNNING', 'CANCEL_REQUESTED']);
+  const resumable = state => recoverableRecord(state) !== null;
+  const recoverableRecord = state => {
+    for (const item of planShowAudio(state.project).items) {
+      const live = records.find(r => r.cueId === item.cueId && r.cueIdentity === item.cueIdentity &&
+        RECOVERABLE.has(r.status));
+      if (live) return live;
+    }
+    return null;
+  };
+  const blockingRecord = state => {
+    for (const item of planShowAudio(state.project).items) {
+      const live = records.find(r => r.cueId === item.cueId && r.cueIdentity === item.cueIdentity &&
+        BLOCKING.has(r.status));
+      if (live) return live;
+    }
+    return null;
+  };
   const recordStatus = record => ({
     SUBMITTED: tr('Enviada', 'Submitted'),
     UNKNOWN: tr('Sin confirmar: consulta el historial', 'Unconfirmed: check history'),
@@ -391,8 +412,37 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
         settings.estimatedMaxCostUsdPerRequest <= 0 || !Number.isFinite(settings.dailyBudgetUsd))
       throw new Error('SFX_NOT_CONFIGURED');
     const plan = planShowAudio(planState.project);
+    // Reconcile-then-plan: when a still-generating job (SUBMITTED/QUEUED/
+    // RUNNING) and fresh cues coexist, the active job is reconciled first and
+    // resume-only mode wins, so no new POST races a single-slot server into
+    // SFX_ACTIVE_LIMIT. CANCEL_REQUESTED never blocks fresh cues.
+    const blocking = blockingRecord(planState);
+    const live = blocking ?? recoverableRecord(planState);
+    if (live) {
+      // Best-effort local read only (no refresh here): confirm the active
+      // record still exists under the same identity so resume-only mode wins
+      // over fresh cues. Full read+refresh tracking happens in runSfxBatch;
+      // refreshing here would complete the job before explicit cancel/stop
+      // flows and break their offline expectations.
+      try {
+        const scope = {
+          projectId: planState.project.id, projectGeneration: planState.generation,
+          cueId: live.cueId, cueIdentity: live.cueIdentity, requestId: live.requestId,
+        };
+        const local = await request('/jobs/' + encodeURIComponent(live.requestId));
+        if (local && local.requestId === live.requestId) {
+          const reconciled = reconcileRecoveredRecords(records, [{
+            ...local, projectId: scope.projectId, projectGeneration: scope.projectGeneration,
+            cueId: scope.cueId, cueIdentity: scope.cueIdentity,
+          }], Object.freeze(scope));
+          syncRecords(reconciled.records);
+        }
+      } catch { /* Reconciliation is best-effort here; runSfxBatch re-reads. */ }
+      if (revision !== cancelRevision) throw new Error('PREPARATION_CANCELLED');
+      assertEditable();
+    }
     const fresh = eligible(planState);
-    const resumeOnly = fresh.length === 0 && resumable(planState);
+    const resumeOnly = blockingRecord(planState) !== null;
     const items = resumeOnly ? plan.items.filter(item => records.some(r =>
       r.cueId === item.cueId && r.cueIdentity === item.cueIdentity &&
       ['SUBMITTED', 'QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(r.status))) : fresh;
@@ -526,6 +576,9 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       const result = await runSfxBatch({
         items, records, transport: batchTransport(signal), signal,
         assertCurrent: assertEditable,
+        // Bounded foreground tracking: a still-active job stays GENERATING
+        // (never FAILED) and blocks any new POST on a single-slot server.
+        activeTrackingMs: SFX_BATCH_DEFAULT_ACTIVE_TRACKING_MS,
         createRequestIds: () => ({
           requestId: 'req-' + crypto.randomUUID(),
           authorizationId: 'auth-' + crypto.randomUUID(),
