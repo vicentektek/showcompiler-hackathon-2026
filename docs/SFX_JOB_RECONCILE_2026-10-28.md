@@ -22,7 +22,11 @@ de modo que un registro local puede quedarse atrapado en `CANCEL_REQUESTED`
   `--request-id`, `--evidence-file` (artefacto con logs del CLI Modal leído
   solo fuera de Band), `--verified-at`, `--verified-by`, `--note`,
   `--execute` (sin `--execute` = dry-run). Añade una línea al
-  `.runq-local/sfx-generation/audit/journal-audit.jsonl`.
+  `journal-audit.jsonl` situado bajo el directorio real del journal. Desde la
+  corrección P0 de recuperación SFX, ese directorio por defecto es el mismo
+  `shared-modal-jobs-v1` usado por `tools/sfxRoutes.mjs` (junto al ledger
+  global por usuario), no el antiguo `.runq-local/sfx-generation`; puede
+  seguir sobrescribiéndose con `--store-dir`.
 - Garantías conservadas: sin borrado; `409` No es cancelación; el registro
   reconciliado sigue contando para la cuota diaria (`startsToday`) y el
   presupuesto estimado; el WAV nunca existe en un trabajo cancelado.

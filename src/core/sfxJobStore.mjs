@@ -69,8 +69,21 @@ function usdFromMicros(micros) {
   return Number((micros / USD_SCALE).toFixed(6));
 }
 
-/** Canonical, bounded USD policy shared by status, route acknowledgement and journal. */
+/** Canonical USD policy shared by status, route acknowledgement and journal.
+ * With budgetLimitsDisabled (owner override 2026-11-02 for manual testing,
+ * demo and CLI batteries) monetary and daily gates are disabled; estimates
+ * may be null and history is preserved. Bounded mode keeps the historical
+ * ceilings and exact acknowledgement. */
 export function normalizeSfxCostPolicy(value = {}, { requireAcknowledgement = false } = {}) {
+  if (value.budgetLimitsDisabled === true) {
+    const estimate = Number.isFinite(value.estimatedMaxCostUsdPerRequest) &&
+      value.estimatedMaxCostUsdPerRequest > 0 ? value.estimatedMaxCostUsdPerRequest : null;
+    return Object.freeze({ budgetLimitsDisabled: true,
+      estimatedMaxCostUsdPerRequest: estimate, dailyBudgetUsd: null,
+      acknowledgedMaxCostUsd: null,
+      estimateMicros: estimate === null ? null : Math.round(estimate * USD_SCALE),
+      budgetMicros: null });
+  }
   const estimateMicros = usdMicros(
     value.estimatedMaxCostUsdPerRequest,
     'estimated SFX maximum cost',
@@ -138,7 +151,21 @@ function validateStoredCost(cost) {
       cost.actualBillingStatus !== 'UNKNOWN') {
     throw new Error('Invalid persisted SFX cost metadata');
   }
+  // Historical journals predate the unlimited mode and the bounded schema:
+  // entries without cost, or unlimited-mode entries with a null estimate,
+  // must remain readable. Only bounded entries require exact acknowledgement.
+  if (cost.budgetLimitsDisabled === true) {
+    if (!(cost.estimatedMaxCostUsd === null || (Number.isFinite(cost.estimatedMaxCostUsd) &&
+        cost.estimatedMaxCostUsd >= 0))) {
+      throw new Error('Invalid persisted SFX cost metadata');
+    }
+    return normalizeSfxCostPolicy({
+      budgetLimitsDisabled: true,
+      estimatedMaxCostUsdPerRequest: cost.estimatedMaxCostUsd ?? undefined,
+    });
+  }
   return normalizeSfxCostPolicy({
+    budgetLimitsDisabled: false,
     estimatedMaxCostUsdPerRequest: cost.estimatedMaxCostUsd,
     dailyBudgetUsd: cost.dailyBudgetUsdAtReservation,
     acknowledgedMaxCostUsd: cost.operatorAcknowledgedMaxCostUsd,
@@ -199,9 +226,32 @@ function validateReconciliation(record) {
   }
 }
 
+export function summarizeSfxJournal(entries = []) {
+  if (!Array.isArray(entries)) throw new TypeError('Invalid SFX journal summary');
+  const counts = {};
+  let active = 0;
+  for (const entry of entries) {
+    // Aggregate diagnostics intentionally need only durable status fields.
+    // They must stay compatible with historical journal entries whose cost
+    // metadata predates the current bounded-cost schema; never inspect,
+    // serialize or expose prompts, provenance or billing fields here.
+    if (!entry || entry.version !== 1 || !STATES.has(entry.status)) {
+      throw new Error('Invalid persisted SFX journal');
+    }
+    counts[entry.status] = (counts[entry.status] ?? 0) + 1;
+    if (ACTIVE.has(entry.status)) active += 1;
+  }
+  return Object.freeze({
+    total: entries.length,
+    active,
+    counts: Object.freeze(counts),
+  });
+}
+
 export function createSfxJobStore({
   directory,
   maxDailyStarts = 3,
+  budgetLimitsDisabled = false,
   supervisedQaCampaign = false,
   clock = () => new Date(),
 } = {}) {
@@ -210,6 +260,7 @@ export function createSfxJobStore({
     : SFX_STANDARD_DAILY_START_CEILING;
   if (typeof directory !== 'string' || !directory.trim() ||
       typeof supervisedQaCampaign !== 'boolean' ||
+      typeof budgetLimitsDisabled !== 'boolean' ||
       !Number.isSafeInteger(maxDailyStarts) || maxDailyStarts < 1 ||
       maxDailyStarts > dailyStartCeiling) {
     throw new TypeError('Invalid SFX journal configuration');
@@ -269,6 +320,16 @@ export function createSfxJobStore({
     });
   }
 
+  async function journalSummary() {
+    await dir();
+    const entries = [];
+    for (const name of await readdir(root)) {
+      if (!/^job-[a-f0-9]{64}\.json$/.test(name)) continue;
+      entries.push(JSON.parse(await readFile(join(root, name), 'utf8')));
+    }
+    return summarizeSfxJournal(entries);
+  }
+
   async function atomicWrite(entry) {
     const target = pathFor(entry.requestId);
     const temp = target + '.' + randomUUID() + '.tmp';
@@ -288,8 +349,9 @@ export function createSfxJobStore({
       ? null : sourceLineId;
     const revision = normalizeSfxModelRevision(modelRevision);
     const costPolicy = normalizeSfxCostPolicy({
+      budgetLimitsDisabled: budgetLimitsDisabled === true,
       estimatedMaxCostUsdPerRequest, dailyBudgetUsd, acknowledgedMaxCostUsd,
-    }, { requireAcknowledgement: true });
+    }, { requireAcknowledgement: budgetLimitsDisabled !== true });
     if (confirm !== true || !(sourceReference === null || LINE.test(sourceReference)) ||
         !['SFX','ENVIRONMENT'].includes(kind) ||
         modelCandidate !== 'stabilityai/stable-audio-3-small-sfx' ||
@@ -320,12 +382,14 @@ export function createSfxJobStore({
         }
         if (entry.createdAt.slice(0, 10) === today) {
           startsToday++;
-          if (!entry.cost) {
-            const error = new Error('Existing SFX cost is unknown');
-            error.code = 'SFX_BUDGET_UNKNOWN';
-            throw error;
+          if (!budgetLimitsDisabled) {
+            if (!entry.cost) {
+              const error = new Error('Existing SFX cost is unknown');
+              error.code = 'SFX_BUDGET_UNKNOWN';
+              throw error;
+            }
+            estimatedMicrosToday += validateStoredCost(entry.cost).estimateMicros ?? 0;
           }
-          estimatedMicrosToday += validateStoredCost(entry.cost).estimateMicros;
         }
         if (ACTIVE.has(entry.status)) activeStarts++;
       }
@@ -334,12 +398,13 @@ export function createSfxJobStore({
         error.code = 'SFX_ACTIVE_LIMIT';
         throw error;
       }
-      if (startsToday >= maxDailyStarts) {
+      if (!budgetLimitsDisabled && startsToday >= maxDailyStarts) {
         const error = new Error('SFX daily quota reached');
         error.code = 'SFX_DAILY_LIMIT';
         throw error;
       }
-      if (estimatedMicrosToday + costPolicy.estimateMicros > costPolicy.budgetMicros) {
+      if (!budgetLimitsDisabled &&
+          estimatedMicrosToday + costPolicy.estimateMicros > costPolicy.budgetMicros) {
         const error = new Error('SFX daily cost budget reached');
         error.code = 'SFX_DAILY_BUDGET';
         throw error;
@@ -352,6 +417,7 @@ export function createSfxJobStore({
         createdAt: now, updatedAt: now, remoteJobId: null, wav: null,
         cost: {
           currency: 'USD',
+          ...(budgetLimitsDisabled ? { budgetLimitsDisabled: true } : {}),
           estimatedMaxCostUsd: costPolicy.estimatedMaxCostUsdPerRequest,
           dailyBudgetUsdAtReservation: costPolicy.dailyBudgetUsd,
           operatorAcknowledgedMaxCostUsd: costPolicy.acknowledgedMaxCostUsd,
@@ -525,8 +591,10 @@ export function createSfxJobStore({
   }
 
   return Object.freeze({
-    reserve, update, read, list, publicView, storeWav, wavBytes, reconcileCancelled,
-    maxDailyStarts,
+    reserve, update, read, list, journalSummary, publicView, storeWav, wavBytes,
+    reconcileCancelled,
+    budgetLimitsDisabled: budgetLimitsDisabled === true,
+    maxDailyStarts: budgetLimitsDisabled === true ? null : maxDailyStarts,
     supervisedQaCampaign: supervisedQaCampaign === true,
   });
 }

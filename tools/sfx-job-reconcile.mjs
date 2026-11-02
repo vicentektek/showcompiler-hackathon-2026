@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { readFile, stat, appendFile, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createSfxJobStore } from '../src/core/sfxJobStore.mjs';
+import { defaultSfxStoreDirectory } from './sfxRoutes.mjs';
 
 const USAGE = 'node tools/sfx-job-reconcile.mjs --request-id <id> --evidence-file <log> ' +
   '--verified-at <ISO-Z> --verified-by <operator iv> [--store-dir <dir>] [--note <text>] [--execute]';
@@ -25,7 +26,7 @@ function fail(message, exitCode) {
 }
 
 async function gatherArguments() {
-  const arguments_ = { storeDir: join(process.cwd(), '.runq-local', 'sfx-generation') };
+  const arguments_ = { storeDir: defaultSfxStoreDirectory() };
   const named = ['--request-id', '--evidence-file', '--verified-at', '--verified-by', '--store-dir', '--note'];
   for (let index = 2; index < process.argv.length; index++) {
     const token = process.argv[index];

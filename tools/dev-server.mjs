@@ -54,6 +54,7 @@ const allowed = new Map([
   ['/src/ui/show-builder-ui.mjs', ['src/ui/show-builder-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/show-preparation-ui.mjs', ['src/ui/show-preparation-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/showPreparation.mjs', ['src/core/showPreparation.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/sfxBatch.mjs', ['src/core/sfxBatch.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-panels.mjs', ['src/ui/runq-panels.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-soundlab.css', ['src/ui/runq-soundlab.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-soundlab-ui.mjs', ['src/ui/runq-soundlab-ui.mjs', 'text/javascript; charset=utf-8']],

@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import { mkdtemp,writeFile,rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { inspectSfxConfiguration, inspectLocalSfxConfiguration } from '../tools/runq-sfx-doctor.mjs';
+import {
+  inspectSfxConfiguration, inspectLocalSfxConfiguration, inspectSfxJournal,
+} from '../tools/runq-sfx-doctor.mjs';
+import { createSfxJobStore } from '../src/core/sfxJobStore.mjs';
 
 const ready=()=>({
  RUNQ_SFX_PILOT_ENABLED:'1',
@@ -38,6 +41,29 @@ test('SFX diagnostic detects malformed endpoint, missing proxy secret and revisi
  assert.equal(r.configurationChecks.endpointConfigured,false);
  assert.equal(r.configurationChecks.proxyTokenSecretConfigured,false);
  assert.equal(r.configurationChecks.modelRevisionValid,false);
+});
+test('SFX doctor reports only aggregate journal state without provider calls', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'runq-sfx-doctor-journal-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const store = createSfxJobStore({ directory: dir, maxDailyStarts: 3 });
+  const base = {
+    authorizationId: 'auth-doctor', sourceLineId: 'L1', kind: 'SFX',
+    modelCandidate: 'stabilityai/stable-audio-3-small-sfx',
+    modelRevision: 'a'.repeat(40), prompt: 'Bell', durationSeconds: 1, seed: 0,
+    estimatedMaxCostUsdPerRequest: 0.04, dailyBudgetUsd: 0.2,
+    acknowledgedMaxCostUsd: 0.04,
+  };
+  await store.reserve({ ...base, requestId: 'doctor-1' }, { confirm: true });
+  const summary = await inspectSfxJournal({ directory: dir });
+  assert.equal(summary.exists, true);
+  assert.equal(summary.total, 1);
+  assert.equal(summary.active, 1);
+  assert.equal(summary.counts.SUBMISSION_UNKNOWN, 1);
+  assert.doesNotMatch(JSON.stringify(summary), /doctor-1|auth-doctor|Bell/);
+  const missing = await inspectSfxJournal({ directory: join(dir, 'missing') });
+  assert.deepEqual(
+    { exists: missing.exists, total: missing.total, active: missing.active },
+    { exists: false, total: 0, active: 0 });
 });
 test('SFX doctor respects existing nonempty process environment while reading local .env',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'runq-sfx-doctor-'));

@@ -17,7 +17,7 @@
     "test:dictation": "node --check src/ui/command-dictation.mjs && node tools/command-dictation-browser-e2e.mjs",
     "test:ai-review": "node --check src/ui/runq-agent-ui.mjs && node tools/ai-review-browser-e2e.mjs",
     "test:sfx-history": "node --check src/sfx/lab.mjs && node --check tools/sfx-history-browser-e2e.mjs && node tools/sfx-history-browser-e2e.mjs",
-    "check:preparation-syntax": "node --check src/core/showPreparation.mjs && node --check src/ui/show-preparation-ui.mjs && node --check tools/show-preparation-browser-e2e.mjs",
+    "check:preparation-syntax": "node --check src/core/showPreparation.mjs && node --check src/core/sfxBatch.mjs && node --check tools/dev-server.mjs && node --check src/ui/show-preparation-ui.mjs && node --check tools/show-preparation-browser-e2e.mjs",
     "test:show-preparation": "npm run check:preparation-syntax && node --test test/showPreparation.test.mjs && node tools/show-preparation-browser-e2e.mjs",
     "qa:modal:live": "node tools/runq-modal-live-batch.mjs",
     "qa:quality": "node tools/runq-quality-campaign.mjs",
