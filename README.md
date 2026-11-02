@@ -53,6 +53,15 @@ npm run dev
 
 Import the generated complete-show ZIP through the Project screen. The original demonstration and rehearsal packages provide an offline path without connecting a judge's personal AI account. Real provider-based generation is optional and requires separately configured credentials.
 
+## For hackathon judges: connect live AI (optional)
+
+**You can review RUNQ without any provider credentials.** Start with the offline demo ZIP above. If you want to check real AI inference, see the [Judge API setup guide](docs/JUDGE_API_SETUP.md) for the exact commands, privacy precautions and limitations.
+
+- **Meta Muse Spark (simple):** set `MODEL_API_KEY` in the terminal that starts `npm run dev`, then request one script analysis in RUNQ AI. Configuration can be inspected without billing at `/api/meta/status`; it does not verify that the remote key is accepted.
+- **Modal SFX (advanced):** there is no single Modal API-key field. To use your **own** GPU account, deploy the included `modal/runq_sfx_pilot.py`, create a separate endpoint proxy token and configure the local `.env`. Alternatively, review the bundled offline sounds without Modal. See the guide for `npm run sfx:doctor`, account prerequisites and potential GPU charges.
+
+**Neither option is required for the offline product demonstration; never commit provider secrets.** RUNQ requests external AI work only when the operator explicitly initiates it. The documented live integrations are not guaranteed to work with every judge account.
+
 ### Run tests
 
 ```sh
