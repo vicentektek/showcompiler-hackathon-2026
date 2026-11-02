@@ -103,9 +103,11 @@ export function enforceAgentModelScope(plan,context){
  const cueMap=new Map(context.cues.map(c=>[c.id,c]));
  const lines=new Map(context.lines.map(l=>[l.id,l.text]));
  if(context.expert){
-  for(const id of plan.message.match(/\bL[1-9]\d*\b/g)??[])
-   if(!lines.has(id)&&!(plan.status==='CLARIFY'&&context.expert.missingLineIds.includes(id)))
+  for(const rawId of plan.message.match(/\bL[1-9]\d*\b/gi)??[]){
+   const id=rawId.toUpperCase();
+   if(!lines.has(id)&&!(plan.status==='CLARIFY'&&context.expert.missingLineIds.some(missing=>missing.toUpperCase()===id)))
     throw new TypeError('MODEL_LINE_NOT_IN_CONTEXT');
+  }
  }
  for(const op of plan.operations){
   if(op.cueId&&!cueMap.has(op.cueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
