@@ -11,7 +11,7 @@ import {retrieveCapabilities} from '../src/core/runqCapabilities.mjs';
 import {EXPERT_CONTEXT_VERSION} from '../src/core/agentExpertContext.mjs';
 const ENDPOINT='https://api.meta.ai/v1/chat/completions';
 const MODEL='muse-spark-1.3';
-export const AGENT_PROMPT_VERSION='agent-expert-context-v3-1';
+export const AGENT_PROMPT_VERSION='agent-expert-context-v3-1-audio-editing-v5';
 const MAX_BODY=24500,MAX_RESPONSE=24000;
 const validAgentFocusContext=context=>
  (context.workspace===undefined||AGENT_DESIGN_WORKSPACES.includes(context.workspace))&&
@@ -49,16 +49,20 @@ const schema={
   operations:{type:'array',maxItems:20,items:{
    type:'object',additionalProperties:false,
    properties:{
-    op:{type:'string',enum:['UPDATE_CUE','DELETE_CUE','CREATE_CUE','REORDER_CUE']},
+    op:{type:'string',enum:['UPDATE_CUE','DELETE_CUE','CREATE_CUE','REORDER_CUE',
+     'SET_CUE_STOP','REMOVE_CUE_STOP','ASSIGN_AUDIO','ADD_AUDIO_TRACK','UPDATE_AUDIO_TRACK','REMOVE_AUDIO_TRACK','SET_ENTRY_POLICY']},
     cueId:{type:['string','null']},afterCueId:{type:['string','null']},
     targetCueId:{type:['string','null']},position:{type:['string','null'],enum:['before','after',null]},
     label:{type:['string','null']},
+    assetId:{type:['string','null']},trackId:{type:['string','null']},
+    fadeMs:{type:['integer','null'],minimum:0,maximum:10000},
+    mode:{type:['string','null'],enum:['OVERLAP','STOP_PREVIOUS',null]},
     edits:{type:'array',maxItems:8,items:{type:'object',additionalProperties:false,
      properties:{field:{type:'string',enum:['gainDb','fadeInMs','fadeOutMs','startDelayMs',
        'startAtMs','endAtMs','playbackRate','pan','loop','repeatCount','label','trigger','notes']},
       numeric:{type:['number','null']},text:{type:['string','null']},boolean:{type:['boolean','null']}},
      required:['field','numeric','text','boolean']}},
-   },required:['op','cueId','afterCueId','targetCueId','position','label','edits'],
+   },required:['op','cueId','afterCueId','targetCueId','position','label','assetId','trackId','fadeMs','mode','edits'],
   }},
  },required:['status','message','operations']
 };
@@ -81,20 +85,31 @@ export function decodeAgentReply(raw){
  const operations=output.operations.map(item=>{
   if(!isObj(item))throw new TypeError('BAD_OPERATION');
   const op=item.op;
-  if(op==='UPDATE_CUE'){
-   if(!Array.isArray(item.edits)||!item.edits.length)throw new TypeError('BAD_EDITS');
+  if(op==='UPDATE_CUE'||op==='UPDATE_AUDIO_TRACK'||op==='ADD_AUDIO_TRACK'){
+   if(!Array.isArray(item.edits)||(!item.edits.length&&op!=='ADD_AUDIO_TRACK'&&
+      !(op==='UPDATE_AUDIO_TRACK'&&item.assetId)))throw new TypeError('BAD_EDITS');
    const changes={};
    for(const edit of item.edits){
     if(!isObj(edit)||Object.hasOwn(changes,edit.field))throw new TypeError('BAD_EDITS');
+    if(edit.field==='endAtMs'&&edit.numeric===null&&edit.text===null&&edit.boolean===null){
+     changes.endAtMs=null;continue;
+    }
     const values=[edit.numeric,edit.text,edit.boolean].filter(v=>v!==null&&v!==undefined);
     if(values.length!==1)throw new TypeError('BAD_EDITS');
     changes[edit.field]=values[0];
    }
-   return {op,cueId:item.cueId,changes};
+   return {op,cueId:item.cueId,...(op==='UPDATE_AUDIO_TRACK'?{trackId:item.trackId}:{}),
+    ...(item.assetId?{assetId:item.assetId}:{}),
+    ...(Object.keys(changes).length?{changes}:{})};
   }
   if(op==='DELETE_CUE')return {op,cueId:item.cueId};
   if(op==='CREATE_CUE')return {op,label:item.label,afterCueId:item.afterCueId};
   if(op==='REORDER_CUE')return {op,cueId:item.cueId,targetCueId:item.targetCueId,position:item.position};
+  if(op==='SET_CUE_STOP')return {op,cueId:item.cueId,targetCueId:item.targetCueId,fadeMs:item.fadeMs};
+  if(op==='REMOVE_CUE_STOP')return {op,cueId:item.cueId,targetCueId:item.targetCueId};
+  if(op==='ASSIGN_AUDIO')return {op,cueId:item.cueId,assetId:item.assetId};
+  if(op==='REMOVE_AUDIO_TRACK')return {op,cueId:item.cueId,trackId:item.trackId};
+  if(op==='SET_ENTRY_POLICY')return {op,cueId:item.cueId,mode:item.mode,fadeMs:item.fadeMs};
   throw new TypeError('BAD_OPERATION');
  });
  return {status:'PLAN',message:output.message,operations:validateAgentOperations(operations)};
@@ -111,6 +126,10 @@ export function enforceAgentModelScope(plan,context){
   if(op.cueId&&!cueMap.has(op.cueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
   if(op.targetCueId&&!cueMap.has(op.targetCueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
   if(op.afterCueId&&!cueMap.has(op.afterCueId))throw new TypeError('MODEL_CUE_NOT_IN_CONTEXT');
+  if(op.assetId&&!context.assets?.some(a=>a.id===op.assetId&&a.available===true))
+   throw new TypeError('MODEL_AUDIO_NOT_IN_CONTEXT');
+  if(op.trackId&&!cueMap.get(op.cueId)?.audioTracks?.some(t=>t.id===op.trackId))
+   throw new TypeError('MODEL_TRACK_NOT_IN_CONTEXT');
   if(op.op==='UPDATE_CUE'&&typeof op.changes.trigger==='string'){
    const cue=cueMap.get(op.cueId);
    const normalized=normalizeSpeech(op.changes.trigger);
@@ -226,8 +245,8 @@ export function makeAgentRoute({getKey=()=>process.env.MODEL_API_KEY,
     payload.messages[0].role='system';
     payload.messages[0].content+=' Return exactly one valid JSON object following this required shape: '+
      JSON.stringify({status:'PLAN|ANSWER|CLARIFY',message:'text',operations:[{
-      op:'UPDATE_CUE|DELETE_CUE|CREATE_CUE|REORDER_CUE',cueId:'cue-id-or-null',
-      afterCueId:null,targetCueId:null,position:null,label:null,edits:[]}]})+
+      op:'UPDATE_CUE|DELETE_CUE|CREATE_CUE|REORDER_CUE|SET_CUE_STOP|REMOVE_CUE_STOP|ASSIGN_AUDIO|ADD_AUDIO_TRACK|UPDATE_AUDIO_TRACK|REMOVE_AUDIO_TRACK|SET_ENTRY_POLICY',cueId:'cue-id-or-null',
+      afterCueId:null,targetCueId:null,position:null,label:null,assetId:null,trackId:null,fadeMs:null,mode:null,edits:[]}]})+
      '. For absent fields use JSON null and never invent IDs. No markdown.';
     delete payload.response_format;delete payload.reasoning_effort;
     delete payload.max_completion_tokens;delete payload.store;

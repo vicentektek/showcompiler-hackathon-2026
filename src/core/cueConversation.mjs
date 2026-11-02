@@ -96,13 +96,27 @@ function currentCue(project,id){
  if(!cue||cue.status!=='DRAFT')throw new TypeError('CUE_NOT_EDITABLE');
  return cue;
 }
+export function normalizeConversationalPlayback(previous,changes){
+ const before=normalizeCuePlayback(previous),settings={...changes};
+ if(settings.repeatCount>1&&settings.loop===undefined)settings.loop=false;
+ if(settings.loop===true){
+  if(settings.fadeOutMs>0||settings.repeatCount>1){
+   const error=new TypeError('LOOP_NEEDS_TARGETED_STOP');error.code='LOOP_NEEDS_TARGETED_STOP';throw error;
+  }
+  settings.fadeOutMs=0;settings.repeatCount=1;
+ }
+ if(settings.fadeOutMs>0&&(settings.loop??before.loop)){
+  const error=new TypeError('LOOP_NEEDS_TARGETED_STOP');error.code='LOOP_NEEDS_TARGETED_STOP';throw error;
+ }
+ return normalizeCuePlayback({...before,...settings});
+}
 export function stageCueConversationChange(project,cueId,changes){
  const base=normalizeShowProject(project),before=currentCue(base,cueId),edit=validateCueChatChanges(changes);
  const playback={};const details={};
  for(const [key,val] of Object.entries(edit))(TEXT_FIELDS.has(key)?details:playback)[key]=val;
  let next=base;
  if(Object.keys(playback).length){
-  next=updateCuePlayback(next,cueId,playback);
+  next=updateCuePlayback(next,cueId,normalizeConversationalPlayback(before.playback,playback));
  }
  if(Object.keys(details).length){
   const from=next.cues.find(x=>x.id===cueId);
@@ -115,7 +129,8 @@ export function stageCueConversationChange(project,cueId,changes){
  const after=currentCue(next,cueId),oldPlayback=normalizeCuePlayback(before.playback),
   newPlayback=normalizeCuePlayback(after.playback);
  const diff=[];
- for(const key of Object.keys(edit)){
+ for(const key of new Set([...Object.keys(edit),...(edit.loop===true?['fadeOutMs','repeatCount']:[]),
+  ...(edit.repeatCount>1?['loop']:[])])){
   const original=TEXT_FIELDS.has(key)?before[key]??'':oldPlayback[key];
   const updated=TEXT_FIELDS.has(key)?after[key]??'':newPlayback[key];
   if(!Object.is(original,updated))diff.push({field:key,from:original,to:updated});
@@ -175,7 +190,7 @@ export function parseLocalCueChat(text,{lastField=null}={}){
  }
  if(/\b(sin\s+loop|quitar\s+loop|desactivar\s+(?:el\s+)?bucle|no\s+(?:hacer|poner)\s+loop|disable\s+loop|no\s+loop)\b/.test(t))
   changes.loop=false;
- else if(/\b(en\s+bucle|en\s+loop|activar\s+(?:el\s+)?bucle|loop\s+infinito|loop\s+on|enable\s+loop)\b/.test(t))
+ else if(/\b(en\s+bucle|en\s+loop|ser\s+(?:un\s+)?loop|activar\s+(?:el\s+)?bucle|loop\s+infinito|loop\s+on|enable\s+loop|(?:must|should)\s+(?:be\s+)?(?:a\s+)?loop)\b/.test(t))
   changes.loop=true;
  const correction=/^(?:mejor|cambialo|cambia eso|actually|instead|make it|no,? mejor|ponlo)\s+(?:que\s+(?:sean|sea)\s+|a\s+|en\s+)?(\d+(?:[.,]\d+)?|cero|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|one|two|three|four|five|six|seven|eight|nine|ten)\s*(segundos?|seconds?|ms|milisegundos?)?/i.exec(t);
  if(!Object.keys(changes).length&&correction&&lastField){

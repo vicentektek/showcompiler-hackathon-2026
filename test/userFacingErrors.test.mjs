@@ -20,3 +20,15 @@ test('handles locale and audio validation errors',()=>{
  assert.match(userFacingError(null,'es'),/No se ha podido/);
  assert.match(userFacingError('HTTP 500','en','sound'),/check its status/);
 });
+test('sound assignment errors explain the recovery without exposing internals',()=>{
+ assert.match(userFacingError('SFX_ALREADY_IMPORTED','en','sound'),/already in the library.*assign/);
+ assert.match(userFacingError('SFX_NOT_REVIEWABLE','es','sound'),/Comprueba su estado/);
+ assert.match(userFacingError('SFX_IDENTITY','en','sound'),/Reopen it/);
+});
+test('assistant audio validation explains incompatible settings without reflecting provider content',()=>{
+ assert.match(userFacingError('LOOP_NEEDS_TARGETED_STOP','en'),/another cue.*fade/);
+ assert.match(userFacingError('AUDIO_ASSET_UNAVAILABLE','es'),/Carga y decodifica/);
+ assert.match(userFacingError('INVALID_STOP_TARGET','en'),/different.*existing cue/);
+ assert.match(userFacingError('AGENT_PLAN_FAILED','es'),/Revisa audio/);
+ assert.match(userFacingError('AGENT_PLAN_NO_CHANGES','en'),/already applied/);
+});

@@ -30,6 +30,95 @@ function fixture(){
  }))});
  return project;
 }
+test('assistant configures a continuous loop and another cue stops it with a targeted fade',()=>{
+ let p=fixture();
+ p=assignAudioToCue(p,p.cues[0].id,p.assets[0].id);
+ p.cues[0].playback={fadeOutMs:1000,repeatCount:3};
+ p=normalizeShowProject(p);
+ const before=JSON.stringify(p);
+ const plan=prepareAgentPlan(p,[
+  {op:'UPDATE_CUE',cueId:p.cues[0].id,changes:{loop:true}},
+  {op:'SET_CUE_STOP',cueId:p.cues[2].id,targetCueId:p.cues[0].id,fadeMs:5000},
+ ]);
+ assert.equal(JSON.stringify(p),before);
+ assert.equal(plan.proposedProject.cues[0].playback.loop,true);
+ assert.equal(plan.proposedProject.cues[0].playback.fadeOutMs,0);
+ assert.equal(plan.proposedProject.cues[0].playback.repeatCount,1);
+ assert.deepEqual(plan.proposedProject.cues[2].automation.stopCueIds,[p.cues[0].id]);
+ assert.equal(plan.proposedProject.cues[2].stopFadeOverrides[p.cues[0].id],5000);
+ const committed=commitAgentPlan(p,plan,{editable:true});
+ assert.equal(JSON.stringify(undoAgentPlan(committed.project,committed.undo,{editable:true})),before);
+});
+test('local loop / last-cue commands prepare actual audio edits without transport',()=>{
+ const p=fixture();
+ for(const text of ['cue 1 debe ser loop','cue 1 must be a loop']){
+  const answer=interpretLocalAgentRequest(p,text);
+  assert.equal(answer.status,'PLAN',text);
+  assert.equal(prepareAgentPlan(p,answer.operations).proposedProject.cues[0].playback.loop,true);
+ }
+ for(const text of ['el ultimo cue debe detener el cue 1 con un fade out de 5 segundos',
+  'the last cue must stop cue 1 with a fade out of 5 seconds']){
+  const answer=interpretLocalAgentRequest(p,text);
+  assert.equal(answer.status,'PLAN',text);
+  const final=prepareAgentPlan(p,answer.operations).proposedProject.cues.at(-1);
+  assert.equal(final.stopFadeOverrides[p.cues[0].id],5000);
+ }
+ const combined=interpretLocalAgentRequest(p,'la lluvia del sonido del cue 1 debe ser un loop y lo debe detener el ultimo cue con un fade out');
+ assert.equal(combined.operations.length,2);
+ assert.equal(prepareAgentPlan(p,combined.operations).proposedProject.cues.at(-1).stopFadeOverrides[p.cues[0].id],1500);
+ assert.equal(interpretLocalAgentRequest(p,'No hagas cue 1 loop y el ultimo cue debe detener cue 1').status,'CLARIFY');
+ assert.equal(interpretLocalAgentRequest(p,'cue 1 debe detener cue 1').status,'CLARIFY');
+});
+test('audio assignments, layers, settings, stop removal and overlap remain atomic and undoable',()=>{
+ let p=fixture();
+ p=addAudioReference(p,'second.wav');
+ const id=p.cues[0].id,assetId=p.assets[1].id;
+ const ops=[
+  {op:'ASSIGN_AUDIO',cueId:id,assetId},
+  {op:'ADD_AUDIO_TRACK',cueId:id,assetId:p.assets[0].id,changes:{loop:true,fadeInMs:1200}},
+  {op:'UPDATE_AUDIO_TRACK',cueId:id,trackId:'track-1',changes:{gainDb:-12,pan:-0.5,fadeInMs:1000,playbackRate:0.8,endAtMs:2000}},
+  {op:'SET_ENTRY_POLICY',cueId:id,mode:'STOP_PREVIOUS',fadeMs:3000},
+ ];
+ const plan=prepareAgentPlan(p,ops,{assetAvailable:()=>true});
+ assert.equal(plan.structural,false);
+ const proposed=plan.proposedProject;
+ assert.equal(proposed.cues[0].actions[0].assetId,assetId);
+ assert.equal(proposed.cues[0].audioTracks[0].playback.gainDb,-12);
+ assert.deepEqual(proposed.cues[0].entryPolicy,{mode:'STOP_PREVIOUS',fadeOutMs:3000});
+ assert.equal(proposed.cues[0].audioTracks[0].playback.loop,true);
+ const trackReplacement=prepareAgentPlan(proposed,[
+  {op:'UPDATE_AUDIO_TRACK',cueId:id,trackId:'track-1',assetId},
+ ],{assetAvailable:()=>true});
+ assert.equal(trackReplacement.proposedProject.cues[0].audioTracks[0].assetId,assetId);
+ assert.equal(trackReplacement.proposedProject.cues[0].audioTracks[0].playback.gainDb,-12);
+ assert.ok(commitAgentPlan(proposed,trackReplacement,{editable:true,assetAvailable:()=>true}).project);
+ const context=buildAgentContext(proposed);
+ assert.deepEqual(context.cues[0].audioTracks,proposed.cues[0].audioTracks);
+ const replace=prepareAgentPlan(proposed,[{op:'ASSIGN_AUDIO',cueId:id,assetId:p.assets[0].id}],{assetAvailable:()=>true});
+ assert.equal(replace.proposedProject.cues[0].actions[0].assetId,p.assets[0].id);
+ const removed=prepareAgentPlan(proposed,[{op:'REMOVE_AUDIO_TRACK',cueId:id,trackId:'track-1'}]);
+ assert.deepEqual(removed.proposedProject.cues[0].audioTracks,[]);
+ assert.throws(()=>prepareAgentPlan(p,ops,{assetAvailable:()=>false}),{code:'AUDIO_ASSET_UNAVAILABLE'});
+ const committed=commitAgentPlan(p,plan,{editable:true,assetAvailable:()=>true});
+ assert.deepEqual(undoAgentPlan(committed.project,committed.undo,{editable:true}),p);
+ assert.throws(()=>commitAgentPlan(p,plan,{editable:true,assetAvailable:()=>false}),{code:'AUDIO_ASSET_UNAVAILABLE'});
+ assert.throws(()=>prepareAgentPlan(p,[{op:'UPDATE_CUE',cueId:id,changes:{loop:true,fadeOutMs:1500}}]),{code:'LOOP_NEEDS_TARGETED_STOP'});
+ const stopper=p.cues[2].id;
+ const stopped=prepareAgentPlan(p,[{op:'SET_CUE_STOP',cueId:stopper,targetCueId:id,fadeMs:2500}]).proposedProject;
+ assert.ok(buildAgentContext(stopped).cues[2].stopFadeOverrides[id]===2500);
+ const changed=prepareAgentPlan(stopped,[{op:'SET_CUE_STOP',cueId:stopper,targetCueId:id,fadeMs:5000}]);
+ assert.ok(changed.changes[0].changes.some(c=>c.field==='stopFadeOverrides'));
+ const another=prepareAgentPlan(changed.proposedProject,[
+  {op:'SET_CUE_STOP',cueId:stopper,targetCueId:p.cues[1].id,fadeMs:800},
+ ]).proposedProject;
+ assert.deepEqual(another.cues[2].automation.stopCueIds,[id,p.cues[1].id]);
+ assert.equal(another.cues[2].stopFadeOverrides[id],5000);
+ assert.equal(another.cues[2].stopFadeOverrides[p.cues[1].id],800);
+ const cleared=prepareAgentPlan(stopped,[{op:'REMOVE_CUE_STOP',cueId:stopper,targetCueId:id}]).proposedProject;
+ assert.deepEqual(cleared.cues[2].automation.stopCueIds,[]);
+ assert.deepEqual(cleared.cues[2].stopFadeOverrides,{});
+ assert.throws(()=>prepareAgentPlan(p,[{op:'SET_CUE_STOP',cueId:id,targetCueId:'unknown',fadeMs:1000}]),{code:'INVALID_STOP_TARGET'});
+});
 test('readiness answers explain actual unresolved audio without provider calls or edits',()=>{
  const p=fixture(),before=JSON.stringify(p);
  for(const prompt of ['Which audio is still unresolved?','¿Qué falta para ensayar, sin afirmar que está listo?',

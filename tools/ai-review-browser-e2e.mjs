@@ -79,6 +79,8 @@ try{
   'The old title must not duplicate the creative welcome and agent heading');
  assert.ok((await page.locator('#rq16AIWelcome').boundingBox()).height<=220,
   'Creative welcome must leave space for actual conversation and cue context');
+ assert.equal(await page.locator('#rqPrepareShow').isVisible(),true,
+  'Integrated preparation replaces the redundant creative welcome');
  const primaryAction=await page.locator('#rqAgentAskAI').boundingBox();
  assert.ok(primaryAction.y+primaryAction.height<=900,
   `Primary design action remains above the fold: ${JSON.stringify(primaryAction)}`);
@@ -232,6 +234,72 @@ try{
  assert.ok((await page.locator('#rqAgentConsentDisclosure').textContent()).includes('No se envían archivos de audio'));
  assert.equal((await read()).scriptText,original.scriptText);
  assert.equal((await read()).active.length,0);
+ const audioState=()=>page.evaluate(()=>{
+  let state;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:s=>{state=s;}}}));return state;
+ });
+ const beforeAudio=(await audioState()).project,beforePrepared=(await read()).preparedCueId;
+ const firstCue=beforeAudio.cues[0].id,lastCue=beforeAudio.cues.at(-1).id;
+ const edits=[
+  {op:'UPDATE_CUE',cueId:firstCue,changes:{loop:true}},
+  {op:'SET_CUE_STOP',cueId:lastCue,targetCueId:firstCue,fadeMs:5000},
+  {op:'ASSIGN_AUDIO',cueId:beforeAudio.cues[1].id,assetId:beforeAudio.assets[0].id},
+  {op:'ADD_AUDIO_TRACK',cueId:firstCue,assetId:beforeAudio.assets[1].id,
+   changes:{gainDb:-12,pan:0.5,fadeInMs:1000}},
+  {op:'SET_ENTRY_POLICY',cueId:lastCue,mode:'OVERLAP',fadeMs:0},
+ ];
+ await failOnce('Configura el loop y la parada final con fade; añade una capa sin reproducir.',
+  {status:200,body:{status:'PLAN',message:'Propuesta de edición de audio, pendiente de aplicar.',operations:edits}});
+ assert.equal(await page.locator('#rqAgentProposal').isVisible(),true);
+ assert.deepEqual((await audioState()).project,beforeAudio,'Audio plans do not apply or play before approval');
+ assert.equal((await read()).active.length,0);
+ assert.ok((await page.locator('#rqAgentDiff').textContent()).includes('5000'));
+ assert.ok((await page.locator('#rqAgentDiff').textContent()).includes('"pan":0.5'));
+ await page.locator('#rqAgentApply').click();
+ const configured=(await audioState()).project;
+ assert.equal(configured.cues[0].playback.loop,true);
+ assert.equal(configured.cues[0].playback.fadeOutMs,0);
+ assert.equal(configured.cues[0].audioTracks.at(-1).playback.pan,0.5);
+ assert.equal(configured.cues.at(-1).stopFadeOverrides[firstCue],5000);
+ assert.equal((await read()).preparedCueId,beforePrepared);
+ assert.equal((await read()).active.length,0,'Applying audio configuration never executes transport');
+ await page.locator('#rqAgentUndo').click();
+ assert.deepEqual((await audioState()).project,beforeAudio,'Audio assignments, layers and targeted fades undo together');
+ assert.equal((await read()).preparedCueId,beforePrepared);
+ await failOnce('Invalid continuous fade fixture',{status:200,body:{status:'PLAN',
+  message:'THIS INVALID SUCCESS CLAIM MUST NOT APPEAR',
+  operations:[{op:'UPDATE_CUE',cueId:firstCue,changes:{loop:true,fadeOutMs:5000}}]}});
+ assert.equal(await page.locator('#rqAgentProposal').isVisible(),false);
+ assert.ok((await page.locator('#rqAgentMessages article').last().textContent()).includes('loop continuo'));
+ assert.ok(!(await page.locator('#rqAgentMessages').textContent()).includes('THIS INVALID SUCCESS CLAIM MUST NOT APPEAR'));
+ assert.deepEqual((await audioState()).project,beforeAudio);
+ await page.locator('#rqAgentPrompt').fill('cue 1 debe ser loop y cue 3 debe detener cue 1 con un fade out de 5 segundos');
+ await page.locator('#rqAgentSubmit').click();
+ await page.locator('#rqAgentProposal').waitFor({state:'visible'});
+ await page.locator('#rqAgentApply').click();
+ await route('cues');
+ await page.locator(`[data-cue-quick-go="${firstCue}"]`).click();
+ await page.waitForFunction(id=>{
+  let state;document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:s=>{state=s;}}}));
+  return state?.active.some(c=>c.cueId===id&&!c.stopping&&c.durationSeconds===null);
+ },firstCue);
+ await page.locator(`[data-cue-quick-go="${lastCue}"]`).click();
+ await page.waitForFunction(id=>{
+  let state;document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:s=>{state=s;}}}));
+  return state?.active.some(c=>c.cueId===id&&c.stopping);
+ },firstCue);
+ const fading=(await read()).active.find(c=>c.cueId===firstCue);
+ assert.ok(fading.remainingSeconds>3.5&&fading.remainingSeconds<=5,
+  `Manual final GO applies the configured 5-second fade: ${JSON.stringify(fading)}`);
+ assert.equal((await read()).preparedCueId,beforePrepared,'Explicit row GO does not move prepared GO');
+ await page.waitForFunction(id=>{
+  let state;document.dispatchEvent(new CustomEvent('runq:show-state-read',{detail:{respond:s=>{state=s;}}}));
+  return state&&!state.active.some(c=>c.cueId===id);
+ },firstCue);
+ await page.locator('#stopAllBtn').click();
+ assert.equal((await read()).active.length,0);
+ await route('ai');
+ await page.locator('#rqAgentUndo').click();
+ assert.deepEqual((await audioState()).project,beforeAudio);
  await page.locator('#projectFileInput').setInputFiles({name:'original-show-metadata-only.json',
   mimeType:'application/json',buffer:Buffer.from(serializeShowProject(built.project))});
  await page.waitForFunction(()=>{
@@ -243,7 +311,7 @@ try{
  assert.equal(await page.locator('#rqAgentSelectedSound option:enabled').count(),1,
   'Metadata-only import cannot silently choose or play unavailable audio');
  assert.equal(await page.locator('#rqAgentPhase').textContent(),'Próxima instrucción');
- assert.equal(requests.length,4);
+ assert.equal(requests.length,6,'Two audio planning fixtures each add exactly one provider request; local GO testing adds none');
  await page.locator('#uiLocaleSelect').selectOption('en');
  const projectState=()=>page.evaluate(()=>{
   let s;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{s=value;}}}));return s;
@@ -306,9 +374,9 @@ try{
  await route('ai');await instruct('you decide');
  assert.equal(await page.locator('#rqAgentProposal').isVisible(),false,'Replacement invalidates old project intent');
  assert.equal((await read()).active.length,0);
- assert.equal(requests.length,4,'Memory, rename and fade improvements use zero additional provider requests');
+ assert.equal(requests.length,6,'Memory, rename and fade improvements use zero additional provider requests');
  assert.deepEqual(external,[]);assert.deepEqual(errors,[]);
- console.log('AI REVIEW E2E PASS: original WAVs/source, contextual review/apply/undo, long-chat task correction, local rename, unresolved fades and inspector, cancel/STOP ALL/project invalidation, one-shot offline error and ES/EN. No provider/microphone/acoustic measurement.');
+ console.log('AI REVIEW E2E PASS: original WAVs/source, audio assignment/layers/loop/stop-fade review/apply/undo, manual GO verifies the final cue fades the loop for 5 seconds, unchanged prepared GO, actionable errors, long-chat task correction, cancel/STOP ALL/project invalidation, one-shot offline error and ES/EN. No provider/microphone/acoustic measurement.');
 }finally{
  await browser?.close();await new Promise(resolve=>server.close(resolve));server.closeAllConnections();
 }

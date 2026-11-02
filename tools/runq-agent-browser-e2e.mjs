@@ -84,6 +84,7 @@ try{
  });
  const before=await prepared();
  await page.locator('[data-workspace-nav="ai"]').click();
+ await page.locator('#rqShowBuilderAskAssistant').click();
  assert.equal(await page.locator('#rqAgentWorkspace #rqAgentDrawer').count(),1);
  assert.equal(await page.locator('#rqAgentDrawer').count(),1,'Main AI uses the existing agent instance');
  assert.equal(await page.locator('#rqAgentDrawer').evaluate(element=>getComputedStyle(element).position),'static');

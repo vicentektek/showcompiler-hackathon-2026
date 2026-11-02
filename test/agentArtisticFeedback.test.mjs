@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {AGENT_PROMPT_VERSION} from '../tools/agentRoutes.mjs';
 import {buildCodexQaSummaryWithHumanFeedback} from '../tools/codex-qa-summary.mjs';
 
 const feedback=JSON.parse(await readFile(
@@ -73,5 +74,7 @@ test('paid-0022 is not promoted to a confirmed model error without matching capt
  assert.equal(feedback.promptComparison.previousBehavior,
   'No dedicated instruction distinguished explicit acoustic actions from optional ambience.');
  assert.equal(feedback.promptComparison.currentVersion,'agent-design-context-rcv4');
+ assert.notEqual(feedback.promptComparison.currentVersion,AGENT_PROMPT_VERSION,
+  'Historical captures retain their original prompt version after audio editing changes');
  assert.equal(feedback.promptComparison.liveOutputComparison,'NOT_RUN_NO_NEW_PAID_REQUESTS');
 });

@@ -5,17 +5,22 @@
  */
 import {parseScript} from './script.mjs';
 import {normalizeShowProject} from './projectPersistence.mjs';
-import {stageCueConversationChange,validateCueChatChanges} from './cueConversation.mjs';
+import {stageCueConversationChange,validateCueChatChanges,normalizeConversationalPlayback} from './cueConversation.mjs';
 import {insertManualCue,deleteOperatorCue,reorderOperatorCue} from './manualCues.mjs';
 import {normalizeSpeech} from './voiceFollow.mjs';
 import {validateHeroCueOperation} from './heroCue.mjs';
-import {assignAudioToCue} from './workspace.mjs';
+import {assignAudioToCue,replaceCueAudioAsset} from './workspace.mjs';
+import {stageCueStopTransitions} from './cueStopFades.mjs';
+import {setCueEntryPolicy} from './cueEntryPolicy.mjs';
+import {stageAddCueTrack,stageChangeCueTrack,stageRemoveCueTrack} from './cueTracks.mjs';
+import {normalizeCuePlayback} from './cuePlayback.mjs';
 
 export const AGENT_MAX_OPERATIONS=30;
 export const AGENT_DESIGN_WORKSPACES=Object.freeze([
  'home','script','ai','cues','audio','soundlab','setup','preflight',
 ]);
-const EDITABLE=new Set(['UPDATE_CUE','DELETE_CUE','CREATE_CUE','CREATE_CONFIGURED_CUE','REORDER_CUE']);
+const EDITABLE=new Set(['UPDATE_CUE','DELETE_CUE','CREATE_CUE','CREATE_CONFIGURED_CUE','REORDER_CUE',
+ 'SET_CUE_STOP','REMOVE_CUE_STOP','ASSIGN_AUDIO','ADD_AUDIO_TRACK','UPDATE_AUDIO_TRACK','REMOVE_AUDIO_TRACK','SET_ENTRY_POLICY']);
 const DESIGN_WORKSPACES=new Set(AGENT_DESIGN_WORKSPACES);
 const isRecord=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const fingerprint=project=>JSON.stringify(normalizeShowProject(project));
@@ -71,10 +76,14 @@ export function buildAgentContext(project,{
   cues:boundedCues.map(c=>({
    id:c.id,number:c.number,label:c.label,trigger:c.trigger??'',
    notes:c.notes??'',sourceLineIds:[...c.sourceLineIds],
+   actions:c.actions.map(a=>a.type==='PLAY'?{type:a.type,assetId:a.assetId}:{type:a.type}),
+   automation:c.automation??null,
    playback:c.playback??{},assetIds:[
     ...c.actions.filter(a=>a.type==='PLAY').map(a=>a.assetId),
     ...(c.audioTracks??[]).map(t=>t.assetId)
-   ],unresolved:c.actions.some(a=>a.type==='PLAN_AUDIO')
+   ],audioTracks:c.audioTracks??[],entryPolicy:c.entryPolicy??{mode:'OVERLAP',fadeOutMs:0},
+   stopCueIds:c.automation?.stopCueIds??[],stopFadeOverrides:c.stopFadeOverrides??{},
+   unresolved:c.actions.some(a=>a.type==='PLAN_AUDIO')
   })),
   assets:p.assets.map(a=>({id:a.id,name:a.name,available:assetAvailable(a.id)})),
   lines:(selectedLines??lines.slice(first,first+maxScriptLines)).map(l=>({id:l.id,text:l.text.slice(0,350)}))
@@ -119,6 +128,13 @@ export function validateAgentOperations(operations){
    CREATE_CUE:['op','afterCueId','label'],
    CREATE_CONFIGURED_CUE:['op','afterCueId','label','assetId','sourceLineId','trigger'],
    REORDER_CUE:['op','cueId','targetCueId','position'],
+   SET_CUE_STOP:['op','cueId','targetCueId','fadeMs'],
+   REMOVE_CUE_STOP:['op','cueId','targetCueId'],
+   ASSIGN_AUDIO:['op','cueId','assetId'],
+   ADD_AUDIO_TRACK:['op','cueId','assetId','changes'],
+   UPDATE_AUDIO_TRACK:['op','cueId','trackId','assetId','changes'],
+   REMOVE_AUDIO_TRACK:['op','cueId','trackId'],
+   SET_ENTRY_POLICY:['op','cueId','mode','fadeMs'],
   }[raw.op];
   if(Object.keys(raw).some(k=>!allowed.includes(k)))fail('UNEXPECTED_OPERATION_FIELD');
   if(raw.op==='CREATE_CUE'||raw.op==='CREATE_CONFIGURED_CUE'){
@@ -145,6 +161,35 @@ export function validateAgentOperations(operations){
    if(!validId(raw.targetCueId)||!['before','after'].includes(raw.position))
     fail('INVALID_REORDER_TARGET');
    return {op:raw.op,cueId:raw.cueId,targetCueId:raw.targetCueId,position:raw.position};
+  }
+  if(['SET_CUE_STOP','REMOVE_CUE_STOP'].includes(raw.op)){
+   if(!validId(raw.targetCueId)||raw.targetCueId===raw.cueId)fail('INVALID_STOP_TARGET');
+   if(raw.op==='REMOVE_CUE_STOP')return {op:raw.op,cueId:raw.cueId,targetCueId:raw.targetCueId};
+   if(!Number.isSafeInteger(raw.fadeMs)||raw.fadeMs<0||raw.fadeMs>10000)fail('INVALID_STOP_FADE');
+   return {op:raw.op,cueId:raw.cueId,targetCueId:raw.targetCueId,fadeMs:raw.fadeMs};
+  }
+  if(['ASSIGN_AUDIO','ADD_AUDIO_TRACK'].includes(raw.op)){
+   if(!validId(raw.assetId))fail('INVALID_AUDIO_ASSET');
+   let changes;
+   if(raw.op==='ADD_AUDIO_TRACK'&&raw.changes!==undefined){
+    changes=validateCueChatChanges(raw.changes);
+    if(Object.keys(changes).some(k=>!Object.hasOwn(normalizeCuePlayback(),k)))fail('INVALID_AUDIO_TRACK');
+   }
+   return {op:raw.op,cueId:raw.cueId,assetId:raw.assetId,...(changes?{changes}:{})};
+  }
+  if(['UPDATE_AUDIO_TRACK','REMOVE_AUDIO_TRACK'].includes(raw.op)){
+   if(!validId(raw.trackId))fail('INVALID_AUDIO_TRACK');
+   if(raw.op==='REMOVE_AUDIO_TRACK')return {op:raw.op,cueId:raw.cueId,trackId:raw.trackId};
+   if(raw.assetId!==undefined&&!validId(raw.assetId))fail('INVALID_AUDIO_ASSET');
+   const changes=raw.changes===undefined&&raw.assetId?{}:validateCueChatChanges(raw.changes);
+   if(Object.keys(changes).some(k=>!Object.hasOwn(normalizeCuePlayback(),k)))fail('INVALID_AUDIO_TRACK');
+   return {op:raw.op,cueId:raw.cueId,trackId:raw.trackId,
+    ...(Object.keys(changes).length?{changes}:{}),...(raw.assetId?{assetId:raw.assetId}:{})};
+  }
+  if(raw.op==='SET_ENTRY_POLICY'){
+   if(!['OVERLAP','STOP_PREVIOUS'].includes(raw.mode)||!Number.isSafeInteger(raw.fadeMs)||
+      raw.fadeMs<0||raw.fadeMs>10000)fail('INVALID_ENTRY_POLICY');
+   return {op:raw.op,cueId:raw.cueId,mode:raw.mode,fadeMs:raw.fadeMs};
   }
   return {op:raw.op,cueId:raw.cueId};
  });
@@ -189,16 +234,55 @@ export function prepareAgentPlan(project,operations,{assetAvailable=()=>false}={
    }
    else if(op.op==='REORDER_CUE')
     next=reorderOperatorCue(next,op.cueId,op.targetCueId,op.position);
+   else if(['SET_CUE_STOP','REMOVE_CUE_STOP'].includes(op.op)){
+    const cue=next.cues.find(c=>c.id===op.cueId),target=next.cues.find(c=>c.id===op.targetCueId);
+    if(!cue||!target)fail('INVALID_STOP_TARGET');
+    const transitions=(cue.automation?.stopCueIds??[]).filter(id=>id!==op.targetCueId).map(id=>({
+     targetCueId:id,fadeMs:cue.stopFadeOverrides?.[id]??next.cues.find(c=>c.id===id)?.playback?.fadeOutMs??0,
+    }));
+    if(op.op==='SET_CUE_STOP')transitions.push({targetCueId:op.targetCueId,fadeMs:op.fadeMs});
+    next=normalizeShowProject(stageCueStopTransitions(next,op.cueId,transitions));
+   }
+   else if(['ASSIGN_AUDIO','ADD_AUDIO_TRACK'].includes(op.op)){
+    if(!next.assets.some(a=>a.id===op.assetId)||assetAvailable(op.assetId)!==true)fail('AUDIO_ASSET_UNAVAILABLE');
+    const cue=next.cues.find(c=>c.id===op.cueId);
+    if(op.op==='ADD_AUDIO_TRACK'){
+     next=stageAddCueTrack(next,op.cueId,op.assetId);
+     const added=next.cues.find(c=>c.id===op.cueId).audioTracks.at(-1);
+     if(op.changes)next=stageChangeCueTrack(next,op.cueId,added.id,{
+      playback:normalizeConversationalPlayback(added.playback,op.changes),
+     });
+     next=normalizeShowProject(next);
+    }
+    else next=cue?.actions[0]?.type==='PLAN_AUDIO'?assignAudioToCue(next,op.cueId,op.assetId):
+     replaceCueAudioAsset(next,op.cueId,op.assetId);
+   }
+   else if(op.op==='UPDATE_AUDIO_TRACK'){
+    const track=next.cues.find(c=>c.id===op.cueId)?.audioTracks?.find(t=>t.id===op.trackId);
+    if(!track)fail('INVALID_AUDIO_TRACK');
+    if(op.assetId&&(!next.assets.some(a=>a.id===op.assetId)||assetAvailable(op.assetId)!==true))
+     fail('AUDIO_ASSET_UNAVAILABLE');
+    next=normalizeShowProject(stageChangeCueTrack(next,op.cueId,op.trackId,{
+     ...(op.assetId?{assetId:op.assetId}:{}),
+     playback:normalizeConversationalPlayback(track.playback,op.changes),
+    }));
+   }
+   else if(op.op==='REMOVE_AUDIO_TRACK')
+    next=normalizeShowProject(stageRemoveCueTrack(next,op.cueId,op.trackId));
+   else if(op.op==='SET_ENTRY_POLICY')
+    next=setCueEntryPolicy(next,op.cueId,{mode:op.mode,fadeOutMs:op.fadeMs});
   }catch(error){
    const err=new TypeError('AGENT_PLAN_FAILED_AT_'+index);
-   err.code='AGENT_PLAN_FAILED';err.cause=error;throw err;
+   err.code=['LOOP_NEEDS_TARGETED_STOP','AUDIO_ASSET_UNAVAILABLE','INVALID_STOP_TARGET','INVALID_AUDIO_TRACK'].includes(error.code??error.message)
+    ?error.code??error.message:'AGENT_PLAN_FAILED';
+   err.cause=error;throw err;
   }
  }
  const changes=diffCues(base,next);
  if(!changes.length)fail('AGENT_PLAN_NO_CHANGES');
  return {projectId:base.id,baseSnapshot:fingerprint(base),afterSnapshot:fingerprint(next),
   operations:checked,changes,proposedProject:next,
-  structural:checked.some(o=>o.op!=='UPDATE_CUE')};
+  structural:checked.some(o=>['DELETE_CUE','CREATE_CUE','CREATE_CONFIGURED_CUE','REORDER_CUE'].includes(o.op))};
 }
 /** Caller owns mode/audio guards; no hidden bypass for Stage/operation. */
 export function commitAgentPlan(current,plan,{editable=false,assetAvailable=()=>false}={}){

@@ -231,7 +231,13 @@ function showPlan(plan,baseProject=null,keepSelection=false){
    const cue=selectedBatch.project.cues.find(c=>c.id===cueId);
    const names={UPDATE_CUE:['Editar cue','Edit cue'],DELETE_CUE:['Eliminar cue','Delete cue'],
     CREATE_CUE:['Añadir cue sin audio','Add cue without audio'],
-    CREATE_CONFIGURED_CUE:['Añadir cue con sonido','Add cue with sound'],REORDER_CUE:['Mover cue','Move cue']};
+    CREATE_CONFIGURED_CUE:['Añadir cue con sonido','Add cue with sound'],REORDER_CUE:['Mover cue','Move cue'],
+    SET_CUE_STOP:['Configurar parada / fade','Configure stop / fade'],
+    REMOVE_CUE_STOP:['Quitar parada configurada','Remove configured stop'],
+    ASSIGN_AUDIO:['Asignar audio','Assign audio'],ADD_AUDIO_TRACK:['Añadir capa de audio','Add audio layer'],
+    UPDATE_AUDIO_TRACK:['Editar capa de audio','Edit audio layer'],
+    REMOVE_AUDIO_TRACK:['Quitar capa de audio','Remove audio layer'],
+    SET_ENTRY_POLICY:['Configurar solapamiento','Configure overlap']};
    const summary=(names[operation.op]?lang(...names[operation.op]):operation.op)+
     (cue?' · '+cue.number+' '+cue.label:operation.label?' · '+operation.label:'');
    label.append(box,make('span','',summary));
@@ -277,7 +283,7 @@ function showPlan(plan,baseProject=null,keepSelection=false){
     playback:['Ajustes de audio','Audio settings'],number:['Número','Number'],
     sourceLineIds:['Referencias del guion','Script references'],actions:['Sonido / acciones','Sound / actions'],
     automation:['Continuidad','Follow settings'],audioTracks:['Pistas de audio','Audio tracks'],
-    entryPolicy:['Audio anterior','Previous audio']};
+    entryPolicy:['Audio anterior','Previous audio'],stopFadeOverrides:['Fundidos de parada','Stop fades']};
    const title=names[field.field]?lang(...names[field.field]):field.field;
    const row=make('small','',title+': '+short(field.from)+' → '+short(field.to));
    item.append(row);
@@ -290,7 +296,8 @@ function showPlan(plan,baseProject=null,keepSelection=false){
 }
 function short(value){
  if(value===null||value===undefined)return '—';
- const result=typeof value==='object'?JSON.stringify(value):String(value);
+ if(typeof value==='object')return JSON.stringify(value);
+ const result=String(value);
  return result.length>180?result.slice(0,177)+'…':result;
 }
 function sync(){
@@ -438,6 +445,8 @@ async function sendRequest(forceAI=false,custom=null){
   }
   const workflow=!forceAI&&reply.workflow==='PREPARE_CUES'?'PREPARE_CUES':
    reply.status==='NEEDS_AI'?'AI_CONSULTATION':null;
+  const plan=reply.status==='PLAN'
+   ?prepareAgentPlan(s.project,reply.operations,{assetAvailable:id=>assetReady(id,s)}):null;
   addMessage('assistant',reply.message,reply.sound??null,workflow);
   if(reply.report){
    const counts=new Map();
@@ -451,7 +460,6 @@ async function sendRequest(forceAI=false,custom=null){
     [...counts].map(([reason,n])=>reason+': '+n).join(' · '));
   }
   if(reply.status==='PLAN'){
-   const plan=prepareAgentPlan(s.project,reply.operations,{assetAvailable:id=>assetReady(id,s)});
    dialogueTask=updateAgentDialogueTask(s.project,instruction,reply,dialogueTask);
    showPlan(plan,s.project);
    rememberTask(s.project,{id:'task-current',kind:'TASK',text:instruction.slice(0,300),

@@ -167,6 +167,41 @@ export function interpretLocalAgentRequest(project,prompt,{assetAvailable=()=>nu
  const reply=(status,message,operations=[])=>({status,message,operations});
  if(/^(?:no|don't|do not|sin)\s/i.test(text))
   return reply('CLARIFY','Negative instructions require clarification; no changes were prepared.');
+ const last=project.cues.at(-1);
+ if(last)text=text.replace(/\b(?:el\s+[uú]ltimo\s+cue|the\s+last\s+cue|last\s+cue)\b/gi,'cue '+last.number);
+ const fadeSuffix=String.raw`(?:\s+(?:con|with)\s+(?:un\s+|a\s+)?fade(?:\s*out)?(?:\s+(?:de|of|for))?(?:\s+(\d+(?:[.,]\d+)?)\s*(ms|milisegundos?|s|segundos?|seconds?))?)?`;
+ const stop=new RegExp('^(?:(?:el|the)\\s+)?'+cueRef+
+  '\\s+(?:(?:debe|deber[ií]a|must|should)\\s+)?(?:detener|parar|stop)\\s+(?:(?:al|el|the)\\s+)?'+cueRef+
+  fadeSuffix+'\\s*[.!]?$','i').exec(text);
+ if(stop){
+  const source=resolveAgentCue(project,Number(stop[1])),target=resolveAgentCue(project,Number(stop[2]));
+  if(!source||!target||source.id===target.id)return reply('CLARIFY',scopeMessage(
+   'La parada necesita dos cues existentes distintos.','The stop needs two different existing cues.'));
+  const fadeMs=stop[3]?Math.round(Number(stop[3].replace(',','.'))*(/^(?:ms|milisegundo)/i.test(stop[4])?1:1000)):
+   /\bfade\b/i.test(text)?1500:0;
+  if(fadeMs<0||fadeMs>10000)return reply('CLARIFY',scopeMessage('El fade debe durar entre 0 y 10 segundos.','The fade must be between 0 and 10 seconds.'));
+  return reply('PLAN',scopeMessage(
+   `Al dar GO manual al cue ${source.number}, detendrá el cue ${target.number} con ${fadeMs} ms de fade. Revisa antes de aplicar.`,
+   `On its later manual GO, cue ${source.number} will stop cue ${target.number} with a ${fadeMs} ms fade. Review before applying.`),
+   [{op:'SET_CUE_STOP',cueId:source.id,targetCueId:target.id,fadeMs}]);
+ }
+ const parts=text.split(/\s+(?:y|and)\s+/i);
+ if(parts.length===2&&/\bloop\b/i.test(parts[0])){
+  const loopRef=new RegExp(cueRef,'i').exec(parts[0]);
+  const loopChanges=parseLocalCueChat(parts[0]);
+  if(loopRef&&loopChanges?.loop===true&&Object.keys(loopChanges).length===1){
+   const loopCue=resolveAgentCue(project,Number(loopRef[1]));
+   const inverse=new RegExp('^lo\\s+debe\\s+(?:detener|parar)\\s+(?:el\\s+)?'+cueRef+'(.*)$','i').exec(parts[1]);
+   const ending=inverse?`cue ${inverse[1]} debe detener cue ${loopRef[1]}${inverse[2]}`:parts[1];
+   const stopReply=interpretLocalAgentRequest(project,ending,{assetAvailable,selectedCueId});
+   if(loopCue&&stopReply.operations.length===1&&stopReply.operations[0].op==='SET_CUE_STOP'&&
+      stopReply.operations[0].targetCueId===loopCue.id)
+    return reply('PLAN',scopeMessage(`Loop continuo en cue ${loopCue.number}. `,`Continuous loop in cue ${loopCue.number}. `)+stopReply.message,
+     [{op:'UPDATE_CUE',cueId:loopCue.id,changes:{loop:true}},...stopReply.operations]);
+  }
+  return reply('CLARIFY',scopeMessage('Separa el loop y la parada en instrucciones con cues y duración explícitos.',
+   'Separate loop and stop edits with explicit cue targets and duration.'));
+ }
  if(/^(?:prepara(?:r)?|organiza(?:r)?|prepare|organize)\s+(?:(?:los|mis|the|my)\s+)?cues(?:\s+(?:del\s+(?:guion|espect[aá]culo)|para\s+(?:el\s+)?show|for\s+(?:the\s+)?show|from\s+(?:the\s+)?script))?\s*[.!]?$/i.test(text)){
   const hasScript=Boolean(project.scriptText?.trim());
   return {...reply('ANSWER',scopeMessage(

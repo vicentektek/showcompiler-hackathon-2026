@@ -5,6 +5,7 @@
 import {normalizeShowProject} from './projectPersistence.mjs';
 import {parseScript} from './script.mjs';
 import {compareSpeech,normalizeSpeech} from './voiceFollow.mjs';
+import {isSceneHeading} from './sceneAnalysis.mjs';
 export const MAX_VOICE_BATCH=24;
 function sourceIndex(id){return Number(/^L([1-9]\d*)$/.exec(id??'')?.[1])||0;}
 function dialogue(text){
@@ -38,7 +39,9 @@ export function proposeAgentVoiceTriggers(project,{onlyMissing=true,max=MAX_VOIC
   let found=null;
   // Never treat cues after the spoken line as a new speech source. Last 12 preceding lines only.
   for(let index=anchor-2;index>=Math.max(0,anchor-13);index--){
-   const item=lines[index],parsed=dialogue(item?.text??'');
+   const item=lines[index];
+   if(isSceneHeading(item?.text??''))break;
+   const parsed=dialogue(item?.text??'');
    if(parsed){found={lineId:item.id,...parsed};break;}
   }
   if(!found){skipped.push({cueId:cue.id,reason:'NO_RELIABLE_DIALOGUE'});continue;}
