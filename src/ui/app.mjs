@@ -2221,6 +2221,7 @@ document.addEventListener('runq:agent-read',event=>{
  const respond=event.detail?.respond;
  if(typeof respond!=='function')return;
  respond({project:show,generation:projectGeneration,selectedCueId,workspace:activeWorkspace,
+  preparedCueId:operatorQueue.preparedCueId,activeCueIds:player.getActiveCues().map(c=>c.cueId),
   language:uiLocale,canApply:safeAgentEditState(),
   undoAvailable:Boolean(runqAgentUndo&&JSON.stringify(show)===runqAgentUndo.afterSnapshot),
   assets:show.assets.map(a=>({id:a.id,ready:player.hasAsset(a.id)}))});
