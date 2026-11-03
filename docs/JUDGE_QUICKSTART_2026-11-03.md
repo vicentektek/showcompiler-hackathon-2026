@@ -36,6 +36,14 @@ The GitHub Actions Core tests for the frozen commit completed successfully (run 
 5. Prepare NEXT, use manual GO to play a ready cue, then demonstrate individual STOP and STOP ALL.
 6. Export a **portable show ZIP** if a package including audio is needed.
 
+## Troubleshooting: AI suggests a cue edit but Apply is disabled
+
+**Observed in the final build (3 November 2026):** RUNQ correctly interpreted a request to add a **2-second fade-out** to cue 2, displayed the proposed edit for review, but **Apply selected changes** was disabled because the cue editor contained **unsaved changes**.
+
+**Resolution:** first save the pending cue-editor changes, then return to **RUNQ AI** and review/apply the proposal. If the proposal is no longer pending after saving, ask the assistant to prepare it again. This prevents applying an AI edit on top of a stale or unsaved editor state. No model failure, lost feature or source-code fix was confirmed.
+
+**Known UX limitation (deferred):** the disabled button does not clearly communicate that unsaved editor changes are blocking the action. A future version should show a contextual explanation such as **“Save your current cue changes before applying AI suggestions”**, without weakening the conflict protection. This is deliberately **not** changed in the frozen submission build.
+
 ## Optional: Meta Muse script analysis
 
 Configure the Meta Model API key in the local server environment according to `docs/META_MODEL_API.md`. Key values must never be committed or exposed in screenshots. Choose the explicit analysis action. Review the source-line evidence and approve/reject suggestions manually. An offline prompt example or deterministic sound-description generator is **not** proof of a live Muse response.
