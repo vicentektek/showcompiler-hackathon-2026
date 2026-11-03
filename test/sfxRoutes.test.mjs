@@ -391,3 +391,22 @@ test('SFX_DAILY_LIMIT appears only at the configured effective limit and status 
   assert.equal(over.status,429);
   assert.equal((await over.json()).code,'SFX_DAILY_LIMIT');
 });
+
+// The shipped browser server must stay prompt-only even when SFX env configuration
+// is present. Offline tests inject their own fake provider to exercise legacy routes.
+test('default app server denies generation and remote job operations in prompt-only mode',async t=>{
+  const {store}=await fixture(t);
+  const base=await server(t,{sfxStore:store,sfxConfig:enabled});
+  const status=await(await fetch(base+'/api/sfx/status')).json();
+  assert.equal(status.promptOnly,true);
+  assert.equal(status.enabled,false);
+  const create=await post(base,'/api/sfx/jobs',payload());
+  assert.equal(create.status,403);
+  assert.equal((await create.json()).code,'SFX_PROMPT_ONLY');
+  for(const operation of ['refresh','cancel']){
+    const response=await post(base,'/api/sfx/jobs/req-example/'+operation,{});
+    assert.equal(response.status,403);
+    assert.equal((await response.json()).code,'SFX_PROMPT_ONLY');
+  }
+  assert.equal((await fetch(base+'/api/sfx/jobs')).status,200);
+});
