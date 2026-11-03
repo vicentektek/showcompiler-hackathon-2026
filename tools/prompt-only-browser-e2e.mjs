@@ -37,6 +37,9 @@ try {
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   assert.equal(await page.locator('.rq10-integrated-lab').isVisible(),true);
   assert.equal(await page.locator('#rqPromptImportCue').isVisible(),true);
+  assert.equal(await page.locator('#rqPromptTargetCue').isVisible(),true);
+  assert.equal(await page.locator('#sfxScriptDetails').isVisible(),true,
+    'Script direction interpretation must remain accessible as an optional accordion');
   // The demo must no longer expose controls from the disabled audio generator.
   for(const selector of ['#generateForm > .sfx-row-fields','#sfxAdvanced','#sfxScriptDetails',
     '.rq-prompt-only-legacy-jobs','.sfx-audio-panel'])
@@ -67,6 +70,32 @@ try {
   await page.locator('#uiLocaleSelect').selectOption('es');
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   assert.match(await page.locator('#generateBtn').textContent(),/Copiar prompt/);
+  // Separate fresh project: importing audio with an explicit cue must create PLAY.
+  const cuePage=await browser.newPage({viewport:{width:1440,height:900}});
+  cuePage.on('pageerror',error=>errors.push(error.message));
+  await cuePage.goto(origin+'/',{waitUntil:'domcontentloaded'});
+  await cuePage.locator('#homeDemoBtn').click();
+  await cuePage.waitForFunction(()=>document.querySelector('#cuesCount')?.textContent==='3');
+  await cuePage.locator('[data-workspace-nav="audio"]').click();
+  await cuePage.locator('[data-rq10-sound-tab="generate"]').click();
+  const choices=cuePage.locator('#rqPromptTargetCue option');
+  assert.ok(await choices.count()>1,'Existing editable cues must be offered as import destinations');
+  const cueId=await choices.nth(1).getAttribute('value');
+  await cuePage.locator('#rqPromptTargetCue').selectOption(cueId);
+  assert.match(await cuePage.locator('#rqPromptImportCue').textContent(),/assign to cue|asignar al cue/i);
+  const cueChooserPromise=cuePage.waitForEvent('filechooser');
+  await cuePage.locator('#rqPromptImportCue').click();
+  const cueChooser=await cueChooserPromise;
+  await cueChooser.setFiles({name:'assigned-door.wav',mimeType:'audio/wav',buffer:pcm()});
+  await cuePage.waitForFunction(cueId=>{
+    let state;
+    document.dispatchEvent(new CustomEvent('runq:show-state-read',{
+      detail:{respond:value=>{state=value;}}
+    }));
+    return state?.cues?.some(cue=>cue.id===cueId&&cue.actions?.some(action=>action.type==='PLAY'))&&
+      state?.assets?.some(asset=>asset.name==='assigned-door.wav'&&asset.ready);
+  },cueId);
+  await cuePage.close();
   assert.deepEqual(errors,[]);
   console.log('PASS: prompt-only Sound assistant copies prompts, imports WAV locally, uses library, blocks Modal and supports ES/EN');
 } finally {
