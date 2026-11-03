@@ -484,3 +484,17 @@
   }
   .rq13 .rq13-wave-dock .rq5-wave-stats{min-height:20px!important}
 }
+
+
+/* Short desktop screens: the Sound sidebar tab and file column headings
+   already identify this library. Drop the duplicate section heading to keep
+   actual file rows reachable even after a multi-file import report appears. */
+@media (max-height:800px) and (min-width:981px){
+  .rq13 .shell[data-active-workspace="audio"] .rq12-library>.rq5-pane-heading{
+    display:none!important;
+  }
+  .rq13 .shell[data-active-workspace="audio"] .rq10-sound-heading{
+    min-height:32px!important;
+    padding:3px 8px!important;
+  }
+}
