@@ -6,6 +6,7 @@
 import {normalizeCuePlayback} from '../core/cuePlayback.mjs';
 import {normalizeCueEntryPolicy} from '../core/cueEntryPolicy.mjs';
 
+const expandedCueIds=new Set();
 const el=(tag,className='',text='')=>{
   const node=document.createElement(tag);
   if(className)node.className=className;
@@ -31,12 +32,18 @@ export function appendCueSoundDesign(card,cue,{spanish=false,onApply}={}){
   const file=cue.actions.some(action=>action.type==='PLAY')||(cue.audioTracks??[]).length>0;
   const details=el('details','rq-sound-design');
   details.dataset.soundDesignCue=cue.id;
+  details.open=expandedCueIds.has(cue.id);
+  details.addEventListener('toggle',()=>{
+    if(details.open)expandedCueIds.add(cue.id);
+    else expandedCueIds.delete(cue.id);
+  });
   const summary=el('summary','rq-sound-design-summary');
   const title=el('strong','',tr('Sound design','Diseño sonoro'));
   const chips=el('span','rq-sound-design-chips');
   const duration=playback.endAtMs!==null
     ? ((playback.endAtMs-playback.startAtMs)/1000).toFixed(1)+' s'
-    : tr('Duration: source file','Duración: archivo original');
+    : file?tr('Duration: source file','Duración: archivo original'):
+      tr('Duration: not specified','Duración: sin definir');
   chips.textContent=[
     duration,playback.gainDb+' dB',
     tr('In','Entrada')+' '+(playback.fadeInMs/1000)+' s',
