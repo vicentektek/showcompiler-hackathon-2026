@@ -26,7 +26,8 @@
 - [x] No new provider requests are required to run offline tests.
 - [x] Current source repository remains **private**; verify judge access before submission.
 - [x] Docs deliberately distinguish disabled new Modal generation from optional Meta Muse analysis.
-- [ ] Final video rendered and uploaded; URL tested from an unauthenticated browser.
+- [x] Operator reports that the demonstration video has been recorded and all intended local material prepared (3 November 2026); delivery files were not independently inspected here.
+- [ ] Upload the final video, confirm its playback from an unauthenticated browser, and add its actual URL to the submission form and repo docs.
 - [ ] Final screenshots captured from frozen build, without credentials.
 - [ ] Official authenticated portal's **actual** required fields, duration and disclosure requirements checked and filled. Do not assume a generic Devpost form.
 - [ ] Submission link points to a **judge-accessible version** of the exact frozen code or an explicitly approved source snapshot. Do not change repository visibility without owner approval.
