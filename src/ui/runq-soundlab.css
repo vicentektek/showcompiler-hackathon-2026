@@ -117,7 +117,6 @@
   & .rq-sfx-generation-note,
   & #sfxShortTakeBtn,
   & .rq-prompt-only-legacy-jobs,
-  & .sfx-script-assistant,
   & .sfx-audio-panel,
   & .sfx-export,
   & .sl-chips,
@@ -142,4 +141,11 @@
     white-space: normal;
   }
   & #generationHint { flex-basis: 100%; }
+  & .rq-prompt-target { max-width: 520px; }
+  & .rq-prompt-target select { min-height: 42px !important; }
+  & .sfx-script-assistant { margin-top: 16px !important; }
+  & .sfx-script-assistant > summary {
+    font-size: 12px !important;
+    color: #becab9 !important;
+  }
 }
