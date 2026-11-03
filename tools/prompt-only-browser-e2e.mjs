@@ -29,7 +29,7 @@ try {
   const settings=await(await page.request.get(origin+'/api/sfx/status')).json();
   assert.equal(settings.promptOnly,true);
   assert.equal(settings.enabled,false);
-  const denied=await page.request.post(origin+'/api/sfx/jobs',{data:{}});
+  const denied=await page.request.post(origin+'/api/sfx/jobs',{data:{},headers:{Origin:origin,'Content-Type':'application/json'}});
   assert.equal(denied.status(),403);
   assert.equal((await denied.json()).code,'SFX_PROMPT_ONLY');
   await page.goto(origin+'/',{waitUntil:'domcontentloaded'});
