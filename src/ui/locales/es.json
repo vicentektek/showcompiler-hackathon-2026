@@ -392,7 +392,7 @@
   "workspace.homeNewDetail": "Empieza con un proyecto vacío e importa un guion.",
   "workspace.homeOpenZip": "Abrir espectáculo ZIP",
   "workspace.homeOpenZipDetail": "Recupera los sonidos originales, el texto del guion y los cues aprobados.",
-  "workspace.homeImport": "Importar guion TXT",
+  "workspace.homeImport": "Importar guion (TXT, PDF, DOCX)",
   "workspace.homeImportDetail": "Conserva el texto original y añade después propuestas de sonido.",
   "workspace.homeDemo": "Probar demo con audio real",
   "workspace.homeDemoDetail": "Tres efectos WAV sintetizados y tres cues aprobados manualmente, sin conexión.",
