@@ -1,5 +1,15 @@
 # RUNQ — Submission control sheet
 
+## Required repository security clearance
+
+- [x] Initial targeted check of current frozen tree found no typical credential files and no recognized hard-coded token values in eight inspected modules. **Partial only.**
+- [x] `.gitignore` hardened for private reports, raw footage and key files.
+- [x] `SECURITY.md` and historical feature/experiment classification published on the docs branch.
+- [ ] **Gitleaks full-history + working-tree scans run locally and findings inspected privately.** See [security audit](RELEASE_SECURITY_AUDIT_2026-11-03.md).
+- [ ] Any exposed historical provider tokens revoked/rotated; inspect legacy PR/CI logs separately.
+- [ ] Licensing/redistribution of bundled demo audio, brand images and reference ZIP confirmed.
+- [ ] Judge access or sanitized public snapshot approved; repository currently private.
+
 ## Verified facts (3 November 2026)
 
 - [x] Operator chose the build on branch `feat/runq-cue-sound-design-review-2026-11-03` as final.
