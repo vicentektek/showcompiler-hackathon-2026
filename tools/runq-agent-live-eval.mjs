@@ -16,7 +16,7 @@ import {normalizeShowProject} from '../src/core/projectPersistence.mjs';
 import {buildAgentContext,prepareAgentPlan,commitAgentPlan,undoAgentPlan} from '../src/core/agentCore.mjs';
 import {writeFile,readFile,readdir} from 'node:fs/promises';
 import {readFileSync,readdirSync} from 'node:fs';
-import {resolve,join,relative} from 'node:path';
+import {resolve,join,relative,isAbsolute,sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {randomUUID,createHash} from 'node:crypto';
 import {acquireGlobalSpendLedger} from '../src/qa/globalSpendLedger.mjs';
@@ -452,7 +452,7 @@ export function commitIdentity(verifiedSnapshot=null){
  if(!dirty&&!verifiedSnapshot)return {sourceCommit,sourceSnapshotSha256:null};
  if(dirty&&!verifiedSnapshot)throw new Error('BLOCKED_SNAPSHOT_UNVERIFIED');
  const repository=resolve('.'),snapshot=resolve(verifiedSnapshot),outside=relative(repository,snapshot);
- if(!outside.startsWith('..')||outside==='..')throw new Error('VERIFIED_SNAPSHOT_MUST_BE_EXTERNAL');
+ if(!isAbsolute(outside)&&(!outside.startsWith(`..${sep}`)||outside==='..'))throw new Error('VERIFIED_SNAPSHOT_MUST_BE_EXTERNAL');
  const expectedPatch=readFileSync(join(snapshot,'tracked-working-tree.patch'));
  const actualPatch=execFileSync('git',['diff','--binary','HEAD']);
  if(!expectedPatch.equals(actualPatch))throw new Error('VERIFIED_SNAPSHOT_TRACKED_MISMATCH');
