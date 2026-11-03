@@ -99,7 +99,9 @@ export async function readScriptDocument(file,{loadPdf=loadPdfBrowser,loadWord=l
     }
     return {text:finalize(pages.join('\n')),format:type,pages:pdf.numPages};
   }finally{
-    if(pdf)await pdf.destroy();
-    else await task.destroy();
+    // PDF.js versions expose cleanup on the loading task; some document
+    // proxies no longer implement destroy() themselves.
+    if(typeof pdf?.destroy==='function')await pdf.destroy();
+    else if(typeof task.destroy==='function')await task.destroy();
   }
 }
