@@ -1,5 +1,6 @@
 /** From the Script: immediate truthful Meta activity, completion and no forced navigation. No paid calls. */
 import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
 import {createAppServer} from './dev-server.mjs';
 import {planScriptAnalysis} from '../src/core/sceneAnalysis.mjs';
 import {chromium} from 'playwright-core';
@@ -77,6 +78,12 @@ try{
  assert.match(await page.locator('#rqScriptQuickProgressText').innerText(),/Reviewed 0 of 3/);
  const rows=page.locator('[data-script-proposal]');
  assert.equal(await rows.count(),1,'Focus on one decision instead of three full cards');
+ await mkdir('artifacts/runq-ui',{recursive:true});
+ await page.locator('#rqShowBuilderSourceTask').screenshot({
+   path:'artifacts/runq-ui/11-script-one-decision.png',
+   animations:'disabled',
+ });
+
  assert.match(await page.locator('#rqScriptQuickShowMore').textContent(),/View all suggestions \(3\)/);
  await page.locator('#rqScriptQuickShowMore').click();
  assert.equal(await rows.count(),3,'The complete list is still available on request');
