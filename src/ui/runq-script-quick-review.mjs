@@ -20,14 +20,24 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
  const title=el('h4');
  const subtitle=el('p');
  const headingText=el('div','rq-script-quick-review-heading-text');
- headingText.append(title,subtitle);
+ const progressSummary=el('span','rq-script-quick-progress-summary');
+ progressSummary.id='rqScriptQuickProgressText';
+ const reviewProgress=el('progress','rq-script-quick-progress');
+ reviewProgress.id='rqScriptQuickProgress';
+ reviewProgress.setAttribute('aria-label',copy('Propuestas revisadas','Suggestions reviewed'));
+ headingText.append(title,subtitle,progressSummary,reviewProgress);
  const approveAll=el('button','btn accent small');
  approveAll.type='button';approveAll.id='rqScriptQuickApproveAll';
  heading.append(headingText,approveAll);
+ const feedback=el('div','rq-script-quick-feedback');
  const message=el('p','rq-script-quick-message');
  message.id='rqScriptQuickReviewMessage';
  message.setAttribute('role','status');
  message.setAttribute('aria-live','polite');
+ const undo=el('button','btn subtle small',copy('Deshacer','Undo'));
+ undo.type='button';undo.id='rqScriptQuickUndo';
+ undo.hidden=true;
+ feedback.append(message,undo);
  const list=el('div','rq-script-quick-list');
  list.id='rqScriptQuickList';
  const footer=el('div','rq-script-quick-footer');
@@ -37,10 +47,10 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
  advanced.type='button';advanced.id='rqScriptQuickAdvanced';
  advanced.addEventListener('click',onAdvanced);
  footer.append(showMore,advanced);
- section.append(heading,message,list,footer);
+ section.append(heading,feedback,list,footer);
  host.append(section);
- let expanded=false,lastProject=null,lastLocale=null;
- const MAX_PREVIEW=4;
+ let expanded=false,lastProject=null,lastLocale=null,undoAvailable=false;
+ const MAX_PREVIEW=1;
  function decide(ids,decision){
   if(!ids.length)return;
   if(ids.length>1&&!window.confirm(copy(
@@ -50,9 +60,19 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
   if(!result.ok){
    message.textContent=copy('No se pudo completar: ','Could not finish: ')+(result.error??'');
   }else{
-   message.textContent=copy('Propuestas revisadas: ','Suggestions reviewed: ')+result.count;
+   undoAvailable=true;
+   message.textContent=decision==='APPROVE'
+    ?copy(ids.length===1?'Cue aprobado.':'Cues aprobados: '+result.count,
+      ids.length===1?'Cue approved.':'Cues approved: '+result.count)
+    :copy(ids.length===1?'Propuesta descartada.':'Propuestas descartadas: '+result.count,
+      ids.length===1?'Suggestion discarded.':'Suggestions discarded: '+result.count);
   }
   render(true);
+  if(result.ok){
+   const next=list.querySelector('[data-quick-approve]');
+   if(next)next.focus({preventScroll:true});
+   else title.focus({preventScroll:true});
+  }
  }
  function saveEdit(p,input,prompt){
   const result=send('runq:builder-review-edit',{
@@ -61,24 +81,29 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
   message.textContent=result.ok
    ?copy('Cambios guardados; aún debes aprobar esta propuesta.','Changes saved; suggestion still needs approval.')
    :copy('No se pudo guardar: ','Could not save: ')+(result.error??'');
-  if(result.ok)render(true);
+  if(result.ok){undoAvailable=false;render(true);}
  }
  function proposalRow(p,lines){
   const row=el('article','rq-script-quick-item');
   row.dataset.scriptProposal=p.id;
+  row.setAttribute('aria-label',copy('Propuesta para revisar','Suggestion to review')+' · '+p.label);
   const head=el('div','rq-script-quick-item-main');
   const identity=el('div','rq-script-quick-item-identity');
   identity.append(el('strong','',p.label));
   const line=p.sourceLineIds?.[0]??'';
   const excerpt=lines.get(line)?.text??'';
-  identity.append(el('span','',line+(excerpt?' · '+excerpt:'')));
+  const evidence=el('span','rq-script-quick-evidence');
+  const lineRef=el('span','rq-script-quick-line-ref',line);
+  if(line) evidence.append(lineRef);
+  if(excerpt)evidence.append(el('span','',excerpt));
+  identity.append(evidence);
   const actions=el('div','rq-script-quick-item-actions');
   const accept=el('button','btn accent small',copy('Aprobar','Approve'));
   accept.type='button';accept.dataset.quickApprove=p.id;
   accept.addEventListener('click',()=>decide([p.id],'APPROVE'));
   const edit=el('button','btn subtle small',copy('Editar','Edit'));
   edit.type='button';edit.dataset.quickEdit=p.id;
-  const reject=el('button','btn subtle small',copy('Descartar','Discard'));
+  const reject=el('button','btn subtle small rq-script-quick-reject',copy('Descartar','Discard'));
   reject.type='button';reject.dataset.quickReject=p.id;
   reject.addEventListener('click',()=>decide([p.id],'REJECT'));
   actions.append(accept,edit,reject);
@@ -122,15 +147,25 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
   const reviewed=project.proposals.filter(p=>p.status!=='PENDING').length;
   section.hidden=!project.scriptText.trim()||project.proposals.length===0;
   if(section.hidden)return;
+  title.tabIndex=-1;
   title.textContent=pending.length
-   ?copy('Revisa las propuestas de RUNQ','Review RUNQ suggestions')
-   :copy('Propuestas revisadas','Suggestions reviewed');
+   ?copy('Decide qué cues incorporar','Choose which cues to add')
+   :copy('Revisión completada','Review complete');
   subtitle.textContent=pending.length
-   ?copy(pending.length+' pendientes · '+reviewed+' revisadas. Decide aquí, sin cambiar de pantalla.',
-     pending.length+' pending · '+reviewed+' reviewed. Decide here, without switching views.')
-   :copy('Todas las propuestas tienen una decisión. Puedes seguir preparando el espectáculo.',
-     'Every suggestion has a decision. You can continue preparing your show.');
-  approveAll.textContent=copy('Aprobar todas ('+pending.length+')','Approve all ('+pending.length+')');
+   ?copy('Las sugerencias no se añaden al show hasta que las apruebas.',
+     'Suggestions are not added to your show until you approve them.')
+   :copy('Ya puedes configurar sonidos y pies en Cues.',
+     'You can now configure sounds and triggers in Cues.');
+  const total=pending.length+reviewed;
+  reviewProgress.max=Math.max(1,total);
+  reviewProgress.value=reviewed;
+  reviewProgress.setAttribute('aria-valuetext',reviewed+' / '+total);
+  progressSummary.textContent=copy(
+    'Revisadas '+reviewed+' de '+total+' · '+pending.length+' pendientes',
+    'Reviewed '+reviewed+' of '+total+' · '+pending.length+' remaining');
+  approveAll.textContent=copy('Aprobar las '+pending.length+' restantes',
+    'Approve remaining '+pending.length);
+  undo.hidden=!undoAvailable;
   approveAll.hidden=pending.length<2;
   list.replaceChildren();
   const lines=new Map(parseScript(project.scriptText).map(x=>[x.id,x]));
@@ -138,17 +173,29 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
   for(const p of visible)list.append(proposalRow(p,lines));
   if(!pending.length){
    list.append(el('p','rq-script-quick-complete',copy(
-     'Revisión completada. Abre Cues cuando quieras configurar pies y sonidos.',
-     'Review complete. Open Cues whenever you want to set triggers or sound.')));
+     'Todas las propuestas están revisadas. Los cues aprobados ya están en tu espectáculo.',
+     'All suggestions are reviewed. Approved cues are now part of your show.')));
   }
   showMore.hidden=pending.length<=MAX_PREVIEW;
+  showMore.setAttribute('aria-expanded',String(expanded));
+  showMore.setAttribute('aria-controls','rqScriptQuickList');
   showMore.textContent=expanded
-   ?copy('Mostrar menos','Show less')
-   :copy('Ver las '+(pending.length-MAX_PREVIEW)+' restantes',
-     'Show '+(pending.length-MAX_PREVIEW)+' more');
-  advanced.textContent=copy('Editor completo de cues','Full cue editor');
+   ?copy('Revisar una a una','Review one at a time')
+   :copy('Ver todas las propuestas ('+pending.length+')',
+     'View all suggestions ('+pending.length+')');
+  advanced.textContent=pending.length
+   ?copy('Herramientas avanzadas de cues','Advanced cue tools')
+   :copy('Continuar: configurar cues','Continue: configure cues');
  }
  showMore.addEventListener('click',()=>{expanded=!expanded;render(true);});
+ undo.addEventListener('click',()=>{
+   const result=send('runq:proposal-batch-undo',{});
+   undoAvailable=false;
+   message.textContent=result.ok
+    ?copy('Última decisión deshecha.','Last decision undone.')
+    :copy('No se pudo deshacer esta decisión.','This decision could not be undone.');
+   render(true);
+ });
  approveAll.addEventListener('click',()=>{
   const state=getState();
   decide(state.project.proposals.filter(p=>p.status==='PENDING').map(p=>p.id),'APPROVE');
