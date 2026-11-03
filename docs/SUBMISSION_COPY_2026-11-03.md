@@ -1,6 +1,6 @@
 # RUNQ — Submission copy (English, ready to adapt)
 
-> **Status:** publication draft. Add the video URL, screenshots, team identity and any portal-specific mandatory fields after reviewing the organizer's authenticated submission form. Do not submit this file as proof that the form was completed.
+> **Status:** prepared English submission copy, **not proof of submission**. Add the real video URL, approved screenshots and any mandatory fields from the authenticated portal. On 3 November 2026 the organizer explicitly reminded entrants that the GitHub source must be open source and the demo video is 3 minutes. The repository is not yet public or licensed for distribution.
 
 ## Name
 RUNQ — From Script to Stage
@@ -52,11 +52,13 @@ JavaScript ES modules, Node.js, browser Web Audio, Meta Model API (Muse Spark), 
 
 ## Link placeholders
 - Video: **[ADD PUBLIC OR UNLISTED VIDEO URL; verify accessibility]**
-- Source candidate: [RUNQ final submission branch](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026) — **currently private; approve judge access before supplying this link**.
+- Source candidate: [RUNQ integrated `main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main) — **currently private, not yet a compliant public/open-source submission link**. Approve a reviewed public release or sanitized snapshot with a suitable license before including it in the portal. The frozen source is preserved on `release/runq-indie-submission-2026`.
 - Screenshots: **[ADD REAL FINAL-BUILD CAPTURES]**
 - Live demo: **[ADD ONLY IF ACTUALLY DEPLOYED AND TESTED]**
 
 ## Suggested video voice-over, ~3 minutes (adapt to actual footage)
+
+The organizer's 3 November reminder specifically recommends a **3-minute video**. Do not upload until the final export has been checked at native screen resolution, particularly for text readability; verify the actual link plays outside the owner's authenticated account.
 **0:00–0:20 — Problem.** "Every theatre production begins with a script. Turning stage directions into reliable sound cues is time-consuming — and during rehearsal, the plan changes constantly."
 
 **0:20–0:45 — Script.** "RUNQ imports the script and preserves precise line references, so sound decisions can always be traced back to their source."
