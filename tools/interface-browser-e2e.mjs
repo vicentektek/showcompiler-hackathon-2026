@@ -780,7 +780,13 @@ try {
   assert.equal(await page.locator('#rqShowBuilderApproveAllProposals').isVisible(),false,
     'Legacy approve-all must not compete with the unified selection-aware CTA');
   await page.locator('#rqReviewFilter').selectOption('pending');
+  assert.equal(await page.locator('#rqUnifiedCueReview .rq-review-selected-actions').isVisible(),false,
+    'Contextual mass actions should stay hidden until an item is selected');
+  assert.equal(await page.locator('#rqReviewMoreTools').getAttribute('open'),null,
+    'Secondary tools should start collapsed');
   await page.getByRole('button',{name:'Select visible',exact:true}).click();
+  assert.equal(await page.locator('#rqUnifiedCueReview .rq-review-selected-actions').isVisible(),true,
+    'Selection makes only the relevant actions visible');
   const approveAll=page.locator('#rqUnifiedCueReview .rq-review-bulk .btn.accent');
   assert.equal(await approveAll.isVisible(),true);
   assert.match(await approveAll.textContent(),/Approve selection/);
