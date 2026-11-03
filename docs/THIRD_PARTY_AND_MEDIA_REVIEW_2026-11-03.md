@@ -12,6 +12,10 @@
 
 Development-only browser automation can install `playwright-core` explicitly for CI; it is not listed as a frozen runtime dependency. See `.github/workflows/core-tests.yml` for the actual CI install. Use `package.json` and the current lockfile as source of truth. Do not imply this table proves a legal audit.
 
+## Approved visual identity for the submission
+
+The operator selected the **RUNQ — FROM SCRIPT TO STAGE** horizontal artwork for the final documentation. An existing repository asset, `assets/runq-logo-full.png`, matches the selected artwork and is displayed at the top of the final README. This records **selection and intended use**, not independent proof of copyright ownership or a license for unrelated third-party images.
+
 ## Media and bundled assets requiring owner review
 
 | Path / group | Intended role | Publication check |
