@@ -33,7 +33,9 @@ try{
  assert.equal(await page.locator('#rqShowBuilderAutomationSlot').count(),1);
  assert.equal(await page.locator('#rqPrepareShow').isVisible(),false,'Old batch wizard is optional, not a second header');
  const script='ESCENA 1\nMARA: La puerta se abre cuando termina esta frase.\n(Se abre la puerta lentamente.)';
- await page.locator('#scriptFileInput').setInputFiles({name:'obra.txt',mimeType:'text/plain',buffer:Buffer.from(script)});
+ const scriptChooserPromise=page.waitForEvent('filechooser');
+ await page.locator('#rqShowBuilderImportScript').click();
+ await (await scriptChooserPromise).setFiles({name:'obra.txt',mimeType:'text/plain',buffer:Buffer.from(script)});
  await page.waitForFunction(()=>document.querySelector('#showName')?.value==='obra');
  assert.equal((await stateOf(page)).project.scriptText,script);
  await page.locator('[data-builder-line-select="L3"]').check();
