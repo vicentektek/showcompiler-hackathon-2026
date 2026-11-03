@@ -244,6 +244,7 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   suggestSelected.disabled=selectedCues().length===0;
   approveAll.textContent=S('Aprobar propuestas pendientes','Approve pending suggestions');
   approveAll.disabled=!state.project.proposals.some(p=>p.status==='PENDING');
+  approveAll.hidden=approveAll.disabled;
   foot.textContent=selectedCues().length
     ?S('Proponer pies · selección','Suggest triggers · selected')
     :S('Proponer pies · todos sin pie','Suggest triggers · all missing');
