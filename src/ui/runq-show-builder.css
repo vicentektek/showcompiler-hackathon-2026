@@ -1101,3 +1101,6 @@ body.rq-prompt-only #rqPreparationResults {
  :root#runqApp .rq-review-list {max-height:none;overflow:visible}
  :root#runqApp .rq-review-pill {font-size:9px}
 }
+
+/* Single preparation hierarchy: Build your show replaces the old top wizard. */
+:root#runqApp .shell[data-active-workspace=ai] #rq16AIWelcome { display:none!important; }
