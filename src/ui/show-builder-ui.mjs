@@ -692,7 +692,9 @@ export function mountShowBuilder(panel, welcome, steps) {
     }
     const pendingProposalCount = currentShow.project.proposals
       .filter(proposal => proposal.status === 'PENDING').length;
-    approveAllProposals.hidden = pendingProposalCount < 2;
+    // The selection-aware unified review owns batch approval. Retain the
+    // historical button for compatibility but never expose a duplicate CTA.
+    approveAllProposals.hidden = true;
     const selectedCue = currentShow.project.cues.find(cue => cue.id === currentShow.selectedCueId);
     const selectedLineCount = getSelectedScriptLines().length;
     const linkedAudioCount = currentShow.project.cues.reduce((count, cue) =>
