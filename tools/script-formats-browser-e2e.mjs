@@ -65,9 +65,9 @@ function wordDocument(){
 }
 
 const cases=[
- {name:'obra.txt',mime:'text/plain',buffer:Buffer.from('ESCENA UNO\nANA: ADELANTE'),expect:/ESCENA UNO[\s\S]*ANA: ADELANTE/},
- {name:'obra.pdf',mime:'application/pdf',buffer:pdfWithText('ESCENA TRES PUERTA ABIERTA'),expect:/ESCENA TRES PUERTA ABIERTA/},
- {name:'obra.docx',mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:wordDocument(),expect:/ESCENA CUATRO[\s\S]*ANA: LISTOS PARA EL ENSAYO/}
+ {name:'obra.txt',mimeType:'text/plain',buffer:Buffer.from('ESCENA UNO\nANA: ADELANTE'),expect:/ESCENA UNO[\s\S]*ANA: ADELANTE/},
+ {name:'obra.pdf',mimeType:'application/pdf',buffer:pdfWithText('ESCENA TRES PUERTA ABIERTA'),expect:/ESCENA TRES PUERTA ABIERTA/},
+ {name:'obra.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:wordDocument(),expect:/ESCENA CUATRO[\s\S]*ANA: LISTOS PARA EL ENSAYO/}
 ];
 const server=createAppServer();let browser;
 try{
