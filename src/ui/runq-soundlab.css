@@ -175,4 +175,17 @@
   :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq12-library>.rq5-pane-heading {
     display:none!important;
   }
+  /* Keep real audition controls and drop intake, but trim redundant spacing. */
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq10-sound-heading {
+    min-height:27px!important;padding:1px 6px!important;margin:0!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq11-audition-transport {
+    min-height:37px!important;padding:2px 6px!important;gap:4px!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq10-output-warning {
+    padding:2px 6px!important;margin:0!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq12-library-toolbar {
+    min-height:36px!important;padding:3px 6px!important;
+  }
 }
