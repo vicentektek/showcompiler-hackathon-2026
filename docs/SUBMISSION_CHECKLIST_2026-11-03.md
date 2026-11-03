@@ -8,6 +8,7 @@
 - [ ] **Gitleaks full-history + working-tree scans run locally and findings inspected privately.** See [security audit](RELEASE_SECURITY_AUDIT_2026-11-03.md).
 - [ ] Any exposed historical provider tokens revoked/rotated; inspect legacy PR/CI logs separately.
 - [ ] Licensing/redistribution of bundled demo audio, brand images and reference ZIP confirmed.
+- [ ] [Dependency and media rights inventory](THIRD_PARTY_AND_MEDIA_REVIEW_2026-11-03.md) reviewed and signed off before public sharing.
 - [ ] Judge access or sanitized public snapshot approved; repository currently private.
 
 ## Verified facts (3 November 2026)
