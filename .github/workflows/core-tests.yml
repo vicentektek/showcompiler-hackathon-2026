@@ -100,6 +100,8 @@ jobs:
         run: node tools/unified-builder-browser-e2e.mjs
       - name: Real TXT, PDF and DOCX script import in Chrome (local only)
         run: node tools/script-formats-browser-e2e.mjs
+      - name: One-click script analysis visible progress and review (offline)
+        run: node tools/script-analysis-feedback-browser-e2e.mjs
       - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
         run: node tools/runq-agent-browser-e2e.mjs
       - name: RUNQ AI contextual review with original show WAVs (offline fixtures)
