@@ -1,3 +1,36 @@
+# RUNQ — Meta Global AI Developer Hackathon 2026
+
+> **FINAL SUBMISSION DOCUMENTATION · 3 Nov 2026 · Code frozen.** The operator-selected runnable version is **`b4e7df724d569c1d5af7682540c206ff3fb97701`**, branch **`feat/runq-cue-sound-design-review-2026-11-03`**. The documentation branch contains no runtime changes. Do **not** run the historical default `main` branch and assume it is the submitted product.
+>
+> **Source status:** this repository is private until the owner explicitly approves judge access or publication. No public release is implied by this README.
+>
+> **Validation:** GitHub Actions Core tests passed on the frozen code commit (run `41690922577`). This does not certify real hardware, microphone or live-model results.
+
+**RUNQ** transforms stage scripts into operator-reviewed, source-linked sound cues. It supports text-based script import (TXT/PDF/DOCX), optional Meta Muse Spark cue proposals, manual review, cue-level sound descriptions and playback settings, local sound assignment, rehearsal voice following with deliberate Auto GO arming, manual GO/STOP and audio-inclusive show ZIP export. The frozen demo **does not generate new audio using Modal**.
+
+### Submission guide
+
+- **[Read the final release capabilities and limitations](docs/SUBMISSION_RELEASE_2026-11-03.md)**
+- **[Judge quick start — run the correct version](docs/JUDGE_QUICKSTART_2026-11-03.md)**
+- **[English project description / narration](docs/SUBMISSION_COPY_2026-11-03.md)**
+- **[Capture checklist for the demonstration](docs/DEMO_CAPTURE_2026-11-03.md)**
+- **[Final submission and accessibility checklist](docs/SUBMISSION_CHECKLIST_2026-11-03.md)**
+
+### Run the frozen version
+
+```sh
+git fetch origin
+git checkout b4e7df724d569c1d5af7682540c206ff3fb97701
+npm install --no-audit --no-fund
+npm run dev
+```
+
+Open **http://127.0.0.1:5173** in Chrome or Edge. For a separately checked-out worktree already at that commit, do not switch branches while recording.
+
+**Important:** The long-form development notes below include earlier candidates, experimental features and obsolete descriptions. For what is *actually* being submitted, the **final release notes above take precedence**.
+
+---
+
 > **RUNQ prompt-only sound demo · 3 November 2026.** This branch disables new Modal SFX generation in the normal app server. Sound assistance now produces editable descriptions/prompts and lets operators import or assign local audio. The UI does not generate sound files. Meta Muse remains optional for script/cue analysis. Earlier Modal and audio-generation sections elsewhere in this repository document historical prototypes, not the shipped workflow.
 
 # ShowCompiler — Meta Global AI Developer Hackathon 2026
