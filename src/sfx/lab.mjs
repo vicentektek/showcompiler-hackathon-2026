@@ -762,7 +762,13 @@ function bindEvents(){
     if (PROMPT_ONLY) {
       const prompt = $('soundPrompt').value.trim();
       if (!prompt) { inform(ux('Escribe o prepara un prompt.','Enter or prepare a prompt.'),true); return; }
-      void navigator.clipboard.writeText(prompt).then(()=>{
+      const writeClipboard = navigator.clipboard?.writeText?.bind(navigator.clipboard);
+      if (!writeClipboard) {
+        $('soundPrompt').focus(); $('soundPrompt').select();
+        inform(ux('Selecciona y copia el prompt manualmente.','Select and copy the prompt manually.'));
+        return;
+      }
+      void writeClipboard(prompt).then(()=>{
         inform(ux('Prompt copiado. Importa después el archivo de sonido.','Prompt copied. Import the audio file afterwards.'));
       }).catch(()=>{
         $('soundPrompt').focus(); $('soundPrompt').select();
