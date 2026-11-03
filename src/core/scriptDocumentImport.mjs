@@ -30,10 +30,12 @@ async function loadPdfBrowser(){
   pdfjs.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/pdf.worker.mjs';
   return pdfjs;
 }
-function finalize(text){
+function finalize(text,{preserveSource=false}={}){
   if(typeof text!=='string')throw new Error('SCRIPT_NO_EXTRACTABLE_TEXT');
-  const cleaned=text.replace(/\r\n?/g,'\n').replace(/\u0000/g,'').trim();
-  if(!cleaned)throw new Error('SCRIPT_NO_EXTRACTABLE_TEXT');
+  // TXT was already imported byte-faithfully; do not strip final newlines or
+  // normalize CRLF as that would mutate source and Lxx provenance.
+  const cleaned=preserveSource?text:text.replace(/\r\n?/g,'\n').replace(/\u0000/g,'');
+  if(!cleaned.trim())throw new Error('SCRIPT_NO_EXTRACTABLE_TEXT');
   if(cleaned.length>MAX_SCRIPT_TEXT_CHARS)throw new Error('SCRIPT_TEXT_TOO_LARGE');
   return cleaned;
 }
@@ -69,7 +71,7 @@ export async function readScriptDocument(file,{loadPdf=loadPdfBrowser,loadWord=l
     let text;
     try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}
     catch{throw new Error('SCRIPT_INVALID_UTF8');}
-    return {text:finalize(text),format:type};
+    return {text:finalize(text,{preserveSource:true}),format:type};
   }
   if(type==='docx'){
     // The ZIP signature prevents treating a renamed .doc or a text file as DOCX.
