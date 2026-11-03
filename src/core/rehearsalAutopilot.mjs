@@ -1,0 +1,92 @@
+/**
+ * Strict speech-to-GO decision policy for explicitly armed REHEARSAL only.
+ * Pure state machine: it NEVER imports audio, calls GO or performs I/O.
+ * Supports backwards seeks, forward skips, and repeated takes without firing
+ * intermediate cues. Only completed, unique speech turns are considered.
+ */
+import {compareSpeech,normalizeSpeech} from './voiceFollow.mjs';
+
+const lineNo=id=>Number(/^L([1-9]\d*)$/.exec(id??'')?.[1]);
+const wordCount=text=>normalizeSpeech(text).split(' ').filter(Boolean).length;
+
+export const REHEARSAL_AUTO_POLICY=Object.freeze({
+ nearThreshold:.88,seekThreshold:.97,nearMargin:.14,seekMargin:.14,
+ nearRadius:25,repeatCooldownMs:2500,minimumWords:2,seekWords:4,
+ maxTranscriptAgeMs:5000,
+});
+
+export function initialRehearsalAutoState({focusLine=1}={}){
+ if(!Number.isInteger(focusLine)||focusLine<1)throw new TypeError('Invalid focus');
+ return {focusLine,lastCueId:null,lastFiredMs:-Infinity,seenTurnIds:[],history:[]};
+}
+
+/** Returns {state,action}; action FIRE is a *proposal* for the scoped UI bridge. */
+export function decideRehearsalAutoGo({
+ cues,transcript,turnId,atMs,state,armed=false,
+ policy=REHEARSAL_AUTO_POLICY,
+}={}){
+ if(!state||!Number.isInteger(state.focusLine)||state.focusLine<1||!Array.isArray(cues)||
+   !Number.isFinite(atMs))throw new TypeError('Invalid auto rehearsal input');
+ const no=(reason,candidates=[])=>({state,action:{type:'NONE',reason,candidates}});
+ if(!armed)return no('NOT_ARMED');
+ if(!transcript||typeof transcript.text!=='string'||!transcript.final)return no('NOT_FINAL');
+ if(!Number.isFinite(transcript.endMs)||transcript.endMs>atMs+250||
+   atMs-transcript.endMs>policy.maxTranscriptAgeMs)return no('STALE');
+ if(!['string','number'].includes(typeof turnId)||!String(turnId).trim())
+   return no('MISSING_TURN_ID');
+ const identity=String(turnId);
+ if(state.seenTurnIds.includes(identity))return no('DUPLICATE_TURN');
+ if(wordCount(transcript.text)<policy.minimumWords)return no('TOO_SHORT');
+ const available=cues.filter(c=>typeof c?.id==='string'&&
+  Number.isInteger(lineNo(c.lineId))&&lineNo(c.lineId)>=1&&
+  typeof c.trigger==='string'&&wordCount(c.trigger)>=policy.minimumWords);
+ const ranked=available.map(c=>{
+  const line=lineNo(c.lineId),delta=line-state.focusLine;
+  // A short operator-authored trigger must be the entire final turn, not a
+  // fuzzy match or a common two-word fragment inside unrelated dialogue.
+  const score=wordCount(c.trigger)===2
+   ? Number(normalizeSpeech(transcript.text)===normalizeSpeech(c.trigger))
+   : compareSpeech(transcript.text,c.trigger);
+  return {cueId:c.id,lineId:c.lineId,line,delta,score,
+    near:Math.abs(delta)<=policy.nearRadius};
+ }).filter(x=>x.score>=Math.min(policy.nearThreshold,policy.seekThreshold))
+ .sort((a,b)=>b.score-a.score||(a.near===b.near?0:a.near?-1:1)||
+  Math.abs(a.delta)-Math.abs(b.delta));
+ if(!ranked.length)return no('NO_MATCH');
+ const top=ranked[0];
+ const threshold=top.near?policy.nearThreshold:policy.seekThreshold;
+ if(top.score<threshold)return no('LOW_CONFIDENCE');
+ // Seek and rewind use near-exact, sufficiently distinctive spoken phrases.
+ if(!top.near&&wordCount(transcript.text)<policy.seekWords)return no('SEEK_TOO_SHORT');
+ if(ranked.length>1 && top.score-ranked[1].score<(top.near?policy.nearMargin:policy.seekMargin))
+  return no('AMBIGUOUS',ranked.slice(0,3));
+ if(top.cueId===state.lastCueId&&atMs-state.lastFiredMs<policy.repeatCooldownMs)
+  return no('REPEAT_COOLDOWN');
+ const index=available.findIndex(c=>c.id===top.cueId);
+ const before=state.history.at(-1)?.index??-1;
+ const movement=top.cueId===state.lastCueId?'REPEAT':before===-1?'FIRST':
+  index<before?'REWIND':index>before+1?'SKIP_FORWARD':
+  index>before?'ADVANCE':'REVISIT';
+ // Never mark turn as fired until the actual guarded audio engine ACKs GO.
+ return {state,action:{type:'FIRE',cueId:top.cueId,lineId:top.lineId,score:top.score,
+  movement,skippedCount:movement==='SKIP_FORWARD'?index-before-1:0,
+  turnId:identity,atMs,index}};
+}
+
+/** Only invoke this after transport confirms actual playback was started. */
+export function acknowledgeRehearsalAutoGo(state,action){
+ if(!state||action?.type!=='FIRE'||!Number.isInteger(action.index))
+  throw new TypeError('Invalid automatic GO acknowledgement');
+ return {
+  focusLine:lineNo(action.lineId),lastCueId:action.cueId,
+  lastFiredMs:action.atMs,
+  seenTurnIds:[...state.seenTurnIds,action.turnId].slice(-100),
+  history:[...state.history,{cueId:action.cueId,index:action.index,lineId:action.lineId,atMs:action.atMs}].slice(-100),
+ };
+}
+
+/** Duplicated speechComplete turn IDs are ignored even after failed transport. */
+export function discardRehearsalTurn(state,turnId){
+ if(typeof turnId!=='string'&&typeof turnId!=='number')return state;
+ return {...state,seenTurnIds:[...state.seenTurnIds,String(turnId)].slice(-100)};
+}

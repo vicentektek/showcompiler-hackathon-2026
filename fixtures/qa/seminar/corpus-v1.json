@@ -1,0 +1,506 @@
+{
+  "version": 1,
+  "corpus": "SEMINAR_ORIGINAL_THEATRICAL_EVAL_2026-10-27",
+  "provenance": "ORIGINAL_SYNTHETIC_MANUALLY_ANNOTATED_GOLD_NOT_MODEL_MEASUREMENTS",
+  "humanReviewStatus": "PROVISIONAL_OPERATOR_REVIEW_REQUIRED",
+  "cases": [
+    {
+      "id": "delta-signal",
+      "title": "Delta: retorno del sonar",
+      "file": "fixtures/qa/seminar/delta-signal.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "tags": [
+        "states",
+        "technical",
+        "dialogue",
+        "temporal"
+      ],
+      "expected": [
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L9",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L11",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L13",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L15",
+          "transport": "PLAY",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L17",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L19",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L21",
+          "transport": "CONTINUE",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L23",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L24",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L7",
+        "L8",
+        "L10",
+        "L16",
+        "L22"
+      ]
+    },
+    {
+      "id": "hotel-door",
+      "title": "Hotel de la esquina",
+      "file": "fixtures/qa/seminar/hotel-door.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "tags": [
+        "separate-speakers",
+        "practical",
+        "ambiguity"
+      ],
+      "expected": [
+        {
+          "lineId": "L13",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L18",
+          "transport": "PLAY",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L20",
+          "transport": "STOP",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L5",
+        "L7",
+        "L10",
+        "L15",
+        "L14"
+      ]
+    },
+    {
+      "id": "gala-rundown",
+      "title": "Gala: circuito de premios",
+      "file": "fixtures/qa/seminar/gala-rundown.txt",
+      "type": "gala",
+      "documentKind": "running_order",
+      "language": "es",
+      "tags": [
+        "gala",
+        "LX",
+        "video",
+        "explicit",
+        "stop"
+      ],
+      "expected": [
+        {
+          "lineId": "L4",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L8",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L10",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L12",
+          "transport": "PLAY",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L13",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L15",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L16",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L5",
+        "L6",
+        "L9",
+        "L11",
+        "L14",
+        "L17"
+      ]
+    },
+    {
+      "id": "tide-dance",
+      "title": "Danza: marea quieta",
+      "file": "fixtures/qa/seminar/tide-dance.txt",
+      "type": "dance",
+      "documentKind": "calling_script",
+      "language": "es",
+      "tags": [
+        "dance",
+        "timed",
+        "cue-calling",
+        "silence"
+      ],
+      "expected": [
+        {
+          "lineId": "L5",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L8",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L10",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L11",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L14",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L17",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L18",
+          "transport": "CONTINUE",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L19",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L4",
+        "L6",
+        "L7",
+        "L13",
+        "L15",
+        "L16",
+        "L20"
+      ]
+    },
+    {
+      "id": "one-more-song",
+      "title": "Musical: una canción más",
+      "file": "fixtures/qa/seminar/one-more-song.txt",
+      "type": "musical",
+      "documentKind": "libretto",
+      "language": "es",
+      "tags": [
+        "musical",
+        "live-versus-recorded",
+        "voice",
+        "mix"
+      ],
+      "expected": [
+        {
+          "lineId": "L6",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L9",
+          "transport": "PLAY",
+          "cueKind": "VOICE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L12",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L14",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L15",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L5",
+        "L8",
+        "L11",
+        "L16"
+      ]
+    },
+    {
+      "id": "duo-multilingual",
+      "title": "Deux portes / Dos puertas",
+      "file": "fixtures/qa/seminar/duo-multilingual.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "auto",
+      "tags": [
+        "french",
+        "multilingual",
+        "speaker",
+        "negative"
+      ],
+      "expected": [
+        {
+          "lineId": "L9",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L12",
+          "transport": "CONTINUE",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L13",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L15",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L5",
+        "L6",
+        "L8",
+        "L14"
+      ]
+    },
+    {
+      "id": "adversarial-prompt",
+      "title": "El archivo prohibido",
+      "file": "fixtures/qa/seminar/adversarial-prompt.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "tags": [
+        "prompt-injection",
+        "negative",
+        "technical"
+      ],
+      "expected": [
+        {
+          "lineId": "L7",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L10",
+          "transport": "STOP",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L5",
+        "L8",
+        "L9",
+        "L11"
+      ]
+    },
+    {
+      "id": "conference-keynote",
+      "title": "Conferencia: apertura técnica",
+      "file": "fixtures/qa/seminar/conference-keynote.txt",
+      "type": "corporate",
+      "documentKind": "cue_sheet",
+      "language": "es",
+      "tags": [
+        "corporate",
+        "technical",
+        "background",
+        "cue-ids"
+      ],
+      "expected": [
+        {
+          "lineId": "L4",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L8",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L10",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L11",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L12",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L2",
+        "L3",
+        "L5",
+        "L7",
+        "L9",
+        "L13"
+      ]
+    },
+    {
+      "id": "umbra-long",
+      "title": "Umbra: continuidad entre ventanas",
+      "file": "fixtures/qa/seminar/umbra-long.txt",
+      "type": "play",
+      "documentKind": "dramatic_script",
+      "language": "es",
+      "tags": [
+        "long-script",
+        "cross-window",
+        "stop-reference",
+        "boundary"
+      ],
+      "expected": [
+        {
+          "lineId": "L3",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L38",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L63",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L64",
+          "transport": "PLAY",
+          "cueKind": "FX",
+          "basis": "EXPLICIT"
+        },
+        {
+          "lineId": "L66",
+          "transport": "SILENCE",
+          "cueKind": "SILENCE",
+          "basis": "EXPLICIT"
+        }
+      ],
+      "forbiddenPlayLineIds": [
+        "L24",
+        "L52"
+      ]
+    }
+  ]
+}

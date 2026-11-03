@@ -1,3 +1,4 @@
+
 # Logs
 logs
 *.log
@@ -147,3 +148,52 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Locally generated, rights-clear audio demonstration package (CI artifact)
+demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
+
+# Reports may be generated from user-private material; never commit local reports.
+artifacts/cue-qa/
+artifacts/codex-qa/
+
+# Original test scripts in fixtures/ are public-source-safe; live outputs never commit.
+artifacts/seminar-qa/
+artifacts/seminar-live/
+artifacts/seminar-baseten/
+artifacts/seminar-compare/
+
+# Local cumulative Meta lab spending ledger/lock; NEVER commit this to GitHub
+.runq-local/
+
+# Local systematic A/B Muse experiments and private typed traces.
+artifacts/systematic-eval/
+
+# Live agent provider benchmarking: costs, anonymized diagnostics and local budget only.
+artifacts/agent-eval/
+artifacts/agent-live-eval/
+artifacts/runq-evals/
+
+
+# Submission hygiene: reports can contain detected secret material and private paths.
+artifacts/release-security/
+artifacts/qa-ai-battery-v1/
+artifacts/video/
+artifacts/runq-video/
+gitleaks-report*.json
+gitleaks-report*.csv
+gitleaks-report*.sarif
+trufflehog-report*.json
+
+# Local raw footage and screenshots; curated public assets need explicit review.
+recordings/
+captures/raw/
+video/raw/
+
+# Keys/certificates should never enter this repository.
+*.pem
+*.p12
+*.pfx
+*.key
+*.jks
+*.keystore
+*.asc

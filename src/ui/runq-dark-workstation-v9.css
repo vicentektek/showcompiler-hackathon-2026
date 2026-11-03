@@ -1,0 +1,991 @@
+/*
+ * RunQ V9 Dark Workstation.
+ * Keep V8's single navigation and dock structure; reject its daylight palette.
+ * Clear hierarchy: graphite authoring / near-black live / amber NEXT / blue
+ * inspection / teal ON AIR / red emergency. Every cue row has explicit controls.
+ */
+:root{--rq9-bg:#101821;--rq9-panel:#18232f;--rq9-card:#202d3a;
+ --rq9-header:#243342;--rq9-border:#3d4134;--rq9-text:#e6eff6;
+ --rq9-sub:#889175;--rq9-blue:#9ba584;--rq9-next:#f3c36b;
+ --rq9-active:#55d5b7}
+.rq8 body{background:var(--rq9-bg)!important}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]){
+ background:var(--rq9-bg)!important;color:var(--rq9-text)!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"])>main{
+ background:var(--rq9-bg)!important;
+}
+.rq8 .workspace-nav{
+ background:#172330!important;border-color:var(--rq9-border)!important;
+}
+.rq8 .rq8-identity{border-color:var(--rq9-border)!important}
+.rq8 .rq8-identity-copy strong{color:#f0f6fb!important}
+.rq8 .rq8-identity-copy small{color:#8b9477!important}
+.rq8 .rq8-marker{background:#3b3f32!important;color:#f3c36b!important}
+.rq8 .rq7-nav-heading{color:#828a6f!important;border-color:#3c4033!important}
+.rq8 .workspace-tab{color:#8d9779!important}
+.rq8 .workspace-tab:hover{background:#34372c!important;color:#f5f9fc!important}
+.rq8 .workspace-tab[aria-pressed="true"]{
+ background:#383c30!important;color:#a4af8c!important;
+ border-color:#666d57!important;box-shadow:inset 3px 0 #9ba585!important;
+}
+.rq8 .workspace-tab[data-workspace-nav="operation"]{color:#efb4b6!important}
+.rq8 .workspace-tab[data-workspace-nav="operation"][aria-pressed="true"]{
+ background:#503139!important;color:#ffe0e2!important;
+ box-shadow:inset 3px 0 #e8868c!important;border-color:#9e646c!important;
+}
+.rq8 .rq7-workbench{
+ background:#1b2937!important;border-color:var(--rq9-border)!important;
+ box-shadow:none!important;
+}
+.rq8 .rq7-modes{background:#121e2a!important;border-color:#43483a!important}
+.rq8 .rq7-mode-button{color:#bacbd8!important}
+.rq8 .rq7-mode-button[aria-pressed="true"]{
+ background:#474b3d!important;color:#f2f8fc!important;border-color:#5b614e!important;
+}
+.rq8 .rq8-ribbon-heading{border-color:#464b3c!important}
+.rq8 .rq8-ribbon-heading strong{color:#f1f6fa!important}
+.rq8 .rq8-ribbon-heading span,.rq8 .rq7-ribbon-status{color:#889175!important}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro h1{
+ color:#edf5fa!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro p{
+ color:#8a9376!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) #statusMessage{
+ background:#2e3127!important;border-color:#4f5443!important;color:#9ea887!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .layout>.panel{
+ background:var(--rq9-panel)!important;border-color:var(--rq9-border)!important;
+ color:var(--rq9-text)!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel-head h2,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .subheading{
+ color:#edf5fa!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel label,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .help,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .caption{
+ color:#8c9578!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel input:not([type="checkbox"]):not([type="range"]),
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel textarea,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel select{
+ background:#111d29!important;border-color:#4b5040!important;color:#edf5fa!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel input::placeholder,
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel textarea::placeholder{
+ color:#798168!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .btn.subtle{
+ background:#33362c!important;border-color:#525746!important;color:#e0eef7!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .btn.primary{
+ background:#676e59!important;border-color:#889175!important;color:#fff!important;
+}
+.rq8 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .panel .btn:disabled{
+ opacity:.55!important;
+}
+.rq8 .shell[data-active-workspace="script"] .script-view,
+.rq8 .shell[data-active-workspace="script"] #scriptPreview{
+ background:#111d29!important;color:#edf5fa!important;border-color:#44493a!important;
+}
+.rq8 .shell[data-active-workspace="script"] .script-line{
+ color:#e1edf5!important;border-color:#33362c!important;
+}
+.rq8 .shell[data-active-workspace="script"] .script-line:nth-child(even){
+ background:#182635!important;
+}
+.rq8 .shell[data-active-workspace="script"] .line-ref{color:#9ea988!important}
+.rq8 .shell[data-active-workspace="script"] .rq5-script-scenes{
+ background:#152433!important;border-color:#454a3b!important;
+}
+.rq8 .shell[data-active-workspace="script"] .rq5-scene-link{
+ background:#2d2f26!important;border-color:#4b5040!important;color:#dcebf6!important;
+}
+.rq8 .shell[data-active-workspace="script"] .rq5-script-focused{
+ background:#3c4033!important;color:#f0f8ff!important;
+}
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-manual,
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-engine,
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-review{
+ background:#1a2835!important;border-color:#434739!important;
+}
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-workspace .meta-panel{
+ background:#1c2b3a!important;border-color:#474b3d!important;
+}
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-workspace .meta-panel label,
+.rq8 .shell[data-active-workspace="ai"] .rq5-ai-workspace .meta-panel p{
+ color:#c2d1dd!important;
+}
+.rq8 .shell[data-active-workspace="ai"] #proposalList{
+ background:#15212d!important;
+}
+.rq8 .shell[data-active-workspace="ai"] #proposalList .item{
+ background:#2b2e25!important;border-color:#4b5040!important;
+ border-left-color:#959e7f!important;color:#e6f0f6!important;
+}
+.rq8 .shell[data-active-workspace="ai"] #proposalList .item strong{
+ color:#f2f7fa!important;
+}
+.rq8 .shell[data-active-workspace="home"] .home-tile,
+.rq8 .shell[data-active-workspace="home"] .home-tile.featured{
+ background:#1e2e3b!important;border-color:#4d5242!important;
+ color:#edf5fa!important;
+}
+.rq8 .shell[data-active-workspace="home"] .home-tile.featured{
+ background:#263a40!important;border-color:#666c57!important;
+}
+.rq8 .shell[data-active-workspace="setup"] .setup-grid>div{
+ background:#1b2b39!important;border-color:#43483a!important;color:#e5eef6!important;
+}
+.rq8 .shell[data-active-workspace="setup"] .setup-grid strong{color:#f0f7fc!important}
+
+/* Editing surface: sequence and inspector are coordinated dark workstations. */
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace{
+ background:#131f2a!important;border-color:#3f4336!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-stage-actions,
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-sequence,
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-queue{
+ background:#192735!important;border-color:#414638!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-sequence-frame{
+ background:#121f2a!important;border-color:#434739!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-inspector-frame{
+ background:#1b2b39!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-pane-heading,
+.rq8 .shell[data-active-workspace="cues"] .rq5-inspector-heading,
+.rq8 .shell[data-active-workspace="cues"] .runq-cue-columns{
+ background:#2f3228!important;color:#929c7d!important;border-color:#44493a!important;
+}
+.rq8 .shell[data-active-workspace="cues"] #cueList{
+ background:#101b25!important;scrollbar-color:#585e4c #25271f!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item{
+ background:#172635!important;border-color:#3d4134!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item:nth-child(even){
+ background:#272921!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item.cue-selected{
+ background:#3e4235!important;border-left-color:#99a383!important;
+ box-shadow:inset 0 0 0 1px #7c846a!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item.cue-prepared{
+ background:#302c25!important;border-left-color:#f3c36b!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-item.cue-selected.cue-prepared{
+ background:#354353!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-index{color:#919a7c!important}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-title{color:#f0f7fb!important}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-meta{color:#8a9376!important}
+.rq8 .shell[data-active-workspace="cues"] .cue-row-next{color:#f3c36b!important}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector{
+ background:#1c2b3a!important;color:#e8f2f8!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .inspector-title strong{color:#f3f8fc!important}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-origin{color:#8a9376!important}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-tabs{
+ background:#1c2b3a!important;border-color:#4e5343!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-tab{
+ color:#c2d3df!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-tab[aria-selected="true"]{
+ color:#a1ac8a!important;border-color:#a1ac8a!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel label,
+.rq8 .shell[data-active-workspace="cues"] .cue-inspector-panel .caption{
+ color:#c2d1dc!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-prepared{color:#f4dfb4!important}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-kicker{color:#f3c36b!important}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace>.rq5-transport-dock{
+ background:#162431!important;border-color:#464b3c!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace #cueAddBtn{
+ background:#676e59!important;color:#fff!important;border-color:#889175!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace #cueDeleteBtn{
+ background:#512f36!important;color:#ffe1e4!important;border-color:#ad6570!important;
+}
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .operator-queue-controls #operatorGoBtn{
+ background:#9da786!important;color:#22241d!important;
+}
+
+/* Sound library: same charcoal catalogue as dark timeline. */
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library{
+ background:#1b2937!important;border-color:#464b3c!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library>.rq5-pane-heading{
+ background:#2f3228!important;color:#dce9f3!important;border-color:#464b3c!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library #assetList{
+ background:#111d29!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library .asset-list-row{
+ background:#2b2d24!important;color:#e7f1f7!important;border-color:#494d3e!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-library .runq-audio-overview{
+ background:#272a22!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor{
+ background:#14212e!important;color:#edf5fb!important;border-color:#464b3c!important;
+}
+.rq8 .shell[data-active-workspace="audio"] .rq5-audio-editor>.rq5-pane-heading{
+ background:#2e3228!important;color:#edf5fb!important;
+}
+
+/* V9 cue row layout: grip | ▶ GO | Q number/name | ↦ NEXT.
+   Controls are siblings of the selection button, so no click propagation
+   can accidentally select/prepare/execute the wrong action. */
+.rq8 .rq5-show-workspace .cue-item{
+ display:grid!important;grid-template-columns:76px minmax(0,1fr)!important;
+ align-items:start!important;min-height:56px!important;
+}
+.rq8 .rq5-show-workspace .rq9-row-actions{
+ grid-column:1!important;grid-row:1!important;
+ display:flex!important;align-items:center;gap:4px!important;
+ padding:8px 4px 5px 6px!important;min-height:48px!important;
+}
+.rq8 .rq5-show-workspace .rq9-cue-grip{
+ display:flex;align-items:center;justify-content:center;
+ width:15px;height:29px;flex:none;
+ color:#798067;font:800 20px/1 ui-monospace,monospace;
+ cursor:grab;user-select:none;touch-action:none;
+}
+.rq8 .shell[data-active-workspace="operation"] .rq9-cue-grip,
+.rq8 .shell[data-active-workspace="rehearsal"] .rq9-cue-grip{
+ opacity:.32;cursor:default;
+}
+.rq8 .rq5-show-workspace .rq9-cue-play,
+.rq8 .rq5-show-workspace .rq9-cue-next{
+ width:26px;height:29px;min-width:26px;min-height:29px;
+ display:flex;align-items:center;justify-content:center;
+ border:1px solid #585e4b;border-radius:4px;
+ background:#393d31;color:#e5f4ff;
+ font-size:14px;font-weight:900;line-height:1;
+ padding:0;cursor:pointer;
+}
+.rq8 .rq5-show-workspace .rq9-cue-play:not(:disabled):hover{
+ background:#315d55!important;border-color:#78d9bd!important;color:#eafff7!important;
+}
+.rq8 .rq5-show-workspace .rq9-cue-next{
+ background:#3d3a31;border-color:#8d7954;color:#f8dba5;
+ font-size:20px;
+}
+.rq8 .rq5-show-workspace .rq9-cue-next:not(:disabled):hover{
+ background:#695232!important;border-color:#f3c36b!important;
+}
+.rq8 .rq5-show-workspace .rq9-cue-play:disabled,
+.rq8 .rq5-show-workspace .rq9-cue-next:disabled{
+ opacity:.42!important;cursor:not-allowed!important;
+}
+.rq8 .rq5-show-workspace .cue-item.cue-prepared .rq9-cue-next{
+ background:#8a672f;color:#fff4d7;border-color:#e5b75c;
+}
+.rq8 .rq5-show-workspace .cue-row-select{
+ grid-column:2!important;grid-row:1!important;
+ min-width:0!important;min-height:53px!important;
+ padding:6px 9px!important;
+ grid-template-columns:44px minmax(0,1fr) 90px!important;
+}
+.rq8 .rq5-show-workspace .cue-operation-actions,
+.rq8 .rq5-show-workspace .cue-edit-actions,
+.rq8 .rq5-show-workspace .cue-audio-tools{
+ grid-column:2!important;
+ margin-left:0!important;
+}
+.rq8 .rq5-show-workspace .cue-item.rq9-dragging{opacity:.45!important}
+.rq8 .rq5-show-workspace .cue-item.rq9-drop-before{
+ box-shadow:inset 0 3px #f3c36b!important;
+}
+.rq8 .rq5-show-workspace .cue-item.rq9-drop-after{
+ box-shadow:inset 0 -3px #f3c36b!important;
+}
+.rq8 .rq5-show-workspace .rq9-row-actions button:focus-visible,
+.rq8 .rq5-show-workspace .rq9-cue-grip:focus-visible{
+ outline:2px solid #f3c36b!important;outline-offset:1px!important;
+}
+
+/* Tool icons: original labels remain in the DOM for screen readers and
+   localized tooltip text, while compact editor chrome shows symbols. */
+.rq8 .shell[data-active-workspace="cues"] .cue-create-actions .btn{
+ position:relative;min-width:34px!important;width:34px!important;
+ height:32px!important;padding:0!important;
+ font-size:0!important;line-height:0!important;
+ display:inline-flex!important;align-items:center;justify-content:center;
+}
+.rq8 .shell[data-active-workspace="cues"] .cue-create-actions .btn::before{
+ font:800 19px/1 "Segoe UI Symbol",system-ui,sans-serif;
+ color:inherit;
+}
+.rq8 #cueAddBtn::before{content:"+"}
+.rq8 #cueInsertBtn::before{content:"↳"}
+.rq8 #cueDuplicateBtn::before{content:"▣"}
+.rq8 #cueMoveUpBtn::before{content:"↑"}
+.rq8 #cueMoveDownBtn::before{content:"↓"}
+.rq8 #cueDeleteBtn::before{content:"×"}
+.rq8 .shell[data-active-workspace="cues"] .cue-create-actions .btn:hover{
+ border-color:#99a383!important;
+}
+@media(max-width:1100px){
+ .rq8 .rq5-show-workspace .cue-row-select{
+  grid-template-columns:34px minmax(0,1fr) 70px!important;
+ }
+ .rq8 .rq5-show-workspace .rq9-row-actions{gap:2px!important;padding-left:3px!important}
+ .rq8 .rq5-show-workspace .rq9-cue-play,.rq8 .rq5-show-workspace .rq9-cue-next{
+  width:24px;min-width:24px;
+ }
+}
+@media(max-height:690px) and (min-width:901px){
+ .rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item{
+  min-height:44px!important;
+ }
+ .rq8 .rq5-show-workspace .rq9-row-actions{padding-top:5px!important;min-height:38px!important}
+ .rq8 .rq5-show-workspace .cue-row-select{min-height:42px!important;padding:3px 6px!important}
+ .rq8 .shell[data-active-workspace="cues"] .cue-create-actions .btn{
+  min-height:25px!important;height:25px!important;
+ }
+}
+
+/* The compact V9 row is a grid. Keep STOP/FADE visible for the inspected
+   cue (legacy Stagecraft smoke + actual operator access), without hiding
+   the always-visible left Play/NEXT rail. */
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item.cue-selected .cue-operation-actions,
+.rq8 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item:focus-within .cue-operation-actions,
+.rq8 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-item.cue-selected .cue-operation-actions,
+.rq8 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-item:focus-within .cue-operation-actions{
+ display:flex!important;visibility:visible!important;
+ align-items:center!important;gap:6px!important;
+ grid-column:2!important;grid-row:auto!important;
+ min-height:30px!important;
+}
+
+
+/* V13 Canonical technical-workstation rules. These live in the existing dark
+   theme file, not an extra versioned stylesheet. CSS does not remove any
+   functional controls. The safety-critical Live and Autopilot layouts remain
+   separate and retain large GO / STOP ALL targets. */
+.rq8.rq13{
+ --rq13-paper:#0e1924;--rq13-pane:#152432;--rq13-header:#2e3228;
+ --rq13-line:#434739;--rq13-ink:#e9f2f8;--rq13-mute:#848d71;
+ --rq13-focus:#939c7e;
+ font-family:system-ui,"Segoe UI",Arial,sans-serif;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) main{
+ background:var(--rq13-paper)!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro{
+ min-height:33px!important;max-height:45px!important;
+ padding:4px 8px!important;margin:0 0 4px!important;
+ background:transparent!important;border:0!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro h1{
+ font-size:13px!important;font-weight:730!important;letter-spacing:0!important;
+ line-height:1.3!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .workspace-intro p{
+ font-size:10px!important;line-height:1.2!important;margin:0!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) #statusMessage{
+ min-height:23px!important;max-height:42px!important;
+ padding:4px 9px!important;margin:0 0 5px!important;
+ font-size:10px!important;border-radius:2px!important;
+ white-space:nowrap;text-overflow:ellipsis;overflow:hidden!important;
+}
+.rq8.rq13 .rq7-workbench{
+ min-height:41px!important;max-height:48px!important;
+ padding:4px 10px!important;margin-bottom:5px!important;
+ gap:9px!important;border-radius:3px!important;
+ background:var(--rq13-pane)!important;
+ box-shadow:none!important;
+}
+.rq8.rq13 .rq7-mode-button{
+ min-height:29px!important;padding:4px 11px!important;
+ font-size:10px!important;border-radius:2px!important;
+}
+.rq8.rq13 .rq8-ribbon-heading{
+ padding-left:9px!important;gap:0!important;
+ border-color:var(--rq13-line)!important;
+}
+.rq8.rq13 .rq8-ribbon-heading strong{
+ font-size:12px!important;font-weight:700!important;letter-spacing:.005em!important;
+}
+.rq8.rq13 .rq8-ribbon-heading span{
+ font-size:10px!important;
+}
+.rq8.rq13 .rq7-ribbon-status{
+ font-size:10px!important;
+}
+.rq8.rq13 .workspace-nav{
+ background:#172534!important;
+}
+.rq8.rq13 .workspace-tab{
+ min-height:35px!important;font-size:11px!important;
+ border-radius:2px!important;padding:6px 9px!important;
+}
+.rq8.rq13 .shell:not([data-active-workspace="operation"]):not([data-active-workspace="rehearsal"]) .layout>.panel{
+ border-radius:3px!important;background:var(--rq13-pane)!important;
+ padding:9px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .layout>.panel{
+ padding:0!important;
+}
+.rq8.rq13 .panel-head{
+ padding:5px 8px!important;min-height:33px!important;
+ border-bottom:1px solid var(--rq13-line)!important;
+}
+.rq8.rq13 .panel-head h2{
+ font-size:13px!important;font-weight:720!important;
+ letter-spacing:0!important;
+}
+.rq8.rq13 .rq5-pane-heading,
+.rq8.rq13 .rq5-inspector-heading,
+.rq8.rq13 .rq13-ai-inspector-title{
+ border-bottom:1px solid var(--rq13-line)!important;
+ background:var(--rq13-header)!important;
+ color:#d5e3ed!important;
+ font:700 10px/1.45 ui-monospace,Consolas,monospace!important;
+ letter-spacing:.05em!important;
+ padding:7px 10px!important;
+}
+.rq8.rq13 .btn:not(#operatorGoBtn):not(#operatorPanicBtn):not(#stopAllBtn){
+ border-radius:3px!important;
+ box-shadow:none!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .setup-grid{
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .setup-grid>div{
+ min-height:50px!important;padding:8px 10px!important;
+ background:#262821!important;border:1px solid #45493b!important;
+ display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:8px;border-radius:2px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .setup-grid strong{
+ font:600 12px ui-monospace,Consolas,monospace!important;
+}
+.rq8.rq13 .shell[data-active-workspace="setup"] .runq-keymap{
+ background:#24261f!important;border:1px solid #474c3d!important;
+ border-radius:3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="home"] .home-tile{
+ min-height:110px!important;background:#1c2c3a!important;
+ border:1px solid #454a3b!important;border-radius:3px!important;
+ box-shadow:none!important;padding:13px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="home"] .home-tile.featured{
+ background:#233b3e!important;border-color:#5b9a97!important;
+}
+.rq8.rq13 .shell[data-active-workspace="home"] .home-tile:hover{
+ border-color:#8d9679!important;
+}
+/* Script navigation: the script text is always the largest stable pane. */
+.rq8.rq13 .shell[data-active-workspace="script"] .layout>.panel.rq5-script-workspace{
+ min-height:calc(100dvh - 164px)!important;
+ max-height:calc(100dvh - 136px)!important;
+ grid-template-columns:minmax(165px,220px) minmax(0,1fr)!important;
+ gap:5px 9px!important;padding:7px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .rq5-script-scenes{
+ background:#24261f!important;border:1px solid #414538!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .rq5-scene-link{
+ min-height:33px!important;padding:5px 8px!important;
+ border-radius:2px!important;font-size:11px!important;
+ background:#2e3228!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] #scriptPreview{
+ background:#0d1a28!important;border:1px solid #474b3d!important;
+ min-height:220px!important;max-height:none!important;
+ height:100%!important;overflow:auto!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .script-line{
+ font-family:Consolas,ui-monospace,monospace!important;
+ font-size:12px!important;line-height:1.55!important;
+ padding:4px 8px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="script"] .line-ref{
+ font:700 10px Consolas,ui-monospace,monospace!important;
+}
+/* Cue list & inspector: compact, with explicit row Play/NEXT left.
+   GO/STOP remain dedicated global controls, never hidden. */
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-workspace-body{
+ grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr)!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-item{
+ min-height:41px!important;border-radius:0!important;
+ border-top:0!important;border-bottom:1px solid #3a3d31!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-row-select{
+ min-height:39px!important;padding:3px 8px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq9-row-actions{
+ min-height:39px!important;padding:4px 3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-row-title{
+ font-size:12px!important;line-height:1.3!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-row-meta{
+ font-size:10px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="cues"] .rq5-inspector-frame{
+ background:#23261e!important;
+}
+/* AI workbench: review queue and an independent tools inspector, not
+   three competing cards. All original form IDs/actions still exist. */
+.rq8.rq13 .shell[data-active-workspace="ai"] .layout>.panel.rq5-ai-workspace{
+ min-height:calc(100dvh - 160px)!important;
+ max-height:calc(100dvh - 133px)!important;
+ padding:5px!important;overflow:hidden!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid.rq13-ai-workstation{
+ display:grid!important;flex:1 1 auto!important;
+ grid-template-columns:minmax(0,1.5fr) minmax(305px,.94fr)!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ min-height:0!important;overflow:hidden!important;
+ gap:7px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq5-ai-review{
+ min-width:0;min-height:0!important;grid-column:1!important;
+ grid-row:1!important;
+ overflow:hidden!important;background:#14212f!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq13-ai-inspector{
+ min-width:0;min-height:0!important;grid-column:2!important;
+ grid-row:1!important;overflow-y:auto!important;
+ overscroll-behavior:contain;background:#23261e;
+ border:1px solid #474b3d;border-radius:3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] #proposalList{
+ flex:1 1 auto!important;min-height:140px!important;
+ overflow-y:auto!important;background:#0f1e2b!important;
+ padding:4px!important;gap:3px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] #proposalList .item{
+ min-height:42px!important;padding:7px 9px!important;
+ border:1px solid #3e4235!important;
+ border-left:3px solid #929c7d!important;
+ border-radius:2px!important;background:#272a22!important;
+}
+.rq8.rq13 .rq13-ai-inspector-title{
+ min-height:34px!important;
+}
+.rq8.rq13 .rq13-ai-disclosure{
+ border-bottom:1px solid #464b3c;
+ margin:0!important;padding:0!important;
+ background:#262821;
+}
+.rq8.rq13 .rq13-ai-disclosure>summary{
+ min-height:38px;padding:10px 11px;
+ color:#e1edf7;background:#2f3228;font-size:11px;font-weight:700;
+ cursor:pointer;list-style:disclosure-closed;
+}
+.rq8.rq13 .rq13-ai-disclosure[open]>summary{
+ background:#3c4033;border-bottom:1px solid #4a4f3f;
+}
+.rq8.rq13 .rq13-ai-disclosure>summary:hover{
+ background:#424739;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine,
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-manual{
+ display:flex!important;flex-direction:column!important;
+ min-height:0!important;max-height:none!important;
+ border:0!important;background:transparent!important;
+ overflow:visible!important;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine .meta-panel{
+ overflow:visible!important;min-height:0!important;
+ background:#262821!important;padding:9px!important;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine .meta-panel p,
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-engine .meta-panel label{
+ font-size:10px!important;line-height:1.35!important;
+}
+.rq8.rq13 .rq13-ai-disclosure>.rq5-ai-manual #proposalForm{
+ padding:10px!important;
+}
+.rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-workspace>.help{
+ font-size:10px!important;line-height:1.25!important;
+ max-height:36px!important;overflow:hidden!important;
+}
+/* Technical work must remain usable at 900×600 (internal scroll panes).
+   Live/Rehearsal transport is never compacted below original safety sizes. */
+@media(max-width:970px){
+ .rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid.rq13-ai-workstation{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(180px,.9fr) minmax(215px,1.1fr)!important;
+  overflow:auto!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq5-ai-review{
+  grid-column:1!important;grid-row:1!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="ai"] .rq5-ai-grid>.rq13-ai-inspector{
+  grid-column:1!important;grid-row:2!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-workspace-body{
+  grid-template-columns:minmax(0,1fr) minmax(250px,.8fr)!important;
+ }
+}
+@media(max-width:760px){
+ .rq8.rq13 .shell[data-active-workspace="script"] .layout>.panel.rq5-script-workspace{
+  display:flex!important;flex-direction:column!important;
+  min-height:0!important;max-height:none!important;overflow:auto!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="script"] .rq5-script-scenes{
+  flex:0 0 170px!important;overflow:auto!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="script"] #scriptPreview{
+  flex:1 1 300px!important;min-height:240px!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .cue-workspace-body{
+  display:flex!important;flex-direction:column!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-sequence-frame{
+  min-height:190px!important;
+ }
+ .rq8.rq13 .shell[data-active-workspace="cues"] .rq5-show-workspace .rq5-inspector-frame{
+  min-height:210px!important;max-height:60dvh!important;
+ }
+}
+
+
+/* RUNQ V14 — two first-class work surfaces, one engine/cue sequence.
+   This is scoped in the existing canonical dark workstation stylesheet.
+   Nothing here fabricates waveform or output data. */
+.rq8.rq14{
+ --rq14-base:#14181f;
+ --rq14-panel:#1a1f27;
+ --rq14-panel-active:#202735;
+ --rq14-border:#373b2f;
+ --rq14-studio:#838c70;
+ --rq14-rehearsal:#e1a94f;
+ --rq14-stage:#31ba77;
+ --rq14-emergency:#e46b76;
+}
+.rq8.rq14 .shell{
+ --rq14-accent:var(--rq14-studio);
+}
+.rq8.rq14 .shell[data-rq14-surface="rehearsal"]{--rq14-accent:var(--rq14-rehearsal)}
+.rq8.rq14 .shell[data-rq14-surface="stage"]{--rq14-accent:var(--rq14-stage)}
+.rq8.rq14 .topbar{
+ background:#151f2a!important;border-bottom:1px solid var(--rq14-border)!important;
+ box-shadow:inset 3px 0 var(--rq14-accent)!important;
+}
+.rq8.rq14 .rq8-marker{color:var(--rq14-accent)!important}
+.rq8.rq14 .shell[data-rq14-surface="rehearsal"] .workspace-tab[aria-pressed="true"],
+.rq8.rq14 .shell[data-rq14-surface="stage"] .workspace-tab[aria-pressed="true"]{
+ border-color:var(--rq14-accent)!important;
+ box-shadow:inset 3px 0 var(--rq14-accent)!important;
+ color:#eaf3f8!important;background:#31342a!important;
+}
+.rq8.rq14 .shell[data-rq14-surface="stage"] .rq7-mode-button[aria-pressed="true"]{
+ background:#216348!important;color:#effff6!important;border-color:#4fb68a!important;
+}
+.rq8.rq14 .shell[data-rq14-surface="rehearsal"] .rq7-mode-button[aria-pressed="true"]{
+ background:#725123!important;color:#fff4dd!important;border-color:#d8a35d!important;
+}
+/* Global STOP is never made green. */
+.rq8.rq14 #stopAllBtn,
+.rq8.rq14 #operatorPanicBtn{
+ background:#783039!important;color:#fff!important;border-color:#d6727c!important;
+}
+/* Three density profiles; no action disappears in compact mode. */
+.rq8.rq14 .shell[data-cue-density="compact"]{
+ --rq14-row:30px;--rq14-font:11px;--rq14-pad:3px;
+}
+.rq8.rq14 .shell[data-cue-density="standard"]{
+ --rq14-row:38px;--rq14-font:12px;--rq14-pad:5px;
+}
+.rq8.rq14 .shell[data-cue-density="comfortable"]{
+ --rq14-row:46px;--rq14-font:13px;--rq14-pad:7px;
+}
+.rq8.rq14 .shell .rq5-show-workspace .cue-item{
+ min-height:var(--rq14-row,38px)!important;
+ border-radius:0!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .cue-row-select{
+ min-height:var(--rq14-row,38px)!important;
+ padding:var(--rq14-pad,5px) 7px!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .cue-row-title{
+ font-size:var(--rq14-font,12px)!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .rq9-row-actions{
+ min-height:var(--rq14-row,38px)!important;
+ align-items:center!important;
+}
+.rq8.rq14 .shell .rq5-show-workspace .rq9-row-actions .rq9-cue-play,
+.rq8.rq14 .shell .rq5-show-workspace .rq9-row-actions .rq9-cue-next{
+ min-height:27px!important;min-width:27px!important;
+}
+/* Contextual AI appears at the point of editing, never as a permanent chat. */
+.rq8.rq14 .rq14-script-ai{
+ display:flex!important;flex-wrap:wrap;align-items:center;gap:6px;
+ padding:6px 9px!important;border:1px solid #656b56;
+ border-left:3px solid #8d9779;border-radius:3px!important;
+ background:#2d3027;color:#e8f3fa;
+ max-width:100%;min-width:0!important;
+}
+.rq8.rq14 .rq14-script-ai[hidden]{display:none!important}
+.rq8.rq14 .rq14-script-ref{
+ flex:1;min-width:155px;overflow:hidden;text-overflow:ellipsis;
+ white-space:nowrap;font-size:11px;color:#9da887;
+}
+.rq8.rq14 .rq14-script-ai .btn,
+.rq8.rq14 .rq14-cue-ai,
+.rq8.rq14 .rq14-library-ai{
+ min-height:29px!important;font-size:10px!important;
+ padding:5px 8px!important;border-radius:3px!important;
+ background:#36392e!important;color:#e2f4fc!important;
+ border:1px solid #5c624f!important;
+}
+.rq8.rq14 .rq14-cue-ai{
+ margin-left:auto!important;max-width:142px!important;
+ text-align:center;
+}
+.rq8.rq14 .rq14-library-ai[hidden]{display:none!important}
+.rq8.rq14 .rq14-library-ai{
+ margin:4px 8px!important;
+}
+/* V7 forced its legacy read-only inspector to display:flex !important
+   over the Stage stack. The V14 monitor replaces that inspector: hiding it
+   prevents an invisible hit-testing overlay above cue rows and search. */
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-inspector-frame{
+ display:none!important;pointer-events:none!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
+ grid-template-columns:minmax(285px,.95fr) minmax(330px,1.05fr)!important;
+ grid-template-rows:minmax(0,1fr)!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-stage-body{
+ flex:1!important;min-height:145px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-sequence-frame{
+ min-height:0!important;grid-column:1!important;grid-row:1!important;
+ border-right:1px solid #44493a!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor{
+ grid-column:2!important;grid-row:1!important;
+}
+.rq8.rq14 .rq14-stage-monitor{
+ display:flex;flex-direction:column;gap:9px;overflow:auto;
+ min-width:0;min-height:0!important;
+ padding:15px 18px!important;background:linear-gradient(160deg,#25271f,#101d28);
+ color:#e6f0f7;border-left:1px solid #414638;
+}
+.rq8.rq14 .rq14-stage-monitor[hidden]{display:none!important}
+.rq8.rq14 .rq14-monitor-heading{
+ font:800 11px ui-monospace,Consolas,monospace!important;
+ letter-spacing:.11em;color:var(--rq14-accent);
+}
+.rq8.rq14 .rq14-show-id{font-size:11px;color:#868e72}
+.rq8.rq14 .rq14-now-title{
+ font-size:clamp(18px,2.1vw,27px)!important;
+ line-height:1.18!important;letter-spacing:-.035em;
+ overflow-wrap:anywhere;
+}
+.rq8.rq14 .rq14-now-sub{
+ font-size:12px;color:#8a9376;line-height:1.35;
+}
+.rq8.rq14 .rq14-live-waveform{
+ width:100%;height:107px;max-height:107px;min-height:66px;
+ background:#0d1e29;border:1px solid #434739;border-radius:3px;
+ display:block;object-fit:contain;
+}
+.rq8.rq14 .rq14-live-waveform[hidden]{display:none!important}
+.rq8.rq14 .rq14-progress-track{
+ background:#11202c;height:14px;min-height:14px;
+ border:1px solid #4b5040;border-radius:3px;overflow:hidden;
+}
+.rq8.rq14 .rq14-progress-fill{
+ height:100%;width:0;background:var(--rq14-stage);
+ transition:width .35s linear;
+}
+.rq8.rq14 .rq14-time{
+ font:700 16px ui-monospace,Consolas,monospace;
+ font-variant-numeric:tabular-nums;color:#ebf5fc;
+}
+.rq8.rq14 .rq14-next-info{
+ padding:9px 10px!important;border:1px solid #45493b;
+ border-radius:3px;background:#2d2f26;
+ font-size:12px;font-weight:650;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-next-info:last-of-type{
+ border-color:#70804d;
+}
+/* Existing V7 read-only browser stays fully operational in Stage; it is
+   docked INSIDE the new monitor, never over the cue stack hit targets. */
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor #rq7LiveInspector{
+ display:block!important;flex:none!important;
+ border-top:1px solid #474b3d;margin-top:6px!important;
+ padding-top:5px!important;background:transparent!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-inspector-title{
+ padding:6px 3px!important;font-size:10px!important;background:transparent!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-inspector-content{
+ padding:6px 3px!important;font-size:11px!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-info-fields{
+ grid-template-columns:68px minmax(0,1fr)!important;
+ gap:4px 7px!important;margin:6px 0!important;font-size:10px!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-info-name{
+ font-size:13px!important;
+}
+.rq7.rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor .rq7-info-note{
+ font-size:10px!important;padding:5px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] #rq7LiveInspector{
+ display:none!important;
+}
+.rq8.rq14 .rq14-rehearsal-context{display:none}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-rehearsal-context{
+ display:flex;flex-direction:column;gap:3px;
+}
+.rq8.rq14 .rq14-rehearsal-head{
+ font:750 10px ui-monospace,Consolas,monospace;color:#e9bb70;
+}
+.rq8.rq14 .rq14-rehearsal-cue{
+ margin:0!important;font-size:12px;color:#d9e8f3;
+ overflow-wrap:anywhere;
+}
+.rq8.rq14 .rq14-rehearsal-status{
+ font:700 11px ui-monospace,Consolas,monospace!important;color:#edc482;
+}
+.rq8.rq14 .rq14-rehearsal-status[data-auto-armed="true"]{
+ color:#bff3d9;
+}
+/* Rehearsal already has a real full script and microphone dock.
+   The second panel is compact and read-only to avoid duplicating commands. */
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq5-inspector-frame{
+ display:none!important; /* Stage is supervised execution, not cue editing. */
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq5-show-workspace .cue-workspace-body{
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:minmax(150px,1fr) minmax(110px,auto)!important;
+ overflow:hidden!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq5-sequence-frame{
+ grid-column:1!important;grid-row:1!important;
+ min-height:0!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-stage-monitor{
+ grid-column:1!important;grid-row:2!important;
+ border-top:1px solid #745d42;border-left:0;
+ padding:8px 12px!important;gap:4px!important;
+ background:#25271f;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-now-title{
+ font-size:13px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-progress-track,
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-time,
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-next-info,
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-show-id{
+ display:none!important;
+}
+/* Stage control remains the original guarded GO/NEXT/STOP ALL transport. */
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace>.rq5-transport-dock{
+ order:0!important;
+ background:#15242e!important;border-bottom:1px solid #4b5040!important;
+ padding:7px 11px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .operator-queue{
+ min-height:106px!important;padding:10px 13px!important;
+ background:#1a2e33!important;border-color:#4f807a!important;
+ border-left:5px solid #37b77c!important;
+ box-shadow:none!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] #operatorGoBtn{
+ background:#22975b!important;color:white!important;
+ border:2px solid #4ad488!important;
+ font-size:24px!important;min-height:65px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] #operatorGoBtn:disabled{
+ background:#42505b!important;border-color:#63717d!important;
+ color:#aab6be!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] #operatorPanicBtn{
+ min-height:65px!important;font-size:17px!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .operator-prepared{
+ font-size:20px!important;color:#dcfaeb!important;
+}
+.rq8.rq14 .shell[data-active-workspace="operation"] .operator-kicker{
+ color:#85e6ac!important;
+}
+/* Real event log, bounded and read-only; never contains raw transcript. */
+.rq8.rq14 .rq14-events{
+ display:flex;flex-direction:column;flex:0 0 91px;
+ min-height:0!important;max-height:140px;
+ overflow:hidden;border-top:1px solid #44493a;
+ background:#142330;color:#dae9f4;order:2;
+}
+.rq8.rq14 .rq14-events[hidden]{display:none!important}
+.rq8.rq14 .rq14-events-head{
+ display:flex;align-items:center;gap:9px;justify-content:space-between;
+ padding:5px 12px!important;min-height:27px;flex:none;
+ border-bottom:1px solid #434739;
+ font:750 10px ui-monospace,Consolas,monospace;
+ letter-spacing:.05em;color:#929c7d;
+}
+.rq8.rq14 .rq14-events-count{font-variant-numeric:tabular-nums}
+.rq8.rq14 .rq14-events-list{
+ list-style:none!important;margin:0!important;padding:4px 10px!important;
+ display:flex;flex-direction:column;gap:2px;
+ flex:1;min-height:0;overflow-y:auto!important;
+ scrollbar-color:#5c624f #23261e;
+}
+.rq8.rq14 .rq14-event-row{
+ display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;
+ padding:3px 6px;border-bottom:1px solid #35392d;
+ font-size:10px;line-height:1.3;
+}
+.rq8.rq14 .rq14-event-row[data-event-type="GO_REJECTED"],
+.rq8.rq14 .rq14-event-row[data-event-type="AUDIO_ERROR"]{color:#f2a5a5}
+.rq8.rq14 .rq14-event-row[data-event-type="CUE_STARTED"]{color:#a8e6c6}
+.rq8.rq14 .rq14-event-time{font-variant-numeric:tabular-nums;color:#818a6e}
+.rq8.rq14 .rq14-event-name{overflow-wrap:anywhere}
+.rq8.rq14 .rq14-empty{font-size:10px;color:#798067}
+.rq8.rq14 .shell[data-active-workspace="rehearsal"] .rq14-events{
+ display:none!important; /* Real voice dock retains remaining vertical space. */
+}
+/* Avoid hiding control rails behind a fixed monitor at compact resolutions. */
+@media(max-width:1080px){
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
+  grid-template-columns:minmax(245px,1fr) minmax(260px,.8fr)!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor{
+  padding:10px!important;gap:7px!important;
+ }
+}
+@media(max-width:740px){
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq5-show-workspace .cue-workspace-body{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(150px,1fr) 165px!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq5-sequence-frame{
+  grid-column:1!important;grid-row:1!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-stage-monitor{
+  grid-column:1!important;grid-row:2!important;
+  border-top:1px solid #494d3e;border-left:0;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-now-title{font-size:16px!important}
+ .rq8.rq14 .shell[data-active-workspace="operation"] .rq14-next-info{padding:4px!important}
+ .rq8.rq14 .shell[data-active-workspace="operation"] .operator-queue{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ .rq8.rq14 .shell[data-active-workspace="operation"] #operatorGoBtn,
+ .rq8.rq14 .shell[data-active-workspace="operation"] #operatorPanicBtn{
+  min-height:53px!important;font-size:18px!important;
+ }
+ .rq8.rq14 .rq14-events{flex-basis:65px}
+}

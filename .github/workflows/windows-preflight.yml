@@ -1,0 +1,35 @@
+name: RUNQ Windows PowerShell preflight
+
+on:
+  pull_request:
+    paths:
+      - 'tools/runq-preflight.ps1'
+      - '.github/workflows/windows-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-detached-head:
+    name: PowerShell 5.1 detached HEAD regression
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned dependencies, no provider calls
+        run: npm install --no-audit --no-fund
+      - name: Reproduce detached HEAD worktree mode
+        shell: powershell
+        run: |
+          git checkout --detach HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to detach HEAD for preflight regression' }
+          if (-not (Test-Path .\tools\runq-preflight.ps1)) { throw 'Missing preflight script' }
+      - name: RUNQ preflight + offline unit tests using Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\runq-preflight.ps1 -RunTests
+          if ($LASTEXITCODE -ne 0) { throw 'RUNQ preflight failed on Windows PowerShell' }

@@ -1,0 +1,244 @@
+/** Minimal loopback-only development server; no npm dependencies. */
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { makeMetaRoute } from './metaRoutes.mjs';
+import { makeBasetenRoute } from './basetenRoutes.mjs';
+import { makeSfxRoute } from './sfxRoutes.mjs';
+import { makeVoiceTranscribeRoute } from './voiceTranscribeRoutes.mjs';
+import { makeVoiceLiveRoute } from './voiceLiveRoutes.mjs';
+import { makeCueConversationRoute } from './cueConversationRoutes.mjs';
+import { makeAgentRoute } from './agentRoutes.mjs';
+
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+/**
+ * Development-only environment bootstrap. Some Windows/PowerShell sessions
+ * export a blank variable that masks an otherwise valid local .env entry.
+ * Read only the SFX pilot's allowlisted settings; never print credentials.
+ * Explicitly populated process variables always take precedence.
+ * Merely enabling this configuration does NOT submit a generation request.
+ */
+export async function loadLocalSfxEnvironment({ filePath = join(projectRoot,'.env'), env = process.env } = {}) {
+  let content;
+  try { content=await readFile(filePath,'utf8'); }
+  catch(error) { if(error?.code==='ENOENT')return; throw error; }
+  const allowedKeys=new Set([
+    'RUNQ_SFX_PILOT_ENABLED','MODAL_SFX_ENDPOINT',
+    'MODAL_PROXY_TOKEN_ID','MODAL_PROXY_TOKEN_SECRET',
+    'RUNQ_SFX_ESTIMATED_MAX_COST_USD','RUNQ_SFX_DAILY_BUDGET_USD',
+    'RUNQ_SFX_MODEL_REVISION',
+    'RUNQ_SFX_QA_CAMPAIGN','RUNQ_SFX_QA_MAX_DAILY_STARTS',
+    'RUNQ_SFX_QA_DAILY_BUDGET_USD',
+  ]);
+  for(const raw of content.replace(/^\uFEFF/,'').split(/\r?\n/)) {
+    const match=/^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(raw);
+    if(!match||!allowedKeys.has(match[1]))continue;
+    const key=match[1];
+    if(typeof env[key]==='string'&&env[key].trim())continue;
+    const entry=match[2].trim();
+    const value=((entry.startsWith('"')&&entry.endsWith('"'))||
+      (entry.startsWith("'")&&entry.endsWith("'")))
+      ?entry.slice(1,-1):entry;
+    if(value.trim())env[key]=value.trim();
+  }
+}
+
+const allowed = new Map([
+  ['/src/ui/runq-interface.css', ['src/ui/runq-interface.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-show-builder.css', ['src/ui/runq-show-builder.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-desktop.css', ['src/ui/runq-desktop.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-interface.mjs', ['src/ui/runq-interface.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-context-inspector.mjs', ['src/ui/runq-context-inspector.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-studio-shortcuts.mjs', ['src/ui/runq-studio-shortcuts.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/show-builder-ui.mjs', ['src/ui/show-builder-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/show-preparation-ui.mjs', ['src/ui/show-preparation-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/showPreparation.mjs', ['src/core/showPreparation.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-panels.mjs', ['src/ui/runq-panels.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-soundlab.css', ['src/ui/runq-soundlab.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-soundlab-ui.mjs', ['src/ui/runq-soundlab-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-a11y.mjs', ['src/ui/runq-a11y.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-brand.css', ['src/ui/runq-brand.css', 'text/css; charset=utf-8']],
+  ['/src/ui/setup-ui.css', ['src/ui/setup-ui.css', 'text/css; charset=utf-8']],
+  ['/src/ui/setup-ui.mjs', ['src/ui/setup-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/assets/runq-logo-full.png', ['assets/runq-logo-full.png', 'image/png']],
+  ['/assets/runq-wordmark.png', ['assets/runq-wordmark.png', 'image/png']],
+  ['/assets/runq-q.png', ['assets/runq-q.png', 'image/png']],
+  ['/assets/runq-backstage.png', ['assets/runq-backstage.png', 'image/png']],
+  ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/sound-lab', ['sound-lab.html', 'text/html; charset=utf-8']],
+  ['/sound-lab.html', ['sound-lab.html', 'text/html; charset=utf-8']],
+  ['/src/sfx/lab.mjs', ['src/sfx/lab.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/soundPromptCompiler.mjs', ['src/core/soundPromptCompiler.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/sfxImportCandidate.mjs', ['src/core/sfxImportCandidate.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/dramaticStructure.mjs', ['src/core/dramaticStructure.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/sfx/waveform.mjs', ['src/sfx/waveform.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/sfx/lab.css', ['src/sfx/lab.css', 'text/css; charset=utf-8']],
+  ['/src/ui/rehearsal-auto-ui.mjs', ['src/ui/rehearsal-auto-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/rehearsalAutopilot.mjs', ['src/core/rehearsalAutopilot.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-live-ui.mjs', ['src/ui/voice-live-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-microphone-test.mjs', ['src/ui/voice-microphone-test.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-follow-ui.mjs', ['src/ui/voice-follow-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/cue-conversation-ui.mjs', ['src/ui/cue-conversation-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/command-dictation.mjs', ['src/ui/command-dictation.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-agent-ui.mjs', ['src/ui/runq-agent-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-builder-review.mjs', ['src/ui/runq-builder-review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-sound-design-review.mjs', ['src/ui/runq-sound-design-review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-script-quick-review.mjs', ['src/ui/runq-script-quick-review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/scriptDocumentImport.mjs', ['src/core/scriptDocumentImport.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/userFacingErrors.mjs', ['src/ui/userFacingErrors.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-agent.css', ['src/ui/runq-agent.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-visual-freeze-v15.css', ['src/ui/runq-visual-freeze-v15.css', 'text/css; charset=utf-8']],
+  ['/src/core/agentDialogue.mjs', ['src/core/agentDialogue.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/agentCore.mjs', ['src/core/agentCore.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/heroCue.mjs', ['src/core/heroCue.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/agentIntent.mjs', ['src/core/agentIntent.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/agentVoice.mjs', ['src/core/agentVoice.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/cue-conversation.css', ['src/ui/cue-conversation.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-workbench-v7.mjs', ['src/ui/runq-workbench-v7.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-workbench-v7.css', ['src/ui/runq-workbench-v7.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-studio-stage-v8.mjs', ['src/ui/runq-studio-stage-v8.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-studio-stage-v8.css', ['src/ui/runq-studio-stage-v8.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-dark-workstation-v9.css', ['src/ui/runq-dark-workstation-v9.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-cue-toolbar-v9.mjs', ['src/ui/runq-cue-toolbar-v9.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-unified-sound-v10.css', ['src/ui/runq-unified-sound-v10.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-unified-sound-v10.mjs', ['src/ui/runq-unified-sound-v10.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-library-transport-v11.css', ['src/ui/runq-library-transport-v11.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-library-transport-v11.mjs', ['src/ui/runq-library-transport-v11.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-sound-library-v12.css', ['src/ui/runq-sound-library-v12.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-sound-library-v12.mjs', ['src/ui/runq-sound-library-v12.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-workstation-v14.mjs', ['src/ui/runq-workstation-v14.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cueConversation.mjs', ['src/core/cueConversation.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/voice-follow.css', ['src/ui/voice-follow.css', 'text/css; charset=utf-8']],
+  ['/src/core/reviewedSfxCue.mjs', ['src/core/reviewedSfxCue.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/livePcm.mjs', ['src/core/livePcm.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/voiceFollow.mjs', ['src/core/voiceFollow.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/voiceScenario.mjs', ['src/core/voiceScenario.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/voiceRehearsal.mjs', ['src/core/voiceRehearsal.mjs', 'text/javascript; charset=utf-8']],
+  ['/test/fixtures/voice-rehearsal.json', ['test/fixtures/voice-rehearsal.json', 'application/json; charset=utf-8']],
+  ['/src/ui/app.mjs', ['src/ui/app.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/style.css', ['src/ui/style.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-theme.css', ['src/ui/runq-theme.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-menu.mjs', ['src/ui/runq-menu.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-workspaces-v2.css', ['src/ui/runq-workspaces-v2.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-workspaces-v2.mjs', ['src/ui/runq-workspaces-v2.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-stagecraft-v4.css', ['src/ui/runq-stagecraft-v4.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-stagecraft-rebuild.css', ['src/ui/runq-stagecraft-rebuild.css', 'text/css; charset=utf-8']],
+  ['/src/ui/operator-keymapping.css', ['src/ui/operator-keymapping.css', 'text/css; charset=utf-8']],
+  ['/src/ui/cue-studio-integration.css', ['src/ui/cue-studio-integration.css', 'text/css; charset=utf-8']],
+  ['/src/core/audioWaveform.mjs', ['src/core/audioWaveform.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/operatorPreferences.mjs', ['src/core/operatorPreferences.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cueEntryPolicy.mjs', ['src/core/cueEntryPolicy.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cueTimeEditing.mjs', ['src/core/cueTimeEditing.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/audioBatchImport.mjs', ['src/core/audioBatchImport.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/audioArchiveFormats.mjs', ['src/core/audioArchiveFormats.mjs', 'text/javascript; charset=utf-8']],
+  ['/vendor/pdfjs/pdf.mjs', ['node_modules/pdfjs-dist/build/pdf.mjs', 'text/javascript; charset=utf-8']],
+  ['/vendor/pdfjs/pdf.worker.mjs', ['node_modules/pdfjs-dist/build/pdf.worker.mjs', 'text/javascript; charset=utf-8']],
+  ['/vendor/mammoth/mammoth.browser.min.js', ['node_modules/mammoth/mammoth.browser.min.js', 'text/javascript; charset=utf-8']],
+  ['/vendor/libarchive/libarchive.js', ['node_modules/libarchive.js/dist/libarchive.js', 'text/javascript; charset=utf-8']],
+  ['/vendor/libarchive/worker-bundle.js', ['node_modules/libarchive.js/dist/worker-bundle.js', 'text/javascript; charset=utf-8']],
+  ['/vendor/libarchive/libarchive.wasm', ['node_modules/libarchive.js/dist/libarchive.wasm', 'application/wasm']],
+  ['/src/ui/audio-library-batch.css', ['src/ui/audio-library-batch.css', 'text/css; charset=utf-8']],
+  ['/src/ui/operator-workbench.css', ['src/ui/operator-workbench.css', 'text/css; charset=utf-8']],
+  ['/src/ui/runq-stagecraft-rebuild.mjs', ['src/ui/runq-stagecraft-rebuild.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/operator-keymapping.mjs', ['src/ui/operator-keymapping.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/operatorKeymap.mjs', ['src/core/operatorKeymap.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/studioShortcuts.mjs', ['src/core/studioShortcuts.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/waveformPeaks.mjs', ['src/core/waveformPeaks.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/i18n.mjs', ['src/ui/i18n.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/locales/en.json', ['src/ui/locales/en.json', 'application/json; charset=utf-8']],
+  ['/src/ui/locales/es.json', ['src/ui/locales/es.json', 'application/json; charset=utf-8']],
+  ['/src/core/scriptLanguage.mjs', ['src/core/scriptLanguage.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/sceneAnalysis.mjs', ['src/core/sceneAnalysis.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/scriptNavigation.mjs', ['src/core/scriptNavigation.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/showPreflight.mjs', ['src/core/showPreflight.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/showBuilder.mjs', ['src/core/showBuilder.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/operatorQueue.mjs', ['src/core/operatorQueue.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/showEventLog.mjs', ['src/core/showEventLog.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/workspace.mjs', ['src/core/workspace.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/script.mjs', ['src/core/script.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/proposals.mjs', ['src/core/proposals.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/review.mjs', ['src/core/review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/projectPersistence.mjs', ['src/core/projectPersistence.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cueAutomation.mjs', ['src/core/cueAutomation.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cuePlayback.mjs', ['src/core/cuePlayback.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cueStopFades.mjs', ['src/core/cueStopFades.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/manualCues.mjs', ['src/core/manualCues.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/cueTracks.mjs', ['src/core/cueTracks.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/browserAudio.mjs', ['src/core/browserAudio.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/audioBackend.mjs', ['src/core/audioBackend.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/zipStore.mjs', ['src/core/zipStore.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/showArchive.mjs', ['src/core/showArchive.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/demoShow.mjs', ['src/core/demoShow.mjs', 'text/javascript; charset=utf-8']],
+]);
+export function createAppServer(options = {}) {
+  const metaRoute = makeMetaRoute(options);
+  const basetenRoute = makeBasetenRoute({
+    modelClient: options.basetenClient,
+    getKey: options.getBasetenKey,
+  });
+  // Default runnable build cannot contact Modal. An explicitly injected test
+  // client preserves deterministic offline provider-route regression tests.
+  const sfxRoute = makeSfxRoute({
+    ...options,
+    generationDisabled: options.sfxPilotClient ? false : true,
+  });
+  const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
+  const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
+  const cueConversationRoute = makeCueConversationRoute({getKey:options.getCueChatKey,fetchImpl:options.cueChatFetch});
+  const agentRoute = makeAgentRoute({getKey:options.getAgentKey,
+    getBasetenKey:options.getBasetenAgentKey,fetchImpl:options.agentFetch});
+  return createServer(async (request, response) => {
+    const headers = {
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      'Referrer-Policy': 'no-referrer',
+    };
+    let pathname;
+    try { pathname = new URL(request.url, 'http://127.0.0.1').pathname; }
+    catch { response.writeHead(400, headers); response.end(); return; }
+    if (await metaRoute(request, response, pathname, headers)) return;
+    if (await basetenRoute(request, response, pathname, headers)) return;
+    if (await sfxRoute(request, response, pathname, headers)) return;
+    if (await voiceRoute(request, response, pathname, headers)) return;
+    if (await voiceLiveRoute(request, response, pathname, headers)) return;
+    if (await cueConversationRoute(request, response, pathname, headers)) return;
+    if (await agentRoute(request, response, pathname, headers)) return;
+    if (!['GET', 'HEAD'].includes(request.method)) {
+      response.writeHead(405, { ...headers, Allow: 'GET, HEAD' });
+      response.end();
+      return;
+    }
+    const entry = allowed.get(pathname);
+    if (!entry) { response.writeHead(404, headers); response.end(); return; }
+    try {
+      const data = await readFile(join(projectRoot, entry[0]));
+      response.writeHead(200, { ...headers, 'Content-Type': entry[1], 'Content-Length': data.byteLength });
+      response.end(request.method === 'HEAD' ? undefined : data);
+    } catch {
+      response.writeHead(500, headers);
+      response.end('Local resource unavailable');
+    }
+  });
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const port = Number(process.env.PORT ?? 5173);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    console.error('PORT must be between 1024 and 65535');
+    process.exitCode = 1;
+  } else {
+    await loadLocalSfxEnvironment();
+    const server = createAppServer();
+    server.once('error', error => {
+      console.error(error.code === 'EADDRINUSE' ? `Port ${port} is busy; set PORT=5174` : error.message);
+      process.exitCode = 1;
+    });
+    server.listen(port, '127.0.0.1', () => {
+      console.log(`ShowCompiler prototype at http://127.0.0.1:${port}`);
+      console.log('Ctrl+C to stop. Local audio enabled; Meta AI requires MODEL_API_KEY and explicit permission.');
+    });
+  }
+}

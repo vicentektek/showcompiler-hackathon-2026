@@ -1,0 +1,18 @@
+GALA CIRCUITO 2026 — ESCALETA TÉCNICA ORIGINAL
+Columna tiempo | departamento | acción
+00:00 | REGIDURÍA | Preparados para apertura. No ejecutar automáticamente.
+00:01 | SONIDO 01: reproducir sintonía de apertura, bucle suave.
+00:02 | LX 11: subir frontal ámbar a 60%.
+00:03 | VÍDEO 02: mostrar logotipo en pantalla.
+00:05 | PRESENTADOR: Bienvenidos a la gala.
+00:10 | SONIDO 01: bajar volumen durante seis segundos y detener.
+00:15 | REGIDURÍA | Pausa para aplausos reales de la sala, sin archivo de audio.
+00:17 | AUDIO 03: reproducir fanfarria corta pregrabada.
+00:19 | VÍDEO 03: entrada de nominados sin sonido.
+00:21 | VOZ EN OFF GRABADA: «Primera categoría: investigación».
+00:25 | SONIDO 04: comenzar ambiente instrumental muy discreto.
+00:30 | PRESENTADOR: Recuerdo el ruido del público del año pasado.
+00:35 | SONIDO 04: mantener el ambiente durante la entrega.
+00:45 | SONIDO 04: detener ambiente con fundido de tres segundos.
+00:46 | LX 12: baja frontal.
+00:47 | FIN DE BLOQUE.

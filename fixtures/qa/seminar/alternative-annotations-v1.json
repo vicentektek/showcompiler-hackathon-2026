@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "provenance": "RUN_XJKSUO_TYPED_SEMANTIC_ALTERNATIVES_PENDING_HUMAN_REVIEW",
+  "sourceRunId": "run-XjksuO",
+  "alternativesByCase": {
+    "gala-rundown": [
+      {
+        "canonical": {
+          "lineId": "L13",
+          "transport": "PLAY",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        "alternative": {
+          "lineId": "L13",
+          "transport": "PLAY",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        "rationale": "An instrumental atmosphere can reasonably sit on the MUSIC or AMBIENCE boundary.",
+        "reviewStatus": "PENDING_HUMAN_REVIEW"
+      },
+      {
+        "canonical": {
+          "lineId": "L15",
+          "transport": "CONTINUE",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        "alternative": {
+          "lineId": "L15",
+          "transport": "CONTINUE",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        "rationale": "The continuing instrumental bed may be categorized by function as ambience or by content as music.",
+        "reviewStatus": "PENDING_HUMAN_REVIEW"
+      },
+      {
+        "canonical": {
+          "lineId": "L16",
+          "transport": "STOP",
+          "cueKind": "AMBIENCE",
+          "basis": "EXPLICIT"
+        },
+        "alternative": {
+          "lineId": "L16",
+          "transport": "STOP",
+          "cueKind": "MUSIC",
+          "basis": "EXPLICIT"
+        },
+        "rationale": "Stopping the same instrumental bed preserves the semantic MUSIC versus AMBIENCE ambiguity.",
+        "reviewStatus": "PENDING_HUMAN_REVIEW"
+      }
+    ]
+  }
+}

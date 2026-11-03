@@ -1,0 +1,751 @@
+/**
+ * Browser acceptance smoke: real headless Chrome DOM interaction with a deterministic
+ * in-memory AudioContext, not an audible hardware or professional latency test.
+ * No model API, no paid inference, no browser-driver runtime dependency.
+ * CI installs pinned playwright-core transiently, without changing project deps.
+ */
+import assert from 'node:assert/strict';
+import { readFile, mkdir } from 'node:fs/promises';
+import { createAppServer } from './dev-server.mjs';
+import { planScriptAnalysis } from '../src/core/sceneAnalysis.mjs';
+import { readZipStore } from '../src/core/zipStore.mjs';
+import { chromium } from 'playwright-core';
+
+const server = createAppServer();
+let browser;
+try {
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const port = server.address().port;
+  browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--no-sandbox'] });
+  const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 1366, height: 768 } });
+  const page = await context.newPage();
+  const scriptErrors = [];
+  page.on('pageerror', err => scriptErrors.push(err.message));
+  // Some actions open a native confirmation only when there are unsaved
+  // changes. Never leave a one-shot dialog handler armed for later actions.
+  const withOptionalDialog = async action => {
+    const handler = dialog => { void dialog.accept().catch(error => scriptErrors.push(error.message)); };
+    page.on('dialog', handler);
+    try { return await action(); }
+    finally { page.off('dialog', handler); }
+  };
+  const captureRunq = process.env.RUNQ_CAPTURE_UI === '1';
+  const capture = async name => {
+    if (!captureRunq) return;
+    await mkdir('artifacts/runq-ui', { recursive: true });
+    await page.screenshot({ path: 'artifacts/runq-ui/' + name, fullPage: false });
+  };
+  await page.addInitScript(() => {
+    window.__testAudioStarts = 0;
+    window.__testAudioStops = 0;
+    window.__testStopTimes = [];
+    class FakeAudioContext {
+      constructor() { this.state = 'running'; this.currentTime = 1; this.destination = {}; }
+      async resume() {}
+      async close() { this.state = 'closed'; }
+      async decodeAudioData() {
+        const samples=new Float32Array(1200);
+        for(let index=0;index<samples.length;index++)samples[index]=Math.sin(index/15)*.4;
+        return {
+          duration:3, numberOfChannels:1,length:samples.length,sampleRate:400,
+          getChannelData(channel){if(channel!==0)throw new RangeError('channel');return samples;}
+        };
+      }
+      createGain() {
+        const gain = { value: 1, cancelScheduledValues() {},
+          setValueAtTime(v) { this.value = v; },
+          linearRampToValueAtTime(v) { this.value = v; } };
+        return { gain, connect() {}, disconnect() {} };
+      }
+      createStereoPanner() {
+        return {pan:{value:0},connect(){},disconnect(){}};
+      }
+      createBufferSource() {
+        return { buffer: null, onended: null, playbackRate:{value:1}, connect() {}, disconnect() {},
+          start() { window.__testAudioStarts += 1; },
+          stop(time) { window.__testAudioStops += 1; window.__testStopTimes.push(time); } };
+      }
+    }
+    window.AudioContext = FakeAudioContext;
+  });
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url());
+    if (url.hostname === '127.0.0.1' && url.port === String(port)) {
+      await route.continue();
+    } else {
+      await route.abort();
+    }
+  });
+  await page.goto('http://127.0.0.1:' + port + '/', { waitUntil: 'domcontentloaded' });
+  // V9 composition contract: dark Studio vs blackout Stage and a
+  // subordinate voice dock. These are visual layout checks, not fake playback.
+  assert.equal(await page.locator('html.rq8').count(),1);
+  assert.equal(await page.locator('html.rq14').count(),1,'V14 workstations must mount');
+  assert.equal(await page.locator('.shell').getAttribute('data-rq14-surface'),'studio');
+  assert.equal(await page.locator('#rq8Identity').count(),1);
+  const homeColor=await page.locator('.home-panel').evaluate(el=>getComputedStyle(el).backgroundColor);
+  assert.equal(homeColor,'rgb(8, 14, 11)','The project launcher uses a dark stage backdrop surface');
+  assert.equal(await page.locator('.rq7-tasks').isVisible(),false,
+    'V8 has one tool navigation rather than duplicate horizontal tool tabs');
+  // Voice Follow: real DOM integration against a checked-in offline transcript.
+  // This must never access audio playback, microphones or provider endpoints.
+  await page.locator('[data-workspace-nav="rehearsal"]').click();
+  assert.equal(await page.locator('#rqvfPanel').isVisible(),true);
+  assert.equal(await page.locator('#rq8VoiceToggle').getAttribute('aria-expanded'),'false');
+  const voiceDockPosition=await page.evaluate(()=>{
+    const script=document.querySelector('.layout').getBoundingClientRect();
+    const voice=document.querySelector('#rqvfPanel').getBoundingClientRect();
+    return {scriptBottom:script.bottom,voiceTop:voice.top};
+  });
+  assert.ok(voiceDockPosition.voiceTop>=voiceDockPosition.scriptBottom-2,
+    'V8 voice must dock below the script and real operator transport');
+  await page.locator('#rq8VoiceToggle').click();
+  assert.equal(await page.locator('#rq8VoiceToggle').getAttribute('aria-expanded'),'true');
+  await page.locator('#rq8VoiceToggle').click();
+  await page.locator('#rqvfAdvanced').evaluate(details=>{details.open=true;});
+  await page.locator('#rqvfStep').click();
+  await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='1 / 4');
+  assert.ok((await page.locator('#rqvfCue').textContent()).includes('C14'));
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  await page.locator('#rqvfStep').click();
+  await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='2 / 4');
+  assert.ok((await page.locator('#rqvfResult').textContent()).includes('No reliable cue match'));
+  await page.locator('#rqvfStep').click();
+  await page.waitForFunction(()=>document.querySelector('#rqvfCounter')?.textContent==='3 / 4');
+  assert.ok((await page.locator('#rqvfCue').textContent()).includes('C15'));
+  await capture('00-rehearsal-voice-follow.png');
+  await page.locator('#rqvfReset').click();
+  assert.equal(await page.locator('#rqvfCounter').textContent(),'0 / 0');
+  await page.locator('[data-workspace-nav="home"]').click();
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  // New visual shell must be present and its menus only navigate, never play.
+  assert.equal(await page.locator('.runq-menu').count(), 6);
+  await capture('01-home-1366.png');
+  const railBounds = await page.locator('.workspace-nav').boundingBox();
+  const contentBounds = await page.locator('main').boundingBox();
+  assert.ok(railBounds && contentBounds && contentBounds.y >= railBounds.y + railBounds.height - 2,
+    'Desktop page bar sits above the workspace like a software tab strip');
+  await page.locator('#rq16AppMenu>summary').click();
+  await page.locator('.runq-menu').nth(2).locator('summary').click();
+  await page.locator('.runq-menu').nth(2).locator('button').filter({hasText:'Script'}).click();
+  assert.equal(await page.locator('[data-workspace-nav="script"]').getAttribute('aria-selected'),'true');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  await page.locator('[data-workspace-nav="home"]').click();
+  assert.equal(await page.locator('[data-workspace-nav="home"]').getAttribute('aria-selected'), 'true');
+  await page.locator('#homeDemoBtn').click();
+  try {
+    await page.waitForFunction(() => document.querySelector('#cuesCount')?.textContent === '3', null, { timeout: 10000 });
+  } catch (error) {
+    console.error('BROWSER_DIAGNOSTIC', JSON.stringify(await page.evaluate(() => ({
+      status: document.querySelector('#statusMessage')?.textContent,
+      count: document.querySelector('#cuesCount')?.textContent,
+      hasCrypto: !!globalThis.crypto?.subtle,
+      name: document.querySelector('#showName')?.value,
+    }))));
+    console.error('BROWSER_PAGE_ERRORS', JSON.stringify(scriptErrors));
+    throw error;
+  }
+  assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  assert.equal(await page.locator('#runqEditorToolbar').count(), 1);
+  assert.equal(await page.locator('#cueList .cue-row-index').count(), 3);
+  assert.equal(await page.locator('.runq-cue-columns').count(), 1);
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'compact');
+  await page.locator('#runqCueDensity').selectOption('standard');
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'standard');
+  await page.locator('#runqCueDensity').selectOption('comfortable');
+  assert.equal(await page.locator('.shell').getAttribute('data-cue-density'), 'comfortable');
+  await page.locator('#runqCueDensity').selectOption('compact');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts), 0);
+  const workspaceStates = await page.locator('[data-workspace-nav]').evaluateAll(buttons =>
+    buttons.map(button => ({ name: button.dataset.workspaceNav,
+      pressed: button.getAttribute('aria-selected'), current: button.classList.contains('is-current') })));
+  assert.deepEqual(workspaceStates.filter(state => state.pressed === 'true').map(state => state.name), ['cues'],
+    'Exactly one workspace should be pressed when Cue Editor is active');
+  assert.deepEqual(workspaceStates.filter(state => state.current).map(state => state.name), ['cues'],
+    'Exactly one workspace should carry the current class');
+  assert.equal(await page.locator('#rq14StageCurrent').count(),1);
+  assert.equal(await page.locator('#rq14Events').count(),1);
+  assert.equal(await page.locator('.rq5-stage-body .rq5-sequence-frame #cueList').count(),1,
+    'Actual cue list must be mounted inside new Stagecraft sequence');
+  assert.equal(await page.locator('.rq5-inspector-frame #cueInspector').count(),1,
+    'Actual inspector must be mounted in the new dedicated pane');
+  assert.equal(await page.locator('.rq5-transport-dock #operatorGoBtn').count(),1,
+    'Stagecraft must rehome the existing operator GO, not duplicate it');
+  assert.equal(await page.locator('#runqStagecraftNonexistentGo').count(),0);
+  await capture('02-editor-1366.png');
+  const readEditorGeometry = () => page.evaluate(() => {
+    const left=document.getElementById('cueList').getBoundingClientRect();
+    const right=document.getElementById('cueInspector').getBoundingClientRect();
+    const go=document.getElementById('operatorGoBtn').getBoundingClientRect();
+    const stop=document.getElementById('operatorPanicBtn').getBoundingClientRect();
+    return {left:{x:left.x,right:left.right,width:left.width},right:{x:right.x,width:right.width},
+      go:{top:go.top,bottom:go.bottom},stop:{top:stop.top,bottom:stop.bottom}};
+  });
+  const editorGeometry = await readEditorGeometry();
+  assert.ok(editorGeometry.right.x >= editorGeometry.left.right-2, 'Inspector is right of cue list, not a third-row item');
+  assert.ok(editorGeometry.left.width >= 280 && editorGeometry.right.width >= 250, 'Both panes remain usable');
+  await page.setViewportSize({width:1093,height:614});
+  await capture('07-editor-1093.png');
+  const compactGeometry=await readEditorGeometry();
+  assert.ok(compactGeometry.right.x >= compactGeometry.left.right-2,'Compact inspector stays next to cue list');
+  assert.ok(compactGeometry.go.bottom <= 614 && compactGeometry.stop.bottom <= 614,
+    'Compact GO and STOP ALL remain visible without scrolling');
+  const pageScroll=await page.locator('main').evaluate(el=>el.scrollTop);
+  await page.locator('.cue-waveform-canvas').scrollIntoViewIfNeeded();
+  const visibleWave=await page.locator('.cue-waveform-canvas').boundingBox();
+  assert.ok(visibleWave && visibleWave.y < compactGeometry.go.top,
+    'Compact inspector exposes the waveform above transport with its own scroll');
+  assert.equal(await page.locator('main').evaluate(el=>el.scrollTop),pageScroll,
+    'Inspecting the waveform does not scroll GO away');
+  await page.locator('#cueInspector').evaluate(el=>{el.scrollTop=0;});
+  await page.setViewportSize({width:1366,height:768});
+  // Conversational cue editor: offline text -> draft -> correction -> apply -> undo.
+  assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
+  const originalFade=await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue();
+  const originalGain=await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue();
+  await page.locator('.rq-chat-open').click();
+  assert.equal(await page.locator('#rqCueChatPanel').isVisible(),true);
+  await page.locator('#rqChatPrompt').fill('Pon un fade in de 3 segundos y volumen a -9 dB');
+  await page.locator('#rqChatSubmit').click();
+  await page.waitForFunction(()=>document.querySelectorAll('.rq-chat-change').length===2);
+  assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),originalFade,
+    'Draft must not mutate cue');
+  await page.locator('#rqChatPrompt').fill('Mejor que sean cuatro segundos');
+  await page.locator('#rqChatSubmit').click();
+  await page.waitForFunction(()=>document.querySelector('#rqChatDiff')?.textContent?.includes('4 s'));
+  await page.locator('#rqChatApply').click();
+  await page.waitForFunction(()=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value==='4000');
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),'-9');
+  await page.locator('#rqChatUndo').click();
+  await page.waitForFunction(expected=>document.querySelector('#cuePlaybackForm [name="fadeInMs"]')?.value===expected,originalFade);
+  assert.equal(await page.locator('#cuePlaybackForm [name="gainDb"]').inputValue(),originalGain);
+  await page.locator('#rqChatClose').click();
+  assert.equal(await page.locator('#rqCueChatPanel').isHidden(),true);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,'Cue chat must never GO');
+
+  assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-selected'), 'true');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('[data-workspace-nav="audio"]').getAttribute('aria-selected'), 'true');
+  assert.equal(await page.locator('[data-workspace-nav="cues"]').getAttribute('aria-selected'), 'false');
+  assert.equal(await page.locator('#assetList .asset-list-row').count(), 3);
+  assert.equal(await page.locator('#runqAudioOverview').count(), 1);
+  // V12: file list cannot be pushed below the fold by import forms on compact
+  // Windows desktops. Toolbar and STOP stay present at all screen sizes.
+  assert.equal(await page.locator('#rq12LibraryToolbar').isVisible(),true);
+  assert.equal(await page.locator('#importAudioBatchBtn').isVisible(),true);
+  assert.equal(await page.locator('#importAudioZipBtn').isVisible(),true);
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),null);
+  for(const viewport of [
+    {width:1740,height:864},
+    {width:1366,height:768},
+    {width:1100,height:640},
+    {width:900,height:600},
+  ]){
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(50);
+    const geometry=await page.evaluate(()=>{
+      const list=document.querySelector('#assetList');
+      const first=list.querySelector('.asset-list-row');
+      const pane=document.querySelector('.rq5-audio-library');
+      const rect=node=>node.getBoundingClientRect();
+      return {
+        viewport:innerHeight,client:list.clientHeight,scroll:list.scrollHeight,
+        listTop:rect(list).top,listBottom:rect(list).bottom,
+        firstTop:rect(first).top,firstBottom:rect(first).bottom,
+        paneTop:rect(pane).top,paneBottom:rect(pane).bottom
+      };
+    });
+    assert.ok(geometry.client>=100,
+      'The list needs at least 100px of its own scrollport: '+JSON.stringify(geometry));
+    assert.ok(geometry.firstBottom<=geometry.listBottom+2,
+      'First sound must be visible without scrolling: '+JSON.stringify(geometry));
+    assert.ok(geometry.firstTop<viewport.height,
+      'File rows must be on screen at '+viewport.width+'x'+viewport.height+': '+JSON.stringify(geometry));
+    assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
+  }
+  await page.setViewportSize({width:1366,height:768});
+  const listHeightBefore=await page.locator('#assetList').evaluate(node=>node.clientHeight);
+  await page.locator('#rq12AdvancedToggle').click();
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),'');
+  assert.equal(await page.locator('#loadAudioBtn').isVisible(),true);
+  const listHeightAfter=await page.locator('#assetList').evaluate(node=>node.clientHeight);
+  assert.equal(listHeightAfter,listHeightBefore,
+    'Opening legacy import options must never shrink the actual media list');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#rq12ImportAdvanced').getAttribute('open'),null);
+  // Populate only the DOM with disposable rows: verify the real list scrolls
+  // internally without pushing its header or audition controls out of view.
+  const scrollCheck=await page.locator('#assetList').evaluate(node=>{
+    const sample=node.querySelector('.asset-list-row');
+    const extra=Array.from({length:40},(_,i)=>{
+      const clone=sample.cloneNode(true);
+      clone.dataset.syntheticRow=String(i);
+      node.append(clone);return clone;
+    });
+    const canScroll=node.scrollHeight>node.clientHeight+100;
+    node.scrollTop=node.scrollHeight;
+    const moved=node.scrollTop>0;
+    const debug={
+      client:node.clientHeight,scroll:node.scrollHeight,top:node.scrollTop,
+      rows:node.querySelectorAll('.asset-list-row').length,
+      activeWorkspace:document.querySelector('.shell')?.dataset.activeWorkspace,
+      search:document.querySelector('#rq10LibrarySearch')?.value,
+      rowState:[...node.querySelectorAll('.asset-list-row')].slice(0,4).map(row=>({
+        filter:row.dataset.rq10Filtered,display:getComputedStyle(row).display,
+        rect:row.getBoundingClientRect().toJSON(),html:row.outerHTML.slice(0,180),
+      })),
+      ancestors:[],
+    };
+    for(let el=node,n=0;el&&n<6;el=el.parentElement,n++){
+      const st=getComputedStyle(el),box=el.getBoundingClientRect();
+      debug.ancestors.push({
+        cls:el.className,id:el.id,
+        display:st.display,flex:st.flex,overflow:st.overflowY,
+        height:st.height,minHeight:st.minHeight,maxHeight:st.maxHeight,
+        rectH:box.height,client:el.clientHeight,scroll:el.scrollHeight,
+      });
+    }
+    extra.forEach(item=>item.remove());
+    node.scrollTop=0;
+    return {canScroll,moved,debug};
+  });
+  assert.equal(scrollCheck.canScroll,true,
+    'Library requires an independent scrollable file list '+JSON.stringify(scrollCheck.debug));
+  assert.equal(scrollCheck.moved,true,'Source list scroll position must actually move');
+  assert.equal(await page.locator('#assetList .asset-list-row').count(),3);
+  assert.equal(await page.locator('#rq10LibrarySearch').isVisible(),true);
+  await page.locator('#rq10LibrarySearch').fill('asset-1');
+  assert.equal(await page.locator('#assetList .asset-list-row:visible').count(),1);
+  assert.equal(await page.locator('#rq10LibrarySearchCount').textContent(),'1 / 3');
+  await page.locator('#rq10LibrarySearch').fill('');
+  assert.equal(await page.locator('#assetList .asset-list-row:visible').count(),3);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,
+    'Audio library filtering may never play any sound');
+  assert.equal(await page.locator('#runqAssetCount').innerText(), '3');
+  assert.equal(await page.locator('#runqReadyCount').innerText(), '3');
+  assert.equal(await page.locator('.rq5-audio-library #assetList').count(),1);
+  // V13 MediaBay workbench: one media list, actual file inspector and bottom
+  // original waveform (never a second playback/preview instance).
+  assert.equal(await page.locator('#rq13SoundInspector').isVisible(),true);
+  assert.equal(await page.locator('#rq13WaveDock').isVisible(),true);
+  assert.equal(await page.locator('#rq13SoundAttributes [data-rq13-value="name"]').count(),1);
+  assert.equal(await page.locator('#rq13WaveDock #rq5WaveCanvas').count(),1);
+  assert.equal(await page.locator('.rq13-ai-workstation').count(),1);
+  // A real audition transport remains visible in both Library and Sound Lab.
+  assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
+  assert.equal(await page.locator('#rq11PlayLibrary').isVisible(),true);
+  assert.equal(await page.locator('#stopAuditionBtn').isVisible(),true);
+  assert.equal(await page.locator('#playBtn').isVisible(),false);
+  assert.equal(await page.locator('#rq5WaveCanvas').count(),1);
+  const waveHeight=await page.locator('.rq5-wave-canvas').evaluate(node=>node.getBoundingClientRect().height);
+  assert.ok(waveHeight<=150,'A library thumbnail should not use a full editor-sized waveform');
+  await page.locator('#rq11ExpandWave').click();
+  const expandedHeight=await page.locator('.rq5-wave-canvas').evaluate(node=>node.getBoundingClientRect().height);
+  assert.ok(expandedHeight>waveHeight,'Waveform expansion must be opt-in');
+  await page.locator('#rq11ExpandWave').click();
+  // Selecting a row changes the read-only source, without audition or GO.
+  await page.locator('#assetList .asset-list-row').nth(1).locator('.tag').click();
+  assert.equal(await page.locator('#rq5AudioSource').inputValue(),'asset-2');
+  assert.match(await page.locator('#rq13SoundAttributes [data-rq13-value="name"]').innerText(),/asset|\.wav/i);
+  assert.equal(await page.locator('#rq13EditSource').isVisible(),true);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0);
+  await page.locator('[data-rq10-sound-tab="generate"]').click();
+  assert.equal(await page.locator('#rq13WaveDock').isVisible(),false);
+  assert.equal(await page.locator('#rq13SoundInspector').isVisible(),false);
+  assert.equal(await page.locator('#rq11AuditionTransport').isVisible(),true);
+  assert.equal(await page.locator('#playBtn').isVisible(),true);
+  assert.equal(await page.locator('#stopBtn').isVisible(),true);
+  await page.locator('[data-rq10-sound-tab="library"]').click();
+  await page.waitForFunction(()=>document.querySelector('#rq5WaveStatus')?.textContent?.includes('Decoded audio'));
+  assert.equal(await page.locator('#rq5WaveChannels').innerText(),'1');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),0,
+    'Decoding a read-only PCM waveform must never start audio');
+  await capture('05-audio-1366.png');
+  await page.locator('[data-workspace-nav="setup"]').click();
+  assert.equal(await page.locator('#setupPageAudio').isVisible(),true);
+  assert.equal(await page.locator('#setupTabAudio').getAttribute('aria-selected'),'true');
+  await page.locator('[data-workspace-nav="preflight"]').click();
+  assert.ok((await page.locator('#preflightSummary').innerText()).includes('3/3'));
+  await page.locator('[data-workspace-nav="cues"]').click();
+  // Real cue-editor settings never execute audio merely by being saved.
+  const inspector = page.locator('#cuePlaybackForm');
+  await inspector.locator('.cue-wave-ms-advanced summary').click();
+  assert.equal(await inspector.count(), 1);
+  await inspector.locator('[name="gainDb"]').fill('-9');
+  await inspector.locator('[name="fadeInMs"]').fill('250');
+  await inspector.locator('[name="fadeOutMs"]').fill('500');
+  await inspector.locator('[name="startDelayMs"]').fill('400');
+  await inspector.locator('[name="startAtMs"]').fill('125');
+  await inspector.locator('[name="playbackRate"]').fill('1.25');
+  await inspector.locator('[name="pan"]').fill('-0.5');
+  await inspector.getByRole('button', {name:'Save playback settings'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Playback settings saved/);
+  assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
+  assert.equal(await page.locator('#cueReplaceLibrary').count(),1);
+  await page.locator('#cueReplaceLibrary').selectOption('asset-3');
+  await page.getByRole('button',{name:'Use library audio'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Audio assignment replaced/);
+  await page.locator('#cueAddTrackSelect').selectOption('asset-2');
+  await page.locator('#cueAddTrackBtn').click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Audio track added/);
+  assert.equal(await page.locator('[data-extra-track="track-1"]').count(), 1);
+  await page.locator('[data-extra-track="track-1"] .cue-track-details > summary').click();
+  await page.locator('[data-track-settings="track-1"] [name="gainDb"]').fill('-12');
+  await page.locator('[data-track-settings="track-1"] [name="startDelayMs"]').fill('1250');
+  await page.locator('[data-track-settings="track-1"]').getByRole('button',{name:'Save track settings'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Track settings saved/);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), 0);
+  const preparedBeforeNavigation = await page.locator('#preparedCueStatus').innerText();
+  // V9 Set NEXT is always available as a left-row icon.
+  // Selection alone never changes the prepared GO.
+  assert.equal(await page.locator('[data-cue-quick-next]').count(),3);
+  assert.equal(await page.locator('[data-cue-quick-go]').count(),3);
+  assert.match(await page.locator('#cueAddBtn').getAttribute('title'),/add cue/i);
+  await page.locator('[data-workspace-nav="operation"]').click();
+  assert.equal(await page.locator('.shell').getAttribute('data-rq14-surface'),'stage');
+  assert.equal(await page.locator('#rq14StageCurrent').isVisible(),true);
+  assert.equal(await page.locator('#rq14Events').isVisible(),true);
+  assert.equal(await page.locator('#cueList').count(),1,'Live reuses the unique editable cue sequence');
+  await page.locator('#cueList [data-cue-select]').nth(1).click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),preparedBeforeNavigation,
+    'Inspection in Live must not prepare NEXT');
+  await page.locator('#cueList .cue-item.cue-selected [data-cue-quick-next]').click();
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), 0);
+  await page.locator('#operatorBackBtn').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('[data-workspace-nav="cues"]').click();
+  await page.locator('#cueSearchInput').fill('nonexistent-cue-xyz');
+  assert.equal(await page.locator('#cueList .cue-item').count(), 0);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('#cueSearchInput').fill('');
+  assert.equal(await page.locator('#cueList .cue-item').count(), 3);
+  await page.locator('[data-cue-select]').nth(1).click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  assert.equal(await page.locator('[data-cue-select]').nth(1).getAttribute('aria-pressed'),'true');
+  // Keyboard selection is inspection-only. Moving through filtered cues
+  // must not mutate GO position, emit audio, or rebuild the whole page.
+  await page.locator('[data-cue-select]').nth(1).press('ArrowUp');
+  assert.equal(await page.locator('[data-cue-select]').first().getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  await page.locator('[data-cue-select]').nth(1).click();
+  await page.locator('[data-inspector-tab="actions"]').click();
+  // Cue 2 is programmed to fade/stop cue 1 on its manually pressed GO.
+  await page.locator('#cueTargetStopForm [data-stop-target="cue-1"]').check();
+  await page.locator('#cueTargetStopForm [data-stop-fade="cue-1"]').fill('4');
+  await page.locator('#cueTargetStopForm').getByRole('button',{name:'Save target actions'}).click();
+  assert.match(await page.locator('#statusMessage').innerText(), /Target-stop actions saved/);
+  await page.locator('[data-workspace-nav="script"]').click();
+  assert.equal(await page.locator('#scriptPreview').isVisible(), true);
+  await page.locator('#scriptPreview [data-script-line-id]').first().click();
+  assert.equal(await page.locator('#rq14ScriptAI').isVisible(),true);
+  assert.equal(await page.locator('#rq14ScriptAI button').count(),2);
+  // Contextual IA is a deliberate user-facing entry; it cannot send to a model
+  // just by selecting a line. Existing global review remains accessible.
+  const beforeContextualStarts=await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('#rq14ScriptAI button').first().click();
+  assert.equal(await page.locator('[data-workspace-nav="ai"]').getAttribute('aria-selected'),'true');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeContextualStarts);
+  await page.locator('[data-workspace-nav="script"]').click();
+  assert.equal(await page.locator('.rq5-script-scenes').count(),1);
+  await capture('08-script-rebuilt.png');
+  // Rehearsal reuses real original script and operator queue simultaneously.
+  // Merely visiting this view never starts or prepares a cue.
+  const beforeRehearsalStarts=await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('[data-workspace-nav="rehearsal"]').click();
+  assert.equal(await page.locator('.shell').getAttribute('data-rq14-surface'),'rehearsal');
+  assert.equal(await page.locator('#rq14StageCurrent').isVisible(),true);
+  assert.match(await page.locator('.rq14-rehearsal-status').innerText(),/disarmed|desarmado/i);
+  assert.equal(await page.locator('#scriptPreview').isVisible(),true);
+  assert.equal(await page.locator('#operatorGoBtn').isVisible(),true);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),preparedBeforeNavigation);
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeRehearsalStarts);
+  await capture('09-rehearsal-manual.png');
+  await page.locator('[data-workspace-nav="operation"]').click();
+  assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor),
+    'rgb(13, 17, 20)','Stage must be a blackout console, distinct from Studio');
+  await capture('03-operation-1366.png');
+  assert.equal(await page.locator('#preparedCueStatus').innerText(), preparedBeforeNavigation);
+  assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
+  await page.locator('#operatorGoBtn').click();
+  await page.waitForFunction(() => window.__testAudioStarts >= 1);
+  assert.equal(await page.locator('#rq14LiveWaveform').isVisible(),true,
+    'Stage waveform must reflect loaded REAL cached audio peaks after confirmed GO');
+  assert.match(await page.locator('#rq14StageCurrent .rq14-now-title').innerText(),/001|Intro/i);
+  assert.match(await page.locator('#rq14EventsList').innerText(),/GO confirmed|GO confirmado/);
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
+  assert.match(await page.locator('#operatorLastGo').innerText(), /1\s*[·.]/);
+  assert.match(await page.locator('#operatorEffectSummary').innerText(), /STOP \/ FADE: 1/);
+  assert.match(await page.locator('#operatorEffectSummary').innerText(), /4\.0 s/);
+  const stopsBeforeTarget = await page.evaluate(()=>window.__testAudioStops);
+  await page.locator('#operatorGoBtn').click();
+  await page.waitForFunction(stops=>window.__testAudioStops>stops,stopsBeforeTarget);
+  assert.ok(await page.evaluate(() => window.__testStopTimes.some(t => Math.abs(t - 5.02) < .01)));
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /3\s*[·.]/);
+  assert.equal(await page.locator('#operatorPanicBtn').isEnabled(), true);
+  await page.locator('#operatorPanicBtn').click();
+  await page.waitForFunction(() => window.__testAudioStops >= 1);
+  assert.match(await page.locator('#rq14EventsList').innerText(),/STOP ALL/);
+  assert.match(await page.locator('#rq14EventsList').innerText(),/GO confirmed|GO confirmado/);
+  assert.equal(await page.locator('#rq14StageCurrent .rq14-now-title').count(),1);
+  const downloadWait = page.waitForEvent('download');
+  await page.locator('#rq16AppMenu>summary').click();
+  await page.locator('#rq16AppMenu .runq-menu>summary').first().click();
+  await page.getByRole('button',{name:'Export complete show',exact:true}).click();
+  const download = await downloadWait;
+  assert.ok(download.suggestedFilename().endsWith('.showcompiler.zip'));
+  const zip = await readFile(await download.path());
+  assert.ok(zip.length > 1000);
+  const exportedProject = JSON.parse(new TextDecoder().decode(readZipStore(new Uint8Array(zip)).get('project.json')));
+  const editedCueIndex = exportedProject.cues.findIndex(cue => cue.playback?.fadeInMs === 250);
+  assert.ok(editedCueIndex >= 0, 'Edited playback is serialized in complete show ZIP');
+  assert.equal(exportedProject.cues[editedCueIndex].playback.pan,-0.5);
+  assert.equal(exportedProject.cues[editedCueIndex].playback.playbackRate,1.25);
+  assert.equal(exportedProject.cues[editedCueIndex].playback.startAtMs,125);
+  assert.deepEqual(exportedProject.cues[1].automation.stopCueIds,['cue-1']);
+  assert.equal(exportedProject.cues[1].stopFadeOverrides['cue-1'],4000);
+  assert.equal(exportedProject.cues[0].actions[0].assetId,'asset-3');
+  assert.equal(exportedProject.cues[0].audioTracks[0].assetId,'asset-2');
+  assert.equal(exportedProject.cues[0].audioTracks[0].playback.startDelayMs,1250);
+  assert.equal(exportedProject.cues[0].audioTracks[0].playback.gainDb,-12);
+  const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
+  await withOptionalDialog(() => page.locator('#bundleFileInput').setInputFiles({
+    name: 'roundtrip.showcompiler.zip', mimeType: 'application/zip', buffer: zip,
+  }));
+  await page.waitForFunction(() => document.querySelector('#statusMessage')?.textContent?.includes('restored with 3 real audio files'));
+  assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /1\s*[·.]/);
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), startsBeforeZipOpen);
+  await page.locator('[data-workspace-nav="cues"]').click();
+  await page.locator('[data-cue-select]').nth(editedCueIndex).click();
+  assert.equal(await page.locator('#cuePlaybackForm [name="fadeInMs"]').inputValue(),'250');
+  assert.equal(await page.locator('[data-extra-track="track-1"]').count(),1);
+  await page.locator('[data-workspace-nav="operation"]').click();
+  assert.equal(await page.locator('[data-cue-action="go"]').count(), 0);
+  // V7 professional show desk: all cues remain navigable independently of
+  // prepared NEXT, while no browse, jump or double-click can trigger GO.
+  assert.equal(await page.locator('#rq7LiveNavigator').isVisible(),true,
+    'Live full-list transport must be available in Operation');
+  assert.equal(await page.locator('#rq7LiveInspector').isVisible(),true,
+    'Operation offers an inspector without editable show fields');
+  const v7Starts=await page.evaluate(()=>window.__testAudioStarts);
+  const v7Prepared=await page.locator('#preparedCueStatus').innerText();
+  await page.locator('#rq7JumpCue').fill('3');
+  await page.locator('#rq7JumpButton').click();
+  assert.match(await page.locator('#rq7LiveInspector').innerText(),/Q0*3/i);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Jump/inspect must never change NEXT');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),v7Starts,
+    'Jump/inspect must never run audio');
+  await page.locator('#cueList [data-cue-select]').nth(2).dblclick();
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),v7Starts,
+    'Double-clicking a cue never GO in V7');
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Double-clicking a cue never prepares NEXT in V7');
+  await page.locator('[data-rq7-action="return"]').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Return to NEXT is viewport navigation only');
+
+  // Explicit direct row ▶ GO fires its own cue through the real engine but
+  // MUST NOT change NEXT. The normal transport must still play cue 1 later.
+  const directStartsBefore=await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('#cueList [data-cue-quick-go]').nth(2).click();
+  await page.waitForFunction(n=>window.__testAudioStarts>n,directStartsBefore);
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Direct Play on cue 3 must not advance or replace NEXT cue 1');
+  assert.equal(await page.locator('#runqActiveCuesList [data-running-cue]').count(),1);
+  await page.locator('#operatorPanicBtn').click();
+  assert.equal(await page.locator('#preparedCueStatus').innerText(),v7Prepared,
+    'Emergency STOP after direct Play preserves NEXT');
+
+  const queuedStop = page.locator('[data-cue-action="stop"]').first();
+  assert.equal((await queuedStop.isDisabled()), true);
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
+  const startsBeforeDirectGo = await page.evaluate(() => window.__testAudioStarts);
+  await page.locator('#operatorGoBtn').click();
+  await page.waitForFunction(starts => window.__testAudioStarts > starts, startsBeforeDirectGo);
+  assert.match(await page.locator('#preparedCueStatus').innerText(), /2\s*[·.]/);
+  const directStop=page.locator('#runqActiveCuesList [data-active-action="stop"]').first();
+  assert.equal((await directStop.isEnabled()), true);
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
+  await directStop.click();
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
+  const beforeCorrupt = await page.evaluate(() => ({
+    name: document.querySelector('#showName')?.value,
+    script: document.querySelector('#scriptPreview')?.textContent,
+    starts: window.__testAudioStarts,
+  }));
+  const corruptZip = Buffer.from(zip);
+  corruptZip[44] ^= 0xff;
+  await withOptionalDialog(() => page.locator('#bundleFileInput').setInputFiles({
+    name: 'tampered.showcompiler.zip', mimeType: 'application/zip', buffer: corruptZip,
+  }));
+  await page.waitForFunction(() => document.querySelector('#statusMessage')?.textContent?.includes('Could not complete show ZIP'));
+  assert.equal((await page.locator('#cueList .cue-item').count()), 3);
+  assert.equal((await page.locator('#showName').inputValue()), beforeCorrupt.name);
+  assert.equal((await page.locator('#scriptPreview').textContent()), beforeCorrupt.script);
+  assert.equal((await page.evaluate(() => window.__testAudioStarts)), beforeCorrupt.starts);
+  await page.locator('#operatorGoBtn').click();
+  await page.waitForFunction(starts => window.__testAudioStarts > starts, beforeCorrupt.starts);
+  assert.equal((await page.locator('#stopAllBtn').isEnabled()), true);
+  await page.locator('#stopAllBtn').click();
+  // Simulate a bounded provider request. The browser must show a truthful
+  // indeterminate activity indicator and an operator-controlled repeat pass.
+  // No request here can reach an external service or consume model credits.
+  await page.route('**/api/meta/status', async route => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      configured: true, model: 'muse-spark-1.3', provider: 'META_MODEL_API',
+    }) });
+  });
+  let mockMetaCalls = 0;
+  let sentDesignMode;
+  let sentPerformanceKind;
+  let sentDocumentKind;
+  await page.route('**/api/meta/proposals', async route => {
+    mockMetaCalls += 1;
+    const request = route.request().postDataJSON();
+    sentDesignMode = request.designMode;
+    sentPerformanceKind = request.performanceKind;
+    sentDocumentKind = request.documentKind;
+    const plan = planScriptAnalysis(request.project.scriptText);
+    const start = request.analysisWindowStart ?? 0;
+    const selected = plan.windows.slice(start, start + 1);
+    const end = start + selected.length;
+    const ids = selected.flatMap(window => window.coreLines.map(line => line.id));
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    const proposals=ids.slice(0,5).map((lineId,index)=>({
+      lineId,assetId:null,label:'Builder proposal '+(index+1),
+      soundPrompt:'Synthetic review-only sound idea '+(index+1),
+    }));
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      provider: 'META_MODEL_API', model: 'muse-spark-1.3',
+      proposals, observations: [], duplicatesRemoved: 0,
+      coverage: {
+        totalLines: plan.coverage.totalLines,
+        sceneCount: plan.coverage.sceneCount,
+        totalWindows: plan.coverage.windowCount,
+        batchStartWindow: start, batchEndWindowExclusive: end,
+        analyzedWindowIds: selected.map(window => window.id),
+        analyzedLineIds: ids, analyzedLines: ids.length,
+        nextWindowStart: end < plan.windows.length ? end : null,
+        complete: end === plan.windows.length,
+      },
+    }) });
+  });
+  await page.locator('[data-workspace-nav="ai"]').click();
+  assert.equal(await page.locator('.rq5-ai-grid').count(),1);
+  assert.equal(await page.locator('.rq5-ai-engine #modelProviderSelect').count(),1);
+  assert.equal(await page.locator('.rq5-ai-review #proposalList').count(),1);
+  await capture('10-ai-three-pane.png');
+  await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
+  // The provider panel lives inside the cue-stage native disclosure;
+  // the separate AI Help disclosure controls only the conversational assistant.
+  if(!(await page.locator('#rqShowBuilderAiControls').evaluate(element=>element.open)))
+    await page.locator('#rqShowBuilderAiControls > summary').click();
+  await page.locator('#modelProviderSelect').selectOption('baseten');
+  await page.locator('#modelProviderSelect').selectOption('meta');
+  await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
+  await page.locator('#metaDesignMode').selectOption('expressive');
+  await page.locator('#performanceKindSelect').selectOption('gala');
+  await page.locator('#documentKindSelect').selectOption('running_order');
+  await withOptionalDialog(() => page.locator('#analyzeMetaBtn').click());
+  await page.locator('#aiAnalysisActivity').waitFor({ state:'visible', timeout: 10000 });
+  assert.equal(await page.locator('#analyzeMetaBtn').getAttribute('aria-busy'), 'true');
+  assert.match(await page.locator('#aiAnalysisScope').innerText(), /window/);
+  await page.waitForFunction(() => document.querySelector('#aiAnalysisElapsed')?.textContent?.includes('1 s'));
+  await page.locator('#aiAnalysisActivity').waitFor({ state:'hidden', timeout: 10000 });
+  assert.equal(mockMetaCalls, 1, 'one confirmation = one simulated request');
+  assert.equal(sentDesignMode, 'expressive');
+  assert.equal(sentPerformanceKind, 'gala');
+  assert.equal(sentDocumentKind, 'running_order');
+  assert.equal(await page.locator('#analyzeMetaBtn').isEnabled(), true);
+  assert.match(await page.locator('#analyzeMetaBtn').innerText(), /another AI pass/);
+  const readBuilderState=()=>page.evaluate(()=>{
+    let state;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{state=value;}}}));return state;
+  });
+  const cueCountBeforeReview=(await readBuilderState()).project.cues.length;
+  // The detailed legacy proposal inspector is now an optional disclosure;
+  // the primary interface is the unified review above it.
+  if(!(await page.locator('#rqBuilderLegacyReview').evaluate(el=>el.open)))
+    await page.locator('#rqBuilderLegacyReview > summary').click();
+  const pendingBuilder=page.locator('#proposalList .item').filter({hasText:'Builder proposal'});
+  assert.equal(await pendingBuilder.count(),5,
+    'Builder exposes five provider suggestions for explicit human review');
+  const beforeReviewState=await readBuilderState();
+  const approvedBefore=beforeReviewState.project.proposals.filter(proposal=>proposal.status==='APPROVED').length;
+  const rejectedBefore=beforeReviewState.project.proposals.filter(proposal=>proposal.status==='REJECTED').length;
+  for(let i=0;i<3;i++)await page.locator('#proposalList .item').filter({hasText:'Builder proposal'}).locator('.item-actions .btn.primary').first().click();
+  for(let i=0;i<2;i++)await page.locator('#proposalList .item').filter({hasText:'Builder proposal'})
+    .getByRole('button',{name:'Reject',exact:true}).first().click();
+  const reviewed=await readBuilderState();
+  assert.equal(reviewed.project.cues.length,cueCountBeforeReview+3,'Only three explicitly approved proposals become draft cues');
+  assert.equal(reviewed.project.proposals.filter(proposal=>proposal.status==='APPROVED').length,approvedBefore+3);
+  assert.equal(reviewed.project.proposals.filter(proposal=>proposal.status==='REJECTED').length,rejectedBefore+2);
+  assert.equal(await page.evaluate(() => window.__testAudioStarts), beforeCorrupt.starts + 1,
+    'Meta simulation and AI activity must never start another audio source');
+  await page.locator('#uiLocaleSelect').selectOption('es');
+  assert.ok((await page.locator('#scriptPreview').innerText()).includes('THE LAST CUE'));
+  assert.match(await page.locator('#stopAllBtn').innerText(), /PARAR TODO/);
+  await page.locator('#rq16AppMenu>summary').click();
+  assert.equal(await page.locator('.runq-menu').first().locator('summary').innerText(),'Archivo');
+  await page.locator('[data-workspace-nav="audio"]').click();
+  assert.equal(await page.locator('#runqAudioOverview .runq-audio-introduction strong').innerText(),'Espacio de recursos');
+  await page.locator('[data-workspace-nav="operation"]').click();
+  await page.setViewportSize({ width: 1093, height: 614 });
+  const stageBounds=await page.evaluate(()=>{
+    const rect=id=>document.getElementById(id).getBoundingClientRect();
+    return {
+      go:rect('operatorGoBtn').toJSON(),
+      stop:rect('operatorPanicBtn').toJSON(),
+      stack:rect('cueList').toJSON(),
+      current:rect('rq14StageCurrent').toJSON(),
+      viewport:{width:innerWidth,height:innerHeight},
+    };
+  });
+  assert.ok(stageBounds.go.width>=60&&stageBounds.stop.width>=60,
+    'Stage GO/STOP ALL need usable input targets '+JSON.stringify(stageBounds));
+  assert.ok(stageBounds.stack.width>=210&&stageBounds.current.width>=210,
+    'Cue stack and actual-status monitor must both be reachable '+JSON.stringify(stageBounds));
+  await capture('04-operation-1093.png');
+  // A manual-only show needs neither source script nor an AI analysis request.
+  await page.locator('[data-workspace-nav="home"]').click();
+  await withOptionalDialog(() => page.locator('#homeNewBtn').click());
+  await page.locator('[data-workspace-nav="cues"]').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),0);
+  const beforeManual = await page.evaluate(()=>window.__testAudioStarts);
+  await page.locator('#cueAddBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),1);
+  await page.locator('#cueInsertBtn').click();
+  await page.locator('#cueDuplicateBtn').click();
+  assert.equal(await page.locator('#cueList .cue-item').count(),3);
+  await page.locator('#cueMoveUpBtn').click();
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual);
+  // Reorder by a dedicated drag handle; no cue may play as a side effect.
+  const beforeDrag=await page.locator('#cueList [data-cue-select]').evaluateAll(nodes=>nodes.map(n=>n.dataset.cueSelect));
+  const nextBeforeDrag=await page.locator('#cueList .cue-item.cue-prepared [data-cue-select]').getAttribute('data-cue-select');
+  await page.locator('#cueList .rq9-cue-grip').first().dragTo(page.locator('#cueList .cue-item').last(),{
+    targetPosition:{x:100,y:38}
+  });
+  const afterDrag=await page.locator('#cueList [data-cue-select]').evaluateAll(nodes=>nodes.map(n=>n.dataset.cueSelect));
+  assert.notDeepEqual(afterDrag,beforeDrag,'Drag handle must reorder actual cue identities');
+  assert.equal(await page.locator('#cueList .cue-item.cue-prepared [data-cue-select]').getAttribute('data-cue-select'),
+    nextBeforeDrag,'Reordering must preserve NEXT by stable cue ID');
+  assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual,
+    'Reordering must not trigger playback');
+  await withOptionalDialog(() => page.locator('#cueDeleteBtn').click());
+  assert.equal(await page.locator('#cueList .cue-item').count(),2);
+  assert.deepEqual(scriptErrors, []);
+  console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');
+  await context.close();
+} finally {
+  try { if (browser) await browser.close(); } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
+}

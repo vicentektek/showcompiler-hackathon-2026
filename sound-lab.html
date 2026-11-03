@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>RunQ — Sound Lab</title>
+  <link rel="stylesheet" href="/src/sfx/lab.css">
+</head>
+<body>
+  <div class="app">
+    <header class="masthead">
+      <div class="brand"><div class="mark" aria-hidden="true">RQ</div><div><strong>RunQ</strong><small>Sound Lab / Experimental</small></div></div>
+      <div class="head-actions"><span id="engineBadge" class="status-badge">Checking engine</span><a class="btn ghost" href="/">Back to RunQ</a></div>
+    </header>
+    <main>
+      <div class="page-intro"><span class="eyebrow">SOUND DESIGN WORKSPACE</span><h1>Create, refine, review.</h1>
+        <p>Design sound effects outside the live playback engine. Every generation is an explicitly approved preparation action; generated sounds never become cues automatically.</p>
+      </div>
+      <div class="layout">
+        <div class="left">
+          <section class="panel" aria-labelledby="generatorHeading">
+            <div class="section-header"><span class="index">01</span><div><h2 id="generatorHeading">Generate</h2><p>One prompt, one controlled request</p></div></div>
+            <form id="generateForm">
+              <div class="row-fields">
+                <label>Sound type<select id="soundKind"><option value="SFX">Sound effect</option><option value="ENVIRONMENT">Environment / ambience</option></select></label>
+                <label>Script reference<input id="sourceLine" type="text" pattern="L[1-9][0-9]*" maxlength="30" value="L1" required autocomplete="off" placeholder="L12"></label>
+              </div>
+              <label>Sound description<textarea id="soundPrompt" rows="5" maxlength="1000" required placeholder="A heavy metal stage door slams once, short reverberation, no speech."></textarea></label>
+              <div class="row-fields">
+                <label>Duration (seconds)<input id="duration" type="number" min="1" max="12" value="5" step="1" required></label>
+                <label>Seed<input id="seed" type="number" min="0" max="2147483647" value="42" step="1" required></label>
+              </div>
+              <div class="notice">Requests may use paid GPU resources. No remote generation occurs on page load, during preview or when entering a prompt.</div>
+              <p class="muted">Generate starts one AI request without local budget caps.</p>
+              <div class="buttons"><button class="btn primary" id="generateBtn" type="submit" disabled>Generate one take</button><span id="generationHint" class="muted">Checking connection…</span></div>
+            </form>
+          </section>
+          <section class="panel" aria-labelledby="jobsHeading">
+            <div class="section-header"><span class="index">02</span><div><h2 id="jobsHeading">Review a take</h2><p>Remote jobs remain independent of every show</p></div></div>
+            <label>Request ID<input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
+            <div class="buttons">
+              <button class="btn" id="openJobBtn" type="button">Open local record</button>
+              <button class="btn" id="refreshBtn" type="button">Check remote status</button>
+              <button class="btn danger-outline" id="cancelBtn" type="button">Request cancellation</button>
+            </div>
+            <div class="job-info"><div class="pill" id="jobState">No job loaded</div><p id="jobDetails" class="muted">Previously submitted requests can be reopened by ID.</p></div>
+            <div class="buttons">
+              <button class="btn primary-secondary" id="loadGeneratedBtn" type="button">Load generated WAV</button>
+              <button class="btn" id="acceptBtn" type="button">Accept take</button>
+              <button class="btn danger-outline" id="rejectBtn" type="button">Reject take</button>
+            </div>
+            <p class="muted small">Accepting makes a WAV eligible for manual import. It does not edit the current show or start playback.</p>
+          </section>
+        </div>
+        <section class="panel audio-panel" aria-labelledby="editorHeading">
+          <div class="section-header"><span class="index">03</span><div><h2 id="editorHeading">Waveform & audition</h2><p>Source-accurate trim, dedicated preparation controls</p></div></div>
+          <div class="source-file">
+            <label class="import-label" for="localWav">Or open a local WAV for offline editing</label>
+            <input id="localWav" type="file" accept=".wav,audio/wav">
+            <button class="btn" id="demoAudioBtn" type="button">Load offline impact test sound</button>
+            <span id="audioName" class="muted small">No audio loaded</span>
+          </div>
+          <div class="wavepanel">
+            <div class="wave-top"><span id="waveDuration">00:00.000</span><span>PCM waveform · drag to select a region</span></div>
+            <canvas id="waveCanvas" width="900" height="250" aria-label="Waveform and selected trim region"></canvas>
+            <div class="time-ruler"><span>IN</span><span>Selected region</span><span>OUT</span></div>
+          </div>
+          <div class="row-fields">
+            <label>IN (seconds)<input id="inPoint" type="number" min="0" step="0.001" value="0" disabled></label>
+            <label>OUT (seconds)<input id="outPoint" type="number" min="0" step="0.001" value="0" disabled></label>
+          </div>
+          <div class="transport">
+            <button class="btn primary" id="playBtn" type="button" disabled>▶ Preview selection</button>
+            <button class="btn" id="stopBtn" type="button" disabled>■ Stop</button>
+            <label class="level">Monitor level <input id="monitorLevel" type="range" min="0" max="50" value="15" aria-label="Audition volume"></label>
+          </div>
+          <div class="notice muted">Audition plays through the computer's DEFAULT audio output, not an isolated PFL/headphone bus. Start at low volume. No cue is armed or executed.</div>
+          <div class="export">
+            <div><h3>Commit sound to your library</h3><p>Export a new PCM16 WAV from the selected region, then import it into the Cue Editor manually.</p></div>
+            <button class="btn primary-secondary" id="exportBtn" type="button" disabled>Export trimmed WAV</button>
+          </div>
+          <div role="status" aria-live="polite" class="feedback" id="feedback">Ready for local WAV audition. Remote generation is optional.</div>
+        </section>
+      </div>
+    </main>
+    <footer>RunQ Sound Lab · preparation only · no automatic cues, remote playback or live show mutation</footer>
+  </div>
+  <script type="module" src="/src/sfx/lab.mjs"></script>
+</body></html>

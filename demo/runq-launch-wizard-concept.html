@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>RUNQ Launch · Fábrica visual de show — concepto</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101510;
+      --surface: #181e17;
+      --surface-raised: #20281e;
+      --line: #354031;
+      --text: #eff0e9;
+      --muted: #a1aa98;
+      --sage: #c5d1a9;
+      --amber: #ebcd8e;
+      --blue: #a9c8d8;
+      font: 14px/1.48 "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(ellipse at 68% -30%, #39452f 0, transparent 56%), var(--bg);
+      color: var(--text);
+    }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, label:focus-within {
+      outline: 2px solid var(--sage);
+      outline-offset: 2px;
+    }
+
+    .topbar {
+      position: sticky;
+      z-index: 3;
+      top: 0;
+      display: flex;
+      min-height: 64px;
+      align-items: center;
+      gap: 24px;
+      padding: 0 26px;
+      border-bottom: 1px solid var(--line);
+      background: #101510f5;
+    }
+    .brand { font-size: 19px; font-weight: 900; letter-spacing: .14em; }
+    .brand span { color: var(--sage); }
+    .show-id { padding-left: 18px; border-left: 1px solid var(--line); }
+    .show-id small { display: block; color: var(--muted); font-size: 9px; letter-spacing: .14em; }
+    .topnav { display: flex; gap: 4px; margin-left: auto; }
+    .topnav span { padding: 8px 10px; color: var(--muted); font-size: 11px; }
+    .topnav .active { border-radius: 8px; background: #303a2b; color: #e5edd9; }
+    .mode { border: 1px solid #49533f; border-radius: 20px; padding: 5px 9px; color: #cbd6ba; font-size: 9px; }
+
+    main { max-width: 1540px; margin: auto; padding: 25px 28px 40px; }
+    .hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; margin-bottom: 18px; }
+    .eyebrow { color: var(--sage); font-size: 9px; font-weight: 750; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 5px 0 4px; font-size: 28px; line-height: 1.15; }
+    .hero p { margin: 0; color: var(--muted); font-size: 12px; }
+    .concept-tag { flex: none; border: 1px solid #675b3a; border-radius: 8px; padding: 7px 10px; background: #28251c; color: var(--amber); font-size: 9px; }
+
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-bottom: 16px; padding: 9px; border: 1px solid var(--line); border-radius: 12px; background: #171d16; }
+    .step-button { display: flex; min-width: 0; align-items: center; gap: 9px; border: 0; border-radius: 8px; padding: 8px; background: transparent; color: #8e9785; text-align: left; }
+    .step-button:hover { background: #22291f; }
+    .step-button[aria-current="step"] { background: #303a2b; color: var(--text); }
+    .step-number { display: grid; width: 26px; height: 26px; flex: none; place-items: center; border: 1px solid #505b45; border-radius: 50%; font-size: 10px; }
+    .step-button[aria-current="step"] .step-number { border-color: var(--sage); background: var(--sage); color: #172014; }
+    .step-name { overflow: hidden; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+
+    .grid { display: grid; grid-template-columns: 220px minmax(420px, 1fr) 270px; gap: 13px; align-items: start; }
+    .card { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, #1b221a, #171c16); box-shadow: 0 8px 26px #0002; }
+    .entry { padding: 14px 11px; }
+    .entry h2, .context h2 { margin: 2px 6px 10px; font-size: 12px; }
+    .entry-option { display: flex; width: 100%; align-items: flex-start; gap: 9px; margin: 3px 0; border: 1px solid transparent; border-radius: 8px; padding: 9px 8px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+    .entry-option:hover, .entry-option[aria-pressed="true"] { border-color: #536147; background: #283124; }
+    .entry-icon { display: grid; width: 25px; height: 25px; flex: none; place-items: center; border-radius: 7px; background: #303a2b; color: var(--sage); font-size: 12px; }
+    .entry-option b { display: block; font-size: 10px; }
+    .entry-option small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+    .entry-hint { margin: 9px 6px 2px; color: var(--muted); font-size: 9px; }
+
+    .workspace { padding: 16px; }
+    .phase { display: none; }
+    .phase.active { display: block; }
+    .phase-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .phase-head h2 { margin: 4px 0 2px; font-size: 17px; }
+    .phase-head p { margin: 0; color: var(--muted); font-size: 10px; }
+    .phase-pill { flex: none; border: 1px solid #49553e; border-radius: 18px; padding: 4px 8px; background: #263022; color: #d9e5cb; font-size: 9px; }
+    .phase-pill.notice { border-color: #625737; background: #302a1c; color: var(--amber); }
+    .subhead { margin: 13px 0 7px; color: #bac3b0; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; }
+    .quiet { color: var(--muted); font-size: 10px; }
+    .callout { margin: 10px 0; padding: 9px 10px; border: 1px solid #49533f; border-radius: 8px; background: #20271e; color: #cbd2c2; font-size: 9px; }
+    .callout strong { color: #e4eadc; }
+    .callout.caution { border-color: #625737; background: #28251d; color: #e2d5b6; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
+    .metric { padding: 9px; border: 1px solid #394435; border-radius: 8px; background: #1c231b; }
+    .metric b { display: block; font-size: 16px; }
+    .metric span { color: var(--muted); font-size: 8px; }
+
+    .script-layout { display: grid; grid-template-columns: 135px minmax(0, 1fr); gap: 12px; }
+    .scene-rail { padding-right: 10px; border-right: 1px solid var(--line); }
+    .scene-title { display: block; width: 100%; margin: 3px 0; border: 0; border-radius: 7px; padding: 8px; background: #283124; color: #e8ecdf; text-align: left; font-size: 9px; }
+    .scene-title small { display: block; color: var(--muted); font-size: 8px; }
+    .script-lines { display: grid; gap: 5px; max-height: 320px; overflow: auto; }
+    .script-line { display: grid; grid-template-columns: 30px 1fr; gap: 8px; padding: 7px 8px; border: 1px solid transparent; border-radius: 7px; background: #1c231b; }
+    .script-line.marked { border-color: #566147; background: #232b20; }
+    .line-ref { color: #c7b98e; font: 9px ui-monospace, Consolas, monospace; }
+    .line-text { color: #e0e3d9; font-size: 9px; }
+    .line-note { display: block; margin-top: 3px; color: #b7c19f; font-size: 8px; }
+
+    .tree { display: grid; gap: 7px; }
+    .scene-node { padding: 10px; border: 1px solid #48533e; border-radius: 9px; background: #1b231a; }
+    .scene-node > strong { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; }
+    .cue-node { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-top: 6px; padding: 8px; border: 1px solid #343e30; border-radius: 7px; background: #20271e; }
+    .cue-node input, .check-row input { accent-color: var(--sage); }
+    .cue-number { color: var(--sage); font: 10px ui-monospace, Consolas, monospace; }
+    .cue-node b { display: block; font-size: 9px; }
+    .cue-node small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
+    .evidence { border-radius: 12px; padding: 3px 6px; background: #303a2b; color: #d6e0c8; font-size: 8px; white-space: nowrap; }
+    .evidence.inferred { background: #403522; color: var(--amber); }
+
+    .strategy-list { display: grid; gap: 7px; }
+    .strategy { display: flex; align-items: flex-start; gap: 9px; padding: 10px; border: 1px solid #384334; border-radius: 8px; background: #1b221a; cursor: pointer; }
+    .strategy:has(input:checked) { border-color: #788769; background: #252e22; }
+    .strategy input { margin-top: 3px; accent-color: var(--sage); }
+    .strategy b { display: block; font-size: 10px; }
+    .strategy small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .strategy-status { min-height: 31px; margin: 8px 0 0; color: #c7d3b6; font-size: 9px; }
+
+    .asset-list { display: grid; gap: 7px; }
+    .asset { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 9px; border: 1px solid #3a4434; border-radius: 8px; background: #1b221a; }
+    .asset b { display: block; font-size: 9px; }
+    .asset small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
+    .asset-state { color: #cad7b7; font-size: 8px; }
+    .review-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 10px; border: 1px solid #3a4434; border-radius: 8px; background: #1b221a; }
+    .review-row input { margin-top: 2px; accent-color: var(--sage); }
+    .review-row b { display: block; font-size: 9px; }
+    .review-row small { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+    .review-state { color: #cbd7bb; font-size: 8px; text-align: right; }
+    .review-state[data-reviewed="false"] { color: var(--amber); }
+    .inline-status { min-height: 18px; margin: 8px 0 0; color: #cbd7bb; font-size: 9px; }
+    .entry-panel[hidden] { display: none !important; }
+    .workspace[data-entry="cue"] .cue-node[data-cue-id="cue-2"] { border-color: #9baa84; background: #2a3425; }
+    .workspace[data-entry="cue"] .cue-node[data-cue-id="cue-2"] .cue-number { font-weight: 800; }
+    .phase.active { animation: reveal .16s ease-out; }
+    @keyframes reveal { from { opacity: .7; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+    .asset button:disabled, button:disabled { cursor: not-allowed; opacity: .48; }
+
+    .final-card { padding: 18px; border: 1px solid #59664a; border-radius: 10px; background: linear-gradient(130deg, #283225, #1b2319); }
+    .final-card h3 { margin: 4px 0; font-size: 20px; }
+    .final-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+    .final-stat { padding: 9px; border: 1px solid #414c3a; border-radius: 7px; background: #1b221a; }
+    .final-stat b { display: block; font-size: 17px; }
+    .final-stat span { color: var(--muted); font-size: 8px; }
+    .completion { display: none; margin-top: 12px; padding: 12px; border: 1px solid #738162; border-radius: 8px; background: #253021; color: #e4edda; font-size: 10px; }
+    .completion.visible { display: block; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 12px; }
+    .btn { border: 1px solid #4b5643; border-radius: 7px; padding: 8px 10px; background: #242d21; color: #e6e9df; font-size: 9px; font-weight: 700; }
+    .btn.primary { border-color: var(--sage); background: var(--sage); color: #192016; }
+    .btn.subtle { background: transparent; }
+    .btn[disabled] { cursor: not-allowed; opacity: .5; }
+    .step-controls { display: flex; justify-content: space-between; gap: 8px; margin-top: 15px; padding-top: 11px; border-top: 1px solid var(--line); }
+
+    .context { position: sticky; top: 78px; padding: 14px; }
+    .context h2 { margin: 2px 0 10px; font-size: 10px; letter-spacing: .12em; }
+    .task { margin-bottom: 10px; padding: 9px; border: 1px solid #536147; border-radius: 8px; background: #222a20; }
+    .task small { color: var(--sage); font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .task b { display: block; margin: 4px 0; font-size: 10px; }
+    .task p { margin: 0; color: #bdc4b5; font-size: 9px; }
+    .fact { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid #2e352b; font-size: 9px; }
+    .fact span { color: var(--muted); }
+    .fact b { text-align: right; font-size: 8px; }
+    .guard { margin-top: 10px; padding: 9px; border-radius: 7px; background: #20271e; color: #b7c2ac; font-size: 9px; }
+    .guard strong { color: #e0e8d4; }
+    .next-step { width: 100%; margin-top: 10px; }
+    .footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 13px; color: #899282; font-size: 8px; }
+
+    @media (max-width: 1050px) {
+      .grid { grid-template-columns: 205px minmax(340px, 1fr); }
+      .context { position: static; grid-column: 1 / -1; }
+    }
+    @media (max-width: 700px) {
+      .topbar { gap: 10px; padding: 0 12px; }
+      .show-id { padding-left: 9px; font-size: 10px; }
+      .topnav span:not(.active) { display: none; }
+      main { padding: 17px 10px 28px; }
+      .hero { flex-direction: column; }
+      h1 { font-size: 23px; }
+      .grid { display: flex; flex-direction: column; }
+      .entry, .workspace, .context { width: 100%; }
+      .entry { display: grid; grid-template-columns: 1fr 1fr; }
+      .entry h2, .entry-hint { grid-column: 1 / -1; }
+      .stepper { padding: 6px; }
+      .step-button { justify-content: center; padding: 5px 2px; }
+      .step-name { display: none; }
+      .script-layout { grid-template-columns: 88px minmax(0, 1fr); gap: 8px; }
+      .cue-node { grid-template-columns: 30px minmax(0, 1fr); }
+      .cue-node .evidence { grid-column: 2; justify-self: start; }
+      .final-stats { grid-template-columns: repeat(2, 1fr); }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">RUN<span>Q</span></div>
+    <div class="show-id"><small>SHOW ACTIVO · DEMO LOCAL</small>The Last Cue</div>
+    <nav class="topnav" aria-label="Áreas del show">
+      <span>Proyecto</span><span>Studio</span><span>Guion</span><span>Sonido</span><span class="active">RUNQ Launch</span>
+    </nav>
+    <span class="mode">DISEÑO · SIN SALIDA</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">RUNQ LAUNCH · FÁBRICA VISUAL DE SHOW</div>
+        <h1>Del guion a un show que puedes revisar.</h1>
+        <p>Un recorrido visual, no un chat. Empieza por donde estés y conserva el mismo show, sus fuentes y sus decisiones.</p>
+      </div>
+      <div class="concept-tag">CONCEPTO · no ejecuta IA, audio ni cambios</div>
+    </section>
+
+    <nav class="stepper" aria-label="Fases del recorrido">
+      <button class="step-button" type="button" data-step="understand" aria-current="step"><span class="step-number">1</span><span class="step-name">Entender</span></button>
+      <button class="step-button" type="button" data-step="plan"><span class="step-number">2</span><span class="step-name">Plan de cues</span></button>
+      <button class="step-button" type="button" data-step="sound"><span class="step-number">3</span><span class="step-name">Estrategia de audio</span></button>
+      <button class="step-button" type="button" data-step="review"><span class="step-number">4</span><span class="step-name">Revisar</span></button>
+      <button class="step-button" type="button" data-step="handoff"><span class="step-number">5</span><span class="step-name">Studio</span></button>
+    </nav>
+
+    <div class="grid">
+      <aside class="card entry" aria-label="Puntos de entrada">
+        <h2>Empieza por donde quieras</h2>
+        <button class="entry-option" type="button" data-entry="script" aria-pressed="true"><span class="entry-icon">▤</span><span><b>Guion</b><small>Entender y revisar evidencia</small></span></button>
+        <button class="entry-option" type="button" data-entry="cue" aria-pressed="false"><span class="entry-icon">♪</span><span><b>Cue existente</b><small>Completar o modificar</small></span></button>
+        <button class="entry-option" type="button" data-entry="audio" aria-pressed="false"><span class="entry-icon">♫</span><span><b>Archivo de audio</b><small>Asignar, guardar o crear cue</small></span></button>
+        <button class="entry-option" type="button" data-entry="request" aria-pressed="false"><span class="entry-icon">✳</span><span><b>Petición de cambios</b><small>Definir alcance y revisar diff</small></span></button>
+        <p class="entry-hint">Puedes saltar de fase y volver: no hace falta seguir un camino único.</p>
+      </aside>
+
+      <section class="card workspace" aria-live="polite">
+        <section class="phase active" data-phase="understand" aria-labelledby="understandTitle">
+          <div class="phase-head"><div><div class="eyebrow">01 · ENTENDER EL GUIÓN</div><h2 id="understandTitle">Primero: el texto original y lo que sí sabemos</h2><p>La estructura orienta el trabajo; una interpretación nunca se presenta como cita.</p></div><span class="phase-pill">Fuente preservada</span></div>
+          <div class="callout"><strong>Resumen estructural del fixture local; no es análisis semántico de IA.</strong> Estas cifras salen del guion y los objetos de demo incluidos en RUNQ.</div>
+          <div class="metrics" aria-label="Resumen local del demo">
+            <div class="metric"><b id="scriptLineMetric">11</b><span>LÍNEAS ORIGINALES</span></div>
+            <div class="metric"><b id="sceneMetric">1</b><span>ENCABEZADO DE ESCENA</span></div>
+            <div class="metric"><b id="cueMetric">3</b><span>CUES DEL FIXTURE</span></div>
+            <div class="metric"><b id="audioMetric">3</b><span>WAV REFERENCIADOS</span></div>
+          </div>
+          <div class="script-layout">
+            <nav class="scene-rail" aria-label="Escenas detectadas"><div class="subhead">Guion</div><button class="scene-title" type="button">Escena 1<small>líneas L1–L10</small></button></nav>
+            <div class="script-lines">
+              <div class="script-line"><span class="line-ref">L1</span><span class="line-text">SCENE 1 — THE LAST CUE</span></div>
+              <div class="script-line marked"><span class="line-ref">L2</span><span class="line-text">(The theatre is dark. A low atmospheric hum rises.)<small class="line-note">Acotación del fixture demo · cue manual asociado</small></span></div>
+              <div class="script-line"><span class="line-ref">L3</span><span class="line-text">NORA: We have ninety seconds to choose the winning project.</span></div>
+              <div class="script-line"><span class="line-ref">L4</span><span class="line-text">ALEX: And we are still debating.</span></div>
+              <div class="script-line marked"><span class="line-ref">L5</span><span class="line-text">(One bell rings. The clock is running out.)<small class="line-note">Acotación del fixture demo · cue manual asociado</small></span></div>
+              <div class="script-line"><span class="line-ref">L6</span><span class="line-text">NORA: What if the tool could read this script and prepare our cues?</span></div>
+              <div class="script-line"><span class="line-ref">L7</span><span class="line-text">ALEX: Then I could focus on the performance, not on dragging files.</span></div>
+              <div class="script-line marked"><span class="line-ref">L8</span><span class="line-text">(A bright musical transition reveals the final decision.)<small class="line-note">Acotación del fixture demo · cue manual asociado</small></span></div>
+              <div class="script-line"><span class="line-ref">L9</span><span class="line-text">NORA: The cue is prepared. The human operator chooses GO.</span></div>
+              <div class="script-line"><span class="line-ref">L10</span><span class="line-text">ALEX: Good. An algorithm must never fire the PA on its own.</span></div>
+              <div class="script-line"><span class="line-ref">L11</span><span class="line-text">(Blackout.)</span></div>
+            </div>
+          </div>
+          <p class="quiet">Formato de importación actual: TXT. PDF/DOCX son ideas de producto, no importadores disponibles.</p>
+        </section>
+
+        <section class="phase" data-phase="plan" aria-labelledby="planTitle" hidden>
+          <div class="phase-head"><div><div class="eyebrow">02 · PLAN DE CUES</div><h2 id="planTitle">Decide qué entra en el plan del show</h2><p>Elige por escena, cue y tipo; las referencias permanecen ligadas al guion original.</p></div><span class="phase-pill notice">Cues del demo · manuales</span></div>
+          <div class="callout"><strong>Esta maqueta parte de tres cues reales del fixture.</strong> No inventa propuestas ni aplica cambios al proyecto. Desmarca lo que no quieras incluir en el plan.</div>
+          <div class="tree">
+            <div class="scene-node"><strong><span>▾ ESCENA 1 · THE LAST CUE</span><span class="quiet"><span id="sceneCueCount">3</span> cues en el plan</span></strong>
+              <label class="cue-node" data-cue-id="cue-1" data-category="ambience"><input type="checkbox" checked aria-label="Incluir cue 001 en el plan"><span class="cue-number">001</span><span><b>Quiet opening atmosphere</b><small>L2 · The theatre is dark…</small></span><span class="evidence">EXPLÍCITO · demo</span></label>
+              <label class="cue-node" data-cue-id="cue-2" data-category="fx"><input type="checkbox" checked aria-label="Incluir cue 002 en el plan"><span class="cue-number">002</span><span><b>One clock bell</b><small>L5 · One bell rings…</small></span><span class="evidence">EXPLÍCITO · demo</span></label>
+              <label class="cue-node" data-cue-id="cue-3" data-category="transition"><input type="checkbox" checked aria-label="Incluir cue 003 en el plan"><span class="cue-number">003</span><span><b>Triumphant musical transition</b><small>L8 · A bright musical transition…</small></span><span class="evidence">EXPLÍCITO · demo</span></label>
+            </div>
+          </div>
+          <div class="subhead">Tipos que entran en la próxima propuesta</div>
+          <div class="actions">
+            <label class="check-row"><input type="checkbox" checked data-category-filter="ambience"> Ambientes</label>
+            <label class="check-row"><input type="checkbox" checked data-category-filter="fx"> FX</label>
+            <label class="check-row"><input type="checkbox" checked data-category-filter="transition"> Transiciones</label>
+            <label class="check-row"><input type="checkbox" data-category-filter="music" disabled> Música · no hay cue en el fixture</label>
+          </div>
+          <p class="inline-status" id="planSelectionStatus" role="status" aria-live="polite">3 cues incluidos en el plan de esta maqueta.</p>
+          <div class="entry-panel" id="requestEntryPanel" hidden>
+            <div class="subhead">Petición · define el alcance</div>
+            <label class="quiet" for="requestScope">Ámbito de esta petición</label>
+            <select id="requestScope" class="btn" aria-label="Ámbito de esta petición"><option value="cue">Cue 002 · One clock bell</option><option value="scene">Escena 1 · The Last Cue</option><option value="show">Show completo · solo revisión</option></select>
+            <textarea id="requestText" aria-label="Describe los cambios que quieres preparar" placeholder="Ej.: suaviza el inicio del cue 002 y revisa posibles duplicados…"></textarea>
+            <div class="actions"><button id="saveRequestButton" class="btn" type="button">Guardar intención local para revisar</button></div>
+            <p id="requestStatus" class="inline-status" role="status" aria-live="polite">No se ha analizado ni aplicado ninguna petición.</p>
+          </div>
+          <p class="quiet">“Implícito” debería ser una hipótesis editable con evidencia y procedencia, nunca un hecho del guion ni una puntuación de confianza inventada.</p>
+        </section>
+
+        <section class="phase" data-phase="sound" aria-labelledby="soundTitle" hidden>
+          <div class="phase-head"><div><div class="eyebrow">03 · ESTRATEGIA DE AUDIO</div><h2 id="soundTitle">Tú decides cuánto diseño necesitas</h2><p>El plan de cues puede existir antes que el audio o sin audio generado.</p></div><span class="phase-pill">Sin solicitudes iniciadas</span></div>
+          <div class="strategy-list" role="radiogroup" aria-label="Estrategia de sonido">
+            <label class="strategy"><input type="radio" name="sound-strategy" value="structure"><span><b>Solo estructura de cues</b><small>Sin solicitudes de sonido; conserva lo que ya existe.</small></span></label>
+            <label class="strategy"><input type="radio" name="sound-strategy" value="library" checked><span><b>Usar solo biblioteca existente</b><small>Reutilizar los WAV ya asociados a estos cues.</small></span></label>
+            <label class="strategy"><input type="radio" name="sound-strategy" value="hybrid"><span><b>Biblioteca primero · generación para huecos</b><small>En este fixture los cues incluidos ya tienen WAV.</small></span></label>
+            <label class="strategy"><input type="radio" name="sound-strategy" value="generated"><span><b>Proponer variantes nuevas</b><small>Conceptualmente añade candidatos; nunca reemplaza los originales.</small></span></label>
+          </div>
+          <p id="strategyStatus" class="strategy-status" role="status" aria-live="polite">Selección actual: biblioteca existente. La maqueta no accede a proveedores ni archivos.</p>
+          <div class="subhead">Qué resolvería esta estrategia</div>
+          <div id="audioPlanList" class="asset-list" aria-live="polite"></div>
+          <p id="audioPlanSummary" class="inline-status" role="status" aria-live="polite"></p>
+          <div class="entry-panel" id="audioEntryPanel" hidden>
+            <div class="subhead">Audio seleccionado · biblioteca del demo</div>
+            <article class="asset"><div><b>02_clock_bell.wav · One clock bell</b><small>Ya vinculado al cue 002 · L5 · archivo original preservado</small></div><span class="asset-state">WAV local</span></article>
+            <div class="actions"><button class="btn" type="button" disabled>Usar en otro cue</button><button class="btn" type="button" disabled>Crear cue desde este audio</button><button class="btn subtle" type="button" disabled>Dejar en biblioteca</button></div>
+            <p class="quiet">Empezar desde audio no obliga a analizar el guion. Las acciones de crear/asignar aún no están conectadas en esta maqueta.</p>
+          </div>
+          <div class="callout caution"><strong>Antes de cualquier generación real:</strong> mostrar proveedor, precio/coste comprobable, límites y contexto que se enviará; reservar presupuesto antes de la llamada, permitir cancelar y conservar variantes. Si el coste no puede verificarse, no prometer una estimación.</div>
+          <p class="quiet">El brief se puede mejorar internamente; el usuario debe revisar la intención y el resultado. No ocultar incertidumbre, permisos ni límites de presupuesto.</p>
+        </section>
+
+        <section class="phase" data-phase="review" aria-labelledby="reviewTitle" hidden>
+          <div class="phase-head"><div><div class="eyebrow">04 · REVISAR Y DECIDIR</div><h2 id="reviewTitle">Confirma las fuentes del plan</h2><p>Elige qué fichas revisar; cada WAV permanece ligado a su cue y línea de origen.</p></div><span class="phase-pill notice">Audio demo · fixture manual</span></div>
+          <div id="requestReview" class="callout" hidden></div>
+          <div class="callout"><strong>La revisión aquí es de ficha y procedencia.</strong> El prototipo no decodifica/escucha estos WAV ni afirma una calidad sonora medida.</div>
+          <div id="reviewList" class="asset-list"></div>
+          <div class="actions"><button id="reviewAllButton" class="btn subtle" type="button">Seleccionar todos</button><button id="markReviewedButton" class="btn primary" type="button">Marcar seleccionados revisados</button></div>
+          <p id="reviewStatus" class="inline-status" role="status" aria-live="polite">0 fichas revisadas en esta sesión de la maqueta.</p>
+          <div class="callout caution"><strong>Variantes y aprobación de audio:</strong> en una integración real cada candidato conservaría su propio ID y permitiría escuchar, comparar, sustituir o descartar. No hay variantes generadas en este demo.</div>
+          <div class="actions"><button class="btn" type="button" disabled>Preescuchar WAV · requiere carga segura</button><button class="btn subtle" type="button" disabled>Generar variante · requiere guard de coste</button></div>
+        </section>
+
+        <section class="phase" data-phase="handoff" aria-labelledby="handoffTitle" hidden>
+          <div class="phase-head"><div><div class="eyebrow">05 · ENTREGA A STUDIO</div><h2 id="handoffTitle">Resultado editable; el operador sigue al mando</h2><p>El asistente termina cuando el plan pasa a las herramientas normales del show.</p></div><span class="phase-pill">Siguiente · Studio</span></div>
+          <div class="final-card"><div class="eyebrow">CIERRE DEL RECORRIDO · ESTADO DE ESTA MAQUETA</div><h3 id="finalTitle">Resumen del plan de diseño</h3><p id="finalDescription" class="quiet">El resumen refleja tus selecciones y revisiones locales; no modifica el show.</p>
+            <div class="final-stats"><div class="final-stat"><b id="finalLineCount">11</b><span>LÍNEAS FUENTE</span></div><div class="final-stat"><b id="finalCueCount">3</b><span>CUES EN EL PLAN</span></div><div class="final-stat"><b id="finalAudioCount">3</b><span>FUENTES VINCULADAS</span></div><div class="final-stat"><b id="finalReviewedCount">0/3</b><span>FICHAS REVISADAS</span></div></div>
+            <div class="callout"><strong>Handoff conceptual:</strong> el resultado sería un plan editable en Studio. “Listo para show” depende de ejecutar el preflight real y la aprobación del operador.</div>
+          </div>
+          <div class="completion" id="completionMessage" role="status" aria-live="polite"><strong>Recorrido finalizado.</strong> Tu plan de diseño queda resumido en esta maqueta local; no se ha aplicado al show ni preparado GO/NEXT.</div>
+          <div class="actions"><button id="finishButton" class="btn primary" type="button">Finalizar recorrido local</button><button class="btn" type="button" disabled>Abrir en Studio · integración pendiente</button><button class="btn subtle" type="button" disabled>Guardar paquete · integración pendiente</button></div>
+          <p class="quiet">Este cierre es finalización del flujo de diseño, no aprobación del show ni certificación operativa.</p>
+        </section>
+
+        <div class="step-controls">
+          <button id="backButton" class="btn subtle" type="button">← Atrás</button>
+          <span id="phaseStatus" class="quiet" role="status" aria-live="polite">Paso 1 de 5 · Entender</span>
+          <button id="continueButton" class="btn primary" type="button">Siguiente · Plan de cues →</button>
+        </div>
+      </section>
+
+      <aside class="card context" aria-label="Contexto fijado del show">
+        <h2>CONTEXTO DEL SHOW</h2>
+        <div class="task"><small id="taskOrigin">Entrada · guion</small><b id="taskTitle">The Last Cue</b><p id="taskDescription">Conserva las líneas L# originales mientras recorres las fases.</p></div>
+        <div class="fact"><span>Fuente</span><b>Fixture TXT local</b></div>
+        <div class="fact"><span>Texto fuente</span><b>Sin modificar</b></div>
+        <div class="fact"><span>Destino fijado</span><b id="pinnedTarget">Show · diseño</b></div>
+        <div class="fact"><span>Audio sin resolver</span><b>0 en fixture demo</b></div>
+        <div class="fact"><span>Transporte</span><b>GO / NEXT fuera del wizard</b></div>
+        <div class="guard"><strong>Sin acciones ocultas.</strong><br>Pasar de fase no hace GO, no mueve NEXT y no consulta proveedores.</div>
+        <button id="suggestedButton" class="btn primary next-step" type="button">Siguiente paso sugerido →</button>
+      </aside>
+    </div>
+    <footer class="footer"><span>Concepto de producto para validar con operadores · basado en el demo sintético actual</span><span>Entender → Planificar → Audio opcional → Revisar → Studio</span></footer>
+  </main>
+
+  <script>
+    const steps = [...document.querySelectorAll('[data-step]')];
+    const phases = [...document.querySelectorAll('[data-phase]')];
+    const entries = [...document.querySelectorAll('[data-entry]')];
+    const stepNames = ['Entender', 'Plan de cues', 'Estrategia de audio', 'Revisar', 'Studio'];
+    const routeDetails = {
+      script: ['Entrada · guion', 'The Last Cue', 'Conserva las líneas L# originales mientras recorres las fases.', 'Show · diseño', 0],
+      cue: ['Entrada · cue fijado', 'Cue 002 · One clock bell', 'Destino C2 · L5 fijado aunque cambie la selección.', 'Cue 002 · L5', 1],
+      audio: ['Entrada · audio local', '02_clock_bell.wav', 'Archivo original ya asociado a Cue 002 · L5. La maqueta conserva el destino actual.', 'Audio · Cue 002 · L5', 2],
+      request: ['Entrada · petición', 'Cambios con revisión', 'Define el alcance antes de proponer cambios al show.', 'Show · alcance por definir', 1],
+    };
+    let activeStep = 0;
+
+    function showStep(index) {
+      activeStep = Math.max(0, Math.min(steps.length - 1, index));
+      steps.forEach((button, position) => {
+        if (position === activeStep) button.setAttribute('aria-current', 'step');
+        else button.removeAttribute('aria-current');
+      });
+      phases.forEach((panel, position) => {
+        const active = position === activeStep;
+        panel.classList.toggle('active', active);
+        panel.hidden = !active;
+      });
+      document.getElementById('backButton').disabled = activeStep === 0;
+      document.getElementById('continueButton').textContent = activeStep === steps.length - 1
+        ? 'Recorrido finalizado localmente'
+        : 'Siguiente · ' + stepNames[activeStep + 1] + ' →';
+      document.getElementById('continueButton').disabled = activeStep === steps.length - 1;
+      document.getElementById('suggestedButton').textContent = activeStep === steps.length - 1
+        ? 'Volver al plan de cues'
+        : 'Siguiente paso sugerido →';
+      document.getElementById('phaseStatus').textContent =
+        'Paso ' + (activeStep + 1) + ' de ' + steps.length + ' · ' + stepNames[activeStep];
+      document.getElementById('audioEntryPanel').hidden =
+        document.querySelector('[data-entry="audio"]').getAttribute('aria-pressed') !== 'true';
+      document.getElementById('requestEntryPanel').hidden =
+        document.querySelector('[data-entry="request"]').getAttribute('aria-pressed') !== 'true';
+    }
+
+    steps.forEach((button, index) => button.addEventListener('click', () => showStep(index)));
+    document.getElementById('backButton').addEventListener('click', () => showStep(activeStep - 1));
+    document.getElementById('continueButton').addEventListener('click', () => showStep(activeStep + 1));
+    document.getElementById('suggestedButton').addEventListener('click', () => {
+      showStep(activeStep === steps.length - 1 ? 1 : activeStep + 1);
+    });
+    entries.forEach(button => button.addEventListener('click', () => {
+      invalidateCompletion();
+      entries.forEach(entry => entry.setAttribute('aria-pressed', String(entry === button)));
+      const [origin, title, description, target, step] = routeDetails[button.dataset.entry];
+      document.getElementById('taskOrigin').textContent = origin;
+      document.getElementById('taskTitle').textContent = title;
+      document.getElementById('taskDescription').textContent = description;
+      document.getElementById('pinnedTarget').textContent = target;
+      document.querySelector('.workspace').dataset.entry = button.dataset.entry;
+      showStep(step);
+    }));
+    document.querySelectorAll('[name="sound-strategy"]').forEach(radio =>
+      radio.addEventListener('change', () => {
+        const descriptions = {
+          structure: 'Selección actual: solo estructura de cues. No se solicitan ni generan sonidos.',
+          library: 'Selección actual: biblioteca existente. Esta maqueta no accede a proveedores ni a archivos.',
+          hybrid: 'Selección conceptual: reutilizar primero; un coste comprobable y consentimiento precederían cualquier generación.',
+          generated: 'Selección conceptual: no se ejecuta. Cada generación requeriría su propio control, presupuesto y revisión.',
+        };
+        document.getElementById('strategyStatus').textContent = descriptions[radio.value];
+        invalidateCompletion();
+        renderSummary();
+      })
+    );
+    const cueData = [
+      {id: 'cue-1', number: '001', label: 'Quiet opening atmosphere', source: 'L2', asset: '01_atmosphere.wav', category: 'ambience'},
+      {id: 'cue-2', number: '002', label: 'One clock bell', source: 'L5', asset: '02_clock_bell.wav', category: 'fx'},
+      {id: 'cue-3', number: '003', label: 'Triumphant musical transition', source: 'L8', asset: '03_finale.wav', category: 'transition'},
+    ];
+    const reviewed = new Set();
+    let requestDraft = '';
+    let completed = false;
+
+    function includedCues() {
+      const activeCategories = new Set([...document.querySelectorAll('[data-category-filter]:checked')]
+        .map(input => input.dataset.categoryFilter));
+      return cueData.filter(cue => {
+        const row = document.querySelector(`[data-cue-id="${cue.id}"]`);
+        return row?.querySelector('input[type="checkbox"]').checked && activeCategories.has(cue.category);
+      });
+    }
+
+    function invalidateCompletion() {
+      if (!completed) return;
+      completed = false;
+      document.getElementById('completionMessage').classList.remove('visible');
+      document.getElementById('finishButton').textContent = 'Finalizar recorrido local';
+      document.getElementById('finalTitle').textContent = 'Resumen del plan de diseño';
+      document.getElementById('finalDescription').textContent =
+        'El resumen refleja tus selecciones y revisiones locales; no modifica el show.';
+    }
+
+    function renderSummary() {
+      const cues = includedCues();
+      const lineCount = document.querySelectorAll('.script-line').length;
+      const sceneCount = document.querySelectorAll('.scene-title').length;
+      document.getElementById('scriptLineMetric').textContent = String(lineCount);
+      document.getElementById('sceneMetric').textContent = String(sceneCount);
+      document.getElementById('cueMetric').textContent = String(cueData.length);
+      document.getElementById('audioMetric').textContent = String(cueData.length);
+      document.getElementById('sceneCueCount').textContent = String(cues.length);
+      document.getElementById('planSelectionStatus').textContent =
+        cues.length + (cues.length === 1 ? ' cue incluido' : ' cues incluidos') +
+        ' en este plan de maqueta. Los demás permanecen en el fixture.';
+      const linked = cues.filter(cue => cue.asset).length;
+      document.getElementById('finalLineCount').textContent = String(lineCount);
+      document.getElementById('finalCueCount').textContent = String(cues.length);
+      document.getElementById('finalAudioCount').textContent = String(linked);
+      const reviewedSelected = cues.filter(cue => reviewed.has(cue.id)).length;
+      document.getElementById('finalReviewedCount').textContent = reviewedSelected + '/' + cues.length;
+      document.getElementById('audioPlanSummary').textContent =
+        `${cues.length} cues incluidos · ${linked} WAV ya vinculados · no se envían solicitudes`;
+      renderAudioPlan(cues);
+      renderReviewList(cues);
+      invalidateCompletion();
+    }
+
+    function renderAudioPlan(cues) {
+      const strategy = document.querySelector('[name="sound-strategy"]:checked')?.value ?? 'library';
+      const list = document.getElementById('audioPlanList');
+      list.replaceChildren();
+      for (const cue of cues) {
+        const row = document.createElement('article');
+        row.className = 'asset';
+        const copy = document.createElement('div');
+        const name = document.createElement('b');
+        name.textContent = `${cue.number} · ${cue.label}`;
+        const detail = document.createElement('small');
+        const nextAction = strategy === 'structure' ? 'solo estructura; WAV existente sin cambios'
+          : strategy === 'generated' ? 'posible variante nueva · no solicitada'
+            : cue.asset ? `${cue.asset} ya vinculado · ${cue.source}`
+              : 'hueco de biblioteca · ninguna fuente disponible';
+        detail.textContent = nextAction;
+        copy.append(name, detail);
+        const status = document.createElement('span');
+        status.className = 'asset-state';
+        status.textContent = strategy === 'generated' ? 'variante conceptual'
+          : cue.asset ? 'local · fixture' : 'sin resolver';
+        row.append(copy, status);
+        list.append(row);
+      }
+      if (!cues.length) {
+        const empty = document.createElement('p');
+        empty.className = 'quiet';
+        empty.textContent = 'No hay cues seleccionados. Puedes volver al plan y elegir alguno.';
+        list.append(empty);
+      }
+      document.getElementById('audioPlanSummary').textContent =
+        strategy === 'structure'
+          ? `${cues.length} cues en el plan · audio preexistente intacto · 0 solicitudes`
+          : strategy === 'generated'
+            ? `${cues.length} posibles variantes adicionales · 0 solicitudes · coste no estimado`
+            : `${cues.length} cues en el plan · 0 WAV por generar en este fixture · 0 solicitudes`;
+    }
+
+    function renderReviewList(cues) {
+      const list = document.getElementById('reviewList');
+      list.replaceChildren();
+      for (const cue of cues) {
+        const row = document.createElement('label');
+        row.className = 'review-row';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.reviewCue = cue.id;
+        checkbox.setAttribute('aria-label', `Seleccionar ficha ${cue.number} para revisar`);
+        const description = document.createElement('span');
+        const title = document.createElement('b');
+        title.textContent = `${cue.number} · ${cue.label}`;
+        const source = document.createElement('small');
+        source.textContent = `${cue.asset} · ${cue.source} · audio sintético del fixture, asociado manualmente`;
+        description.append(title, source);
+        const state = document.createElement('span');
+        state.className = 'review-state';
+        state.dataset.reviewState = cue.id;
+        state.dataset.reviewed = String(reviewed.has(cue.id));
+        state.textContent = reviewed.has(cue.id) ? 'Ficha revisada aquí' : 'Pendiente de ficha';
+        row.append(checkbox, description, state);
+        list.append(row);
+      }
+      if (!cues.length) {
+        const empty = document.createElement('p');
+        empty.className = 'quiet';
+        empty.textContent = 'El plan no incluye cues para revisar. Vuelve a “Plan de cues” para ajustar la selección.';
+        list.append(empty);
+      }
+        document.getElementById('reviewAllButton').textContent = 'Seleccionar todos';
+        const reviewedSelected = cues.filter(cue => reviewed.has(cue.id)).length;
+      document.getElementById('reviewStatus').textContent =
+        `${reviewedSelected} de ${cues.length} fichas del plan revisadas en esta sesión de la maqueta.`;
+      document.getElementById('markReviewedButton').disabled = cues.length === 0;
+    }
+
+    document.querySelectorAll('[data-category-filter], [data-cue-id] input[type="checkbox"]')
+      .forEach(input => input.addEventListener('change', () => {
+        invalidateCompletion();
+        renderSummary();
+      }));
+    document.querySelector('[data-cue-id="cue-2"]').querySelector('input').addEventListener('change', event => {
+      document.querySelector('.workspace').dataset.cueSelected = String(event.target.checked);
+    });
+
+    document.getElementById('reviewAllButton').addEventListener('click', () => {
+      const checkboxes = [...document.querySelectorAll('[data-review-cue]')];
+      const shouldCheck = checkboxes.some(input => !input.checked);
+      checkboxes.forEach(input => { input.checked = shouldCheck; });
+      document.getElementById('reviewAllButton').textContent =
+        shouldCheck ? 'Deseleccionar todos' : 'Seleccionar todos';
+    });
+    document.getElementById('markReviewedButton').addEventListener('click', () => {
+      const selected = [...document.querySelectorAll('[data-review-cue]:checked')].map(input => input.dataset.reviewCue);
+      if (!selected.length) {
+        document.getElementById('reviewStatus').textContent = 'Selecciona al menos una ficha; no se ha cambiado ningún estado.';
+        return;
+      }
+      selected.forEach(id => reviewed.add(id));
+      document.querySelectorAll('[data-review-state]').forEach(state => {
+        const isReviewed = reviewed.has(state.dataset.reviewState);
+        state.dataset.reviewed = String(isReviewed);
+        state.textContent = isReviewed ? 'Ficha revisada aquí' : 'Pendiente de ficha';
+      });
+      document.getElementById('reviewStatus').textContent =
+        `${selected.length} ficha(s) marcadas como revisadas en esta maqueta.`;
+      renderSummary();
+    });
+
+    document.getElementById('saveRequestButton').addEventListener('click', () => {
+      const text = document.getElementById('requestText').value.trim();
+      const status = document.getElementById('requestStatus');
+      if (text.length < 3) {
+        status.textContent = 'Escribe una petición concreta para guardarla como borrador local.';
+        return;
+      }
+      requestDraft = text;
+      const scope = document.getElementById('requestScope');
+      const scopeLabel = scope.options[scope.selectedIndex].text;
+      const review = document.getElementById('requestReview');
+      review.hidden = false;
+      review.replaceChildren();
+      const heading = document.createElement('strong');
+      heading.textContent = 'Borrador del operador · ' + scopeLabel;
+      const body = document.createElement('p');
+      body.textContent = requestDraft;
+      const note = document.createElement('span');
+      note.textContent = 'No analizado por IA ni aplicado al show.';
+      review.append(heading, body, note);
+      status.textContent = 'Intención guardada solo en memoria de esta pestaña; aún no analizada ni aplicada.';
+      invalidateCompletion();
+    });
+
+    document.getElementById('finishButton').addEventListener('click', () => {
+      completed = true;
+      document.getElementById('completionMessage').classList.add('visible');
+      document.getElementById('finishButton').textContent = 'Recorrido finalizado · revisar otra vez';
+      document.getElementById('finalTitle').textContent = 'Diseño revisado para pasar a Studio';
+      document.getElementById('finalDescription').textContent =
+        'Recorrido terminado en esta maqueta local. Las decisiones permanecen como una vista previa, no como cambios aplicados.';
+    });
+
+    showStep(0);
+    renderSummary();
+  </script>
+</body>
+</html>

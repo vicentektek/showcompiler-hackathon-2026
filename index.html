@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>RUNQ · Studio / Rehearsal / Stage</title>
+  <link rel="stylesheet" href="/src/ui/style.css">
+  <link rel="stylesheet" href="/src/ui/runq-theme.css">
+  <link rel="stylesheet" href="/src/ui/runq-workspaces-v2.css">
+  <link rel="stylesheet" href="/src/ui/runq-stagecraft-v4.css">
+  <link rel="stylesheet" href="/src/ui/runq-stagecraft-rebuild.css">
+  <link rel="stylesheet" href="/src/ui/operator-keymapping.css">
+  <link rel="stylesheet" href="/src/ui/cue-studio-integration.css">
+  <link rel="stylesheet" href="/src/ui/operator-workbench.css">
+  <link rel="stylesheet" href="/src/ui/audio-library-batch.css">
+  <link rel="stylesheet" href="/src/sfx/lab.css">
+  <link rel="stylesheet" href="/src/ui/voice-follow.css">
+  <link rel="stylesheet" href="/src/ui/cue-conversation.css">
+  <link rel="stylesheet" href="/src/ui/runq-agent.css">
+  <link rel="stylesheet" href="/src/ui/runq-workbench-v7.css">
+  <link rel="stylesheet" href="/src/ui/runq-studio-stage-v8.css">
+  <link rel="stylesheet" href="/src/ui/runq-dark-workstation-v9.css">
+  <link rel="stylesheet" href="/src/ui/runq-unified-sound-v10.css">
+  <link rel="stylesheet" href="/src/ui/runq-library-transport-v11.css">
+  <link rel="stylesheet" href="/src/ui/runq-sound-library-v12.css">
+  <link rel="stylesheet" href="/src/ui/runq-visual-freeze-v15.css">
+  <link rel="stylesheet" href="/src/ui/runq-interface.css">
+  <link rel="stylesheet" href="/src/ui/runq-show-builder.css">
+  <link rel="stylesheet" href="/src/ui/runq-desktop.css">
+  <link rel="stylesheet" href="/src/ui/runq-soundlab.css">
+  <link rel="stylesheet" href="/src/ui/runq-brand.css">
+  <link rel="stylesheet" href="/src/ui/setup-ui.css">
+  <script type="module" src="/src/ui/voice-follow-ui.mjs"></script>
+  <script type="module" src="/src/ui/voice-microphone-test.mjs"></script>
+  <script type="module" src="/src/ui/setup-ui.mjs"></script>
+  <script type="module" src="/src/ui/voice-live-ui.mjs"></script>
+  <script type="module" src="/src/ui/rehearsal-auto-ui.mjs"></script>
+  <script type="module" src="/src/ui/cue-conversation-ui.mjs"></script>
+  <script type="module" src="/src/ui/runq-agent-ui.mjs"></script>
+  <script src="/src/ui/app.mjs" type="module"></script>
+  <script src="/src/ui/runq-menu.mjs" type="module"></script>
+  <script src="/src/ui/runq-workspaces-v2.mjs" type="module"></script>
+  <script src="/src/ui/runq-stagecraft-rebuild.mjs" type="module"></script>
+  <script src="/src/ui/operator-keymapping.mjs" type="module"></script>
+  <script src="/src/ui/runq-workbench-v7.mjs" type="module"></script>
+  <script src="/src/ui/runq-studio-stage-v8.mjs" type="module"></script>
+  <script src="/src/ui/runq-cue-toolbar-v9.mjs" type="module"></script>
+  <script src="/src/ui/runq-unified-sound-v10.mjs" type="module"></script>
+  <script src="/src/ui/runq-library-transport-v11.mjs" type="module"></script>
+  <script src="/src/ui/runq-sound-library-v12.mjs" type="module"></script>
+  <script src="/src/ui/runq-workstation-v14.mjs" type="module"></script>
+  <script src="/src/ui/runq-interface.mjs" type="module"></script>
+  <script src="/src/ui/runq-context-inspector.mjs" type="module"></script>
+  <script src="/src/ui/runq-studio-shortcuts.mjs" type="module"></script>
+  <script src="/src/ui/runq-panels.mjs" type="module"></script>
+  <script src="/src/ui/runq-soundlab-ui.mjs" type="module"></script>
+  <script src="/src/ui/runq-a11y.mjs" type="module"></script>
+</head>
+<body class="rq-prompt-only">
+  <a class="rq-skip-link" href="#rqMain" data-i18n="a11y.skip">Skip to content</a>
+  <div class="shell" data-active-workspace="home">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-q" src="/assets/runq-q.png" alt="" width="26" height="19">
+        <div><strong>RUNQ</strong><span>FROM SCRIPT TO STAGE</span></div>
+      </div>
+      <div class="project-identity" aria-live="polite">
+        <span data-i18n="workspace.currentShow">ACTIVE SHOW</span>
+        <strong id="activeShowTitle">New show</strong>
+        <small id="saveState" data-i18n="workspace.saved">Saved</small>
+      </div>
+      <div class="top-actions">
+        <label class="sr-only" for="uiLocaleSelect" data-i18n="top.languageAria">Interface language</label>
+        <select id="uiLocaleSelect" class="locale-select" data-i18n-aria="top.languageAria" aria-label="Interface language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+        <span class="pill" data-i18n="top.badge">OPTIONAL META AI · REAL LOCAL AUDIO</span>
+        <button id="stopAllBtn" class="btn danger" type="button" data-i18n="top.panic" data-i18n-aria="top.panicAria" aria-label="Stop all audio immediately">STOP ALL</button>
+        <button id="newShowBtn" class="btn subtle" type="button" data-i18n="top.new">New</button>
+        <button id="openBundleBtn" class="btn subtle" type="button" data-i18n="bundle.open">Open show ZIP</button>
+        <button id="openProjectBtn" class="btn subtle" type="button" data-i18n="top.open">Open JSON</button>
+        <button id="saveProjectBtn" class="btn primary" type="button" data-i18n="top.save">Save JSON</button>
+        <button id="saveBundleBtn" class="btn primary" type="button" data-i18n="bundle.save">Save complete ZIP</button>
+      </div>
+    </header>
+
+    <nav id="workspaceNav" class="workspace-nav" aria-label="Workspaces">
+      <button type="button" class="workspace-tab" data-workspace-nav="home" aria-pressed="true" data-i18n="workspace.home">Home</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="script" aria-pressed="false" data-i18n="workspace.script">Script</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="ai" aria-pressed="false" data-i18n="workspace.ai">AI &amp; Review</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="cues" aria-pressed="false" data-i18n="workspace.cues">Cue Editor</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="audio" aria-pressed="false" data-i18n="workspace.audio">Audio</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="soundlab" aria-pressed="false" data-i18n="workspace.soundlab">Sound Lab</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="setup" aria-pressed="false" data-i18n="workspace.setup">Setup</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="preflight" aria-pressed="false" data-i18n="workspace.preflight">Preflight</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="rehearsal" aria-pressed="false" data-i18n="workspace.rehearsal">Rehearsal</button>
+      <button type="button" class="workspace-tab" data-workspace-nav="operation" aria-pressed="false" data-i18n="workspace.operation">Operation</button>
+      <div class="workspace-mode"><span data-i18n="workspace.mode">MODE</span><strong data-i18n="workspace.design">DESIGN · MANUAL</strong></div>
+    </nav>
+    <main id="rqMain" tabindex="-1">
+      <section class="intro workspace-intro">
+        <div>
+          <p class="eyebrow" data-i18n="intro.eyebrow">Build for Your World / Theatre and live events</p>
+          <h1 id="workspaceTitle" data-i18n="workspace.home">Home</h1>
+          <p id="workspaceDescription" data-i18n="workspace.description.home">Create a show, open a complete ZIP or start from an original audio demo.</p>
+        </div>
+        <div class="countbox">
+          <div><strong id="linesCount">0</strong><span data-i18n="stats.lines">Lines</span></div>
+          <div><strong id="proposalsCount">0</strong><span data-i18n="stats.proposals">Proposals</span></div>
+          <div><strong id="cuesCount">0</strong><span data-i18n="stats.cues">Cues</span></div>
+        </div>
+      </section>
+
+      <div id="statusMessage" class="status" role="status" aria-live="polite" data-i18n="status.initial">Load the example or import a TXT script to get started.</div>
+      <section id="rqvfPanel" class="rqvf-panel" data-workspaces="rehearsal" hidden aria-labelledby="rqvfPrimaryTitle">
+        <div class="rqvf-primary-head">
+          <div><strong id="rqvfPrimaryTitle">SEGUIMIENTO DE VOZ</strong>
+          <span id="rqvfPrimarySubtitle">Reconocimiento de voz y ejecución de cues en ensayo.</span></div>
+          <output id="rqvfPrimaryState">Sin escuchar</output>
+        </div>
+<section id="rqLivePanel" class="rqmic-panel rqlive-panel" aria-labelledby="rqLiveTitle">
+          <header class="rqlive-head">
+            <strong id="rqLiveTitle">LIVE VOICE FOLLOW · MUSE</strong>
+            <output id="rqLiveElapsed" aria-label="Audio duration">0 / 180 s</output>
+            <output id="rqLiveSpeaker"></output>
+          </header>
+          <div class="rqlive-main">
+            <label class="rqlive-session-mode" for="rqLiveSessionMode">
+              <span id="rqLiveSessionModeLabel">Cue follow policy</span>
+              <select id="rqLiveSessionMode">
+                <option value="assist">Assist · suggest NEXT</option>
+                <option value="auto">Rehearsal autopilot · automatic GO</option>
+              </select>
+            </label>
+            <button type="button" id="rqLiveAutoStart" class="btn accent rqlive-quick-start">▶ INICIAR AUTOPILOTO</button>
+            <button type="button" id="rqLivePanicBtn" class="btn danger small" hidden>STOP ALL</button>
+            <meter id="rqLiveMeter" min="0" max="100" value="0" aria-label="Live microphone level"></meter>
+            <output id="rqLiveArmStatus" role="status" aria-live="polite">AUTOPILOTO DESARMADO · SIN GO AUTOMÁTICO</output>
+          </div>
+          <div class="rqlive-results">
+            <div class="rqlive-partial"><small id="rqLivePartialTitle">RECONOCIENDO AHORA</small><output id="rqLivePartial" aria-live="off"></output></div>
+            <div class="rqlive-transcript"><small id="rqLiveFinalTitle">ÚLTIMAS FRASES RECONOCIDAS</small><div id="rqLiveTranscript" aria-live="polite"></div></div>
+            <div class="rqlive-cue-result"><small id="rqLiveCueTitle">CUE DETECTADO</small><output id="rqLiveCue" aria-live="polite"></output><div class="rqlive-cue-actions"><button type="button" class="btn accent small" id="rqLivePrepare" disabled>Set as NEXT</button><button type="button" class="btn subtle small" id="rqLiveDismiss" disabled>Ignore</button></div></div>
+          </div>
+          <details id="rqLiveSettings" class="rqlive-more">
+            <summary id="rqLiveSettingsSummary">Ajustes de sesión · línea de foco y privacidad</summary>
+            <div class="rqlive-settings">
+              <label for="rqLiveFocus"><span id="rqLiveFocusLabel">Script focus line</span>
+                <input id="rqLiveFocus" type="number" min="1" max="100000" step="1" value="1">
+              </label>
+            </div>
+            <div class="rqlive-auto-mode" role="group" aria-label="Modo de disparo">
+              <button type="button" id="rqLiveArm" class="btn danger-outline small" aria-pressed="false" disabled>ARM AUTO GO</button>
+            </div>
+            <p id="rqLiveAutoHelp" class="rqlive-auto-help"></p>
+            <p class="rqmic-consent" id="rqLiveConsentText">Start listening sends microphone audio to Meta for up to 3 minutes without local budget caps. Automatic GO requires separate arming.</p>
+            <label class="rqmic-consent"><input type="checkbox" id="rqLiveContextHints">
+              <span id="rqLiveContextHintsText">Optional: share up to 12 cue-name words to improve proper-name recognition.</span>
+            </label>
+            <div class="rqlive-controls">
+              <button id="rqLiveStart" class="btn accent small" type="button">Start listening</button>
+              <button id="rqLiveStop" class="btn subtle small" type="button" disabled>Stop listening</button>
+              <output id="rqLiveStatus" role="status" aria-live="polite">Ready · microphone not transmitting</output>
+            </div>
+            <ol id="rqLiveAutoHistory" class="rqlive-auto-history" aria-label="Automatic rehearsal cue events"></ol>
+            <details id="rqLiveCueMapDetails" class="rqlive-cue-map">
+              <summary id="rqLiveCueMapSummary">Ver pies hablados del espectáculo</summary>
+              <ol id="rqLiveCueMap" aria-label="Pies hablados disponibles"></ol>
+            </details>
+            <small id="rqLivePrivacy">Only finalized speech can suggest cues. No automatic GO.</small>
+          </details>
+        </section>
+        
+        <details id="rqvfAdvanced" class="rqvf-advanced">
+          <summary id="rqvfAdvancedLabel">Herramientas de diagnóstico · grabación corta y simulador</summary>
+          <div class="rqvf-advanced-content">
+<div class="rqvf-head">
+          <div class="rqvf-brand">
+            <strong id="rqvfTitle">VOICE FOLLOW</strong>
+            <small id="rqvfSub">OFFLINE CUE SIMULATOR · DOES NOT EXECUTE GO</small>
+          </div>
+          <div class="rqvf-actions">
+            <label for="rqvfSource"><span id="rqvfSourceLabel">Scenario</span>
+              <select id="rqvfSource">
+                <option value="fixture">Example scene</option>
+                <option value="project">Current show (configured triggers)</option>
+              </select>
+            </label>
+            <button type="button" id="rqvfPlay">Play</button>
+            <button type="button" id="rqvfPause" disabled>Pause</button>
+            <button type="button" id="rqvfStep">Next event</button>
+            <button type="button" id="rqvfReset">Restart</button>
+          </div>
+        </div>
+        <section id="rqMicPanel" class="rqmic-panel" aria-labelledby="rqMicTitle">
+          <div class="rqmic-head">
+            <strong id="rqMicTitle">MICROPHONE TEST · LOCAL</strong>
+            <button id="rqMicStart" class="btn accent small" type="button">Record 10s</button>
+            <button id="rqMicStop" class="btn subtle small" type="button" disabled>Stop</button>
+            <meter id="rqMicMeter" min="0" max="100" value="0" aria-label="Microphone input level"></meter>
+          </div>
+          <p id="rqMicStatus" role="status" aria-live="polite"></p>
+          <div class="rqmic-review">
+            <audio id="rqMicListen" controls hidden></audio>
+            <a id="rqMicDownload" hidden download="runq-microphone.wav">Save WAV</a>
+          </div>
+          <small id="rqMicPrivacy">Local recording and playback only. No automatic GO. Nothing sent to Meta.</small>
+          <div class="rqmic-transcribe">
+            <p class="rqmic-consent" id="rqMicConsentLabel">Transcribe sends this recording to Meta without local budget caps.</p>
+            <button type="button" id="rqMicTranscribe" class="btn accent small" disabled>Transcribe with Muse</button>
+            <p id="rqMicTranscribeStatus" role="status" aria-live="polite">Record a phrase first. Remote transcription is optional.</p>
+            <output id="rqMicTranscript" class="rqmic-transcript" aria-live="polite"></output>
+            <output id="rqMicCueMatch" class="rqmic-transcript" aria-live="polite"></output>
+          </div>
+
+        </section>
+        <div class="rqvf-grid">
+          <div class="rqvf-cell">
+            <small id="rqvfInputHeading">TRANSCRIPT</small>
+            <div id="rqvfSnippet" class="rqvf-snippet"></div>
+            <span id="rqvfOrigin" class="rqvf-small"></span>
+          </div>
+          <div class="rqvf-cell">
+            <small id="rqvfResultHeading">MATCH RESULT</small>
+            <strong id="rqvfTranscript" class="rqvf-main-text"></strong>
+            <span id="rqvfLine" class="rqvf-small"></span>
+            <span id="rqvfScore" class="rqvf-small"></span>
+          </div>
+          <div class="rqvf-cell rqvf-results">
+            <small id="rqvfReadonly">SIMULATION ONLY</small>
+            <strong id="rqvfCue"></strong>
+            <span id="rqvfResult" class="rqvf-small"></span>
+          </div>
+        </div>
+        <div class="rqvf-foot">
+          <div class="rqvf-status">
+            <output id="rqvfClock">00:00</output>
+            <output id="rqvfCounter">0 / 0</output>
+            <p id="rqvfMessage" role="status" aria-live="polite">Ready.</p>
+          </div>
+          <div><small id="rqvfLogHeading">EVENT LOG</small>
+            <ol id="rqvfLog" class="rqvf-log" aria-label="Voice simulation log"></ol>
+          </div>
+        </div>
+      
+          </div>
+        </details>
+      </section>
+      <div class="layout">
+        <section class="panel home-panel" data-workspaces="home" aria-labelledby="homeHeading">
+          <div class="panel-head"><div><span class="step">00</span><h2 id="homeHeading" data-i18n="workspace.homeTitle">Start your show</h2></div></div>
+          <img class="home-logo" src="/assets/runq-wordmark.png" alt="RUNQ — from script to stage" width="420" height="79">
+          <div class="home-tiles">
+            <button id="homeNewBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeNew">Create a new show</strong>
+              <span data-i18n="workspace.homeNewDetail">Begin with a clean, empty project and import your script.</span>
+            </button>
+            <button id="homeOpenZipBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeOpenZip">Open complete show ZIP</strong>
+              <span data-i18n="workspace.homeOpenZipDetail">Restore the original audio, script and approved cues together.</span>
+            </button>
+            <button id="homeImportScriptBtn" class="home-tile" type="button">
+              <strong data-i18n="workspace.homeImport">Import a script (TXT, PDF, DOCX)</strong>
+              <span data-i18n="workspace.homeImportDetail">Keep your original text and add sound suggestions afterward.</span>
+            </button>
+            <button id="homeDemoBtn" class="home-tile featured" type="button">
+              <strong data-i18n="workspace.homeDemo">Try original audio demo</strong>
+              <span data-i18n="workspace.homeDemoDetail">Three original WAV effects and three manually approved cues, offline.</span>
+            </button>
+          </div>
+          <p class="home-disclaimer" data-i18n="workspace.noRecent">This browser does not maintain a permanent recent-project library. Save a complete ZIP to keep every original audio file.</p>
+        </section>
+        <section class="panel" data-workspaces="script rehearsal operation" aria-labelledby="scriptHeading">
+          <div class="panel-head">
+            <div><span class="step">01</span><h2 id="scriptHeading" data-i18n="script.heading">Script</h2></div>
+            <div class="item-actions"><button id="audibleExampleBtn" type="button" class="btn accent small" data-i18n="bundle.tryDemo">Try with real sounds</button><button id="exampleBtn" type="button" class="btn subtle small" data-i18n="script.example">Example</button></div>
+          </div>
+          <label class="field" for="showName" data-i18n="script.showName">Show name</label>
+          <input id="showName" type="text" maxlength="120" data-i18n-placeholder="script.showNamePlaceholder" placeholder="New show" value="New show">
+          <div class="line-actions">
+            <button id="importScriptBtn" type="button" class="btn accent" data-i18n="script.import">Import TXT, PDF or DOCX</button>
+            <span class="caption" data-i18n="script.importHint">UTF-8 TXT, up to 1 MB</span>
+          </div>
+          <div class="subheading">
+            <span data-i18n="script.sourceHeading">Original text and source references</span>
+            <span id="scriptLimitNote" class="caption"></span>
+          </div>
+          <div class="script-search-row">
+            <label class="sr-only" for="scriptSearchInput" data-i18n="script.searchLabel">Find in script</label>
+            <input id="scriptSearchInput" type="search" autocomplete="off" data-i18n-placeholder="script.searchPlaceholder" placeholder="Find dialogue or stage directions">
+            <button id="scriptSearchPrevBtn" class="btn subtle small" type="button" data-i18n-aria="script.previousMatch" aria-label="Previous match">↑</button>
+            <button id="scriptSearchNextBtn" class="btn subtle small" type="button" data-i18n-aria="script.nextMatch" aria-label="Next match">↓</button>
+          </div>
+          <p id="scriptSearchStatus" class="caption" role="status" aria-live="polite"></p>
+          <div id="scriptPreview" class="script-view" data-i18n-aria="script.linesAria" aria-label="Script lines"></div>
+        </section>
+
+        <section class="panel" data-workspaces="audio" aria-labelledby="audioWorkspaceHeading">
+          <div class="panel-head">
+            <div><span class="step">04</span><h2 id="audioWorkspaceHeading" data-i18n="workspace.audio">Audio</h2></div>
+            <span class="label-draft" data-i18n="script.audioCaption">Local only · never uploaded</span>
+          </div>
+          <div class="subheading">
+            <span data-i18n="script.audioHeading">Audio files</span>
+            <span class="caption" data-i18n="script.audioCaption">Local only · never uploaded</span>
+          </div>
+          <form id="assetForm" class="asset-form">
+            <label class="sr-only" for="assetName" data-i18n="script.assetAria">Audio reference name</label>
+            <input id="assetName" type="text" maxlength="200" data-i18n-placeholder="script.assetPlaceholder" placeholder="e.g. opening.wav" required>
+            <button class="btn subtle" type="submit" data-i18n="script.addAsset">Add</button>
+          </form>
+          <div class="line-actions">
+            <button id="loadAudioBtn" class="btn accent" type="button" data-i18n="script.loadAudio">Load real WAV/MP3</button>
+            <span class="caption" data-i18n="script.audioHint">Up to 20 MB · 10 min · mono/stereo. Reload audio after opening JSON.</span>
+          </div>
+          <section class="audio-batch-import" aria-labelledby="audioBatchTitle">
+            <div class="audio-batch-heading">
+              <div>
+                <strong id="audioBatchTitle" data-i18n="audioBatch.heading">IMPORT SOUNDS</strong>
+                <p class="caption" data-i18n="audioBatch.explanation">Load multiple audio files, or an ordinary ZIP containing a folder of WAV/MP3/etc.</p>
+              </div>
+            </div>
+            <div class="audio-batch-actions">
+              <button id="importAudioBatchBtn" class="btn accent" type="button" data-i18n="audioBatch.selectMany">Select audio files</button>
+              <button id="importAudioZipBtn" class="btn subtle" type="button" data-i18n="audioBatch.selectZip">Import ZIP / RAR / 7z</button>
+            </div>
+            <p class="audio-batch-guide" data-i18n="audioBatch.safety">Files are decoded locally. Existing loaded files are never replaced automatically. A show ZIP belongs in Open Show, not here.</p>
+            <div class="audio-batch-report" id="audioBatchReport" role="status" aria-live="polite" hidden>
+              <strong id="audioBatchStatus"></strong>
+              <ul id="audioBatchDetails"></ul>
+            </div>
+          </section>
+          <div id="audioBatchDropZone" class="audio-batch-drop-zone" role="group" aria-labelledby="audioBatchTitle" aria-describedby="audioBatchDropHint">
+            <p id="audioBatchDropHint" data-i18n="audioBatch.dropHint">Drop audio files here, or one ordinary ZIP / RAR / 7z archive. Keyboard: use the selection buttons.</p>
+          </div>
+          <p class="caption" data-i18n="audio.auditionWarning">Audition uses the SAME audio output as GO. Not a private headphone bus; confirm speakers are safe.</p>
+          <button id="stopAuditionBtn" class="btn subtle small" type="button" disabled data-i18n="audio.stopAudition">Stop audition</button>
+          <div id="assetList" class="tags" data-i18n-aria="script.assetsAria" aria-label="Registered audio references"></div>
+        </section>
+
+        <section class="panel sfx-lab" data-workspaces="soundlab" aria-labelledby="generatorHeading">
+          <div class="sfx-lab-intro">
+            <div>
+              <span class="sfx-eyebrow">SOUND DESIGN</span>
+              <h2 id="generatorHeading" data-sfx-en="Find and prepare sounds for cues" data-sfx-es="Busca y prepara sonidos para tus cues">Find and prepare sounds for cues</h2>
+              <p data-sfx-en="Prepare sound prompts, then import or select an audio file. No audio is generated here." data-sfx-es="Prepara prompts y después importa o selecciona un archivo. Aquí no se genera audio.">Prepare sound prompts, then import or select an audio file. No audio is generated here.</p>
+            </div>
+            <div class="sfx-connection"><span id="engineBadge" class="sfx-status-badge">Connecting…</span><button class="btn subtle small" type="button" id="sfxReconnectBtn" data-sfx-en="Check connection" data-sfx-es="Comprobar conexión">Check connection</button></div>
+          </div>
+          <div class="sfx-layout">
+            <div class="sfx-left">
+              <section class="sfx-card" aria-labelledby="sfxGenerateTitle">
+                <div class="sfx-section-header"><span class="sfx-index">01</span><div><h3 id="sfxGenerateTitle" data-sfx-en="Sound assistant" data-sfx-es="Asistente sonoro">Sound assistant</h3><p data-sfx-en="Suggested prompt based on the selected cue and script" data-sfx-es="Prompt sugerido a partir del cue y su guion">Suggested prompt based on the selected cue and script</p></div></div>
+                <form id="generateForm" class="sfx-form">
+                  <p id="sfxCueContext" class="sfx-cue-context" role="status" aria-live="polite" hidden></p>
+                  <label class="rq-prompt-target" for="rqPromptTargetCue"><span data-sfx-en="Sound destination" data-sfx-es="Destino del sonido">Sound destination</span><select id="rqPromptTargetCue" aria-label="Sound destination"><option value="" data-sfx-en="Library only (no cue)" data-sfx-es="Solo biblioteca (sin cue)">Library only (no cue)</option></select></label>
+                  <label class="sfx-prompt-main"><span data-sfx-en="Sound description / external prompt" data-sfx-es="Descripción / prompt para uso externo">Sound description / external prompt</span><textarea id="soundPrompt" rows="5" maxlength="1000" required placeholder="An old wooden door creaks open and closes. No music."></textarea></label>
+<div class="sfx-row-fields"><label><span data-sfx-en="Sound type" data-sfx-es="Tipo">Sound type</span><select id="soundKind"><option value="SFX" data-sfx-en="Sound effect" data-sfx-es="Efecto puntual">Sound effect</option><option value="ENVIRONMENT" data-sfx-en="Ambience" data-sfx-es="Ambiente continuo">Ambience</option></select></label><label><span data-sfx-en="Duration (seconds)" data-sfx-es="Duración (segundos)">Duration (seconds)</span><input id="duration" type="number" min="1" max="12" value="8" step="1" required></label></div>
+<details class="sfx-advanced" id="sfxAdvanced"><summary data-sfx-en="Examples and sound options" data-sfx-es="Ejemplos y opciones avanzadas">Examples and sound options</summary><div class="sfx-advanced-content">
+<label><span data-sfx-es="Ejemplos" data-sfx-en="Examples">Examples</span><span class="sfx-inline"><select id="acceptancePreset"><option value="">Seleccionar ejemplo…</option><option value="door">Puerta antigua</option><option value="storm">Tormenta</option><option value="audience">Público de teatro</option></select><button class="btn subtle" id="loadPresetBtn" type="button" data-sfx-en="Use example" data-sfx-es="Usar ejemplo">Use example</button></span></label>
+<div class="sfx-row-fields"><label><span data-sfx-es="Referencia al guion (opcional)" data-sfx-en="Script reference (optional)">Script reference (optional)</span><input id="sourceLine" type="text" pattern="L[1-9][0-9]*" maxlength="30" placeholder="L12"></label><label class="rq-sfx-seed"><span data-sfx-es="Semilla" data-sfx-en="Variation seed">Variation seed</span><input id="seed" type="number" min="0" max="2147483647" value="104729" step="1" required></label></div>
+</div></details><details class="sfx-advanced sfx-connection-details" id="sfxConnectionDetails">
+                    <summary data-sfx-en="AI connection and usage details" data-sfx-es="Detalles de conexión y uso de IA">AI connection and usage details</summary>
+                    <div class="sfx-advanced-content">
+                      <div id="costEstimate" class="sfx-cost" role="status">Checking AI settings…</div>
+                      <p id="sfxProviderDiagnostics" class="sfx-muted sfx-small"></p>
+                    </div>
+                  </details>
+                  <p class="sfx-muted rq-sfx-generation-note" data-sfx-en="Generate starts one AI request without local budget caps. Listening before acceptance is optional; GO stays manual." data-sfx-es="Generar inicia una solicitud de IA sin topes locales de presupuesto. Escuchar antes de aceptar es opcional; GO sigue siendo manual.">Generate starts one AI request without local budget caps. Listening before acceptance is optional; GO stays manual.</p>
+                  <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled data-sfx-en="Copy prompt" data-sfx-es="Copiar prompt">Copy prompt</button><button class="btn subtle" id="rqPromptImportCue" type="button" data-sfx-en="Import to library" data-sfx-es="Importar a biblioteca">Import to library</button><button class="btn subtle" id="rqPromptOpenLibrary" type="button" data-sfx-en="Choose from library" data-sfx-es="Elegir de biblioteca">Choose from library</button><button class="btn subtle" id="sfxShortTakeBtn" type="button" data-sfx-en="Use 3-second take" data-sfx-es="Pedir toma de 3 segundos">Use 3-second take</button><span id="generationHint" class="sfx-muted">Checking generator…</span></div>
+                </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret"><summary><span data-sfx-es="Interpretar una acotación de guion" data-sfx-en="Create from a script direction">Create from a script direction</span> <span class="sfx-muted" data-sfx-es="· opcional" data-sfx-en="· optional">· optional</span></summary><div class="sfx-script-body">
+                  <p id="scriptSfxHeading" class="sfx-muted" data-sfx-es="Interpreta el guion y ajusta la propuesta; no genera sonido automáticamente." data-sfx-en="Interpret the direction and refine the suggested sound prompt. No audio is generated.">Interpret the direction and refine the suggestion before generating audio.</p>
+                  <label><span data-sfx-es="Acotación del guion" data-sfx-en="Script direction">Script direction</span><textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
+                  <div class="sfx-row-fields">
+                    <label><span data-sfx-es="Referencia" data-sfx-en="Reference">Reference</span><input id="scriptSfxLine" value="L1" pattern="L[1-9][0-9]*" maxlength="12"></label>
+                    <label><span data-sfx-es="Interpretación" data-sfx-en="Interpretation">Interpretation</span><select id="scriptSfxMode"><option value="STRICT">Estricto · sin inventar</option><option value="CREATIVE">Creativo · inferencias visibles</option></select></label>
+                  </div>
+                  <div class="sfx-buttons"><button id="scriptSfxCompile" class="btn" type="button" data-sfx-en="Interpret direction" data-sfx-es="Interpretar acotación">Interpret direction</button><span id="scriptSfxStatus" class="sfx-muted" role="status">Ready to interpret</span></div>
+                  <div id="scriptSfxResults" class="sfx-proposal-results" hidden>
+                    <label><span data-sfx-es="Sonido detectado" data-sfx-en="Detected sound">Detected sound</span><select id="scriptSfxSelect"></select></label>
+                    <p id="scriptSfxEvidence" class="sfx-evidence sfx-small" aria-live="polite"></p>
+                    <div class="sfx-row-fields">
+                      <label><span data-sfx-es="Fuente" data-sfx-en="Sound source">Sound source</span><input id="scriptSfxSource" maxlength="300"></label>
+                      <label><span data-sfx-es="Acción" data-sfx-en="Action">Action</span><input id="scriptSfxAction" maxlength="300"></label>
+                    </div>
+                    <div class="sfx-row-fields">
+                      <label><span data-sfx-es="Intensidad" data-sfx-en="Intensity">Intensity</span><select id="scriptSfxIntensity"><option value="">Sin definir</option><option value="LOW">Suave</option><option value="MEDIUM">Media</option><option value="HIGH">Alta</option><option value="VERY_HIGH">Muy alta</option></select></label>
+                      <label><span data-sfx-es="Duración (s)" data-sfx-en="Duration (s)">Duration (s)</span><input id="scriptSfxDuration" type="number" min="1" max="12" step="1"></label>
+                    </div>
+                    <div class="sfx-row-fields"><label><span data-sfx-es="Material / textura" data-sfx-en="Material / texture">Material / texture</span><input id="scriptSfxMaterial" maxlength="300" placeholder="No especificado"></label><label><span data-sfx-es="Espacio acústico" data-sfx-en="Acoustic space">Acoustic space</span><select id="scriptSfxSpace"><option value="UNSPECIFIED">Sin especificar</option><option value="INDOOR">Interior</option><option value="OUTDOOR">Exterior</option><option value="CORRIDOR">Pasillo</option><option value="LARGE_HALL">Sala grande</option><option value="UNDERGROUND">Subterráneo</option></select></label></div><label><span data-sfx-es="Prompt revisable" data-sfx-en="Editable sound description">Editable sound description</span><textarea id="scriptSfxPrompt" rows="4" maxlength="1000"></textarea></label>
+                    <div class="sfx-buttons"><button type="button" class="btn subtle" id="scriptSfxRestore" data-sfx-en="Restore" data-sfx-es="Restaurar">Restore</button><button type="button" class="btn primary-secondary" id="scriptSfxTransfer" data-sfx-en="Use this sound description" data-sfx-es="Usar esta descripción">Use this sound description</button></div>
+                    <p class="sfx-muted sfx-small" data-sfx-es="Usar la propuesta prepara un prompt sin generar audio." data-sfx-en="Using this suggestion prepares a prompt without generating audio.">Using this suggestion prepares a prompt without generating audio.</p>
+                  </div>
+                </div></details>
+
+              </section>
+              <section class="sfx-card rq-prompt-only-legacy-jobs" aria-labelledby="jobsHeading">
+                <div class="sfx-section-header"><span class="sfx-index">02</span><div><h3 id="jobsHeading" data-sfx-en="Your sound" data-sfx-es="Tu sonido">Your sound</h3><p data-sfx-en="Preview the result before saving it" data-sfx-es="Escucha el resultado antes de guardarlo">Preview the result before saving it</p></div></div>
+                <div class="sfx-job-info"><div class="sfx-pill" id="jobState">No sound generated yet</div><p id="jobDetails" class="sfx-muted">Describe a sound to get started.</p></div>
+                <div class="sfx-buttons">
+                  <button class="btn" id="sfxWatchBtn" type="button" disabled data-sfx-en="Track readiness for 2 minutes" data-sfx-es="Seguir estado durante 2 minutos">Track readiness for 2 minutes</button>
+                  <button class="btn subtle" id="sfxStopWatchBtn" type="button" disabled data-sfx-en="Stop tracking" data-sfx-es="Detener seguimiento">Stop tracking</button>
+                </div>
+                <p id="sfxWatchStatus" class="sfx-muted sfx-small" role="status" data-sfx-en="Optional: checks every 5 seconds, up to 24 times. No new generation, acceptance or playback." data-sfx-es="Opcional: comprueba cada 5 segundos, hasta 24 veces. No genera otra toma, acepta ni reproduce.">Optional: checks every 5 seconds, up to 24 times. No new generation, acceptance or playback.</p>
+                <div class="sfx-result-player">
+                  <div class="sfx-buttons">
+                    <button class="btn primary" id="sfxListenBtn" type="button" disabled data-sfx-en="▶ Listen to sound" data-sfx-es="▶ Escuchar sonido">▶ Listen to sound</button>
+                    <button class="btn" id="sfxStopPreviewBtn" type="button" disabled data-sfx-en="■ Stop preview" data-sfx-es="■ Detener escucha">■ Stop preview</button>
+                  </div>
+                  <label class="sfx-level"><span data-sfx-en="Preview volume" data-sfx-es="Volumen de escucha">Preview volume</span><input id="sfxPreviewLevel" type="range" min="0" max="50" value="15" aria-label="Preview volume"></label>
+                  <p id="sfxListenStatus" class="sfx-muted sfx-small" role="status"></p>
+                  <p class="sfx-muted sfx-small" data-sfx-en="Uses the same output as GO. Start at low volume. Never plays automatically." data-sfx-es="Usa la misma salida que GO. Empieza con volumen bajo. Nunca suena automáticamente.">Uses the same output as GO. Start at low volume. Never plays automatically.</p>
+                </div>
+                <div class="sfx-inline sfx-history">
+                  <label><span data-sfx-en="Saved takes" data-sfx-es="Tomas guardadas">Saved takes</span><select id="sfxHistorySelect" disabled aria-describedby="sfxHistoryStatus"><option value="">Choose a saved take</option></select></label>
+                  <button class="btn subtle" id="sfxHistoryRefreshBtn" type="button" data-sfx-en="Show saved takes" data-sfx-es="Ver tomas guardadas">Show saved takes</button>
+                </div>
+                <p id="sfxHistoryStatus" class="sfx-muted sfx-small" role="status" data-sfx-en="Opens local history only. No generation, playback or cue change." data-sfx-es="Solo abre el historial local. No genera, reproduce ni cambia cues.">Opens local history only. No generation, playback or cue change.</p>
+                <p id="sfxHistoryNotice" class="sfx-muted sfx-small" hidden data-sfx-en="This earlier take keeps its original provenance. New cues do not inherit its old script reference; review the source in this show." data-sfx-es="La toma anterior conserva su procedencia. El nuevo cue no hereda la referencia antigua; revisa su fuente en este espectáculo.">This earlier take keeps its original provenance. New cues do not inherit its old script reference; review the source in this show.</p>
+                <div class="sfx-buttons">
+                  <button class="btn primary-secondary" id="sfxCheckResultBtn" type="button" disabled data-sfx-en="Check if ready" data-sfx-es="Comprobar si está listo">Check if ready</button>
+                  <button class="btn" id="acceptBtn" type="button" data-sfx-en="Accept sound" data-sfx-es="Aceptar toma">Accept sound</button>
+                  <button class="btn danger-outline" id="rejectBtn" type="button" data-sfx-en="Discard" data-sfx-es="Descartar">Discard</button>
+                </div>
+                <p class="sfx-muted sfx-small" data-sfx-en="Listening is optional. Nothing is added to your show without your approval." data-sfx-es="Escuchar es opcional. Nada se añade al espectáculo sin tu aprobación.">Listening is optional. Nothing is added to your show without your approval.</p>
+                <details class="sfx-advanced sfx-technical-jobs">
+                  <summary data-sfx-en="History and technical details" data-sfx-es="Historial y detalles técnicos">History and technical details</summary>
+                  <div class="sfx-advanced-content">
+                    <label><span data-sfx-es="ID de solicitud" data-sfx-en="Request ID">Request ID</span><input type="text" id="requestId" maxlength="100" placeholder="req-…" autocomplete="off"></label>
+                    <p id="jobTechnicalDetails" class="sfx-muted sfx-small sfx-technical-details"></p>
+                    <div class="sfx-buttons">
+                      <button class="btn" id="openJobBtn" type="button" data-sfx-en="Open record" data-sfx-es="Abrir registro">Open record</button>
+                      <button class="btn" id="refreshBtn" type="button" data-sfx-en="Refresh status" data-sfx-es="Actualizar estado">Refresh status</button>
+                      <button class="btn" id="loadGeneratedBtn" type="button" data-sfx-en="Load audio" data-sfx-es="Cargar WAV">Load audio</button>
+                      <button class="btn danger-outline" id="cancelBtn" type="button" data-sfx-en="Cancel generation" data-sfx-es="Solicitar cancelación">Cancel generation</button>
+                    </div>
+                  </div>
+                </details>
+              </section>
+            </div>
+            <section class="sfx-card sfx-audio-panel" aria-labelledby="editorHeading">
+              <div class="sfx-section-header"><span class="sfx-index">03</span><div><h3 id="editorHeading" data-sfx-en="Listen and edit" data-sfx-es="Escuchar y editar">Listen and edit</h3><p data-sfx-en="Trim and fade without changing your original audio" data-sfx-es="Recorta y aplica fundidos sin modificar el audio original">Trim and fade without changing your original audio</p></div></div>
+              <div class="sfx-source-file"><label for="localWav" data-sfx-en="Open an audio file" data-sfx-es="Abrir un archivo de audio">Open an audio file</label><input id="localWav" type="file" accept=".wav,audio/wav"><details class="sfx-advanced sfx-offline-example"><summary data-sfx-en="Offline audio example (not AI-generated)" data-sfx-es="Ejemplo de audio local (no generado por IA)">Offline audio example (not AI-generated)</summary><div class="sfx-advanced-content"><button class="btn" id="demoAudioBtn" type="button" data-sfx-en="Load example sound" data-sfx-es="Cargar sonido de ejemplo">Load example sound</button></div></details><span id="audioName" class="sfx-muted sfx-small">No audio loaded</span></div>
+              <div class="sfx-wavepanel"><p class="sfx-wave-empty" id="sfxWaveEmpty">Cuando importes o abras un WAV aparecerá aquí su onda de audio.</p><div class="sfx-wave-top"><span id="waveDuration">00:00.000</span><span>Real decoded PCM waveform · drag to select</span></div><canvas id="waveCanvas" width="900" height="250" aria-label="Waveform and selected non-destructive review region"></canvas><div class="sfx-time-ruler"><span>IN</span><span>Reviewed region</span><span>OUT</span></div></div>
+              <div class="sfx-row-fields"><label>IN (seconds)<input id="inPoint" type="number" min="0" step="0.001" value="0" disabled></label><label>OUT (seconds)<input id="outPoint" type="number" min="0" step="0.001" value="0" disabled></label></div>
+              <div class="sfx-fade-editor">
+                <label><span id="sfxFadeInLabel">Fade in · 0.00 s</span><input id="sfxFadeIn" type="range" min="0" max="10" step="0.05" value="0" disabled></label>
+                <label><span id="sfxFadeOutLabel">Fade out · 0.00 s</span><input id="sfxFadeOut" type="range" min="0" max="10" step="0.05" value="0" disabled></label>
+                <label><span id="sfxDragLabel">Waveform gesture</span><select id="sfxDragMode">
+                  <option value="trim">Select IN/OUT</option><option value="fadeIn">Move fade-in edge</option><option value="fadeOut">Move fade-out edge</option>
+                </select></label>
+              </div>
+              <div class="sfx-transport"><button class="btn primary" id="playBtn" type="button" disabled>▶ Preview selection</button><button class="btn" id="stopBtn" type="button" disabled>■ Stop</button><label class="sfx-level">Monitor level <input id="monitorLevel" type="range" min="0" max="50" value="15" aria-label="Audition volume"></label></div>
+              <div class="sfx-notice sfx-muted">Preview uses the computer's default output, not an isolated PFL bus. Start at low volume. GO, NEXT and the running show are untouched.</div>
+              <div class="sfx-export"><div><h3>Commit the accepted source</h3><p>The original verified WAV is preserved. IN/OUT remain review metadata and can become non-destructive cue settings after manual assignment.</p></div><div class="sfx-buttons"><button class="btn" id="exportBtn" type="button" disabled>Download original WAV</button><button class="btn primary-secondary" id="importLibraryBtn" type="button" disabled>Import accepted WAV to library</button><button class="btn accent" id="importCueBtn" type="button" disabled>Import + create cue</button><button class="btn accent" id="importAssignCueBtn" type="button" disabled>Save + assign to cue</button></div></div>
+              <section class="rq10-local-actions" id="rq10LibraryEditActions" aria-labelledby="rq10LibraryActionsTitle">
+                <div><strong id="rq10LibraryActionsTitle" data-sfx-es="Aplicar edición a un cue" data-sfx-en="Apply audio edits to a cue">Apply audio edits to a cue</strong>
+                  <p data-sfx-es="Solo para originales ya importados. Los ajustes IN/OUT y fades se guardan en el cue; el archivo original nunca se altera." data-sfx-en="Trim and fade settings are saved to the cue. Your original audio stays unchanged.">Trim and fade settings are saved to the cue. Your original audio stays unchanged.</p>
+                </div>
+                <div class="rq10-local-buttons">
+                  <button id="rq10CreateLibraryCue" type="button" class="btn accent" disabled data-sfx-en="Create cue with this audio" data-sfx-es="Crear cue con este audio">Create cue with this audio</button>
+                  <label for="rq10TargetCue" class="rq10-target-label"><span data-sfx-es="Cue existente" data-sfx-en="Existing cue">Existing cue</span>
+                    <select id="rq10TargetCue"><option value="">Seleccionar destino…</option></select>
+                  </label>
+                  <button id="rq10AssignLibraryCue" type="button" class="btn subtle" disabled data-sfx-en="Assign and apply edits" data-sfx-es="Asignar y aplicar ajustes">Assign and apply edits</button>
+                </div>
+              </section>
+              <div role="status" aria-live="polite" class="sfx-feedback" id="feedback">Ready to work with sound.</div>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel" data-workspaces="ai" aria-labelledby="proposalsHeading">
+          <div class="panel-head">
+            <div><span class="step">02</span><h2 id="proposalsHeading" data-i18n="proposals.heading">Proposals</h2></div>
+            <span class="label-mock" data-i18n="proposals.origin">SOURCE TRACKED</span>
+          </div>
+          <p class="help" data-i18n="proposals.help">Create a manual test suggestion or use Meta AI if an API key is configured. Nothing starts playback without human approval.</p>
+          <div id="rqAgentWorkspace" class="rq-agent-workspace" role="region" aria-label="RUNQ AI workspace"></div>
+          <form id="proposalForm" class="vertical-form">
+            <label class="field" for="proposalLabel" data-i18n="proposals.label">Cue description</label>
+            <input id="proposalLabel" type="text" maxlength="200" data-i18n-placeholder="proposals.labelPlaceholder" placeholder="e.g. opening ambience" required>
+            <label class="field" for="lineSelect" data-i18n="proposals.line">Script line</label>
+            <select id="lineSelect" required></select>
+            <label class="field" for="assetSelect" data-i18n="proposals.asset">Audio reference</label>
+            <select id="assetSelect"></select>
+            <p class="caption" data-i18n="soundPlan.manualHelp">No audio? Choose “Decide later” and create the cue now.</p>
+            <button id="createProposalBtn" type="submit" class="btn accent block" data-i18n="proposals.create">Create simulated proposal</button>
+          </form>
+          <div class="meta-panel">
+            <div class="subheading" data-i18n="proposals.metaHeading">Meta AI script analysis</div>
+            <label class="field" for="modelProviderSelect" data-i18n="proposals.providerLabel">AI provider</label>
+            <select id="modelProviderSelect">
+              <option value="meta" data-i18n="proposals.providerMeta" selected>Meta Model API · Muse Spark</option>
+              <option value="baseten" data-i18n="proposals.providerBaseten">Baseten · Meta Muse Spark Open</option>
+            </select>
+            <label class="field" for="scriptLanguageSelect" data-i18n="scriptLanguage.label">Script language for AI</label>
+            <select id="scriptLanguageSelect">
+              <option value="auto" data-i18n="scriptLanguage.auto">Detect automatically</option>
+              <option value="en" data-i18n="scriptLanguage.en">English</option>
+              <option value="es" data-i18n="scriptLanguage.es">Spanish</option>
+              <option value="fr" data-i18n="scriptLanguage.fr">French</option>
+              <option value="de" data-i18n="scriptLanguage.de">German</option>
+              <option value="pt" data-i18n="scriptLanguage.pt">Portuguese</option>
+              <option value="other" data-i18n="scriptLanguage.other">Other (language code)</option>
+            </select>
+            <label class="sr-only" for="scriptLanguageCustom" data-i18n="scriptLanguage.customAria">Script language code</label>
+            <input id="scriptLanguageCustom" type="text" maxlength="35" data-i18n-placeholder="scriptLanguage.customPlaceholder" placeholder="e.g. ja, ar, zh-Hans" hidden>
+            <p class="caption" data-i18n="scriptLanguage.help">Independent of interface language. Keeps the original script unchanged.</p>
+            <div id="metaDesignModeField" class="ai-design-mode-field">
+              <label class="field" for="metaDesignMode" data-i18n="proposals.designModeLabel">Sound design approach</label>
+              <select id="metaDesignMode">
+                <option value="literal" data-i18n="proposals.designLiteral">Literal · only strong requirements</option>
+                <option value="balanced" data-i18n="proposals.designBalanced" selected>Balanced · technical + optional creativity</option>
+                <option value="expressive" data-i18n="proposals.designExpressive">Expressive · more creative proposals</option>
+              </select>
+              <p class="caption" data-i18n="proposals.designModeHelp">Optional ideas are marked SUGGESTED; they are not obligations or automatic GO actions.</p>
+            </div>
+            <div id="metaProductionContext" class="ai-production-context">
+              <div>
+                <label class="field" for="performanceKindSelect" data-i18n="proposals.performanceKindLabel">Type of show</label>
+                <select id="performanceKindSelect">
+                  <option value="auto" data-i18n="proposals.performanceAuto">Automatic / not specified</option>
+                  <option value="play" data-i18n="proposals.performancePlay">Theatre / play</option>
+                  <option value="musical" data-i18n="proposals.performanceMusical">Musical theatre</option>
+                  <option value="dance" data-i18n="proposals.performanceDance">Dance</option>
+                  <option value="opera" data-i18n="proposals.performanceOpera">Opera</option>
+                  <option value="gala" data-i18n="proposals.performanceGala">Gala / awards</option>
+                  <option value="concert" data-i18n="proposals.performanceConcert">Concert / festival</option>
+                  <option value="circus" data-i18n="proposals.performanceCircus">Circus / variety</option>
+                  <option value="corporate" data-i18n="proposals.performanceCorporate">Corporate event</option>
+                </select>
+              </div>
+              <div>
+                <label class="field" for="documentKindSelect" data-i18n="proposals.documentKindLabel">Document type</label>
+                <select id="documentKindSelect">
+                  <option value="auto" data-i18n="proposals.documentAuto">Automatic / not specified</option>
+                  <option value="dramatic_script" data-i18n="proposals.documentScript">Dramatic script</option>
+                  <option value="libretto" data-i18n="proposals.documentLibretto">Libretto</option>
+                  <option value="running_order" data-i18n="proposals.documentRundown">Running order / escaleta</option>
+                  <option value="technical_script" data-i18n="proposals.documentTechnical">Technical script</option>
+                  <option value="calling_script" data-i18n="proposals.documentCalling">Stage-manager calling script</option>
+                  <option value="cue_sheet" data-i18n="proposals.documentCuesheet">Cue sheet</option>
+                  <option value="score" data-i18n="proposals.documentScore">Score / musical annotations</option>
+                  <option value="setlist" data-i18n="proposals.documentSetlist">Setlist</option>
+                  <option value="other" data-i18n="proposals.documentOther">Other / mixed</option>
+                </select>
+              </div>
+            </div>
+            <p id="metaProductionHelp" class="caption" data-i18n="proposals.productionHelp">These settings guide interpretation only. Automatic infers from evidence; explicit selection is more reliable for mixed documents.</p>
+            <button id="analyzeMetaBtn" type="button" class="btn primary block" disabled data-i18n="proposals.metaButton">Generate proposals with Meta AI</button>
+            <div id="aiAnalysisActivity" class="ai-analysis-activity" hidden aria-live="polite" aria-atomic="true" role="status">
+              <div class="ai-analysis-summary">
+                <span class="ai-analysis-spinner" aria-hidden="true"></span>
+                <div class="ai-analysis-summary-text">
+                  <strong id="aiAnalysisActiveTitle"></strong>
+                  <span id="aiAnalysisScope"></span>
+                </div>
+                <span id="aiAnalysisElapsed" class="ai-analysis-elapsed"></span>
+              </div>
+              <div class="ai-analysis-track" aria-hidden="true"><div class="ai-analysis-indeterminate"></div></div>
+              <p class="caption" data-i18n="proposals.analysisActivityHelp">Waiting for the provider response and validation. Progress is indeterminate; no cue will play automatically.</p>
+            </div>
+            <p id="metaStatus" class="caption" role="status" aria-live="polite" data-i18n="proposals.metaChecking">Checking local Meta AI connection...</p>
+            <button id="checkMetaStatusBtn" type="button" class="btn secondary" disabled data-i18n="status.metaCheckButton">Check local setup</button>
+            <p id="metaCoverage" class="caption" role="status" aria-live="polite" data-i18n="proposals.coverageNone">No scene-analysis coverage yet.</p>
+            <div id="metaIndependentReview" hidden aria-live="polite" aria-atomic="true">
+              <p id="metaIndependentReviewSummary" class="caption"></p>
+              <div id="metaIndependentReviewLines" class="item-actions"></div>
+            </div>
+            <details class="sfx-advanced ai-provider-details">
+              <summary data-i18n="proposals.providerDetails">AI connection and data sharing</summary>
+              <div class="sfx-advanced-content">
+                <p id="modelProviderDisclaimer" class="caption" data-i18n="proposals.metaDisclaimer">AI analysis sends limited script context and audio reference names to your configured provider. Your provider may charge for the request.</p>
+              </div>
+            </details>
+          </div>
+          <div class="separator"></div>
+          <div class="subheading" data-i18n="proposals.reviewHeading">Operator review</div>
+          <div id="proposalList" class="item-list"></div>
+        </section>
+
+        <section class="panel" data-workspaces="cues operation rehearsal" aria-labelledby="cuesHeading">
+          <div class="panel-head">
+            <div><span class="step">03</span><h2 id="cuesHeading" data-i18n="cues.heading">Cue list</h2></div>
+            <div class="cue-create-actions">
+              <button id="cueAddBtn" type="button" class="btn primary" data-i18n="cueEditor.addCue">+ Add cue</button>
+              <button id="cueInsertBtn" type="button" class="btn subtle" data-i18n="cueEditor.insertCue">Insert after selected</button>
+              <button id="cueDuplicateBtn" type="button" class="btn subtle" data-i18n="cueEditor.duplicateCue">Duplicate</button>
+              <button id="cueMoveUpBtn" type="button" class="btn subtle" data-i18n="cueEditor.moveUp">Move up</button>
+              <button id="cueMoveDownBtn" type="button" class="btn subtle" data-i18n="cueEditor.moveDown">Move down</button>
+              <button id="cueDeleteBtn" type="button" class="btn subtle danger" data-i18n="cueEditor.deleteCue">Delete selected</button>
+            </div>
+          </div>
+          <p class="help" data-i18n="cues.help">Create and edit cues freely. AI suggestions are optional; clicking a cue never starts sound.</p>
+          <div class="preflight-toolbar">
+            <button id="checkPreflightBtn" type="button" class="btn subtle small" data-i18n="preflight.check">Open show preflight</button>
+          </div>
+          <div class="operator-queue" aria-label="Manual cue transport">
+            <div class="operator-next">
+              <span class="operator-kicker" data-i18n="operator.nextGo">NEXT GO</span>
+              <p id="preparedCueStatus" class="operator-prepared" role="status" aria-live="polite" data-i18n="operator.noCues">No cues in this show</p>
+              <p id="operatorTrigger" class="operator-trigger"></p>
+              <p id="operatorEffectSummary" class="operator-effect-summary" role="status" aria-live="polite"></p>
+              <span id="operatorProgress" class="operator-progress" role="status" aria-live="polite"></span>
+            </div>
+            <div class="operator-queue-controls">
+              <button id="operatorGoBtn" class="btn primary" type="button" disabled data-i18n="operator.singleGo">GO</button>
+              <button id="operatorPanicBtn" class="btn danger operator-panic" type="button" data-i18n="operator.emergencyStop" data-i18n-aria="operator.emergencyStopAria" aria-label="Stop all audio immediately">STOP ALL AUDIO</button>
+              <button id="operatorBackBtn" class="btn subtle" type="button" disabled data-i18n="operator.back">Previous</button>
+              <button id="operatorSkipBtn" class="btn subtle" type="button" disabled data-i18n="operator.skipClear">Skip cue (no sound)</button>
+              <button id="operatorResetBtn" class="btn subtle" type="button" data-i18n="operator.restart">Restart from first</button>
+            </div>
+            <p id="operatorLastGo" class="caption" role="status" aria-live="polite"></p>
+            <p class="caption" data-i18n="operator.explanation">The first cue is ready automatically. GO runs it once and positions the next cue. Previous, Skip and Set next only change position; they never start sound.</p>
+          </div>
+          <section id="runqActiveCues" class="rq5-active-cues" aria-label="Currently running cues" hidden>
+            <header class="rq5-active-heading">
+              <span class="rq5-active-title" id="runqActiveCuesTitle">ON AIR · RUNNING CUES</span>
+              <span class="rq5-active-count" id="runqActiveCuesCount" aria-live="polite">0</span>
+            </header>
+            <div id="runqActiveCuesList" class="rq5-active-list"></div>
+          </section>
+          <p class="cue-editor-hint" data-i18n="cueEditor.listHelp">Click a cue row to edit it. Arrow keys move selection without preparing GO.</p>
+          <div class="cue-filter-bar">
+            <label class="sr-only" for="cueSearchInput" data-i18n="workspace.searchCue">Search cues</label>
+            <input id="cueSearchInput" type="search" autocomplete="off" data-i18n-placeholder="workspace.searchCue" placeholder="Search cues by number, title, source or sound">
+            <span id="cueSearchStatus" class="caption" role="status" aria-live="polite"></span>
+          </div>
+          <div id="cueAudioDropHint" class="cue-audio-drop-hint">
+            <strong data-i18n="cueAudioDrop.title">Drop your audio files here</strong>
+            <span data-i18n="cueAudioDrop.hint">From Windows Explorer: one file = one editable cue. Drop 1 or 20 to build your show, in drop order. Playback starts only with GO.</span>
+          </div>
+          <p id="cueAudioDropStatus" class="caption" role="status" aria-live="polite" hidden></p>
+          <div class="cue-workspace-body">
+            <div id="cueList" class="item-list" aria-label="Show cues"></div>
+            <aside id="cueInspector" class="cue-inspector" aria-label="Selected cue details">
+              <h3 data-i18n="workspace.inspector">Cue inspector</h3>
+              <p class="empty" data-i18n="workspace.noSelection">Select a cue to inspect its details without preparing GO.</p>
+            </aside>
+          </div>
+          <section id="rqCueChatPanel" class="rq-chat-panel" hidden aria-labelledby="rqChatTitle">
+            <header class="rq-chat-header">
+              <div><strong id="rqChatTitle">Editar cue conversando</strong>
+                <small id="rqChatContext">Selecciona un cue para editarlo</small></div>
+              <button type="button" id="rqChatClose" class="btn subtle small" aria-label="Cerrar editor conversacional">✕</button>
+            </header>
+            <div id="rqChatHistory" class="rq-chat-history" aria-live="polite"></div>
+            <div id="rqChatProposal" class="rq-chat-proposal" hidden>
+              <strong id="rqChatProposalTitle">Cambios propuestos · sin aplicar</strong>
+              <div id="rqChatDiff" class="rq-chat-diff"></div>
+              <div class="rq-chat-actions">
+                <button type="button" id="rqChatApply" class="btn accent small">Aplicar cambios</button>
+                <button type="button" id="rqChatDiscard" class="btn subtle small">Descartar</button>
+              </div>
+            </div>
+            <div class="rq-chat-composer">
+              <label for="rqChatPrompt" id="rqChatPromptLabel">¿Qué quieres cambiar?</label>
+              <textarea id="rqChatPrompt" rows="3" maxlength="1200" placeholder="Ej.: Baja 6 dB y pon un fade in de 3 segundos."></textarea>
+              <p class="rq-chat-consent" id="rqChatAiConsentText">Enviar utiliza Meta si hace falta, sin topes locales de presupuesto. No aplica cambios automáticamente.</p>
+              <div class="rq-chat-buttons">
+                <button type="button" id="rqChatSubmit" class="btn accent small">Proponer cambios</button>
+                <button type="button" id="rqChatUndo" class="btn subtle small" disabled>Deshacer última aplicación</button>
+                <button type="button" id="rqChatCancel" class="btn subtle small" disabled>Cancelar pendiente</button>
+              </div>
+              <details id="rqChatVoiceDetails" class="rq-chat-voice">
+                <summary id="rqChatVoiceSummary">Dictado opcional · Muse Voice</summary>
+                <p class="rq-chat-consent" id="rqChatVoiceConsentText">Transcribir envía esta grabación a Meta sin topes locales de presupuesto.</p>
+                <div class="rq-chat-buttons">
+                  <button type="button" id="rqChatRecord" class="btn subtle small">Grabar instrucción (máx. 10 s)</button>
+                  <button type="button" id="rqChatTranscribe" class="btn subtle small" disabled>Transcribir</button>
+                </div>
+                <small id="rqChatVoiceStatus">El dictado no ejecuta cambios automáticamente.</small>
+              </details>
+            </div>
+            <output id="rqChatStatus" role="status" aria-live="polite">Las modificaciones requieren aprobación.</output>
+          </section>
+          <div id="transportStatus" class="caption" role="status" aria-live="polite" data-i18n="cues.transportInitial">Transport stopped.</div>
+          <div class="info">
+            <strong data-i18n="cues.scopeHeading">Prototype scope</strong>
+            <p data-i18n="cues.scopeBody">TXT import, human review, local GO/STOP/FADE/STOP ALL and JSON export/import. Reload your audio files after closing or refreshing the page: audio is not embedded in JSON.</p>
+          </div>
+        </section>
+
+        <section class="panel setup-panel" data-workspaces="setup" aria-labelledby="setupHeading">
+          <div class="panel-head"><div><span class="step">05</span><h2 id="setupHeading" data-i18n="workspace.setup">Setup</h2></div></div>
+          <div class="setup-layout">
+            <nav id="setupPageNav" class="setup-page-nav" role="tablist" aria-orientation="vertical" aria-label="Setup sections">
+              <button type="button" role="tab" aria-selected="true" aria-controls="setupPageAudio" id="setupTabAudio" data-setup-page-nav="audio" data-i18n="setup.nav.audio">Audio</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageMicrophone" id="setupTabMicrophone" data-setup-page-nav="microphone" tabindex="-1" data-i18n="setup.nav.microphone">Microphone</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageOperation" id="setupTabOperation" data-setup-page-nav="operation" tabindex="-1" data-i18n="setup.nav.operation">Operation</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageRehearsal" id="setupTabRehearsal" data-setup-page-nav="rehearsal" tabindex="-1" data-i18n="setup.nav.rehearsal">Rehearsal &amp; voice</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageInterface" id="setupTabInterface" data-setup-page-nav="interface" tabindex="-1" data-i18n="setup.nav.interface">Interface</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageData" id="setupTabData" data-setup-page-nav="data" tabindex="-1" data-i18n="setup.nav.data">Data</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="setupPageDiagnostics" id="setupTabDiagnostics" data-setup-page-nav="diagnostics" tabindex="-1" data-i18n="setup.nav.diagnostics">Diagnostics</button>
+            </nav>
+            <div class="setup-pages">
+              <section id="setupPageAudio" class="setup-page" role="tabpanel" aria-labelledby="setupTabAudio" data-setup-page="audio">
+                <h3 data-i18n="setup.audio.title">Audio and playback</h3>
+                <p class="caption" data-i18n="setup.audio.note">GO, audition and the test tone share the browser output and master volume. Changes are blocked while audio is active.</p>
+                <div class="setup-form-row">
+                  <div><strong data-i18n="setup.audio.output">Output device</strong><p id="setupOutputValue" class="caption" data-i18n="setup.audio.defaultOutput">System default</p></div>
+                  <div class="setup-actions">
+                    <button id="setupChooseOutput" type="button" class="btn subtle" data-i18n="setup.audio.choose">Choose output</button>
+                    <button id="setupDefaultOutput" type="button" class="btn subtle" data-i18n="setup.audio.useDefault">Use system default</button>
+                    <button id="setupTestOutput" type="button" class="btn accent" data-i18n="setup.audio.test">Play test tone</button>
+                  </div>
+                </div>
+                <label class="setup-range-row" for="setupMasterVolume"><span><strong data-i18n="setup.audio.masterVolume">Master volume</strong><small data-i18n="setup.audio.masterInfo">Affects every cue and audition through this browser audio engine.</small></span><input id="setupMasterVolume" type="range" min="0" max="100" step="1" value="100"><output id="setupMasterVolumeValue">100%</output></label>
+                <div class="setup-reset-row"><button id="setupResetAudio" type="button" class="btn subtle small" data-i18n="setup.restoreAudio">Restore audio defaults</button><output id="setupAudioStatus" role="status" aria-live="polite"></output></div>
+              </section>
+              <section id="setupPageMicrophone" class="setup-page" role="tabpanel" aria-labelledby="setupTabMicrophone" data-setup-page="microphone" hidden>
+                <h3 data-i18n="setup.mic.title">Microphone input</h3>
+                <p class="caption" data-i18n="setup.mic.note">Microphone permission is requested only when you start the local test. Captured test audio is never saved or uploaded.</p>
+                <div class="setup-form-row">
+                  <label for="rqLiveDevice"><strong data-i18n="setup.mic.input">Input device</strong><select id="rqLiveDevice"><option value="" data-i18n="setup.mic.default">System default microphone</option></select></label>
+                  <button id="rqLiveRefresh" type="button" class="btn subtle" data-i18n="setup.mic.refresh">Refresh inputs</button>
+                </div>
+                <div class="setup-mic-test">
+                  <div class="setup-actions"><button id="setupMicStart" type="button" class="btn accent" data-i18n="setup.mic.start">Test microphone</button><button id="setupMicStop" type="button" class="btn subtle" disabled data-i18n="setup.mic.stop">Stop test</button></div>
+                  <meter id="setupMicMeter" min="0" max="100" value="0" aria-label="Microphone input level"></meter>
+                  <output id="setupMicStatus" role="status" aria-live="polite" data-i18n="setup.mic.idle">Microphone not active.</output>
+                </div>
+                <div class="setup-reset-row"><button id="setupResetMicrophone" type="button" class="btn subtle small" data-i18n="setup.restoreMicrophone">Restore microphone defaults</button><output id="setupMicrophoneStatus" role="status" aria-live="polite"></output></div>
+              </section>
+              <section id="setupPageOperation" class="setup-page" role="tabpanel" aria-labelledby="setupTabOperation" data-setup-page="operation" hidden>
+                <h3 data-i18n="setup.operation.title">Operator controls</h3>
+                <p class="caption" data-i18n="setup.operation.note">Shortcuts stay on this device. Prepare, selection and GO remain separate actions.</p>
+                <section class="runq-keymap" aria-labelledby="runqKeymapTitle">
+                  <div class="runq-keymap-heading"><h3 id="runqKeymapTitle">Keyboard mapping</h3><span id="runqKeymapScope" class="caption">Local device preference · not saved in shows</span></div>
+                  <p id="runqKeymapHelp" class="caption">GO triggers prepared NEXT, not the inspected cue. Typing and held keys cannot trigger GO.</p>
+                  <label class="runq-keymap-check"><input id="runqKeyboardEnabled" type="checkbox" checked><span id="runqKeyboardEnabledLabel">Enable keyboard shortcuts</span></label>
+                  <div class="runq-keymap-columns">
+                    <label class="runq-keymap-check"><input id="runqKeyboardInEditor" type="checkbox" checked><span id="runqKeyboardInEditorLabel">Active in Cue Editor</span></label>
+                    <label class="runq-keymap-check"><input id="runqKeyboardInOperation" type="checkbox" checked><span id="runqKeyboardInOperationLabel">Active in Operation</span></label>
+                  </div>
+                  <div class="runq-keymap-columns">
+                    <label><span id="runqGoKeyLabel">GO / Next cue</span><select id="runqGoKey" aria-labelledby="runqGoKeyLabel"></select></label>
+                    <label><span id="runqStopKeyLabel">STOP ALL (emergency)</span><select id="runqStopKey" aria-labelledby="runqStopKeyLabel"></select></label>
+                  </div>
+                  <div class="runq-keymap-foot"><button type="button" id="runqKeyboardReset" class="btn subtle small">Restore default keys</button><output id="runqKeyboardFeedback" class="caption" role="status" aria-live="polite"></output></div>
+                </section>
+              </section>
+              <section id="setupPageRehearsal" class="setup-page" role="tabpanel" aria-labelledby="setupTabRehearsal" data-setup-page="rehearsal" hidden>
+                <h3 data-i18n="setup.rehearsal.title">Rehearsal and voice</h3>
+                <p class="caption" data-i18n="setup.rehearsal.note">Saved preferences do not start listening or arm Auto GO. Session consent and arming remain in Rehearsal.</p>
+                <div class="setup-fields">
+                  <label for="rqLiveLang"><span id="rqLiveLangLabel" data-i18n="setup.rehearsal.language">Spoken language</span><select id="rqLiveLang"><option value="es">Español</option><option value="en">English</option><option value="mixed">Spanish + English</option></select></label>
+                  <label for="rqLiveMode"><span id="rqLiveModeLabel" data-i18n="setup.rehearsal.mode">Cue follow policy</span><select id="rqLiveMode"><option value="auto" selected>Rehearsal autopilot · automatic GO</option><option value="assist">Assist · suggest NEXT</option></select></label>
+                </div>
+                <button id="setupResetRehearsal" type="button" class="btn subtle small" data-i18n="setup.restoreRehearsal">Restore rehearsal defaults</button>
+                <output id="setupRehearsalStatus" role="status" aria-live="polite"></output>
+              </section>
+              <section id="setupPageInterface" class="setup-page" role="tabpanel" aria-labelledby="setupTabInterface" data-setup-page="interface" hidden>
+                <h3 data-i18n="setup.interface.title">Interface</h3>
+                <p class="caption" data-i18n="setup.interface.note">Language is available in the top bar. Theme is fixed to the current dark RUNQ appearance.</p>
+                <div class="setup-fields">
+                  <label for="setupCueDensity"><span data-i18n="setup.interface.density">Cue list density</span><select id="setupCueDensity"><option value="compact" data-i18n="setup.interface.compact">Compact</option><option value="standard" data-i18n="setup.interface.normal">Normal</option><option value="comfortable" data-i18n="setup.interface.comfortable">Comfortable</option></select></label>
+                </div>
+                <button id="setupResetInterface" type="button" class="btn subtle small" data-i18n="setup.restoreInterface">Restore interface defaults</button>
+                <output id="setupInterfaceStatus" role="status" aria-live="polite"></output>
+              </section>
+              <section id="setupPageData" class="setup-page" role="tabpanel" aria-labelledby="setupTabData" data-setup-page="data" hidden>
+                <h3 data-i18n="setup.data.title">Show data and portability</h3>
+                <p data-i18n="setup.data.note">The project exists in this browser session. Export a complete ZIP to preserve the show and its original audio; device preferences are not included.</p>
+                <p><span data-i18n="setup.data.activeShow">Active show</span>: <strong id="setupDataShowName"></strong> · <span id="setupDataSaveState"></span></p>
+                <button id="setupExportShow" type="button" class="btn accent" data-i18n="setup.data.export">Save complete show ZIP</button>
+                <output id="setupDataStatus" role="status" aria-live="polite"></output>
+              </section>
+              <section id="setupPageDiagnostics" class="setup-page" role="tabpanel" aria-labelledby="setupTabDiagnostics" data-setup-page="diagnostics" hidden>
+                <h3 data-i18n="setup.diagnostics.title">Diagnostics</h3>
+                <dl class="setup-diagnostics">
+                  <div><dt data-i18n="setup.diagnostics.engine">Audio engine</dt><dd id="setupDiagnosticEngine"></dd></div>
+                  <div><dt data-i18n="setup.diagnostics.output">Output route</dt><dd id="setupDiagnosticOutput"></dd></div>
+                  <div><dt data-i18n="setup.diagnostics.microphone">Microphone permission</dt><dd id="setupDiagnosticMic"></dd></div>
+                  <div><dt data-i18n="setup.diagnostics.recent">Recent setup events</dt><dd id="setupDiagnosticErrors"></dd></div>
+                </dl>
+                <button id="setupRefreshDiagnostics" type="button" class="btn subtle small" data-i18n="setup.diagnostics.refresh">Refresh diagnostics</button>
+              </section>
+            </div>
+          </div>
+        </section>
+        <section class="panel preflight-workspace" data-workspaces="preflight" aria-labelledby="preflightHeading">
+          <div class="panel-head"><div><span class="step">06</span><h2 id="preflightHeading" data-i18n="workspace.preflight">Preflight</h2></div></div>
+          <p class="help" data-i18n="preflight.notice">Show-specific advisory check. It does not arm playback or verify the physical sound system.</p>
+          <strong id="preflightSummary" role="status" aria-live="polite"></strong>
+          <ul id="preflightIssues" class="setup-issues"></ul>
+          <button type="button" id="preflightOpenOperationBtn" class="btn accent" data-i18n="workspace.goOperation">Open operation workspace</button>
+        </section>
+      </div>
+    </main>
+    <footer data-i18n="footer">Hackathon prototype · Local audio · Meta AI uses an external service only with consent · Save JSON to keep your changes</footer>
+  </div>
+  <input id="scriptFileInput" type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+  <input id="projectFileInput" type="file" accept=".json,application/json" hidden>
+  <input id="bundleFileInput" type="file" accept=".zip,.showcompiler.zip,application/zip" hidden>
+  <input id="audioFileInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" hidden>
+  <input id="audioBatchFilesInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" multiple hidden>
+  <!-- Omitting accept is intentional: Chrome/Windows custom file-type filters can hide .zip/.rar/.7z, especially when extensions are hidden. Archive signatures are validated after selection. -->
+  <input id="audioBatchZipInput" type="file" hidden>
+</body>
+</html>

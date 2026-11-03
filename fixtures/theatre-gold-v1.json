@@ -1,0 +1,201 @@
+{
+  "schema": "showcompiler-theatre-gold-v1",
+  "originalSynthetic": true,
+  "sourceDate": "2026-10-27",
+  "use": "Offline gold annotations; no provider predictions and no live model quality claims",
+  "fixtures": [
+    {
+      "id": "ES01",
+      "language": "es",
+      "scriptText": "ESCENA 1 — LA ESTACIÓN VACÍA\nELENA: Aún recuerdo aquella tormenta de nuestra infancia.\nJORGE: No va a ocurrir otra vez.\n(Suena una campanilla una sola vez.)\nELENA: Alguien ha llegado.\n(Empieza a oírse lluvia contra las ventanas.)\nJORGE: Cierra bien la puerta.\n(La lluvia continúa con la misma intensidad.)\nELENA: Esperaremos aquí.\n(La lluvia cesa.)\n(Silencio absoluto.)\nTELÓN.",
+      "expectedLineIds": [
+        "L4",
+        "L6"
+      ],
+      "forbiddenLineIds": [
+        "L2",
+        "L8",
+        "L10",
+        "L11"
+      ],
+      "annotations": [
+        {
+          "id": "L4",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "One short bell"
+        },
+        {
+          "id": "L6",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Rain ambience starting"
+        }
+      ]
+    },
+    {
+      "id": "EN01",
+      "language": "en",
+      "scriptText": "SCENE 1 — PLATFORM NINE\n(A crackling station announcement starts over a loudspeaker.)\nMAYA: The train is late again.\nLIAM: I still remember the thunder from last winter.\n(The announcement continues at the same level.)\nMAYA: That is our platform.\n(A metal door slams shut.)\nLIAM: That sounded close.\n(The announcement is switched off.)\nBLACKOUT.",
+      "expectedLineIds": [
+        "L2",
+        "L7"
+      ],
+      "forbiddenLineIds": [
+        "L4",
+        "L5",
+        "L9"
+      ],
+      "annotations": [
+        {
+          "id": "L2",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Station announcement starts"
+        },
+        {
+          "id": "L7",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Metal door slam"
+        }
+      ]
+    },
+    {
+      "id": "FR01",
+      "language": "fr",
+      "scriptText": "SCÈNE 1 — LE SALON\nLOUISE : J'ai rêvé que les cloches sonnaient.\n(Une horloge tinte deux fois.)\nPAUL : Nous sommes en retard.\n(Le tic-tac de l'horloge continue sans changement.)\nLOUISE : Écoute.\n(La pièce devient silencieuse.)\nFIN.",
+      "expectedLineIds": [
+        "L3"
+      ],
+      "forbiddenLineIds": [
+        "L2",
+        "L5",
+        "L7"
+      ],
+      "annotations": [
+        {
+          "id": "L3",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Clock chimes twice"
+        }
+      ]
+    },
+    {
+      "id": "PT01",
+      "language": "pt",
+      "scriptText": "CENA 1 — A CASA\n(Um trovão estronda ao longe.)\nANA: A janela ficou aberta.\nRUI: Ontem falámos durante horas sobre tempestades.\n(O eco do trovão desaparece.)\nANA: Vamos entrar.\n(Começa uma música suave no rádio.)\n(A música continua.)\nFIM.",
+      "expectedLineIds": [
+        "L2",
+        "L7"
+      ],
+      "forbiddenLineIds": [
+        "L4",
+        "L5",
+        "L8"
+      ],
+      "annotations": [
+        {
+          "id": "L2",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Distant thunder"
+        },
+        {
+          "id": "L7",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Radio music starts"
+        }
+      ]
+    },
+    {
+      "id": "DE01",
+      "language": "de",
+      "scriptText": "SZENE 1 — DAS LABOR\nANNA: Früher hörten wir immer Musik.\nBEN: Aber heute nicht.\n(Ein Glas zerbricht auf dem Boden.)\nANNA: Was war das?\nBEN: Nichts mehr bewegen.\n(Völlige Stille.)\nENDE.",
+      "expectedLineIds": [
+        "L4"
+      ],
+      "forbiddenLineIds": [
+        "L2",
+        "L7"
+      ],
+      "annotations": [
+        {
+          "id": "L4",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Glass breaks"
+        }
+      ]
+    },
+    {
+      "id": "AMB01",
+      "language": "en",
+      "scriptText": "SCENE 1 — FOYER\nACTOR: Did you hear the word ding?\n(A bell dings once at the foyer entrance.)\nACTOR: That was our cue.\n(The last bell sound is only being discussed.)\nSCENE 2 — GARDEN\nACTOR: It is quiet here.\nACTOR: We use the same bell in both scenes.\n(A different bell dings once outside.)\nACTOR: The timing matters.\nEND.",
+      "expectedLineIds": [
+        "L3",
+        "L9"
+      ],
+      "forbiddenLineIds": [
+        "L2",
+        "L5",
+        "L8"
+      ],
+      "annotations": [
+        {
+          "id": "L3",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "First scene bell"
+        },
+        {
+          "id": "L9",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Second scene bell"
+        }
+      ]
+    },
+    {
+      "id": "EMPTY01",
+      "language": "en",
+      "scriptText": "SCENE — THE INTERVIEW\nA: Are you ready?\nB: I think so.\nA: We could play music later, but not now.\nB: I remember the rain outside yesterday.\nA: The stage directions contain no sound at all.\n(They look at one another.)\nEND.",
+      "expectedLineIds": [],
+      "forbiddenLineIds": [
+        "L4",
+        "L5",
+        "L6"
+      ],
+      "annotations": []
+    },
+    {
+      "id": "LONG01",
+      "language": "en",
+      "scriptText": "SCENE 1 — LONG REHEARSAL\nSTAGE: neutral line 2, no acoustic instruction.\nSTAGE: neutral line 3, no acoustic instruction.\nSTAGE: neutral line 4, no acoustic instruction.\nSTAGE: neutral line 5, no acoustic instruction.\nSTAGE: neutral line 6, no acoustic instruction.\nSTAGE: neutral line 7, no acoustic instruction.\nSTAGE: neutral line 8, no acoustic instruction.\nSTAGE: neutral line 9, no acoustic instruction.\nSTAGE: neutral line 10, no acoustic instruction.\nSTAGE: neutral line 11, no acoustic instruction.\nSTAGE: neutral line 12, no acoustic instruction.\nSTAGE: neutral line 13, no acoustic instruction.\nSTAGE: neutral line 14, no acoustic instruction.\nSTAGE: neutral line 15, no acoustic instruction.\nSTAGE: neutral line 16, no acoustic instruction.\nSTAGE: neutral line 17, no acoustic instruction.\nSTAGE: neutral line 18, no acoustic instruction.\nSTAGE: neutral line 19, no acoustic instruction.\nSTAGE: neutral line 20, no acoustic instruction.\n(A brass bell sounds.)\nACTOR: I remember a bell from years ago.\nSTAGE: neutral line 23, no acoustic instruction.\nSTAGE: neutral line 24, no acoustic instruction.\nSTAGE: neutral line 25, no acoustic instruction.\nSTAGE: neutral line 26, no acoustic instruction.\nSTAGE: neutral line 27, no acoustic instruction.\nSTAGE: neutral line 28, no acoustic instruction.\nSTAGE: neutral line 29, no acoustic instruction.\nSTAGE: neutral line 30, no acoustic instruction.\nSTAGE: neutral line 31, no acoustic instruction.\nSTAGE: neutral line 32, no acoustic instruction.\nSTAGE: neutral line 33, no acoustic instruction.\nSTAGE: neutral line 34, no acoustic instruction.\nSTAGE: neutral line 35, no acoustic instruction.\nSTAGE: neutral line 36, no acoustic instruction.\nSTAGE: neutral line 37, no acoustic instruction.\nSTAGE: neutral line 38, no acoustic instruction.\nSTAGE: neutral line 39, no acoustic instruction.\nSTAGE: neutral line 40, no acoustic instruction.\nSTAGE: neutral line 41, no acoustic instruction.\nSTAGE: neutral line 42, no acoustic instruction.\nSTAGE: neutral line 43, no acoustic instruction.\nSTAGE: neutral line 44, no acoustic instruction.\nSTAGE: neutral line 45, no acoustic instruction.\nSTAGE: neutral line 46, no acoustic instruction.\nSTAGE: neutral line 47, no acoustic instruction.\nSTAGE: neutral line 48, no acoustic instruction.\nSTAGE: neutral line 49, no acoustic instruction.\nSTAGE: neutral line 50, no acoustic instruction.\nSTAGE: neutral line 51, no acoustic instruction.\nSTAGE: neutral line 52, no acoustic instruction.\nSTAGE: neutral line 53, no acoustic instruction.\nSTAGE: neutral line 54, no acoustic instruction.\nSTAGE: neutral line 55, no acoustic instruction.\nSTAGE: neutral line 56, no acoustic instruction.\nSTAGE: neutral line 57, no acoustic instruction.\nSTAGE: neutral line 58, no acoustic instruction.\nSTAGE: neutral line 59, no acoustic instruction.\nSTAGE: neutral line 60, no acoustic instruction.\nSTAGE: neutral line 61, no acoustic instruction.\nSTAGE: neutral line 62, no acoustic instruction.\nSTAGE: neutral line 63, no acoustic instruction.\nSTAGE: neutral line 64, no acoustic instruction.\nSTAGE: neutral line 65, no acoustic instruction.\nSTAGE: neutral line 66, no acoustic instruction.\nSTAGE: neutral line 67, no acoustic instruction.\nSTAGE: neutral line 68, no acoustic instruction.\nSTAGE: neutral line 69, no acoustic instruction.\nSCENE 2 — AFTER THE INTERVAL\nSTAGE: neutral line 71, no acoustic instruction.\nSTAGE: neutral line 72, no acoustic instruction.\nSTAGE: neutral line 73, no acoustic instruction.\nSTAGE: neutral line 74, no acoustic instruction.\nSTAGE: neutral line 75, no acoustic instruction.\nSTAGE: neutral line 76, no acoustic instruction.\nSTAGE: neutral line 77, no acoustic instruction.\nSTAGE: neutral line 78, no acoustic instruction.\nSTAGE: neutral line 79, no acoustic instruction.\nSTAGE: neutral line 80, no acoustic instruction.\nSTAGE: neutral line 81, no acoustic instruction.\nSTAGE: neutral line 82, no acoustic instruction.\nSTAGE: neutral line 83, no acoustic instruction.\nSTAGE: neutral line 84, no acoustic instruction.\nSTAGE: neutral line 85, no acoustic instruction.\nSTAGE: neutral line 86, no acoustic instruction.\nSTAGE: neutral line 87, no acoustic instruction.\nSTAGE: neutral line 88, no acoustic instruction.\nSTAGE: neutral line 89, no acoustic instruction.\nSTAGE: neutral line 90, no acoustic instruction.\nSTAGE: neutral line 91, no acoustic instruction.\nSTAGE: neutral line 92, no acoustic instruction.\nSTAGE: neutral line 93, no acoustic instruction.\nSTAGE: neutral line 94, no acoustic instruction.\nSTAGE: neutral line 95, no acoustic instruction.\nSTAGE: neutral line 96, no acoustic instruction.\nSTAGE: neutral line 97, no acoustic instruction.\nSTAGE: neutral line 98, no acoustic instruction.\nSTAGE: neutral line 99, no acoustic instruction.\nSTAGE: neutral line 100, no acoustic instruction.\nSTAGE: neutral line 101, no acoustic instruction.\nSTAGE: neutral line 102, no acoustic instruction.\nSTAGE: neutral line 103, no acoustic instruction.\nSTAGE: neutral line 104, no acoustic instruction.\nSTAGE: neutral line 105, no acoustic instruction.\nSTAGE: neutral line 106, no acoustic instruction.\nSTAGE: neutral line 107, no acoustic instruction.\nSTAGE: neutral line 108, no acoustic instruction.\nSTAGE: neutral line 109, no acoustic instruction.\nSTAGE: neutral line 110, no acoustic instruction.\nSTAGE: neutral line 111, no acoustic instruction.\nSTAGE: neutral line 112, no acoustic instruction.\nSTAGE: neutral line 113, no acoustic instruction.\nSTAGE: neutral line 114, no acoustic instruction.\nSTAGE: neutral line 115, no acoustic instruction.\nSTAGE: neutral line 116, no acoustic instruction.\nSTAGE: neutral line 117, no acoustic instruction.\nSTAGE: neutral line 118, no acoustic instruction.\nSTAGE: neutral line 119, no acoustic instruction.\nSTAGE: neutral line 120, no acoustic instruction.\nSTAGE: neutral line 121, no acoustic instruction.\nSTAGE: neutral line 122, no acoustic instruction.\nSTAGE: neutral line 123, no acoustic instruction.\nSTAGE: neutral line 124, no acoustic instruction.\nSTAGE: neutral line 125, no acoustic instruction.\n(A wooden shutter bangs twice.)\nSTAGE: neutral line 127, no acoustic instruction.\nACTOR: The banging noise has already stopped.\nSTAGE: neutral line 129, no acoustic instruction.\nSTAGE: neutral line 130, no acoustic instruction.\nSTAGE: neutral line 131, no acoustic instruction.\nSTAGE: neutral line 132, no acoustic instruction.\nSTAGE: neutral line 133, no acoustic instruction.\nSTAGE: neutral line 134, no acoustic instruction.\nSTAGE: neutral line 135, no acoustic instruction.\nSTAGE: neutral line 136, no acoustic instruction.\nSTAGE: neutral line 137, no acoustic instruction.\nSTAGE: neutral line 138, no acoustic instruction.\nSTAGE: neutral line 139, no acoustic instruction.\nSTAGE: neutral line 140, no acoustic instruction.\nSTAGE: neutral line 141, no acoustic instruction.\nSTAGE: neutral line 142, no acoustic instruction.",
+      "expectedLineIds": [
+        "L21",
+        "L126"
+      ],
+      "forbiddenLineIds": [
+        "L22",
+        "L128"
+      ],
+      "annotations": [
+        {
+          "id": "L21",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Brass bell"
+        },
+        {
+          "id": "L126",
+          "intent": "PLAY",
+          "basis": "EXPLICIT",
+          "description": "Wooden shutter twice"
+        }
+      ]
+    }
+  ]
+}

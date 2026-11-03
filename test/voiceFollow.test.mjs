@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizeSpeech,compareSpeech,suggestVoiceCue} from '../src/core/voiceFollow.mjs';
+const cues=[{id:'C14',lineId:'L144',trigger:'Pero alguien ha abierto esa puerta'},{id:'C15',lineId:'L180',trigger:'Que comience la musica'}];
+const candidate=(change={})=>suggestVoiceCue({cues,focusLine:140,transcript:{text:'Pero alguien ha abierto esa puerta',final:true,endMs:1000},nowMs:1300,...change});
+test('normalizes accents and punctuation',()=>assert.equal(normalizeSpeech('¡MÚSICA!'),'musica'));
+test('exact phrase produces suggestion only',()=>assert.deepEqual(candidate(),{status:'SUGGEST_PREPARE',cueId:'C14',lineId:'L144',score:1}));
+test('one missing word',()=>assert.ok(compareSpeech('alguien ha abierto esa puerta','Pero alguien ha abierto esa puerta')>=0.8));
+test('nonfinal ignored',()=>assert.equal(candidate({transcript:{text:'Pero alguien ha abierto esa puerta',final:false,endMs:1000}}).reason,'UNSTABLE_TRANSCRIPT'));
+test('stale ignored',()=>assert.equal(candidate({nowMs:6000}).reason,'STALE_TRANSCRIPT'));
+test('consumed ignored',()=>assert.equal(candidate({consumedIds:['C14']}).status,'NO_MATCH'));
+test('short ignored',()=>assert.equal(candidate({transcript:{text:'hola',final:true,endMs:1000}}).reason,'TOO_SHORT'));
+test('distant lines ignored',()=>assert.equal(candidate({focusLine:1}).status,'NO_MATCH'));
+test('ambiguous candidates blocked',()=>assert.equal(candidate({cues:[cues[0],{id:'C99',lineId:'L145',trigger:cues[0].trigger}]}).status,'AMBIGUOUS'));
+test('invalid arguments rejected',()=>assert.throws(()=>suggestVoiceCue({cues:null,focusLine:1,transcript:{text:'x',final:true,endMs:0}})));

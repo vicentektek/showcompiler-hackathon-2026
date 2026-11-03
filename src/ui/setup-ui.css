@@ -1,0 +1,32 @@
+.setup-layout{display:grid;grid-template-columns:minmax(170px,220px) minmax(0,1fr);gap:18px;align-items:start}
+.setup-page-nav{display:grid;gap:6px;position:sticky;top:76px}
+.setup-page-nav [role=tab]{padding:10px 12px;text-align:left;border:1px solid #293544;border-radius:8px;background:#111923;color:#c8d3df}
+.setup-page-nav [role=tab][aria-selected=true]{border-color:#6a8eac;background:#1a2938;color:#f1f6fa}
+.setup-pages{min-width:0}
+.setup-page{padding:18px;border:1px solid #293544;border-radius:10px;background:#111923}
+.setup-page[hidden]{display:none}
+.setup-page h3{margin-top:0}
+.setup-form-row,.setup-reset-row,.setup-range-row,.setup-fields{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0}
+.setup-form-row label,.setup-fields label{display:grid;gap:6px}
+.setup-actions{display:flex;flex-wrap:wrap;gap:8px}
+.setup-range-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(140px,2fr) 54px}
+.setup-range-row small{display:block;color:#9eacba}
+.setup-reset-row{justify-content:flex-start;flex-wrap:wrap}
+.setup-reset-row output,.setup-page output[role=status]{color:#aab8c5}
+.setup-mic-test{display:grid;gap:10px;margin:18px 0;padding:14px;border:1px solid #293544;border-radius:8px}
+.setup-mic-test meter{width:100%;height:18px}
+.setup-diagnostics{display:grid;gap:8px}
+.setup-diagnostics>div{display:grid;grid-template-columns:minmax(170px,1fr) minmax(0,2fr);gap:12px;padding:8px 0;border-bottom:1px solid #293544}
+.setup-diagnostics dt{color:#9eacba}
+.setup-diagnostics dd{margin:0;overflow-wrap:anywhere}
+.shell[data-cue-density=compact] .cue-item{margin-bottom:4px!important}
+.shell[data-cue-density=compact] .cue-row-select{padding-top:6px!important;padding-bottom:6px!important}
+.shell[data-cue-density=comfortable] .cue-item{margin-bottom:12px!important}
+.shell[data-cue-density=comfortable] .cue-row-select{padding-top:14px!important;padding-bottom:14px!important}
+@media(max-width:760px){
+ .setup-layout{grid-template-columns:1fr}
+ .setup-page-nav{position:static;display:flex;overflow-x:auto}
+ .setup-page-nav [role=tab]{white-space:nowrap}
+ .setup-form-row,.setup-range-row,.setup-fields{align-items:stretch;grid-template-columns:1fr;flex-direction:column}
+ .setup-diagnostics>div{grid-template-columns:1fr}
+}

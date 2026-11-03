@@ -1,0 +1,124 @@
+name: Core tests
+on:
+  push:
+    branches:
+      - feat/hackathon-script-core
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned local RAR / 7z WASM codec
+        run: npm install --no-audit --no-fund
+      - name: Static validation of SFX pilot (no Modal deployment)
+        run: |
+          node --check src/core/modalSfxPilotClient.mjs
+          node --check src/sfx/lab.mjs
+          node --check src/sfx/waveform.mjs
+          python -m py_compile modal/runq_sfx_pilot.py
+      - name: Full Codex QA (offline syntax, unit tests and synthetic cue comparisons)
+        run: npm run qa:codex
+      - name: V15 RUNQ AI Agent mass evaluation (600 offline cases, zero provider calls)
+        run: npm run qa:agent:mass
+      - name: Upload V15 agent synthetic QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-v15-agent-mass-qa
+          path: artifacts/agent-eval/summary.*
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload concise Codex task report (synthetic fixtures only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-codex-qa-summary
+          path: artifacts/codex-qa/summary.*
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload cue QA report for developer and Codex review
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-offline-cue-qa
+          path: artifacts/cue-qa/report.*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload original seminar corpus contract QA (OFFLINE)
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-seminar-contract-qa
+          path: artifacts/seminar-qa/contract.*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Build original demo with three real WAV cues
+        run: npm run demo:package
+      - name: Verify standard ZIP format independently
+        run: unzip -t demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
+      - name: Publish self-contained show demo ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcompiler-full-demo-zip
+          path: demo/SHOWCOMPILER_SHOW_DEMO.showcompiler.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Build original Spanish voice-foot rehearsal demo
+        run: npm run demo:rehearsal
+      - name: Verify Spanish rehearsal ZIP integrity
+        run: unzip -t demo/RUNQ_ENSAYO_ES.showcompiler.zip
+      - name: Publish Spanish rehearsal ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-spanish-rehearsal-show-zip
+          path: demo/RUNQ_ENSAYO_ES.showcompiler.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Install pinned browser smoke driver (CI-only, no lockfile)
+        run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Interface responsive and transport regression (offline)
+        run: npm run test:interface
+      - name: Voice Follow click and navigation Chrome smoke (offline)
+        run: node tools/voice-follow-click-e2e.mjs
+      - name: Rehearsal Autopilot Chrome E2E (real local WAV, synthetic speech, no provider)
+        run: node tools/rehearsal-auto-browser-e2e.mjs
+      - name: Stagecraft cue controls and keyboard map Chrome smoke (mock only)
+        run: node tools/stagecraft-keymap-browser-e2e.mjs
+      - name: Stagecraft cue waveform and operation quick-GO Chrome smoke
+        run: node tools/stagecraft-cue-safety-e2e.mjs
+      - name: Stagecraft Audio Library batch and compressed ZIP Chrome smoke
+        run: node tools/stagecraft-audio-batch-e2e.mjs
+      - name: Prompt-only Sound assistant, local WAV and blocked Modal (offline)
+        run: node tools/prompt-only-browser-e2e.mjs
+      - name: Unified Show Builder cue review, WAV and SILENT GO (offline)
+        run: node tools/unified-builder-browser-e2e.mjs
+      - name: Real TXT, PDF and DOCX script import in Chrome (local only)
+        run: node tools/script-formats-browser-e2e.mjs
+      - name: One-click script analysis visible progress and review (offline)
+        run: node tools/script-analysis-feedback-browser-e2e.mjs
+      - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
+        run: node tools/runq-agent-browser-e2e.mjs
+      - name: RUNQ AI contextual review with original show WAVs (offline fixtures)
+        run: npm run test:ai-review
+      - name: Last GO complete-show and reviewed Hero Chrome E2E (offline)
+        run: npm run test:last-go
+      - name: Reviewed dictation and late-result cancellation Chrome E2E (synthetic, offline)
+        run: npm run test:dictation
+      - name: Real Chrome DOM smoke (mocked sound hardware, no providers)
+        env:
+          RUNQ_CAPTURE_UI: '1'
+        run: node tools/browser-e2e.mjs
+      - name: Publish RunQ browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runq-ui-browser-captures
+          path: artifacts/runq-ui/*.png
+          if-no-files-found: warn
+          retention-days: 14
