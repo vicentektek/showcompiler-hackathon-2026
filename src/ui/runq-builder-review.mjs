@@ -56,7 +56,15 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
  const foot=B('',()=>suggestFeet());
  const wav=B('',()=>{const ids=selectedCues();if(ids.length!==1){status.textContent=S('Selecciona un solo cue','Select one cue');return;}document.dispatchEvent(new CustomEvent('runq:prompt-import-cue',{detail:{cueId:ids[0]}}));});
  const approveAll=B('',()=>review('APPROVE',getState().project.proposals.filter(p=>p.status==='PENDING').map(p=>p.id)));
- toolbar.append(approve,approveAll,reject,undo,suggest,suggestSelected,foot,undoFeet,wav);
+ const mainActions=E('div','rq-review-main-actions');
+ const selectionActions=E('div','rq-review-selected-actions');
+ const more=E('details','rq-review-more-tools');
+ more.id='rqReviewMoreTools';
+ const moreLabel=E('summary','',S('Más herramientas','More tools'));
+ more.append(moreLabel,undo,undoFeet);
+ mainActions.append(approveAll,suggest,foot);
+ selectionActions.append(approve,reject,suggestSelected,wav);
+ toolbar.append(mainActions,selectionActions,more);
  const status=E('p','rq-review-message');status.id='rqReviewMessage';status.setAttribute('role','status');
  const list=E('div','rq-review-list');list.id='rqReviewList';
  const footPreview=E('section','rq-review-foot-preview');footPreview.id='rqReviewTriggerPreview';footPreview.hidden=true;
@@ -178,6 +186,11 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   foot.disabled=(getState()?.project?.cues.length??0)===0;
   wav.disabled=c!==1;
   clear.disabled=selection.size===0;
+  clear.hidden=selection.size===0;
+  selectionActions.hidden=p+c===0;
+  approve.hidden=reject.hidden=p===0;
+  suggestSelected.hidden=c===0;
+  wav.hidden=c!==1;
   suggestSelected.disabled=c===0;
  }
  function suggestFeet(){
@@ -219,7 +232,8 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
     previousProject=state.project.id+'|'+state.project.scriptText+'|'+state.project.cues.length+'|'+state.project.proposals.length;
     selection.clear();planned=null;footPreview.hidden=true;
   }
-  title.textContent=S('Cues y propuestas · revisión','Cues and suggestions · review');
+  title.textContent=S('Prepara los cues','Prepare your cues');
+  moreLabel.textContent=S('Más herramientas','More tools');
   search.placeholder=S('Buscar cue, pie o Lxx','Search cue, trigger or Lxx');
   pickAll.textContent=S('Seleccionar visibles','Select visible');clear.textContent=S('Quitar selección','Clear selection');
   approve.textContent=S('Aprobar selección','Approve selection');
@@ -228,7 +242,7 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   suggest.textContent=S('Sugerir nuevos cues','Suggest new cues');
   suggestSelected.textContent=S('Sugerir mejoras · selección','Suggest changes · selection');
   suggestSelected.disabled=selectedCues().length===0;
-  approveAll.textContent=S('Aprobar todos los pendientes','Approve all pending');
+  approveAll.textContent=S('Aprobar propuestas pendientes','Approve pending suggestions');
   approveAll.disabled=!state.project.proposals.some(p=>p.status==='PENDING');
   foot.textContent=selectedCues().length
     ?S('Proponer pies · selección','Suggest triggers · selected')
