@@ -11,6 +11,7 @@ import {
 } from '../core/showBuilder.mjs';
 import { parseScript } from '../core/script.mjs';
 import {mountUnifiedCueReview} from './runq-builder-review.mjs';
+import {mountScriptQuickReview} from './runq-script-quick-review.mjs';
 
 const STAGE_COPY = Object.freeze({
   en: {
@@ -586,6 +587,17 @@ export function mountShowBuilder(panel, welcome, steps) {
     getState:getShowState,
     onSuggest:()=>generateSuggestions.click(),
   });
+  const quickReview=mountScriptQuickReview(sourceTask,{
+    getState:getShowState,
+    onAdvanced:()=>{
+      if(!currentShow)return;
+      selectedRoute='cue';
+      saveSession(currentShow.project,updateShowBuilderStage(session,'cues'));
+      render();
+      $('rqUnifiedCueReview')?.scrollIntoView({block:'start',behavior:'auto'});
+    }
+  });
+  analysisCard.after(quickReview.section);
   if (legacyHelp) legacyHelp.hidden = true;
   if (legacySeparator) legacySeparator.hidden = true;
   if (legacyAiGrid) legacyAiGrid.hidden = true;
@@ -1051,11 +1063,12 @@ export function mountShowBuilder(panel, welcome, steps) {
     realButton.click();
   });
   reviewAnalysis.addEventListener('click',()=>{
-    if(!currentShow)return;
-    selectedRoute='cue';
-    saveSession(currentShow.project,updateShowBuilderStage(session,'cues'));
-    render();
-    $('rqUnifiedCueReview')?.scrollIntoView({block:'start',behavior:'auto'});
+    // Quick review lives directly below the analysis result: no mandatory
+    // step change or second set of filters and mass-action controls.
+    if(!quickReview.section.hidden){
+      quickReview.section.scrollIntoView({block:'nearest',behavior:'smooth'});
+      quickReview.section.querySelector('[data-quick-approve]')?.focus({preventScroll:true});
+    }
   });
   configureAnalysis.addEventListener('click',()=>{
     if(!currentShow)return;
@@ -1076,6 +1089,11 @@ export function mountShowBuilder(panel, welcome, steps) {
   document.addEventListener('runq:meta-analysis-result',event=>{
     const d=event.detail??{};
     scriptAnalysisUpdate(d.ok?'success':'error',{count:d.count??0,message:d.message??''});
+    if(d.ok){
+      quickReview.render(true);
+      if(!quickReview.section.hidden)
+        quickReview.section.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
   });
   generateSuggestions.addEventListener('click', () => {
     const analyzeButton = $('analyzeMetaBtn');
