@@ -1,6 +1,12 @@
 # RUNQ — Security and repository audit (3 November 2026)
 
-**Status: PARTIAL, NOT CLEARED FOR PUBLICATION.** The source remains private. This is an audit record and a reproducible verification procedure, not a claim that no secret ever reached Git.
+**Status: NOT CLEARED FOR SHARING.** The source remains private. This is an audit record and a reproducible verification procedure, not a claim that no secret ever reached Git.
+
+## Operator-reported Gitleaks review (3 November 2026)
+
+The local operator reports a completed Gitleaks 8.30.1 scan covering 2,283 accessible commits, plus the current working directory and nine extracted ZIP archives. The operator reports two probable sensitive values in a locally ignored configuration file and one historical test-fixture candidate. The historical candidate appears in a test of log redaction and is **likely synthetic**, but its exact scan match still requires private confirmation. No detected values or raw scanner records are published in this document.
+
+**Status: NOT CLEARED FOR SHARING.** Provider-side revocation/rotation of affected credentials and a fresh local scan remain required. The archive scan found no flagged values but does not establish media licensing. The local backup includes ignored files and must remain private. GitHub security alerts and archived CI logs have not been conclusively audited.
 
 ## Scope / immutable source
 
