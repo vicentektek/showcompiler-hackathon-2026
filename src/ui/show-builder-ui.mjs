@@ -40,16 +40,16 @@ const STAGE_COPY = Object.freeze({
     reviewConfig: ['I reviewed the available cue settings', 'I reviewed the available cue settings'],
     noCuesForConfig: ['Add at least one cue before confirming configuration.', 'Add at least one cue before confirming configuration.'],
     step: ['Step {current} of {total}', 'Step {current} of {total}'],
-    sourceTitle: ['Work from the original script', 'Work from the original script'],
-    sourceHelp: ['Import a TXT or select original lines. Source text and L# references stay unchanged.', 'Import a TXT or select original lines. Source text and L# references stay unchanged.'],
-    proposeScriptCues: ['Suggest cues to review', 'Suggest cues to review'],
+    sourceTitle: ['Your script, ready to prepare', 'Your script, ready to prepare'],
+    sourceHelp: ['Import TXT, PDF or DOCX. Then find cues directly from your script; you review every proposal.', 'Import TXT, PDF or DOCX. Then find cues directly from your script; you review every proposal.'],
+    proposeScriptCues: ['Find cues with RUNQ AI', 'Find cues with RUNQ AI'],
     proposeScriptCuesHelp: ['RUNQ will suggest cues from the full script. Review every suggestion before adding it to the show.', 'RUNQ will suggest cues from the full script. Review every suggestion before adding it to the show.'],
     importScript: ['Import script', 'Import script'],
     replaceScript: ['Replace script', 'Replace script'],
     sourceSearch: ['Filter original lines', 'Filter original lines'],
     sourceSearchHint: ['Search by original text or L#', 'Search by original text or L#'],
     selectedCount: ['{count} lines selected · maximum 20', '{count} lines selected · maximum 20'],
-    noScriptLoaded: ['No script yet. Import the original TXT for stable L# references, or continue with audio and manual cues.', 'No script yet. Import the original TXT for stable L# references, or continue with audio and manual cues.'],
+    noScriptLoaded: ['Import a TXT, PDF or DOCX to start, or build your show manually.', 'Import a TXT, PDF or DOCX to start, or build your show manually.'],
     noSearchMatches: ['No original lines match this filter.', 'No original lines match this filter.'],
     showMoreLines: ['Showing {shown} of {total} matching lines. Search to find other source lines.', 'Showing {shown} of {total} matching lines. Search to find other source lines.'],
     createSelected: ['Create cues from selected lines', 'Create cues from selected lines'],
@@ -114,16 +114,16 @@ const STAGE_COPY = Object.freeze({
     reviewConfig: ['He revisado los ajustes disponibles', 'He revisado los ajustes disponibles'],
     noCuesForConfig: ['Añade al menos un cue antes de confirmar la configuración.', 'Añade al menos un cue antes de confirmar la configuración.'],
     step: ['Etapa {current} de {total}', 'Etapa {current} de {total}'],
-    sourceTitle: ['Trabaja desde el guion original', 'Trabaja desde el guion original'],
-    sourceHelp: ['Importa un TXT o selecciona líneas originales. El texto y las referencias L# se conservan.', 'Importa un TXT o selecciona líneas originales. El texto y las referencias L# se conservan.'],
-    proposeScriptCues: ['Proponer cues para revisar', 'Proponer cues para revisar'],
+    sourceTitle: ['Tu guion, listo para preparar', 'Tu guion, listo para preparar'],
+    sourceHelp: ['Importa TXT, PDF o DOCX y encuentra cues directamente en tu guion. Tú revisas cada propuesta.', 'Importa TXT, PDF o DOCX y encuentra cues directamente en tu guion. Tú revisas cada propuesta.'],
+    proposeScriptCues: ['Buscar cues con RUNQ AI', 'Buscar cues con RUNQ AI'],
     proposeScriptCuesHelp: ['RUNQ propondrá cues a partir del guion completo. Revisa cada propuesta antes de añadirla al espectáculo.', 'RUNQ propondrá cues a partir del guion completo. Revisa cada propuesta antes de añadirla al espectáculo.'],
     importScript: ['Importar guion', 'Importar guion'],
     replaceScript: ['Sustituir guion', 'Sustituir guion'],
     sourceSearch: ['Filtrar líneas originales', 'Filtrar líneas originales'],
     sourceSearchHint: ['Busca texto original o L#', 'Busca texto original o L#'],
     selectedCount: ['{count} líneas seleccionadas · máximo 20', '{count} líneas seleccionadas · máximo 20'],
-    noScriptLoaded: ['Aún no hay guion. Importa el TXT original para conservar sus referencias L#, o continúa con audio y cues manuales.', 'Aún no hay guion. Importa el TXT original para conservar sus referencias L#, o continúa con audio y cues manuales.'],
+    noScriptLoaded: ['Importa TXT, PDF o DOCX para empezar, o crea el espectáculo manualmente.', 'Importa TXT, PDF o DOCX para empezar, o crea el espectáculo manualmente.'],
     noSearchMatches: ['Ninguna línea original coincide con este filtro.', 'Ninguna línea original coincide con este filtro.'],
     showMoreLines: ['Se muestran {shown} de {total} líneas coincidentes. Filtra para localizar otras referencias.', 'Se muestran {shown} de {total} líneas coincidentes. Filtra para localizar otras referencias.'],
     createSelected: ['Crear cues desde líneas seleccionadas', 'Crear cues desde líneas seleccionadas'],
@@ -388,6 +388,54 @@ export function mountShowBuilder(panel, welcome, steps) {
   proposeScriptCues.type = 'button';
   const proposeScriptCuesHelp = make('p', 'rq16-builder-task-help');
   proposeScriptCuesHelp.id = 'rqShowBuilderProposeCuesHelp';
+  const scriptActions = make('div', 'rq-script-primary-actions');
+  scriptActions.append(importScript,proposeScriptCues);
+  const scriptSummary = make('div', 'rq-script-import-summary');
+  scriptSummary.id='rqScriptImportSummary';
+  scriptSummary.setAttribute('role','status');
+  const scriptSummaryIcon=make('span','rq-script-import-check','✓');
+  scriptSummaryIcon.setAttribute('aria-hidden','true');
+  const scriptSummaryText=make('div','rq-script-summary-text');
+  const scriptSummaryTitle=make('strong');
+  const scriptSummaryDetails=make('span');
+  scriptSummaryText.append(scriptSummaryTitle,scriptSummaryDetails);
+  scriptSummary.append(scriptSummaryIcon,scriptSummaryText);
+  const analysisCard=make('section','rq-script-analysis-card');
+  analysisCard.id='rqScriptAnalysisCard';
+  analysisCard.dataset.state='idle';
+  analysisCard.setAttribute('role','status');
+  analysisCard.setAttribute('aria-live','polite');
+  analysisCard.setAttribute('aria-atomic','true');
+  const analysisHead=make('div','rq-script-analysis-head');
+  const analysisIcon=make('span','rq-script-analysis-symbol','✦');
+  analysisIcon.setAttribute('aria-hidden','true');
+  const analysisTexts=make('div','rq-script-analysis-texts');
+  const analysisTitle=make('strong');
+  analysisTitle.id='rqScriptAnalysisTitle';
+  const analysisDetail=make('p');
+  analysisDetail.id='rqScriptAnalysisDetail';
+  analysisTexts.append(analysisTitle,analysisDetail);
+  analysisHead.append(analysisIcon,analysisTexts);
+  const analysisProgress=make('progress','rq-script-analysis-progress');
+  analysisProgress.id='rqScriptAnalysisProgress';
+  analysisProgress.removeAttribute('value'); // indeterminate: Meta reports windows, not percentage of inference
+  analysisProgress.setAttribute('aria-label','Script cue analysis in progress');
+  const analysisScope=make('div','rq-script-analysis-scope');
+  analysisScope.id='rqScriptAnalysisScope';
+  const analysisButtons=make('div','rq-script-analysis-actions');
+  const reviewAnalysis=make('button','btn accent small');
+  reviewAnalysis.id='rqScriptReviewCues';
+  reviewAnalysis.type='button';
+  const configureAnalysis=make('button','btn subtle small');
+  configureAnalysis.id='rqScriptConfigureAnalysis';
+  configureAnalysis.type='button';
+  analysisButtons.append(reviewAnalysis,configureAnalysis);
+  analysisCard.append(analysisHead,analysisProgress,analysisScope,analysisButtons);
+  const scriptExplorer=make('details','rq-script-explorer');
+  scriptExplorer.id='rqScriptExplorer';
+  const explorerSummary=make('summary','','Original script · lines and manual cues');
+  explorerSummary.id='rqScriptExplorerSummary';
+  scriptExplorer.append(explorerSummary);
   const sourceSearch = make('input', 'rq16-builder-source-search');
   sourceSearch.id = 'rqShowBuilderSourceSearch';
   sourceSearch.type = 'search';
@@ -412,8 +460,9 @@ export function mountShowBuilder(panel, welcome, steps) {
   detectScript.id = 'rqShowBuilderDetectScript';
   detectScript.type = 'button';
   sourceActions.append(createSelected, analyzeSelected, detectScript);
-  sourceTask.append(sourceTitle, sourceHelp, importScript, proposeScriptCues, proposeScriptCuesHelp, sourceSearchLabel, sourceSearch,
-    sourceList, selectionStatus, sourceActions);
+  scriptExplorer.append(sourceSearchLabel,sourceSearch,sourceList,selectionStatus,sourceActions);
+  sourceTask.append(sourceTitle,sourceHelp,scriptSummary,scriptActions,proposeScriptCuesHelp,
+    analysisCard,scriptExplorer);
 
   const cueTask = make('section', 'rq16-builder-task');
   cueTask.id = 'rqShowBuilderCueTask';
