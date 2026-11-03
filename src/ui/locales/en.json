@@ -552,5 +552,15 @@
   "audioBatch.fileLimit": "Up to 100 files per batch; each up to 20 MB and 10 minutes.",
   "audioBatch.missing": "Invalid files are not added to the library. Other files still import.",
   "workspace.description.soundlab": "Prepare and review sound effects before manual import. No generation or cue playback starts automatically.",
-  "proposals.providerDetails": "AI connection and data sharing"
+  "proposals.providerDetails": "AI connection and data sharing",
+  "errors.SCRIPT_UNSUPPORTED_FORMAT": "Select a TXT, text-based PDF or DOCX. Legacy .doc is not supported; save it as .docx first.",
+  "errors.SCRIPT_DOCUMENT_TOO_LARGE": "The document is empty or larger than 16 MB.",
+  "errors.SCRIPT_TEXT_TOO_LARGE": "The script contains too much text (maximum one million characters).",
+  "errors.SCRIPT_DOCUMENT_UNREADABLE": "The document could not be read.",
+  "errors.SCRIPT_NO_EXTRACTABLE_TEXT": "No selectable text was found. Scanned PDFs require OCR before importing.",
+  "errors.SCRIPT_INVALID_UTF8": "TXT files must contain valid UTF-8 text.",
+  "errors.SCRIPT_INVALID_DOCX": "This Word file is invalid or not a DOCX document.",
+  "errors.SCRIPT_INVALID_PDF": "This PDF file is invalid.",
+  "errors.SCRIPT_PDF_PAGE_LIMIT": "PDF import supports a maximum of 120 pages.",
+  "errors.DOCX_LIBRARY_UNAVAILABLE": "Word import could not load its local parser. Run npm install and restart RUNQ."
 }
