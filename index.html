@@ -280,7 +280,7 @@
           <label class="field" for="showName" data-i18n="script.showName">Show name</label>
           <input id="showName" type="text" maxlength="120" data-i18n-placeholder="script.showNamePlaceholder" placeholder="New show" value="New show">
           <div class="line-actions">
-            <button id="importScriptBtn" type="button" class="btn accent" data-i18n="script.import">Import .txt</button>
+            <button id="importScriptBtn" type="button" class="btn accent" data-i18n="script.import">Import TXT, PDF or DOCX</button>
             <span class="caption" data-i18n="script.importHint">UTF-8 TXT, up to 1 MB</span>
           </div>
           <div class="subheading">
@@ -793,7 +793,7 @@
     </main>
     <footer data-i18n="footer">Hackathon prototype · Local audio · Meta AI uses an external service only with consent · Save JSON to keep your changes</footer>
   </div>
-  <input id="scriptFileInput" type="file" accept=".txt,text/plain" hidden>
+  <input id="scriptFileInput" type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
   <input id="projectFileInput" type="file" accept=".json,application/json" hidden>
   <input id="bundleFileInput" type="file" accept=".zip,.showcompiler.zip,application/zip" hidden>
   <input id="audioFileInput" type="file" accept=".wav,.mp3,.ogg,.m4a,.aac,.flac,audio/*" hidden>
