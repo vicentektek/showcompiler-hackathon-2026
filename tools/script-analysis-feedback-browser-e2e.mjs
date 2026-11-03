@@ -67,15 +67,22 @@ try{
  await page.waitForFunction(()=>document.querySelector('#rqScriptAnalysisScope')?.textContent?.includes('window'));
  await page.waitForFunction(()=>document.querySelector('#rqScriptAnalysisCard')?.dataset.state==='success');
  assert.equal(await page.locator('#rqScriptAnalysisProgress').isVisible(),false);
- assert.equal(await page.locator('#rqScriptReviewCues').isVisible(),true);
+ assert.equal(await page.locator('#rqScriptReviewCues').isVisible(),false,
+   'No duplicate CTA between completed analysis and the suggestions themselves');
  assert.equal(calls,1,'One click must produce exactly one Meta request');
  assert.equal(await page.locator('#rqScriptQuickReview').isVisible(),true,
    'Suggestions appear directly on From the Script');
+ assert.equal(await page.locator('#rqScriptAnalysisCard').isVisible(),false,
+   'Completed analysis collapses into the actual review, removing duplicate status panels');
+ assert.match(await page.locator('#rqScriptQuickProgressText').innerText(),/Reviewed 0 of 3/);
  const rows=page.locator('[data-script-proposal]');
- assert.equal(await rows.count(),3);
- await page.locator('#rqScriptReviewCues').click();
- assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project',
-   'Review suggestions never forces a switch to the crowded Cues stage');
+ assert.equal(await rows.count(),1,'Focus on one decision instead of three full cards');
+ assert.match(await page.locator('#rqScriptQuickShowMore').textContent(),/View all suggestions \(3\)/);
+ await page.locator('#rqScriptQuickShowMore').click();
+ assert.equal(await rows.count(),3,'The complete list is still available on request');
+ await page.locator('#rqScriptQuickShowMore').click();
+ assert.equal(await rows.count(),1);
+ assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project');
  const first=rows.first();
  await first.locator('[data-quick-edit]').click();
  await first.locator('.rq-script-quick-edit-form input').fill('Puerta · propuesta corregida');
@@ -90,7 +97,20 @@ try{
    return s?.project?.cues.length===1;
  });
  assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project');
- assert.equal(await rows.count(),2);
+ assert.equal(await rows.count(),1,'The next suggestion replaces the approved card in the same position');
+ assert.match(await page.locator('#rqScriptQuickProgressText').innerText(),/Reviewed 1 of 3/);
+ assert.equal(await page.locator('#rqScriptQuickUndo').isVisible(),true);
+ await page.locator('#rqScriptQuickUndo').click();
+ await page.waitForFunction(()=>{
+   let s;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:v=>s=v}}));
+   return s?.project?.cues.length===0;
+ });
+ assert.match(await page.locator('#rqScriptQuickProgressText').innerText(),/Reviewed 0 of 3/);
+ await rows.first().locator('[data-quick-approve]').click();
+ await page.waitForFunction(()=>{
+   let s;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:v=>s=v}}));
+   return s?.project?.cues.length===1;
+ });
  page.once('dialog',dialog=>void dialog.accept());
  await page.locator('#rqScriptQuickApproveAll').click();
  await page.waitForFunction(()=>{
