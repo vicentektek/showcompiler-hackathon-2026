@@ -64,7 +64,7 @@ try{
  // The same row opens the native local WAV picker without switching workspace.
  const chooserPromise=page.waitForEvent('filechooser');
  await page.locator('[data-review-cue] .rq-review-row-actions button').first().click();
- (await chooserPromise).setFiles({name:'door-inline.wav',mimeType:'audio/wav',buffer:pcm()});
+ await (await chooserPromise).setFiles({name:'door-inline.wav',mimeType:'audio/wav',buffer:pcm()});
  await page.waitForFunction(()=>{
   let s;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:x=>{s=x;}}}));
   return s?.project.cues[0]?.actions[0]?.type==='PLAY' &&
