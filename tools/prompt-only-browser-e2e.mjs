@@ -37,6 +37,10 @@ try {
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   assert.equal(await page.locator('.rq10-integrated-lab').isVisible(),true);
   assert.equal(await page.locator('#rqPromptImportCue').isVisible(),true);
+  // The demo must no longer expose controls from the disabled audio generator.
+  for(const selector of ['#generateForm > .sfx-row-fields','#sfxAdvanced','#sfxScriptDetails',
+    '.rq-prompt-only-legacy-jobs','.sfx-audio-panel'])
+    assert.equal(await page.locator(selector).isVisible(),false,`${selector} must stay hidden in prompt-only mode`);
   assert.equal(await page.locator('#sfxReconnectBtn').isVisible(),false);
   assert.equal(await page.locator('#generateBtn').isDisabled(),true);
   await page.evaluate(()=>{
