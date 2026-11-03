@@ -37,7 +37,8 @@ The **complete submission package** (approved runnable code + these release docu
 ```sh
 git clone https://github.com/vicentektek/showcompiler-hackathon-2026.git
 cd showcompiler-hackathon-2026
-git checkout b4e7df724d569c1d5af7682540c206ff3fb97701
+git switch release/runq-indie-submission-2026
+# Same runnable app as frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
 npm install --no-audit --no-fund
 npm run dev
 ```
