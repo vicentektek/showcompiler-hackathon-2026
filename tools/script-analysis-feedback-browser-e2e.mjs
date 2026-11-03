@@ -69,11 +69,37 @@ try{
  assert.equal(await page.locator('#rqScriptAnalysisProgress').isVisible(),false);
  assert.equal(await page.locator('#rqScriptReviewCues').isVisible(),true);
  assert.equal(calls,1,'One click must produce exactly one Meta request');
+ assert.equal(await page.locator('#rqScriptQuickReview').isVisible(),true,
+   'Suggestions appear directly on From the Script');
+ const rows=page.locator('[data-script-proposal]');
+ assert.equal(await rows.count(),3);
  await page.locator('#rqScriptReviewCues').click();
- assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'cues');
- assert.ok(await page.locator('[data-review-proposal]').count()>0);
+ assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project',
+   'Review suggestions never forces a switch to the crowded Cues stage');
+ const first=rows.first();
+ await first.locator('[data-quick-edit]').click();
+ await first.locator('.rq-script-quick-edit-form input').fill('Puerta · propuesta corregida');
+ // A routine show-status refresh must not lose the text being edited.
+ await page.evaluate(()=>document.dispatchEvent(new CustomEvent('runq:show-state-changed')));
+ assert.equal(await first.locator('.rq-script-quick-edit-form input').inputValue(),'Puerta · propuesta corregida');
+ await first.locator('.rq-script-quick-edit-form button').first().click();
+ assert.equal(await rows.first().locator('strong').innerText(),'Puerta · propuesta corregida');
+ await rows.first().locator('[data-quick-approve]').click();
+ await page.waitForFunction(()=>{
+   let s;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:v=>s=v}}));
+   return s?.project?.cues.length===1;
+ });
+ assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project');
+ assert.equal(await rows.count(),2);
+ page.once('dialog',dialog=>void dialog.accept());
+ await page.locator('#rqScriptQuickApproveAll').click();
+ await page.waitForFunction(()=>{
+   let s;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:v=>s=v}}));
+   return s?.project?.proposals.every(p=>p.status!=='PENDING')&&s?.project?.cues.length===3;
+ });
+ assert.equal(await rows.count(),0);
+ assert.match(await page.locator('#rqScriptQuickReview').textContent(),/Review complete/);
  // An explicit repeat error must be shown inline, not hidden in the provider panel.
- await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="project"]').click();
  failNext=true;
  await page.locator('#rqShowBuilderProposeCues').click();
  await page.waitForFunction(()=>document.querySelector('#rqScriptAnalysisCard')?.dataset.state==='error');
@@ -82,7 +108,7 @@ try{
  assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project');
  assert.equal(calls,2);
  assert.deepEqual(errors,[]);
- console.log('SCRIPT_ANALYSIS_FEEDBACK_PASS: import, visible real progress, review, explicit retry error, no paid calls');
+ console.log('SCRIPT_ANALYSIS_FEEDBACK_PASS: progress, inline edit, approve and bulk decision, explicit error, no paid calls');
 }finally{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));
