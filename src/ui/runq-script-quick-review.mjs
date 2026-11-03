@@ -81,7 +81,11 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
   message.textContent=result.ok
    ?copy('Cambios guardados; aún debes aprobar esta propuesta.','Changes saved; suggestion still needs approval.')
    :copy('No se pudo guardar: ','Could not save: ')+(result.error??'');
-  if(result.ok){undoAvailable=false;render(true);}
+  if(result.ok){
+   undoAvailable=false;render(true);
+   const edited=[...list.children].find(row=>row.dataset.scriptProposal===p.id);
+   edited?.querySelector('[data-quick-approve]')?.focus({preventScroll:true});
+  }
  }
  function proposalRow(p,lines){
   const row=el('article','rq-script-quick-item');
@@ -95,16 +99,23 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
   const evidence=el('span','rq-script-quick-evidence');
   const lineRef=el('span','rq-script-quick-line-ref',line);
   if(line) evidence.append(lineRef);
-  if(excerpt)evidence.append(el('span','',excerpt));
+  if(excerpt){
+   const excerptText=el('span','rq-script-quick-excerpt',excerpt);
+   excerptText.title=excerpt;
+   evidence.append(excerptText);
+  }
   identity.append(evidence);
   const actions=el('div','rq-script-quick-item-actions');
   const accept=el('button','btn accent small',copy('Aprobar','Approve'));
   accept.type='button';accept.dataset.quickApprove=p.id;
+  accept.setAttribute('aria-label',copy('Aprobar propuesta: ','Approve suggestion: ')+p.label);
   accept.addEventListener('click',()=>decide([p.id],'APPROVE'));
   const edit=el('button','btn subtle small',copy('Editar','Edit'));
   edit.type='button';edit.dataset.quickEdit=p.id;
+  edit.setAttribute('aria-label',copy('Editar propuesta: ','Edit suggestion: ')+p.label);
   const reject=el('button','btn subtle small rq-script-quick-reject',copy('Descartar','Discard'));
   reject.type='button';reject.dataset.quickReject=p.id;
+  reject.setAttribute('aria-label',copy('Descartar propuesta: ','Discard suggestion: ')+p.label);
   reject.addEventListener('click',()=>decide([p.id],'REJECT'));
   actions.append(accept,edit,reject);
   head.append(identity,actions);
@@ -157,6 +168,7 @@ export function mountScriptQuickReview(host,{getState,onAdvanced}){
    :copy('Ya puedes configurar sonidos y pies en Cues.',
      'You can now configure sounds and triggers in Cues.');
   const total=pending.length+reviewed;
+  reviewProgress.setAttribute('aria-label',copy('Propuestas revisadas','Suggestions reviewed'));
   reviewProgress.max=Math.max(1,total);
   reviewProgress.value=reviewed;
   reviewProgress.setAttribute('aria-valuetext',reviewed+' / '+total);
