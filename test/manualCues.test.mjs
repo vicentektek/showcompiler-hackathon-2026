@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal} from '../src/core/workspace.mjs';
+import {createNewShow,addAudioReference,assignAudioToCue,replaceCueAudioAsset,addMockProposal,decideProposal,setCueSilent} from '../src/core/workspace.mjs';
 import {insertManualCue,insertManualCueFromScriptLines,insertManualAudioCue,deleteOperatorCue,duplicateOperatorCue,moveOperatorCue,reorderOperatorCue} from '../src/core/manualCues.mjs';
 import {serializeShowProject,deserializeShowProject} from '../src/core/projectPersistence.mjs';
 
@@ -120,4 +120,30 @@ test('drag reorder moves cue before/after target without changing IDs or setting
   assert.deepEqual(reorderOperatorCue(show,one.cueId,one.cueId),show);
   assert.throws(()=>reorderOperatorCue(show,'bad',two.cueId),/not found/);
   assert.throws(()=>reorderOperatorCue(show,one.cueId,two.cueId,'middle'),/position/);
+});
+
+test('intentional SILENT cue survives portable JSON and can later receive audio',()=>{
+  let show=createNewShow({name:'Silent scene'});
+  const created=insertManualCue(show,{label:'Actor pauses in silence'});
+  show=setCueSilent(created.project,created.cueId);
+  assert.deepEqual(show.cues[0].actions,[{type:'SILENT'}]);
+  assert.deepEqual(deserializeShowProject(serializeShowProject(show)),show);
+  show=addAudioReference(show,'after-pause.wav');
+  show=assignAudioToCue(show,created.cueId,show.assets[0].id);
+  assert.deepEqual(show.cues[0].actions,[{type:'PLAY',assetId:show.assets[0].id}]);
+});
+test('approved Meta cue may be explicitly SILENT without losing approved provenance',()=>{
+  let show=createNewShow({scriptText:'(An actor pauses.)'});
+  show=addMockProposal(show,{lineId:'L1',label:'Pause'});
+  show=decideProposal(show,show.proposals[0].id,'APPROVE');
+  const cueId=show.cues[0].id;
+  show=setCueSilent(show,cueId);
+  assert.deepEqual(show.cues[0].actions,[{type:'SILENT'}]);
+  assert.deepEqual(show.proposals[0].actions,[{type:'SILENT'}]);
+  assert.equal(show.proposals[0].status,'APPROVED');
+  assert.deepEqual(deserializeShowProject(serializeShowProject(show)),show);
+  show=addAudioReference(show,'optional.wav');
+  show=assignAudioToCue(show,cueId,show.assets[0].id);
+  assert.equal(show.cues[0].actions[0].type,'PLAY');
+  assert.equal(show.proposals[0].actions[0].type,'PLAY');
 });
