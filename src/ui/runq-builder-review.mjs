@@ -17,8 +17,16 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   const o=E('option','',S(es,en));o.value=v;filter.append(o);
  }
  const search=E('input');search.type='search';search.id='rqReviewSearch';search.setAttribute('aria-label',S('Buscar cues y propuestas','Search cues and proposals'));
- const pickAll=B(S('Seleccionar visibles','Select visible'),()=>{for(const row of shown(getState().project))selection.add(row.kind+':'+row.id);render();});
- const clear=B(S('Quitar selección','Clear selection'),()=>{selection.clear();render();});
+ const pickAll=B(S('Seleccionar visibles','Select visible'),()=>{
+  for(const row of shown(getState().project))selection.add(row.kind+':'+row.id);
+  list.querySelectorAll('[data-review-select]').forEach(c=>{c.checked=selection.has(c.dataset.reviewSelect);});
+  selectionText();
+ });
+ const clear=B(S('Quitar selección','Clear selection'),()=>{
+  selection.clear();
+  list.querySelectorAll('[data-review-select]').forEach(c=>{c.checked=false;});
+  selectionText();
+ });
  controls.append(filter,search,pickAll,clear);
  const toolbar=E('div','rq-review-bulk');
  const approve=B('',()=>review('APPROVE'),'btn accent small');
@@ -30,15 +38,32 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   if(a.ok)render();
  });
  const suggest=B('',()=>onSuggest());
+ const suggestSelected=B('',()=>{
+  const state=getState(),ids=selectedCues();
+  if(!ids.length){status.textContent=S('Selecciona cues para mejorar','Select cues to improve');return;}
+  const selected=state.project.cues.filter(c=>ids.includes(c.id));
+  document.dispatchEvent(new CustomEvent('runq:show-builder-ask-ai'));
+  const prompt=document.getElementById('rqAgentPrompt');
+  if(prompt){
+   const items=selected.map(c=>'Q'+c.number+' '+c.label+' ('+c.sourceLineIds.join(', ')+')').join('; ');
+   prompt.value=S('Propón mejoras revisables de nombre, pie de operación y diseño sonoro para los cues seleccionados: ',
+     'Suggest reviewable name, operator trigger and sound-design improvements for these selected cues: ')+items+
+     S('. No apliques cambios ni ejecutes GO.','. Do not apply changes or execute GO.');
+   prompt.dispatchEvent(new Event('input',{bubbles:true}));
+   prompt.focus();
+  }
+ });
  const foot=B('',()=>suggestFeet());
  const wav=B('',()=>{const ids=selectedCues();if(ids.length!==1){status.textContent=S('Selecciona un solo cue','Select one cue');return;}document.dispatchEvent(new CustomEvent('runq:prompt-import-cue',{detail:{cueId:ids[0]}}));});
- toolbar.append(approve,reject,undo,suggest,foot,undoFeet,wav);
+ const approveAll=B('',()=>review('APPROVE',getState().project.proposals.filter(p=>p.status==='PENDING').map(p=>p.id)));
+ toolbar.append(approve,approveAll,reject,undo,suggest,suggestSelected,foot,undoFeet,wav);
  const status=E('p','rq-review-message');status.id='rqReviewMessage';status.setAttribute('role','status');
  const list=E('div','rq-review-list');list.id='rqReviewList';
  const footPreview=E('section','rq-review-foot-preview');footPreview.id='rqReviewTriggerPreview';footPreview.hidden=true;
  root.append(header,controls,toolbar,status,list,footPreview);
  host.prepend(root);
  const selection=new Set();let previousProject=null,planned=null;
+ let lastPaintedProject=null,lastPaintedLocale=null;
  function all(project){return[
   ...project.proposals.filter(p=>p.status==='PENDING').map(p=>({kind:'proposal',id:p.id,data:p})),
   ...project.cues.map(c=>({kind:'cue',id:c.id,data:c}))
@@ -153,6 +178,7 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   foot.disabled=(getState()?.project?.cues.length??0)===0;
   wav.disabled=c!==1;
   clear.disabled=selection.size===0;
+  suggestSelected.disabled=c===0;
  }
  function suggestFeet(){
   const state=getState();if(!state?.project)return;
@@ -199,7 +225,11 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   approve.textContent=S('Aprobar selección','Approve selection');
   reject.textContent=S('Rechazar selección','Reject selection');
   undo.textContent=S('Deshacer revisión','Undo review');
-  suggest.textContent=S('Sugerir más cues','Suggest more cues');
+  suggest.textContent=S('Sugerir nuevos cues','Suggest new cues');
+  suggestSelected.textContent=S('Sugerir mejoras · selección','Suggest changes · selection');
+  suggestSelected.disabled=selectedCues().length===0;
+  approveAll.textContent=S('Aprobar todos los pendientes','Approve all pending');
+  approveAll.disabled=!state.project.proposals.some(p=>p.status==='PENDING');
   foot.textContent=selectedCues().length
     ?S('Proponer pies · selección','Suggest triggers · selected')
     :S('Proponer pies · todos sin pie','Suggest triggers · all missing');
@@ -213,9 +243,16 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   for(const x of items)list.append(x.kind==='cue'?cueCard(x.data,state.project,lines):proposalCard(x.data,lines));
   if(!items.length)list.append(E('p','rq-review-empty',S('No hay propuestas ni cues para mostrar.','No cues or suggestions to show.')));
   selectionText();
+  lastPaintedProject=state.project;
+  lastPaintedLocale=S('es','en');
  }
  filter.addEventListener('change',render);search.addEventListener('input',render);
- document.addEventListener('runq:show-state-changed',render);
+ // Re-render only for actual project/locale changes. Frequent engine and UI
+ // status refreshes must not destroy an operator's open unsaved cue form.
+ document.addEventListener('runq:show-state-changed',()=>{
+  const state=getState();
+  if(state?.project!==lastPaintedProject||S('es','en')!==lastPaintedLocale)render();
+ });
  document.getElementById('uiLocaleSelect')?.addEventListener('change',render);
  render();
 }
