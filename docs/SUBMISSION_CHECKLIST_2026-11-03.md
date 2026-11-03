@@ -1,0 +1,39 @@
+# RUNQ — Submission control sheet
+
+## Verified facts (3 November 2026)
+
+- [x] Operator chose the build on branch `feat/runq-cue-sound-design-review-2026-11-03` as final.
+- [x] Exact runnable commit identified: `b4e7df724d569c1d5af7682540c206ff3fb97701`.
+- [x] GitHub Actions Core tests for that commit completed successfully (run `41690922577`).
+- [x] No new provider requests are required to run offline tests.
+- [x] Current source repository remains **private**; verify judge access before submission.
+- [x] Docs deliberately distinguish disabled new Modal generation from optional Meta Muse analysis.
+- [ ] Final video rendered and uploaded; URL tested from an unauthenticated browser.
+- [ ] Final screenshots captured from frozen build, without credentials.
+- [ ] Official authenticated portal's **actual** required fields, duration and disclosure requirements checked and filled. Do not assume a generic Devpost form.
+- [ ] Submission link points to a **judge-accessible version** of the exact frozen code or an explicitly approved source snapshot. Do not change repository visibility without owner approval.
+- [ ] Secret scan and license/media-rights review completed, including Git history and video stills.
+- [ ] New-profile clean install and start validated on final source.
+- [ ] If demonstrating Muse, the on-screen model result and any performance number are verifiable; otherwise mark route as offline demonstration.
+- [ ] If demonstrating live voice, record actual microphone result; do not substitute a simulator without labeling it.
+- [ ] Final captions, audio levels and resolution reviewed.
+- [ ] Submission confirmation/receipt saved outside repository.
+
+## Official schedule and pending portal verification
+
+Meta's public event page states **November 4, 2026, 9:00 PM Eastern Time** for submission. On that date US Eastern is EST (UTC-5), so this is **November 5, 03:00 CET (Europe/Madrid)**. Treat the authenticated portal as authoritative if rules or form requirements have changed.
+
+Official event page: https://dev.meta.ai/events/global-hackathon
+
+The event page describes the **Indie developer** track as assessed on creativity, technical ambition and whether it works. Do not borrow another competition's video-length, public-repo, or Devpost-specific requirements.
+
+## Release integrity
+
+The documentation-only branch `docs/runq-final-submission-2026-11-03` originates from the exact frozen commit. Never describe later docs-only commits as a new tested program version. If docs are merged, retain the runnable build SHA in the release notes.
+
+### After the video is ready
+1. Add its verified URL to `SUBMISSION_COPY_2026-11-03.md` and check privacy/embedding permissions.
+2. Add approved screenshots and only permitted/licensed public assets, if the portal needs them.
+3. Confirm the exact repository/tag/archive judges will see is equivalent to frozen SHA.
+4. Submit through the official authenticated portal, not an unrelated hackathon page.
+5. Save the final receipt or confirmation page.
