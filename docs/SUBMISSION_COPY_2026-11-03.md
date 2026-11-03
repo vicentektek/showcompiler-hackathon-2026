@@ -52,7 +52,7 @@ JavaScript ES modules, Node.js, browser Web Audio, Meta Model API (Muse Spark), 
 
 ## Link placeholders
 - Video: **[ADD PUBLIC OR UNLISTED VIDEO URL; verify accessibility]**
-- Source: **[ADD APPROVED JUDGE-ACCESSIBLE GITHUB URL OR EXACT ZIP RELEASE]**
+- Source candidate: [RUNQ final submission branch](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026) — **currently private; approve judge access before supplying this link**.
 - Screenshots: **[ADD REAL FINAL-BUILD CAPTURES]**
 - Live demo: **[ADD ONLY IF ACTUALLY DEPLOYED AND TESTED]**
 
