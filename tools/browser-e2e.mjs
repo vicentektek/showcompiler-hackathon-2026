@@ -639,10 +639,10 @@ try {
   assert.equal(await page.locator('.rq5-ai-review #proposalList').count(),1);
   await capture('10-ai-three-pane.png');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
-  // Current Show Builder exposes the Meta tools inside a native disclosure.
-  // Open the user-visible control rather than the removed legacy button.
-  if(!(await page.locator('#rqShowBuilderAiHelp').evaluate(element=>element.open)))
-    await page.locator('#rqShowBuilderAiHelp > summary').click();
+  // The provider panel lives inside the cue-stage native disclosure;
+  // the separate AI Help disclosure controls only the conversational assistant.
+  if(!(await page.locator('#rqShowBuilderAiControls').evaluate(element=>element.open)))
+    await page.locator('#rqShowBuilderAiControls > summary').click();
   await page.locator('#modelProviderSelect').selectOption('baseten');
   await page.locator('#modelProviderSelect').selectOption('meta');
   await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
