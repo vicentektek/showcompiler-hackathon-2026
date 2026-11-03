@@ -77,6 +77,7 @@ For a live Meta Muse demonstration, configure the server-side `MODEL_API_KEY` ac
 - [Feature status / future audio integration](docs/FEATURE_STATUS_AND_FUTURE_AUDIO_2026-11-03.md)
 - [Dated development history and experiments](docs/DEVELOPMENT_HISTORY_INDEX_2026-11-03.md)
 - [Final repository branch map, historical PRs and judge handoff](docs/REPOSITORY_HANDOFF_2026-11-03.md)
+- [Approved RUNQ logo and final visual identity](docs/BRAND_IDENTITY_FINAL_2026-11-03.md)
 
 ## Technology and disclosure
 
