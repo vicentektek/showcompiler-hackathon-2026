@@ -70,12 +70,10 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
   const progress = makeProgress('rqPreparationProgress');
   bar.append(heading, subtitle, steps, actions, includeLabel, progress.box, preparationFeedback, results); panel.prepend(bar);
   const placeToolbar = () => {
-    const welcome = $('rq16AIWelcome');
-    if (!welcome) return false;
-    const description = welcome.querySelector('p');
-    if (description) description.hidden = true;
-    bar.dataset.integrated = 'true';
-    welcome.after(bar);
+    const slot=$('rqShowBuilderAutomationSlot');
+    if(!slot)return false;
+    bar.dataset.integrated='false';
+    slot.append(bar);
     return true;
   };
   if (!placeToolbar()) {
