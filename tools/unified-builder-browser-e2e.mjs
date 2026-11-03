@@ -48,7 +48,7 @@ try{
  await first.locator('[data-review-select]').check();
  await page.locator('#rqReviewTriggerPreview').count();
  await page.locator('#rqReviewList').waitFor({state:'visible'});
- await page.getByRole('button',{name:'Suggest triggers',exact:true}).click();
+ await page.getByRole('button',{name:/Suggest triggers/}).click();
  assert.equal(await page.locator('#rqReviewTriggerPreview').isVisible(),true);
  assert.match(await page.locator('#rqReviewTriggerPreview').textContent(),/L2/);
  await page.locator('#rqReviewTriggerPreview .rq-review-row-actions .btn.accent').click();
