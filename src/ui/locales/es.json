@@ -552,5 +552,15 @@
   "audioBatch.fileLimit": "Máximo 100 archivos por lote; cada uno hasta 20 MB y 10 minutos.",
   "audioBatch.missing": "Los archivos que fallen no se añaden a la biblioteca; los demás continúan.",
   "workspace.description.soundlab": "Prepara y revisa efectos de sonido antes de importarlos manualmente. La generación y el GO no se activan automáticamente.",
-  "proposals.providerDetails": "Conexión de IA y datos compartidos"
+  "proposals.providerDetails": "Conexión de IA y datos compartidos",
+  "errors.SCRIPT_UNSUPPORTED_FORMAT": "Selecciona TXT, PDF con texto o DOCX. El formato .doc antiguo no se admite; guárdalo como .docx.",
+  "errors.SCRIPT_DOCUMENT_TOO_LARGE": "El documento está vacío o supera los 16 MB.",
+  "errors.SCRIPT_TEXT_TOO_LARGE": "El guion supera el millón de caracteres.",
+  "errors.SCRIPT_DOCUMENT_UNREADABLE": "No se pudo leer el documento.",
+  "errors.SCRIPT_NO_EXTRACTABLE_TEXT": "No se encontró texto seleccionable. Los PDF escaneados necesitan OCR antes de importarlos.",
+  "errors.SCRIPT_INVALID_UTF8": "Los TXT deben usar codificación UTF-8 válida.",
+  "errors.SCRIPT_INVALID_DOCX": "El documento Word no es un DOCX válido.",
+  "errors.SCRIPT_INVALID_PDF": "El PDF no es válido.",
+  "errors.SCRIPT_PDF_PAGE_LIMIT": "El límite para importar PDF es de 120 páginas.",
+  "errors.DOCX_LIBRARY_UNAVAILABLE": "No se pudo cargar el lector local de Word. Ejecuta npm install y reinicia RUNQ."
 }
