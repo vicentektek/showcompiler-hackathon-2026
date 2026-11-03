@@ -46,6 +46,13 @@ Official event page: https://dev.meta.ai/events/global-hackathon
 
 The event page describes the **Indie developer** track as assessed on creativity, technical ambition and whether it works. Do not borrow another competition's video-length, public-repo, or Devpost-specific requirements.
 
+## Final GitHub branch and PR handoff
+
+- [x] Dedicated source branch `release/runq-indie-submission-2026` contains the frozen application and the final documentation; functional source files unchanged.
+- [x] PR #135 and #136 identified as historical feature stages, PR #137 as documentation review; no blanket merge into `main`.
+- [x] Complete [release branch map](REPOSITORY_HANDOFF_2026-11-03.md) records the older divergent `release/runq-hackathon-2026` branch.
+- [ ] GitHub default branch still points to older `main`. After security approval, owner must select `release/runq-indie-submission-2026` as the default, or explicitly adopt another documented judge-accessible routing solution.
+
 ## Release integrity
 
 The documentation-only branch `docs/runq-final-submission-2026-11-03` originates from the exact frozen commit. Never describe later docs-only commits as a new tested program version. If docs are merged, retain the runnable build SHA in the release notes.
