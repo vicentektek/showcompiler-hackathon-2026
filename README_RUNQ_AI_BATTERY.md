@@ -1,3 +1,5 @@
+> **ARCHIVED EVALUATION EXPERIMENT — NOT PART OF THE FINAL SUBMISSION.** This document describes an earlier 320-request live Meta QA campaign. Running the launcher can incur real API charges and must not be done to validate or record the frozen RUNQ demo. The selected build is `b4e7df724d569c1d5af7682540c206ff3fb97701`; see [final release notes](docs/SUBMISSION_RELEASE_2026-11-03.md) and [experiment history](docs/DEVELOPMENT_HISTORY_INDEX_2026-11-03.md). No historical scripts or evidence have been deleted.
+
 > **2026-11-02: Meta y Modal sin topes locales de presupuesto**, tanto en uso manual/demo como en baterias CLI. Las cifras anteriores son historicas. Ver [cambio y verificacion](docs/META_MODAL_UNLIMITED_2026-11-02.md).
 
 # RUNQ AI Battery v1 — 320 solicitudes reales con un solo comando
