@@ -392,7 +392,7 @@
   "workspace.homeNewDetail": "Begin with an empty project and import a script.",
   "workspace.homeOpenZip": "Open complete show ZIP",
   "workspace.homeOpenZipDetail": "Restore the original sounds, source text and approved cues together.",
-  "workspace.homeImport": "Import a TXT script",
+  "workspace.homeImport": "Import a script (TXT, PDF, DOCX)",
   "workspace.homeImportDetail": "Keep the original text and add sound suggestions afterward.",
   "workspace.homeDemo": "Try original audio demo",
   "workspace.homeDemoDetail": "Three synthesized WAV effects and three manually approved cues. Fully offline.",
