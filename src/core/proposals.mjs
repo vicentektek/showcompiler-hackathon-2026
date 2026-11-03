@@ -18,7 +18,7 @@ export function validateCueProposals(proposals, scriptLines, assetIds, options =
     if (typeof p.label !== 'string' || !p.label.trim() || p.label.length > 200) { errors.push(`${where}: invalid label`); continue; }
     if (!Array.isArray(p.sourceLineIds) || p.sourceLineIds.length === 0 || p.sourceLineIds.some(id => typeof id !== 'string' || !knownLines.has(id))) { errors.push(`${where}: unknown or missing script reference`); continue; }
     if (!Array.isArray(p.actions) || p.actions.length === 0 || p.actions.length > 12) { errors.push(`${where}: invalid action count`); continue; }
-    const badAction = p.actions.some(action => !action || typeof action !== 'object' || Array.isArray(action) || (action.type === 'PLAY' ? typeof action.assetId !== 'string' || !knownAssets.has(action.assetId) : action.type === 'PLAN_AUDIO' ? typeof action.prompt !== 'string' || !action.prompt.trim() || action.prompt.length > 500 || !['DEFER', 'GENERATE'].includes(action.resolution) || Object.keys(action).some(key => !['type', 'prompt', 'resolution'].includes(key)) : true));
+    const badAction = p.actions.some(action => !action || typeof action !== 'object' || Array.isArray(action) || (action.type === 'PLAY' ? typeof action.assetId !== 'string' || !knownAssets.has(action.assetId) : action.type === 'SILENT' ? Object.keys(action).some(key => key !== 'type') : action.type === 'PLAN_AUDIO' ? typeof action.prompt !== 'string' || !action.prompt.trim() || action.prompt.length > 500 || !['DEFER', 'GENERATE'].includes(action.resolution) || Object.keys(action).some(key => !['type', 'prompt', 'resolution'].includes(key)) : true));
     if (badAction) { errors.push(`${where}: unsupported action or missing audio asset`); continue; }
     if (p.source !== undefined && !['MANUAL_MOCK', 'META_MODEL_API', 'BASETEN_MUSE_SPARK_OPEN'].includes(p.source)) {
       errors.push(`${where}: invalid suggestion source`);
@@ -26,7 +26,7 @@ export function validateCueProposals(proposals, scriptLines, assetIds, options =
     }
     accepted.push({
       id: p.id, label: p.label, sourceLineIds: [...p.sourceLineIds],
-      actions: p.actions.map(a => a.type === 'PLAY' ? { type: 'PLAY', assetId: a.assetId } : { type: 'PLAN_AUDIO', prompt: a.prompt, resolution: a.resolution }),
+      actions: p.actions.map(a => a.type === 'PLAY' ? { type: 'PLAY', assetId: a.assetId } : a.type === 'SILENT' ? {type:'SILENT'} : { type: 'PLAN_AUDIO', prompt: a.prompt, resolution: a.resolution }),
       status: 'PENDING',
       ...(p.source === undefined ? {} : { source: p.source }),
     });
