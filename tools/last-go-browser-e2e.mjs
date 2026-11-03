@@ -103,6 +103,8 @@ try{
  assert.equal(fixtureRequests.length,1,'One explicit confirmation = one offline contract fixture');
  assert.equal((await read()).cueCount,0,'Model-shaped proposals cannot create approved cues');
  assert.equal((await read()).active.length,0);
+ if(!(await page.locator('#rqBuilderLegacyReview').evaluate(element=>element.open)))
+  await page.locator('#rqBuilderLegacyReview > summary').click();
  for(let index=0;index<3;index++){
   await page.locator('#proposalList').getByRole('button',{name:'Approve',exact:true}).first().click();
  }
