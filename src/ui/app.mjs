@@ -330,7 +330,9 @@ function refreshAudioControls() {
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
     label.closest('.cue-item')?.classList.toggle('cue-playing', playing || stopping);
-    label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
+    const silent=cue.actions.length===1 && cue.actions[0].type==='SILENT';
+    label.textContent = silent ? (uiLocale==='es'?'SILENCIO · GO listo':'SILENCE · GO ready') :
+      t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
   const prepared = show.cues.find(cue => cue.id === operatorQueue.preparedCueId);
   const preparedIndex = show.cues.findIndex(cue => cue.id === operatorQueue.preparedCueId);
