@@ -1,3 +1,5 @@
+> **HISTORICAL MODAL PILOT — NOT ACTIVE IN FROZEN HACKATHON DEMO.** The standard RUNQ server blocks new sound generation (`SFX_PROMPT_ONLY`). Keep this file as technical experiment evidence only; no credentials or pilot deployment are needed for the submitted build. See [feature status](FEATURE_STATUS_AND_FUTURE_AUDIO_2026-11-03.md).
+
 # RunQ — generador de efectos SFX (piloto técnico, 28-10-2026)
 
 ## Alcance real
