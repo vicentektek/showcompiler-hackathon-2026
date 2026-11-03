@@ -34,4 +34,4 @@ The final submission runs from `release/runq-indie-submission-2026`. The origina
 
 This file records the owner's choice of logo and intended placement. It does **not** independently prove ownership, third-party licensing or redistribution rights of source imagery, music, sample shows or every design reference. Resolve the [media and third-party rights checklist](THIRD_PARTY_AND_MEDIA_REVIEW_2026-11-03.md) before making the repository public.
 
-**Avoid using the former tagline “From Script to Show”** in the final application/Devpost presentation, except when preserving verbatim historic evidence.
+**Avoid using the former tagline “From Script to Show”** in the official hackathon submission, except when preserving verbatim historic evidence.
