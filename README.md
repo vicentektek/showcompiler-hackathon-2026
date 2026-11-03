@@ -6,21 +6,35 @@ ShowCompiler is a new, hackathon-only browser prototype for turning theatre scri
 
 **Current truth:** the Meta and Baseten adapters, strict validation, review workflow, and browser audio engine are implemented. The user successfully completed one guarded live Meta Muse Spark 1.3 smoke test (1 valid bell cue, 3.968 s, 1,170 tokens), and manually confirmed AI proposal and approval into DRAFT in the browser. Baseten live inference and paid audio generation remain unverified/unimplemented.
 
-## RUNQ RC1 candidate (29–30 October 2026)
+## Current demo candidate — 3 November 2026
 
-The current integration candidate lives in `integration/runq-demo-2026-10-30`, based on V15 (PR #110), with selected safety fixes from audit PR #109. The repo's `main` branch is not this runnable release. The precise candidate changes and remaining checks are tracked in [the hackathon execution plan](docs/RUNQ_HACKATHON_EXECUTION_PLAN_2026-10-29.md).
+**Review branch:** `fix/runq-prompt-only-sound-demo-2026-11-03`  
+**Draft PR:** [#135](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/135)  
+**Known-good baseline:** `verified-working-2026-11-02` (`6d1d65d`).
 
-Windows developer quick start in a **separate worktree** (does not touch another checkout):
+This is the candidate to review in Codespaces and use for the hackathon
+recording **after CI and manual browser review**. It is not merged into `main`.
+Run it from the correct branch, with no paid SFX requests:
 
-```powershell
+```sh
 git fetch origin
-git worktree add "..\\runq-demo-2026-10-30" origin/integration/runq-demo-2026-10-30
-cd "..\\runq-demo-2026-10-30"
+git switch fix/runq-prompt-only-sound-demo-2026-11-03
+git pull --ff-only
 npm install --no-audit --no-fund
-powershell -ExecutionPolicy Bypass -File .\\tools\\runq-preflight.ps1 -RunTests -StartServer
+npm run dev
 ```
 
-Use Chrome/Edge on the local address printed by the preflight. This script does not read secrets or contact paid AI providers. Offline CI is not certification for live-show use. The browser uses the system's default audio output for show and preview; there is no isolated PFL bus. JSON stores references but **not audio bytes**; export a full show ZIP to move/reopen media. Modal SFX generation needs separate provider and cost-policy configuration and is not a prerequisite for the offline demo.
+Open the forwarded port in Codespaces (or `http://127.0.0.1:5173` locally).
+All sound generation in the normal app server is blocked, even when old Modal
+credentials are present. Meta Muse script analysis is an independent, optional
+operation requiring explicit user action and live provider configuration.
+The browser shares the default computer audio output for audition and GO;
+there is **no isolated PFL bus**. Export the full show ZIP to preserve audio
+bytes: project JSON alone stores media references, not embedded WAV files.
+
+The earlier 29–30 October RC1 branch `integration/runq-demo-2026-10-30`
+and its execution plan are retained as development history, **not** as the
+current recording candidate.
 
 ## Run locally
 
@@ -139,9 +153,11 @@ how to start an AI consultation rather than just saying "complex request".
 The AI consultation action submits directly; navigation and script guidance never
 submit, approve or play anything.
 
-**Generate sound**, **Work with AI**, cue-editor **Send**, **Transcribe** and
-voice **Start listening** are the explicit request authorization, without additional
-permission checkboxes. Record still starts microphone capture explicitly; opening
+In historical builds, **Generate sound** was an explicit paid-request action.
+**The current submission branch does not expose that action and rejects sound
+generation server-side.** **Work with AI**, cue-editor **Send**, **Transcribe**
+and voice **Start listening** remain explicit actions for their independent
+functions, without additional permission checkboxes. Record still starts microphone capture explicitly; opening
 a panel never uploads audio. Request authorization headers, exact SFX cost caps,
 campaign/daily reservations and server rejection of unauthorized API calls remain
 unchanged. Generated cues and sound takes still require human review before being
@@ -159,7 +175,11 @@ review as `PENDING_REVIEW`, even when their structural contract passes. It does
 not abort or automatically promote them to semantic successes; recorded local
 review rationales are separate from model evaluation and new human validation.
 
-### Generated sound audition
+### Historical generated-sound audition (disabled for new submissions)
+
+The following behavior describes the earlier Modal pilot and its local
+review history. In the current prompt-only demo, no new generated take can be
+requested, tracked or cancelled remotely.
 
 Ready takes have **Listen to sound**, **Stop preview** and volume controls beside
 the result. Listen loads and decodes the selected WAV on demand and then auditions
