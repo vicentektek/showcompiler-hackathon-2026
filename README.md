@@ -1,4 +1,4 @@
-# RUNQ — From Script to Show
+# RUNQ — From Script to Stage
 
 ![RUNQ — From Script to Stage](assets/runq-logo-full.png)
 
@@ -6,7 +6,7 @@
 
 RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a theatrical script, optional Meta Muse Spark cue suggestions, a human review process and deterministic local audio operation. AI helps prepare the show; **the operator controls GO**.
 
-> **Frozen application build:** [`b4e7df7`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/b4e7df724d569c1d5af7682540c206ff3fb97701) (3 November 2026). Source branch: [`release/runq-hackathon-2026-frozen`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-hackathon-2026-frozen). Documentation is prepared independently in PR [#137](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/137). **Do not use the historical `main` branch as the submitted version.**
+> **Frozen application build:** [`b4e7df7`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/b4e7df724d569c1d5af7682540c206ff3fb97701) (3 November 2026). Frozen reference branch: [`release/runq-hackathon-2026-frozen`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-hackathon-2026-frozen). **Submission source:** [`release/runq-indie-submission-2026`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026). Documentation was prepared in PR [#137](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/137). **Do not use the historical `main` branch as the submitted version.**
 >
 > **Project status:** working browser hackathon prototype, not a certified professional show-control application. Repository is currently **private**; judge access/publication requires explicit approval.
 
