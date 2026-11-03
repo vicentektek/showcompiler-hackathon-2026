@@ -615,13 +615,18 @@ export function mountShowBuilder(panel, welcome, steps) {
     const locale=$('uiLocaleSelect')?.value==='es'?'es':'en',es=locale==='es';
     scriptAnalysisLocale=locale;
     const hasScript=Boolean(currentShow?.project.scriptText.trim());
-    analysisCard.hidden=!hasScript;
+    const hasSuggestions=Boolean(currentShow?.project.proposals.length);
+    analysisCard.hidden=!hasScript||scriptAnalysisState==='idle'||
+      (scriptAnalysisState==='success'&&scriptAnalysisCount>0&&!quickReview.section.hidden);
     scriptSummary.hidden=!hasScript;
     scriptExplorer.hidden=!hasScript;
     proposeScriptCues.disabled=!hasScript||scriptAnalysisState==='running';
     proposeScriptCues.textContent=scriptAnalysisState==='running'
       ? (es?'Buscando cues…':'Finding cues…')
-      : (es?'✦ Buscar cues con RUNQ AI':'✦ Find cues with RUNQ AI');
+      : hasSuggestions
+        ?(es?'Buscar más cues':'Find more cues')
+        :(es?'✦ Buscar cues con RUNQ AI':'✦ Find cues with RUNQ AI');
+    proposeScriptCues.classList.toggle('rq-script-action-secondary',hasSuggestions&&scriptAnalysisState!=='running');
     proposeScriptCues.setAttribute('aria-busy',String(scriptAnalysisState==='running'));
     if(!hasScript)return;
     const lines=parseScript(currentShow.project.scriptText);
@@ -656,7 +661,9 @@ export function mountShowBuilder(panel, welcome, steps) {
     analysisScope.textContent=scriptAnalysisState==='running'?scriptAnalysisScope:'';
     analysisProgress.hidden=scriptAnalysisState!=='running';
     analysisCard.dataset.state=scriptAnalysisState;
-    reviewAnalysis.hidden=scriptAnalysisState!=='success'||!scriptAnalysisCount;
+    // The quick-review cards are already visible immediately below. A second
+    // "Review suggestions" button creates an unnecessary extra decision.
+    reviewAnalysis.hidden=true;
     reviewAnalysis.textContent=es?'Revisar propuestas':'Review suggestions';
     configureAnalysis.hidden=!['error','unavailable'].includes(scriptAnalysisState);
     configureAnalysis.textContent=es?'Comprobar configuración de IA':'Check AI configuration';
@@ -772,6 +779,8 @@ export function mountShowBuilder(panel, welcome, steps) {
       ? copy.finish[0] : copy.continue[0];
     sourceTitle.textContent = copy.sourceTitle[0];
     sourceHelp.textContent = copy.sourceHelp[0];
+    // After import, the script summary itself replaces the setup instructions.
+    sourceHelp.hidden=Boolean(currentShow.project.scriptText.trim());
     explorerSummary.textContent=locale==='es'
       ? 'Explorar líneas del guion · selección manual (opcional)'
       : 'Browse script lines · manual selection (optional)';
@@ -894,7 +903,8 @@ export function mountShowBuilder(panel, welcome, steps) {
     sourceActions.hidden = !hasScript;
     selectionStatus.hidden = !hasScript;
     proposeScriptCues.hidden = !hasScript;
-    proposeScriptCuesHelp.hidden = !hasScript;
+    // Avoid duplicating "Analyze script" instructions and the review guidance.
+    proposeScriptCuesHelp.hidden = true;
     proposeScriptCues.disabled = !hasScript||scriptAnalysisState==='running';
     paintScriptAnalysis();
     createSelected.disabled = selectedIds.size === 0;
@@ -1091,6 +1101,7 @@ export function mountShowBuilder(panel, welcome, steps) {
     scriptAnalysisUpdate(d.ok?'success':'error',{count:d.count??0,message:d.message??''});
     if(d.ok){
       quickReview.render(true);
+      paintScriptAnalysis();
       if(!quickReview.section.hidden)
         quickReview.section.scrollIntoView({block:'nearest',behavior:'smooth'});
     }
