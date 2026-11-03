@@ -16,7 +16,7 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
  for(const [v,es,en]of[['all','Todos','All'],['pending','Pendientes','Pending'],['approved','Cues aprobados','Approved cues']]){
   const o=E('option','',S(es,en));o.value=v;filter.append(o);
  }
- const search=E('input');search.type='search';search.id='rqReviewSearch';
+ const search=E('input');search.type='search';search.id='rqReviewSearch';search.setAttribute('aria-label',S('Buscar cues y propuestas','Search cues and proposals'));
  const pickAll=B(S('Seleccionar visibles','Select visible'),()=>{for(const row of shown(getState().project))selection.add(row.kind+':'+row.id);render();});
  const clear=B(S('Quitar selección','Clear selection'),()=>{selection.clear();render();});
  controls.append(filter,search,pickAll,clear);
