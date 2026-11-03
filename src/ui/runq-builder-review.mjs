@@ -1,6 +1,7 @@
 /** Unified proposal/cue review. No hidden playback, provider requests or automatic approval. */
 import {parseScript} from '../core/script.mjs';
 import {proposeAgentVoiceTriggers,MAX_VOICE_BATCH} from '../core/agentVoice.mjs';
+import {appendCueSoundDesign} from './runq-sound-design-review.mjs';
 const E=(tag,cls='',value='')=>{const n=document.createElement(tag);if(cls)n.className=cls;if(value)n.textContent=value;return n;};
 const S=(es,en)=>document.getElementById('uiLocaleSelect')?.value==='es'?es:en;
 const B=(value,fn,cls='btn subtle small')=>{const b=E('button',cls,value);b.type='button';b.addEventListener('click',fn);return b;};
@@ -122,6 +123,11 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   actions.append(B(S('Aprobar','Approve'),()=>review('APPROVE',[p.id]),'btn accent small'),
     B(S('Rechazar','Reject'),()=>review('REJECT',[p.id])));
   card.append(row,actions);
+  const pendingSound=p.actions.find(action=>action.type==='PLAN_AUDIO');
+  if(pendingSound){
+    card.append(E('p','rq-sound-design-prompt',pendingSound.prompt));
+    card.append(E('p','rq-sound-design-help',S('Descripción propuesta por IA. Los ajustes técnicos se revisan después de aprobar el cue.','AI-proposed sound description. Technical settings are reviewed after cue approval.')));
+  }
   editor(card,target=>{
     const form=E('div','rq-review-edit');
     const label=E('label','',S('Nombre','Name'));const input=E('input');input.maxLength=200;input.value=p.label;label.append(input);form.append(label);
@@ -157,6 +163,10 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   silent.disabled=!acceptsAudio||c.actions[0]?.type==='SILENT';
   actions.append(load,silent);
   card.append(row,actions);
+  appendCueSoundDesign(card,c,{
+    spanish:document.getElementById('uiLocaleSelect')?.value==='es',
+    onApply:settings=>send('runq:builder-review-edit',{op:'sound-design',...settings}),
+  });
   editor(card,target=>{
     const form=E('div','rq-review-edit');
     const label=E('label','',S('Nombre','Name')),name=E('input');

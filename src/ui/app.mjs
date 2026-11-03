@@ -770,6 +770,18 @@ document.addEventListener('runq:builder-review-edit',event=>{
       next=c.actions[0].type==='PLAY'
         ?replaceCueAudioAsset(show,id,assetId)
         :assignAudioToCue(show,id,assetId);
+    }else if(op==='sound-design'){
+      const cue=show.cues.find(x=>x.id===id);
+      if(!cue)throw new TypeError('CUE_NOT_FOUND');
+      const {levelDb,fadeInMs,fadeOutMs,loop,entryMode,entryFadeMs}=event.detail;
+      // Validation is performed by the canonical playback and entry policy
+      // normalizers. No sound is started; only this cue's stored settings change.
+      const playback=normalizeCuePlayback({
+        ...(cue.playback??{}),gainDb:levelDb,fadeInMs,fadeOutMs,loop,
+        ...(loop?{repeatCount:1}:{}),
+      });
+      const entryPolicy=normalizeCueEntryPolicy({mode:entryMode,fadeOutMs:entryFadeMs});
+      next=setCueEntryPolicy(updateCuePlayback(show,id,playback),id,entryPolicy);
     }else if(op==='triggers'){
       if(event.detail.base!==JSON.stringify(show))throw new Error('STALE_PROJECT');
       const changes=event.detail.changes;
