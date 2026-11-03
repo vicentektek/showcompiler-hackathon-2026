@@ -171,7 +171,12 @@ export function createAppServer(options = {}) {
     modelClient: options.basetenClient,
     getKey: options.getBasetenKey,
   });
-  const sfxRoute = makeSfxRoute(options);
+  // Default runnable build cannot contact Modal. An explicitly injected test
+  // client preserves deterministic offline provider-route regression tests.
+  const sfxRoute = makeSfxRoute({
+    ...options,
+    generationDisabled: options.sfxPilotClient ? false : true,
+  });
   const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
   const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
   const cueConversationRoute = makeCueConversationRoute({getKey:options.getCueChatKey,fetchImpl:options.cueChatFetch});
