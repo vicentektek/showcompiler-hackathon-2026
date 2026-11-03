@@ -55,6 +55,7 @@ The official Meta public page confirms the **Indie developer** track and Novembe
 - [x] Selected functional release source and reproducible version pin.
 - [x] Core CI passed on approved runtime and on the earlier completed documentation branch.
 - [x] Main judge-facing README, logo, installation, feature/limitation descriptions and technical provenance.
+- [x] Canonical branding recorded: [RUNQ — FROM SCRIPT TO STAGE](BRAND_IDENTITY_FINAL_2026-11-03.md).
 - [x] Written English submission and video narration draft.
 - [x] Legacy research categorized as history, not promised functionality.
 - [ ] Final current documentation-branch CI rechecked after updates.
