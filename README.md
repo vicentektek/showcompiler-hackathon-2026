@@ -15,6 +15,9 @@
 - **[English project description / narration](docs/SUBMISSION_COPY_2026-11-03.md)**
 - **[Capture checklist for the demonstration](docs/DEMO_CAPTURE_2026-11-03.md)**
 - **[Final submission and accessibility checklist](docs/SUBMISSION_CHECKLIST_2026-11-03.md)**
+- **[Final security audit and publication gates](docs/RELEASE_SECURITY_AUDIT_2026-11-03.md)**
+- **[Feature status and deferred Meta audio integration](docs/FEATURE_STATUS_AND_FUTURE_AUDIO_2026-11-03.md)**
+- **[Dated development and experiment history](docs/DEVELOPMENT_HISTORY_INDEX_2026-11-03.md)**
 
 ### Run the frozen version
 
