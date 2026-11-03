@@ -739,6 +739,12 @@ function pickAudioFile(cueId = null) {
   $('audioFileInput').click();
 }
 
+document.addEventListener('runq:prompt-import-cue',event=>{
+  const cueId=event.detail?.cueId??null;
+  if(cueId && !show.cues.some(c=>c.id===cueId))return;
+  pickAudioFile(cueId);
+});
+
 function cueAudioPicker(cueId, translationKey) {
   const button = node('button', 'btn accent small', t(translationKey));
   button.type = 'button';
@@ -1025,12 +1031,10 @@ function renderCueList({ resetScroll = false } = {}) {
       deferred.addEventListener('click', () => safeOperation(
         () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'
       ));
-      const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
+      const generate = node('button', 'btn accent small', uiLocale==='es'?'Asistente sonoro':'Sound assistant');
       generate.type = 'button';
-      generate.disabled = plan.resolution === 'GENERATE';
-      generate.addEventListener('click', () => safeOperation(
-        () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'
-      ));
+      generate.disabled = false;
+      generate.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('runq:context-open-cue-sound',{detail:{cueId:cue.id}})));
       resolve.append(cueAudioPicker(cue.id, 'soundPlan.loadFile'), deferred, generate);
       if (show.assets.length) {
         const library = node('select', '', '');
@@ -1758,11 +1762,10 @@ function cueActionInspector(cue) {
     deferred.disabled = plan.resolution === 'DEFER';
     deferred.addEventListener('click', () => safeOperation(
       () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'));
-    const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
+    const generate = node('button', 'btn accent small', uiLocale==='es'?'Asistente sonoro':'Sound assistant');
     generate.type = 'button';
-    generate.disabled = plan.resolution === 'GENERATE';
-    generate.addEventListener('click', () => safeOperation(
-      () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'));
+    generate.disabled = false;
+    generate.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('runq:context-open-cue-sound',{detail:{cueId:cue.id}})));
     audioTools.append(deferred, generate);
     if (show.assets.length) {
       const library = node('select');
