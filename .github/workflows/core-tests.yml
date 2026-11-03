@@ -96,6 +96,8 @@ jobs:
         run: node tools/stagecraft-audio-batch-e2e.mjs
       - name: Prompt-only Sound assistant, local WAV and blocked Modal (offline)
         run: node tools/prompt-only-browser-e2e.mjs
+      - name: Unified Show Builder cue review, WAV and SILENT GO (offline)
+        run: node tools/unified-builder-browser-e2e.mjs
       - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
         run: node tools/runq-agent-browser-e2e.mjs
       - name: RUNQ AI contextual review with original show WAVs (offline fixtures)
