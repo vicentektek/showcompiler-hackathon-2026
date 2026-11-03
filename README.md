@@ -66,6 +66,7 @@ For a live Meta Muse demonstration, configure the server-side `MODEL_API_KEY` ac
 - [Capture list and recording guidance](docs/DEMO_CAPTURE_2026-11-03.md)
 - [Final verification checklist](docs/SUBMISSION_CHECKLIST_2026-11-03.md)
 - [Security audit and publication conditions](docs/RELEASE_SECURITY_AUDIT_2026-11-03.md)
+- [Third-party components and media-rights inventory](docs/THIRD_PARTY_AND_MEDIA_REVIEW_2026-11-03.md)
 - [Feature status / future audio integration](docs/FEATURE_STATUS_AND_FUTURE_AUDIO_2026-11-03.md)
 - [Dated development history and experiments](docs/DEVELOPMENT_HISTORY_INDEX_2026-11-03.md)
 
