@@ -39,7 +39,8 @@ try{
  await page.waitForFunction(()=>document.querySelector('#showName')?.value==='obra');
  assert.equal((await stateOf(page)).project.scriptText,script);
  assert.equal(await page.locator('#rqScriptImportSummary').count(),1);
- assert.equal(await page.locator('#rqScriptAnalysisCard').isVisible(),true);
+ assert.equal(await page.locator('#rqScriptAnalysisCard').isVisible(),false,
+   'Ready status is implicit in the Find cues action, not another empty card');
  assert.equal(await page.locator('#rqScriptAnalysisProgress').isVisible(),false);
  assert.equal(await page.locator('#rqShowBuilderProposeCues').isVisible(),true);
  await page.locator('#rqScriptExplorer > summary').click();
