@@ -1,5 +1,7 @@
 # RUNQ — From Script to Show
 
+![RUNQ — From Script to Stage](assets/runq-logo-full.png)
+
 **Meta Global AI Developer Hackathon 2026 · Indie developer · Build for Your World**
 
 RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a theatrical script, optional Meta Muse Spark cue suggestions, a human review process and deterministic local audio operation. AI helps prepare the show; **the operator controls GO**.
