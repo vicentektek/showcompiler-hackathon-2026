@@ -11,7 +11,7 @@ test('Sound Lab uses prompt-only presentation and hides legacy provider panels',
   assert.ok(detail>0 && cost>detail);
   assert.doesNotMatch(html,/id="confirmRequest"/);
   assert.match(html,/id="sfxProviderDiagnostics"/);
-  assert.match(html,/class="rq-prompt-only"/);
+  assert.match(html,/<body class="rq-prompt-only">/);
   assert.match(html,/data-sfx-en="Sound assistant"/);
   assert.match(html,/id="rqPromptImportCue"/);
   assert.match(html,/id="rqPromptOpenLibrary"/);
