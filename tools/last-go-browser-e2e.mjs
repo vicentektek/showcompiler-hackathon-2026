@@ -106,6 +106,9 @@ try{
  for(let index=0;index<3;index++){
   await page.locator('#proposalList').getByRole('button',{name:'Approve',exact:true}).first().click();
  }
+ const aiHelp=page.locator('#rqShowBuilderAiHelp');
+ if(!(await aiHelp.evaluate(el=>el.open))) await page.locator('#rqShowBuilderAiHelp > summary').click();
+ await page.locator('#rqAgentPrompt').waitFor({state:'visible'});
  await page.locator('#rqAgentPrompt').fill('Propose voice triggers for the whole show');
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentProposal').waitFor({state:'visible'});
