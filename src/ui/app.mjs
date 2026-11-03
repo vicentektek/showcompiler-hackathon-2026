@@ -719,6 +719,88 @@ document.addEventListener('runq:proposal-batch-undo', event => {
   render();
   answer({ ok: true });
 });
+// Builder's inline review writes through the existing canonical validators.
+// Every transaction is bounded, atomic and explicitly initiated by the user.
+let builderTriggerUndo=null;
+document.addEventListener('runq:builder-review-edit',event=>{
+  const {op,id,respond}=event.detail??{};
+  const reply=value=>{if(typeof respond==='function')respond(value);};
+  if(!safeAgentEditState()){reply({ok:false,error:'EDIT_BLOCKED_BY_SHOW_STATE'});return;}
+  try{
+    const before=show;
+    let next=show;
+    if(op==='proposal'){
+      const p=show.proposals.find(x=>x.id===id&&x.status==='PENDING');
+      if(!p)throw new TypeError('PROPOSAL_NOT_PENDING');
+      const label=event.detail.label;
+      if(typeof label!=='string'||!label.trim()||label.length>200)
+        throw new TypeError('INVALID_PROPOSAL_LABEL');
+      const actions=p.actions.map(a=>({...a}));
+      const plan=actions.find(a=>a.type==='PLAN_AUDIO');
+      if(plan){
+        const prompt=event.detail.prompt;
+        if(typeof prompt!=='string'||!prompt.trim()||prompt.length>500)
+          throw new TypeError('INVALID_SOUND_PROMPT');
+        plan.prompt=prompt.trim();
+      }
+      next=normalizeShowProject({...show,proposals:show.proposals.map(x=>x.id===id
+        ?{...x,label:label.trim(),actions}:x)});
+    }else if(op==='cue'){
+      const c=show.cues.find(x=>x.id===id);
+      if(!c)throw new TypeError('CUE_NOT_FOUND');
+      next=updateCueOperatorDetails(show,id,{label:event.detail.label,
+        trigger:event.detail.trigger,notes:c.notes??''});
+    }else if(op==='silent'){
+      next=setCueSilent(show,id);
+    }else if(op==='asset'){
+      const c=show.cues.find(x=>x.id===id),assetId=event.detail.assetId;
+      if(!c||!show.assets.some(a=>a.id===assetId))
+        throw new TypeError('AUDIO_ASSET_UNAVAILABLE');
+      if(c.actions.length!==1||c.audioTracks?.length)
+        throw new TypeError('CUE_HAS_MULTIPLE_AUDIO_TRACKS');
+      next=c.actions[0].type==='PLAY'
+        ?replaceCueAudioAsset(show,id,assetId)
+        :assignAudioToCue(show,id,assetId);
+    }else if(op==='triggers'){
+      if(event.detail.base!==JSON.stringify(show))throw new Error('STALE_PROJECT');
+      const changes=event.detail.changes;
+      if(!Array.isArray(changes)||!changes.length||changes.length>200||
+         new Set(changes.map(c=>c.cueId)).size!==changes.length)
+        throw new TypeError('INVALID_TRIGGER_BATCH');
+      for(const item of changes){
+        if(typeof item.trigger!=='string'||!item.trigger.trim()||
+           item.trigger.length>300)throw new TypeError('INVALID_TRIGGER_TEXT');
+        const c=next.cues.find(x=>x.id===item.cueId);
+        if(!c||c.trigger?.trim())throw new TypeError('TRIGGER_ALREADY_DEFINED_OR_MISSING');
+        next=updateCueOperatorDetails(next,c.id,{label:c.label,
+          trigger:item.trigger.trim(),notes:c.notes??''});
+      }
+      builderTriggerUndo={before,after:next,generation:projectGeneration};
+    }else throw new TypeError('INVALID_BUILDER_ACTION');
+    if(op!=='triggers')builderTriggerUndo=null;
+    show=next;dirty=true;render();
+    reply({ok:true,count:op==='triggers'?event.detail.changes.length:1});
+  }catch(error){
+    showError(error);
+    reply({ok:false,error:String(error?.message??'Edit failed').slice(0,90)});
+  }
+});
+document.addEventListener('runq:builder-trigger-undo',event=>{
+  const answer=value=>{if(typeof event.detail?.respond==='function')event.detail.respond(value);};
+  if(!safeAgentEditState()||!builderTriggerUndo||
+     builderTriggerUndo.generation!==projectGeneration||
+     JSON.stringify(show)!==JSON.stringify(builderTriggerUndo.after)){
+    answer({ok:false});return;
+  }
+  show=builderTriggerUndo.before;builderTriggerUndo=null;dirty=true;render();
+  answer({ok:true});
+});
+document.addEventListener('runq:builder-open-script-line',event=>{
+  const lineId=event.detail?.lineId;
+  if(typeof lineId==='string'&&/^L[1-9]\d*$/.test(lineId))
+    jumpToScriptLine(lineId);
+});
+
 function replaceOptions(select, entries, oldValue) {
   select.replaceChildren();
   for (const [value, label] of entries) {
