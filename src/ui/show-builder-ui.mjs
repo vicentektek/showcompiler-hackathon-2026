@@ -10,6 +10,7 @@ import {
   updateShowBuilderStage,
 } from '../core/showBuilder.mjs';
 import { parseScript } from '../core/script.mjs';
+import {mountUnifiedCueReview} from './runq-builder-review.mjs';
 
 const STAGE_COPY = Object.freeze({
   en: {
@@ -420,6 +421,11 @@ export function mountShowBuilder(panel, welcome, steps) {
   const cueTaskTitle = make('h4', 'rq16-builder-task-title');
   cueTaskTitle.id = 'rqShowBuilderCueTaskTitle';
   const cueTaskHelp = make('p', 'rq16-builder-task-help');
+  // Advanced automation is available on demand, not a second show wizard.
+  const automationSlot=make('details','rq-builder-optional-automation');
+  automationSlot.id='rqShowBuilderAutomationSlot';
+  automationSlot.append(make('summary','',
+    $('uiLocaleSelect')?.value==='es'?'Preparación automática · opcional':'Automatic preparation · optional'));
   const generateSuggestions = make('button', 'btn accent small');
   generateSuggestions.id = 'rqShowBuilderGenerateCues';
   generateSuggestions.type = 'button';
@@ -436,7 +442,7 @@ export function mountShowBuilder(panel, welcome, steps) {
   approveAllProposals.type = 'button';
   aiControls.append(aiSummary);
   proposalReview.append(proposalTitle, proposalHelp, approveAllProposals);
-  cueTask.append(cueTaskTitle, cueTaskHelp, generateSuggestions, aiControls, proposalReview);
+  cueTask.append(cueTaskTitle,cueTaskHelp,generateSuggestions,automationSlot,aiControls,proposalReview);
 
   const audioTask = make('section', 'rq16-builder-task');
   audioTask.id = 'rqShowBuilderAudioTask';
@@ -514,9 +520,23 @@ export function mountShowBuilder(panel, welcome, steps) {
     aiControls.append(metaPanel.closest('.rq5-ai-engine') || metaPanel);
   }
   if (manualProposalForm) aiControls.append(manualProposalForm);
-  if (proposalListTitle) proposalReview.append(proposalListTitle);
-  if (proposalWorkspace) proposalReview.append(proposalWorkspace);
-  else if (proposalList) proposalReview.append(proposalList);
+  // Keep the historical detailed list reachable to expert users and old
+  // diagnostics, but make the unified review the only primary interface.
+  const legacyReview=make('details','rq-builder-legacy-review');
+  legacyReview.id='rqBuilderLegacyReview';
+  legacyReview.append(make('summary','',
+    $('uiLocaleSelect')?.value==='es'?'Revisión técnica detallada · opcional':'Detailed technical review · optional'));
+  if(proposalListTitle)legacyReview.append(proposalListTitle);
+  if(proposalWorkspace)legacyReview.append(proposalWorkspace);
+  else if(proposalList)legacyReview.append(proposalList);
+  proposalReview.append(legacyReview);
+  proposalTitle.hidden=true;
+  proposalHelp.hidden=true;
+  approveAllProposals.hidden=true;
+  mountUnifiedCueReview(proposalReview,{
+    getState:getShowState,
+    onSuggest:()=>generateSuggestions.click(),
+  });
   if (legacyHelp) legacyHelp.hidden = true;
   if (legacySeparator) legacySeparator.hidden = true;
   if (legacyAiGrid) legacyAiGrid.hidden = true;
@@ -563,6 +583,12 @@ export function mountShowBuilder(panel, welcome, steps) {
 
     const locale = $('uiLocaleSelect')?.value === 'es' ? 'es' : 'en';
     const copy = STAGE_COPY[locale];
+    const autoSummary=automationSlot.querySelector('summary');
+    if(autoSummary)autoSummary.textContent=locale==='es'
+      ?'Preparación automática · opcional':'Automatic preparation · optional';
+    const advancedSummary=legacyReview.querySelector(':scope > summary');
+    if(advancedSummary)advancedSummary.textContent=locale==='es'
+      ?'Revisión técnica detallada · opcional':'Detailed technical review · optional';
     const routeCopy = ROUTE_COPY[locale];
     const currentIndex = SHOW_BUILDER_STAGES.indexOf(session.currentStage);
     const completeCount = SHOW_BUILDER_STAGES.filter(id => assessment.stages[id].complete).length;
