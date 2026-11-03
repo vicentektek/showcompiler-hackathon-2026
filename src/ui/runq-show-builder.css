@@ -1104,3 +1104,215 @@ body.rq-prompt-only #rqPreparationResults {
 
 /* Single preparation hierarchy: Build your show replaces the old top wizard. */
 :root#runqApp .shell[data-active-workspace=ai] #rq16AIWelcome { display:none!important; }
+
+
+/* Script-first creation flow: import -> one-click analysis -> visible feedback.
+   The source lines and advanced Meta configuration remain optional, and no
+   visual progress percentage is fabricated for a remote model request. */
+:root#runqApp #rqShowBuilderSourceTask {
+  gap: 12px;
+  border-color: #52654c;
+  background: linear-gradient(145deg,#242f27 0%,#1b241f 45%,#191e1b 100%);
+}
+:root#runqApp #rqShowBuilderSourceTitle {
+  font-size: clamp(18px, 1.6vw, 23px);
+  letter-spacing: -.025em;
+}
+:root#runqApp #rqShowBuilderSourceTask > .rq16-builder-task-help {
+  font-size: 13px;
+  max-width: 78ch;
+}
+:root#runqApp .rq-script-import-summary {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border:1px solid #536b56;
+  border-radius:10px;
+  background:#233629;
+}
+:root#runqApp .rq-script-import-check {
+  display:grid;
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  place-items:center;
+  border-radius:50%;
+  color:#18241b;
+  background:#bcdbad;
+  font-size:20px;
+  font-weight:800;
+}
+:root#runqApp .rq-script-summary-text {
+  display:grid;
+  min-width:0;
+  gap:3px;
+}
+:root#runqApp .rq-script-summary-text strong {
+  color:#e5f4e2;
+  font-size:13px;
+}
+:root#runqApp .rq-script-summary-text span {
+  color:#bed0be;
+  font-size:12px;
+  overflow-wrap:anywhere;
+}
+:root#runqApp .rq-script-primary-actions {
+  display:flex;
+  align-items:stretch;
+  gap:10px;
+  flex-wrap:wrap;
+}
+:root#runqApp .rq-script-primary-actions .btn {
+  min-height:48px !important;
+  padding:10px 16px !important;
+  border-radius:9px !important;
+}
+:root#runqApp .rq-script-primary-actions #rqShowBuilderProposeCues {
+  margin:0 !important;
+  flex:1 1 245px;
+  max-width:420px;
+  min-width:min(100%,245px);
+  font-size:14px !important;
+}
+:root#runqApp .rq-script-primary-actions #rqShowBuilderImportScript {
+  flex:0 1 180px;
+}
+:root#runqApp .rq-script-primary-actions #rqShowBuilderProposeCues[aria-busy=true] {
+  opacity:.75;
+  cursor:progress;
+}
+:root#runqApp #rqShowBuilderProposeCuesHelp {
+  margin-top:-4px;
+  max-width:78ch;
+}
+:root#runqApp .rq-script-analysis-card {
+  display:grid;
+  gap:10px;
+  padding:15px 16px;
+  border:1px solid #4b6150;
+  border-radius:11px;
+  background:linear-gradient(110deg,#1f3127,#1b2721);
+}
+:root#runqApp .rq-script-analysis-head {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+:root#runqApp .rq-script-analysis-symbol {
+  display:grid;
+  flex:0 0 38px;
+  width:38px;
+  height:38px;
+  place-items:center;
+  border-radius:10px;
+  background:#354a37;
+  color:#d4edb5;
+  font-size:24px;
+}
+:root#runqApp .rq-script-analysis-texts {
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+:root#runqApp .rq-script-analysis-texts strong {
+  font-size:14px;
+  color:#f0f5ea;
+}
+:root#runqApp .rq-script-analysis-texts p {
+  margin:0;
+  font-size:12px;
+  line-height:1.5;
+  color:#bfcebd;
+}
+:root#runqApp .rq-script-analysis-scope {
+  color:#c9d7bb;
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+}
+:root#runqApp .rq-script-analysis-progress {
+  display:block;
+  width:100%;
+  height:9px;
+  border:0;
+  border-radius:20px;
+  overflow:hidden;
+  background:#101b15;
+  accent-color:#c7e5a1;
+  appearance:none;
+}
+:root#runqApp .rq-script-analysis-progress::-webkit-progress-bar {
+  background:#101b15;
+  border-radius:20px;
+}
+:root#runqApp .rq-script-analysis-progress:indeterminate {
+  background:linear-gradient(90deg,#1b3925 0%,#bdd99c 40%,#355a3b 62%,#1b3925 100%);
+  background-size:240% 100%;
+  animation:rq-script-analysis-pulse 1.65s linear infinite;
+}
+:root#runqApp .rq-script-analysis-progress:indeterminate::-webkit-progress-bar {
+  background:transparent;
+}
+@keyframes rq-script-analysis-pulse {
+  from {background-position:100% 0}
+  to {background-position:-140% 0}
+}
+:root#runqApp .rq-script-analysis-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+:root#runqApp .rq-script-analysis-actions .btn {
+  min-height:38px!important;
+  border-radius:8px!important;
+}
+:root#runqApp .rq-script-analysis-card[data-state=running] {
+  border-color:#b1c48f;
+  box-shadow:0 0 0 1px #9dba7840,inset 3px 0 #a7cc8d;
+}
+:root#runqApp .rq-script-analysis-card[data-state=running] .rq-script-analysis-symbol {
+  animation:rq-script-twinkle 1.8s ease-in-out infinite;
+}
+@keyframes rq-script-twinkle {
+  50% {filter:brightness(1.45);transform:scale(1.04)}
+}
+:root#runqApp .rq-script-analysis-card[data-state=success] {
+  border-color:#789a6d;
+  background:#203329;
+}
+:root#runqApp .rq-script-analysis-card:is([data-state=error],[data-state=unavailable]) {
+  border-color:#b38d67;
+  background:#30281f;
+}
+:root#runqApp .rq-script-explorer {
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid #3b4a3f;
+  border-radius:9px;
+  background:#181f1b;
+}
+:root#runqApp .rq-script-explorer > summary {
+  cursor:pointer;
+  color:#d5e1d0;
+  font-size:13px;
+  font-weight:600;
+  padding:5px 2px;
+}
+:root#runqApp .rq-script-explorer[open] {
+  display:grid;
+  gap:10px;
+}
+:root#runqApp .rq-script-explorer[open] > summary {
+  padding-bottom:10px;
+  border-bottom:1px solid #354337;
+}
+@media (max-width:660px) {
+  :root#runqApp .rq-script-primary-actions .btn {flex:1 1 100%!important;max-width:none!important}
+  :root#runqApp .rq-script-analysis-card {padding:12px}
+}
+@media (prefers-reduced-motion:reduce) {
+  :root#runqApp .rq-script-analysis-progress:indeterminate,
+  :root#runqApp .rq-script-analysis-card[data-state=running] .rq-script-analysis-symbol {
+    animation:none;
+  }
+}
