@@ -149,3 +149,20 @@
     color: #becab9 !important;
   }
 }
+
+
+/* WAV editing remains fully available as its own tab. This is the SAME
+   non-destructive editor, not a duplicate player or a SFX generator. */
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=edit] {
+  & .sfx-lab-intro,
+  & .sfx-left,
+  & .sfx-export { display:none!important; }
+  & .sfx-layout { display:block!important;max-width:none!important; }
+  & .sfx-audio-panel {
+    display:block!important;
+    width:100%!important;
+    max-width:960px!important;
+    margin:0 auto!important;
+    position:static!important;
+  }
+}
