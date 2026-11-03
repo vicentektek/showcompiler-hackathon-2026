@@ -188,7 +188,7 @@ try {
   await page.locator('#rqShowBuilder [data-builder-route="script"]').click();
   assert.equal(await page.locator('#rqShowBuilderSourceTask').isVisible(),true,
     'The script route returns to source work without changing show context');
-  assert.match(await page.locator('#rqShowBuilderSourceLines').textContent(),/No script yet/);
+  assert.match(await page.locator('#rqShowBuilderSourceTask').textContent(),/Import TXT, PDF or DOCX/);
   assert.equal(await page.locator('.rq5-ai-workspace > .help').isVisible(),false,
     'Old AI instructions do not compete with the guided wizard');
   assert.equal(await page.locator('.rq5-ai-workspace > .rq5-ai-grid').isVisible(),false,
@@ -751,13 +751,15 @@ try {
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="project"]').click();
   assert.equal(await page.locator('#rqShowBuilderProposeCues').isVisible(),true,
     'The imported script offers one direct next step to propose cues');
-  assert.match(await page.locator('#rqShowBuilderProposeCues').textContent(),/Suggest cues to review/);
+  assert.match(await page.locator('#rqShowBuilderProposeCues').textContent(),/Find cues with RUNQ AI/);
   const proposalPostsBeforeDirectAction=providerPosts.length;
   await page.locator('#analyzeMetaBtn').evaluate(button=>{button.disabled=true;});
   await page.locator('#rqShowBuilderProposeCues').click();
-  await page.waitForFunction(()=>document.querySelector('#rqShowBuilderCanvas')?.dataset.activeTask==='cues');
+  assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project',
+    'The script search action never navigates away from the source');
+  assert.equal(await page.locator('#rqScriptAnalysisCard').getAttribute('data-state'),'unavailable');
   assert.equal(providerPosts.length,proposalPostsBeforeDirectAction,
-    'The direct script action opens the existing consent-gated flow without submitting a provider request');
+    'An unconfigured provider must never receive a request');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
   assert.equal(await page.locator('#rqShowBuilderCueTask').isVisible(),true);
   assert.equal(await page.locator('#rqShowBuilderSourceTask').isVisible(),false);
@@ -836,6 +838,7 @@ try {
   await route('ai');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="project"]').click();
   assert.equal(await page.locator('#rqShowBuilderSourceTask').isVisible(),true);
+  await page.locator('#rqScriptExplorer > summary').click();
   await page.locator('#rqShowBuilderSourceLines [data-builder-line-select="L3"]').check();
   assert.equal(await page.locator('#rqShowBuilderAnalyzeSelected').isEnabled(),true);
   const builderCuesBefore=await page.locator('#cueList [data-cue-select]').count();
