@@ -98,6 +98,8 @@ jobs:
         run: node tools/prompt-only-browser-e2e.mjs
       - name: Unified Show Builder cue review, WAV and SILENT GO (offline)
         run: node tools/unified-builder-browser-e2e.mjs
+      - name: Real TXT, PDF and DOCX script import in Chrome (local only)
+        run: node tools/script-formats-browser-e2e.mjs
       - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
         run: node tools/runq-agent-browser-e2e.mjs
       - name: RUNQ AI contextual review with original show WAVs (offline fixtures)
