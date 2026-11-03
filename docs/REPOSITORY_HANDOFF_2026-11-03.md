@@ -66,3 +66,12 @@ The official Meta public page confirms the **Indie developer** track and Novembe
 - [ ] Final portal submission completed and receipt saved.
 
 **No repository condition above implies the application itself should be modified.**
+
+
+---
+
+## Post-merge addendum — 4 November 2026
+
+The historical branch-routing instructions above describe the state **before** PR #138. The owner explicitly approved integration, and [PR #138](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/138) was merged using a merge commit. As of this addendum, **`main` is the default branch and contains the final RUNQ source**, with only the scoped Windows verified-snapshot path fix relative to `release/runq-indie-submission-2026`. Do not change the default branch to the historic release branch as proposed in the superseded instructions above.
+
+The repo is still **private**. The organizer's 3 November notification explicitly requires an **open-source GitHub repository** for submission; this is not satisfied by publishing a private link or simply inviting a judge. No source-publication approval, credential clearance, media-rights sign-off, or public video URL is recorded here. See [submission-day handoff](SUBMISSION_HANDOFF_2026-11-04.md) for the current critical path.
