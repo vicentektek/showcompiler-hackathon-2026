@@ -77,8 +77,10 @@ try{
  assert.equal(await page.locator('#rqAgentDrawer').getAttribute('aria-busy'),'false');
  assert.equal(await page.locator('.rq5-ai-workspace>.panel-head').isVisible(),false,
   'The old title must not duplicate the creative welcome and agent heading');
- assert.equal(await page.locator('#rqPrepareShow').isVisible(),true,
-  'Integrated preparation replaces the redundant creative welcome');
+ assert.equal(await page.locator('#rqShowBuilder').isVisible(),true,
+  'Unified Show Builder replaces the redundant creative welcome and preparation header');
+ assert.equal(await page.locator('#rqPrepareShow').isVisible(),false,
+  'Old batch preparation is intentionally an optional collapsed disclosure');
  const primaryAction=await page.locator('#rqAgentAskAI').boundingBox();
  assert.ok(primaryAction.y+primaryAction.height<=900,
   `Primary design action remains above the fold: ${JSON.stringify(primaryAction)}`);
