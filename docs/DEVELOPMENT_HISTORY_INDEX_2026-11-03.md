@@ -24,6 +24,7 @@ Instead:
 - The README begins with a **Final submission** entry section.
 - Release notes and judge quick start are the single source of truth for the presented feature set.
 - Experimental provider and desktop research remain in dated files and branches, clearly labelled historic.
+- The old multi-version README has been retained as [archived development notes](README_DEVELOPMENT_HISTORY_2026-11-03.md) rather than deleted.
 - No archived research is imported into the public demo video as an implemented feature.
 - For a future post-hackathon cleanup, evaluate an intentionally separate public snapshot with only verified source, legal media, tests, README and references.
 
