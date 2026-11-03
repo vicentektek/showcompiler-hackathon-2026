@@ -38,6 +38,11 @@ try{
  await (await scriptChooserPromise).setFiles({name:'obra.txt',mimeType:'text/plain',buffer:Buffer.from(script)});
  await page.waitForFunction(()=>document.querySelector('#showName')?.value==='obra');
  assert.equal((await stateOf(page)).project.scriptText,script);
+ assert.equal(await page.locator('#rqScriptImportSummary').count(),1);
+ assert.equal(await page.locator('#rqScriptAnalysisCard').isVisible(),true);
+ assert.equal(await page.locator('#rqScriptAnalysisProgress').isVisible(),false);
+ assert.equal(await page.locator('#rqShowBuilderProposeCues').isVisible(),true);
+ await page.locator('#rqScriptExplorer > summary').click();
  await page.locator('[data-builder-line-select="L3"]').check();
  await page.locator('#rqShowBuilderCreateSelected').click();
  await page.waitForFunction(()=>{
