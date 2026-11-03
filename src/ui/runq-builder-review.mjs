@@ -123,6 +123,11 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   actions.append(B(S('Aprobar','Approve'),()=>review('APPROVE',[p.id]),'btn accent small'),
     B(S('Rechazar','Reject'),()=>review('REJECT',[p.id])));
   card.append(row,actions);
+  const pendingSound=p.actions.find(action=>action.type==='PLAN_AUDIO');
+  if(pendingSound){
+    card.append(E('p','rq-sound-design-prompt',pendingSound.prompt));
+    card.append(E('p','rq-sound-design-help',S('Descripción propuesta por IA. Los ajustes técnicos se revisan después de aprobar el cue.','AI-proposed sound description. Technical settings are reviewed after cue approval.')));
+  }
   editor(card,target=>{
     const form=E('div','rq-review-edit');
     const label=E('label','',S('Nombre','Name'));const input=E('input');input.maxLength=200;input.value=p.label;label.append(input);form.append(label);
