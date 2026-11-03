@@ -1,5 +1,16 @@
 # RUNQ — Submission control sheet
 
+## Submission-day update — 4 November 2026
+
+- [x] PR #138 merged into `main` using a merge commit `6fbf45357b6d9651e4d04d7db82f67a067b562c1`; previous `main` and the unmodified release branch have archive refs.
+- [x] Core tests and Windows PowerShell preflight passed for integration commit `ad90436`; this is not a new full run on the merge SHA.
+- [ ] Organizer's **3 November reminder** requires an **open-source GitHub repository**; the current private source is not compliant yet. Do not mark this complete from a private judge invitation alone.
+- [ ] Verify all historical and local credential findings, revoke/rotate affected keys, check archive/media ownership, select a source-code license and **explicitly approve** what to publish. A curated public snapshot may be safer than exposing the entire development history.
+- [ ] Upload a working **3-minute demo video** and verify text clarity and playback in an independent session; paste the real link into the portal and `SUBMISSION_COPY_2026-11-03.md`.
+- [ ] Complete and submit the authenticated Cerebral Valley form before **5 November 2026 03:00 CET**; save the receipt.
+
+See [submission-day handoff](SUBMISSION_HANDOFF_2026-11-04.md). Earlier entries below are preserved as historical evidence and may refer to the original pre-merge state.
+
 ## Required repository security clearance
 
 - [x] Initial targeted check of current frozen tree found no typical credential files and no recognized hard-coded token values in eight inspected modules. **Partial only.**
@@ -51,7 +62,7 @@ The event page describes the **Indie developer** track as assessed on creativity
 - [x] Dedicated source branch `release/runq-indie-submission-2026` contains the frozen application and the final documentation; functional source files unchanged.
 - [x] PR #135 and #136 identified as historical feature stages, PR #137 as documentation review; no blanket merge into `main`.
 - [x] Complete [release branch map](REPOSITORY_HANDOFF_2026-11-03.md) records the older divergent `release/runq-hackathon-2026` branch.
-- [ ] GitHub default branch still points to older `main`. After security approval, owner must select `release/runq-indie-submission-2026` as the default, or explicitly adopt another documented judge-accessible routing solution.
+- [x] **Updated after the original checklist:** PR #138 integrated the approved source into `main`; `main` is now the default branch. The earlier alternative of changing default to the release branch is no longer necessary. Publication and judge access remain pending.
 
 ## Release integrity
 

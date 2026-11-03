@@ -4,20 +4,20 @@
 
 ## Reproduce the submitted build
 
-The release source is the exact **frozen commit** `b4e7df724d569c1d5af7682540c206ff3fb97701`, not the repository's historical `main` branch.
+The current default branch `main` contains the final integrated RUNQ submission (PR #138). Its functional application is based on the verified **frozen commit** `b4e7df724d569c1d5af7682540c206ff3fb97701`; the merge additionally carries a narrow Windows path-validation fix in a QA utility. The original frozen source is preserved separately.
 
 Requirements: **Node.js 20+**, npm, recent Chrome or Edge, audio output. The package requires the dependencies in `package.json` (including `libarchive.js`, `mammoth` and `pdfjs-dist`).
 
 ```sh
 git clone https://github.com/vicentektek/showcompiler-hackathon-2026.git
 cd showcompiler-hackathon-2026
-git switch release/runq-indie-submission-2026
-# The runnable application files match frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
+git switch main
+# The runnable product source is based on frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
 npm install --no-audit --no-fund
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173** on the same computer. In GitHub Codespaces use the **Ports** panel to open forwarded port 5173. A private repo cannot be cloned by third parties until explicit judge access or an approved public release is provided.
+Open **http://127.0.0.1:5173** on the same computer. In GitHub Codespaces use the **Ports** panel to open forwarded port 5173. **IMPORTANT:** a private repo cannot be cloned by judges without access. The organizer's 3 November notice explicitly requires an **open-source GitHub repository**, so private judge invitations alone should not be treated as compliant. Publication is blocked until secrets, historical commits, source/media rights and the chosen license are reviewed; see [submission handoff](SUBMISSION_HANDOFF_2026-11-04.md).
 
 To run the offline regression suite:
 
