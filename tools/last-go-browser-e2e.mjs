@@ -336,6 +336,9 @@ try{
    await page.mouse.wheel(0,160);
    await page.waitForTimeout(200);
   }
+  // On tablet widths, the Sound workspace is intentionally document-scrollable.
+  // Reach the list as an actual user would before measuring its clipped viewport.
+  if(size.width<=900)await page.locator('#assetList').scrollIntoViewIfNeeded();
   const visible=await visibleListHeight();
   assert.ok(visible>=64,'Library must retain an actually reachable >=64px file viewport at '+size.width+', got '+visible);
   geometry.push({...size,visibleListPx:visible});
