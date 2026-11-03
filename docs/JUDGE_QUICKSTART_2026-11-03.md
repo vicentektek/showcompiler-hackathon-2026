@@ -11,7 +11,8 @@ Requirements: **Node.js 20+**, npm, recent Chrome or Edge, audio output. The pac
 ```sh
 git clone https://github.com/vicentektek/showcompiler-hackathon-2026.git
 cd showcompiler-hackathon-2026
-git checkout b4e7df724d569c1d5af7682540c206ff3fb97701
+git switch release/runq-indie-submission-2026
+# The runnable application files match frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
 npm install --no-audit --no-fund
 npm run dev
 ```
