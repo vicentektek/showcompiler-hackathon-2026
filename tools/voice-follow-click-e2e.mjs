@@ -100,9 +100,15 @@ try{
     assert.equal(await page.locator('.shell').getAttribute('data-active-workspace'),workspace,'Cannot open '+workspace);
     if(workspace==='audio'){
       await tryClick('[data-rq10-sound-tab="generate"]');
-      assert.equal(await page.locator('#waveCanvas').isVisible(),true,
-        'The integrated Sound Lab remains accessible inside Sonido');
+      assert.equal(await page.locator('#generateForm').isVisible(),true,
+        'Prompt-only Sound Assistant remains accessible inside Sonido');
+      assert.equal(await page.locator('#rqPromptImportCue').isVisible(),true,
+        'Manual audio import must remain visible');
+      assert.equal(await page.locator('#waveCanvas').isVisible(),false,
+        'The redundant legacy waveform editor must be hidden in the prompt view');
       await tryClick('[data-rq10-sound-tab="library"]');
+      assert.equal(await page.locator('#assetList').isVisible(),true,
+        'The actual library must remain accessible');
     }
   }
   const fatal=scriptErrors.filter(error=>!error.includes('Content Security Policy directive')&&!error.includes('/favicon.ico')&&!error.includes('Failed to load resource: the server responded with a status of 404'));
