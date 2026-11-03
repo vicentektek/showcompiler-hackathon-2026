@@ -10,6 +10,10 @@ RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a t
 >
 > **Project status:** working browser hackathon prototype, not a certified professional show-control application. Repository is currently **private**; judge access/publication requires explicit approval.
 
+## Final submission source
+
+The **complete submission package** (approved runnable code + these release documents) is on [`release/runq-indie-submission-2026`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026). The application files are identical to the frozen `b4e7df7` build. The historical `main` branch is not the submitted source. This GitHub link will require approved repository access while the project remains private.
+
 ## What it does
 
 | Workflow | Frozen submission capability |
