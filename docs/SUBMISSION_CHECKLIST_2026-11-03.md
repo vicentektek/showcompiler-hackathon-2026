@@ -5,11 +5,18 @@
 - [x] Initial targeted check of current frozen tree found no typical credential files and no recognized hard-coded token values in eight inspected modules. **Partial only.**
 - [x] `.gitignore` hardened for private reports, raw footage and key files.
 - [x] `SECURITY.md` and historical feature/experiment classification published on the docs branch.
-- [ ] **Gitleaks full-history + working-tree scans run locally and findings inspected privately.** See [security audit](RELEASE_SECURITY_AUDIT_2026-11-03.md).
+- [x] Gitleaks full-history and working-directory scans reportedly executed (2,283 accessible commits); findings are **not yet cleared**. See [security audit](RELEASE_SECURITY_AUDIT_2026-11-03.md).
+- [ ] Revoke/rotate the affected local provider credentials and rerun the working-tree scan.
+- [ ] Privately classify the historical test-fixture candidate and sign off the result.
 - [ ] Any exposed historical provider tokens revoked/rotated; inspect legacy PR/CI logs separately.
 - [ ] Licensing/redistribution of bundled demo audio, brand images and reference ZIP confirmed.
 - [ ] [Dependency and media rights inventory](THIRD_PARTY_AND_MEDIA_REVIEW_2026-11-03.md) reviewed and signed off before public sharing.
 - [ ] Judge access or sanitized public snapshot approved; repository currently private.
+
+## Recorded local backup
+
+- [x] Operator reported a completed local full-directory backup (including `.git`, ignored files and uncommitted changes), checked by equal **17,465-file** counts and **761,501,620-byte** totals. This is an inventory comparison, not a bytewise hash verification.
+- [ ] Keep the backup private and locally protected; ignored files may include sensitive credentials. **Do not distribute or upload this full backup.**
 
 ## Verified facts (3 November 2026)
 
