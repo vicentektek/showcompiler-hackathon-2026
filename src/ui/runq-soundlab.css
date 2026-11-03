@@ -103,3 +103,43 @@
 @media (prefers-reduced-motion: reduce) {
   :root#runqApp .sfx-lab-intro::after, :root#runqApp .sfx-wave-empty::before, :root#runqApp .sfx-status-badge::before { animation: none !important; }
 }
+
+
+/* Prompt-only demo: the former generator is now a three-action sound assistant.
+   Scope only the Sound Assistant view; keep the full library, waveform editor,
+   manual cue assignment, and their event handlers untouched. These rules
+   intentionally follow the legacy highly-specific studio styles above. */
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=generate] {
+  & .sfx-connection,
+  & #generateForm > .sfx-row-fields,
+  & #sfxAdvanced,
+  & #sfxConnectionDetails,
+  & .rq-sfx-generation-note,
+  & #sfxShortTakeBtn,
+  & .rq-prompt-only-legacy-jobs,
+  & .sfx-script-assistant,
+  & .sfx-audio-panel,
+  & .sfx-export,
+  & .sl-chips,
+  & .sl-chips-label,
+  & .sl-count { display: none !important; }
+
+  & .sfx-layout {
+    display: block !important;
+    max-width: 840px !important;
+    margin: 0 auto !important;
+  }
+  & .sfx-left { display: block !important; }
+  & .sfx-left > .sfx-card { width: 100% !important; }
+  & .sfx-form { gap: 18px !important; }
+  & #soundPrompt { min-height: 164px !important; }
+  & #generateForm > .sfx-buttons { align-items: stretch !important; }
+  & #generateBtn { flex: 1 1 190px !important; }
+  & #rqPromptImportCue, & #rqPromptOpenLibrary {
+    min-height: 42px !important;
+    height: auto !important;
+    flex: 1 1 170px;
+    white-space: normal;
+  }
+  & #generationHint { flex-basis: 100%; }
+}
