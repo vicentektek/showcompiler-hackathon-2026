@@ -597,6 +597,65 @@ export function mountShowBuilder(panel, welcome, steps) {
   let currentShow = null;
   let taskMessage = '';
   let selectedRoute = null;
+  let scriptAnalysisState='idle',scriptAnalysisText='',scriptAnalysisScope='',scriptAnalysisCount=0;
+  let scriptAnalysisLocale='en';
+  function paintScriptAnalysis(){
+    const locale=$('uiLocaleSelect')?.value==='es'?'es':'en',es=locale==='es';
+    scriptAnalysisLocale=locale;
+    const hasScript=Boolean(currentShow?.project.scriptText.trim());
+    analysisCard.hidden=!hasScript;
+    scriptSummary.hidden=!hasScript;
+    scriptExplorer.hidden=!hasScript;
+    proposeScriptCues.disabled=!hasScript||scriptAnalysisState==='running';
+    proposeScriptCues.textContent=scriptAnalysisState==='running'
+      ? (es?'Buscando cues…':'Finding cues…')
+      : (es?'✦ Buscar cues con RUNQ AI':'✦ Find cues with RUNQ AI');
+    proposeScriptCues.setAttribute('aria-busy',String(scriptAnalysisState==='running'));
+    if(!hasScript)return;
+    const lines=parseScript(currentShow.project.scriptText);
+    scriptSummaryTitle.textContent=es?'Guion importado correctamente':'Script imported successfully';
+    scriptSummaryDetails.textContent=(currentShow.project.name||'')+' · '+lines.length+
+      (es?' líneas disponibles':' available lines');
+    scriptAnalysisCount=Number.isInteger(scriptAnalysisCount)?scriptAnalysisCount:0;
+    const titles={
+      idle:es?'Listo para buscar cues':'Ready to find cues',
+      running:es?'RUNQ AI está analizando tu guion':'RUNQ AI is analyzing your script',
+      success:scriptAnalysisCount
+        ? (es?scriptAnalysisCount+' propuestas listas para revisar':scriptAnalysisCount+' suggestions ready to review')
+        : (es?'Análisis completado':'Analysis complete'),
+      error:es?'No se ha completado el análisis':'Analysis could not be completed',
+      unavailable:es?'Revisa la conexión de IA':'Check your AI connection'
+    };
+    analysisTitle.textContent=titles[scriptAnalysisState]??titles.idle;
+    const details={
+      idle:es?'Pulsa «Buscar cues» para analizar el guion. No se aprueba ningún cue automáticamente.':
+        'Select Find cues to analyze your script. No cue is approved automatically.',
+      running:es?'El análisis está en curso. Puedes seguir aquí; las propuestas aparecerán al finalizar.':
+        'Analysis is running. Stay here; suggestions will appear when it finishes.',
+      success:scriptAnalysisCount
+        ? (es?'Puedes revisar, modificar o rechazar cada propuesta.':'Review, edit or reject every suggestion.')
+        : (es?'No hay propuestas nuevas en este análisis. Puedes volver a analizar o crear cues manualmente.':
+          'No new suggestions in this analysis. You can retry or create cues manually.'),
+      error:scriptAnalysisText|| (es?'Comprueba tu conexión y vuelve a intentarlo.':'Check the connection and try again.'),
+      unavailable:es?'El análisis necesita un proveedor de IA configurado. Comprueba su conexión.':
+        'Analysis needs a configured AI provider. Check its connection.'
+    };
+    analysisDetail.textContent=details[scriptAnalysisState]??details.idle;
+    analysisScope.textContent=scriptAnalysisState==='running'?scriptAnalysisScope:'';
+    analysisProgress.hidden=scriptAnalysisState!=='running';
+    analysisCard.dataset.state=scriptAnalysisState;
+    reviewAnalysis.hidden=scriptAnalysisState!=='success'||!scriptAnalysisCount;
+    reviewAnalysis.textContent=es?'Revisar propuestas':'Review suggestions';
+    configureAnalysis.hidden=!['error','unavailable'].includes(scriptAnalysisState);
+    configureAnalysis.textContent=es?'Comprobar configuración de IA':'Check AI configuration';
+  }
+  function scriptAnalysisUpdate(state,detail={}){
+    scriptAnalysisState=state;
+    if(typeof detail.message==='string')scriptAnalysisText=detail.message;
+    if(typeof detail.scope==='string')scriptAnalysisScope=detail.scope;
+    if(Number.isInteger(detail.count))scriptAnalysisCount=detail.count;
+    paintScriptAnalysis();
+  }
   const stageCards = new Map([...container.querySelectorAll('[data-builder-stage]')]
     .map(card => [card.dataset.builderStage, card]));
 
@@ -627,6 +686,8 @@ export function mountShowBuilder(panel, welcome, steps) {
       persistenceAvailable = loaded.persistenceAvailable;
       assistantDisclosure.open = false;
       selectedRoute = routeForStage(session.currentStage);
+      scriptAnalysisState='idle';scriptAnalysisText='';scriptAnalysisScope='';scriptAnalysisCount=0;
+      scriptExplorer.open=false;
     }
     assessment = assessShowBuilder(currentShow.project, currentShow.assets, session);
 
@@ -699,6 +760,9 @@ export function mountShowBuilder(panel, welcome, steps) {
       ? copy.finish[0] : copy.continue[0];
     sourceTitle.textContent = copy.sourceTitle[0];
     sourceHelp.textContent = copy.sourceHelp[0];
+    explorerSummary.textContent=locale==='es'
+      ? 'Explorar líneas del guion · selección manual (opcional)'
+      : 'Browse script lines · manual selection (optional)';
     proposeScriptCues.textContent = copy.proposeScriptCues[0];
     proposeScriptCuesHelp.textContent = copy.proposeScriptCuesHelp[0];
     importScript.textContent = currentShow.project.scriptText.trim()
@@ -819,7 +883,8 @@ export function mountShowBuilder(panel, welcome, steps) {
     selectionStatus.hidden = !hasScript;
     proposeScriptCues.hidden = !hasScript;
     proposeScriptCuesHelp.hidden = !hasScript;
-    proposeScriptCues.disabled = !hasScript;
+    proposeScriptCues.disabled = !hasScript||scriptAnalysisState==='running';
+    paintScriptAnalysis();
     createSelected.disabled = selectedIds.size === 0;
     analyzeSelected.disabled = selectedIds.size === 0;
     detectScript.disabled = !hasScript;
@@ -975,11 +1040,42 @@ export function mountShowBuilder(panel, welcome, steps) {
   analyzeSelected.addEventListener('click', () => $('rq16AnalyzeScriptSelection')?.click());
   detectScript.addEventListener('click', () => $('rq16DetectScriptCues')?.click());
   proposeScriptCues.addEventListener('click', () => {
-    if (!currentShow || !currentShow.project.scriptText.trim()) return;
-    selectedRoute = 'cue';
-    saveSession(currentShow.project, updateShowBuilderStage(session, 'cues'));
+    if(!currentShow?.project.scriptText.trim()||scriptAnalysisState==='running')return;
+    const realButton=$('analyzeMetaBtn');
+    if(!realButton||realButton.disabled){
+      scriptAnalysisUpdate('unavailable');
+      return;
+    }
+    // Keep the operator on From the Script; Meta progress is mirrored here.
+    scriptAnalysisUpdate('running');
+    realButton.click();
+  });
+  reviewAnalysis.addEventListener('click',()=>{
+    if(!currentShow)return;
+    selectedRoute='cue';
+    saveSession(currentShow.project,updateShowBuilderStage(session,'cues'));
     render();
-    generateSuggestions.click();
+    $('rqUnifiedCueReview')?.scrollIntoView({block:'start',behavior:'auto'});
+  });
+  configureAnalysis.addEventListener('click',()=>{
+    if(!currentShow)return;
+    selectedRoute='cue';
+    saveSession(currentShow.project,updateShowBuilderStage(session,'cues'));
+    aiControls.open=true;
+    render();
+    $('rqShowBuilderAiControls')?.scrollIntoView({block:'start',behavior:'auto'});
+  });
+  document.addEventListener('runq:meta-analysis-activity',event=>{
+    const d=event.detail??{};
+    if(d.running){
+      const locale=$('uiLocaleSelect')?.value==='es';
+      const parts=[d.scope,d.elapsed].filter(Boolean);
+      scriptAnalysisUpdate('running',{scope:parts.join(' · ')});
+    }
+  });
+  document.addEventListener('runq:meta-analysis-result',event=>{
+    const d=event.detail??{};
+    scriptAnalysisUpdate(d.ok?'success':'error',{count:d.count??0,message:d.message??''});
   });
   generateSuggestions.addEventListener('click', () => {
     const analyzeButton = $('analyzeMetaBtn');
