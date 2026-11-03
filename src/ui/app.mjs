@@ -1,6 +1,6 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, decideProposalBatch, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, decideProposalBatch, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, setCueSilent, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
 import { setCueEntryPolicy,planEntryStops,normalizeCueEntryPolicy } from '../core/cueEntryPolicy.mjs';
 import { insertManualCue, insertManualCueFromScriptLines, insertManualAudioCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue, reorderOperatorCue } from '../core/manualCues.mjs';
@@ -325,7 +325,7 @@ function refreshAudioControls() {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
     if (!cue) continue;
     const unresolved = cue.actions.find(action => action.type === 'PLAN_AUDIO');
-    const ready = !unresolved && cue.actions.every(action => player.hasAsset(action.assetId)) &&
+    const ready = !unresolved && cue.actions.every(action => action.type === 'SILENT' || (action.type === 'PLAY' && player.hasAsset(action.assetId))) &&
       (cue.audioTracks ?? []).every(track => player.hasAsset(track.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
@@ -371,7 +371,7 @@ function refreshAudioControls() {
     ? t('operator.lastGo', { number: last.number, label: last.label })
     : t('operator.noLastGo');
   $('operatorGoBtn').disabled = !prepared || audioInFlight || auditioning || pending > 0 ||
-    prepared.actions.some(action => action.type !== 'PLAY' || !player.hasAsset(action.assetId)) ||
+    prepared.actions.some(action => action.type !== 'SILENT' && (action.type !== 'PLAY' || !player.hasAsset(action.assetId))) ||
     (prepared.audioTracks ?? []).some(track => !player.hasAsset(track.assetId)) ||
     player.isPlaying(prepared.id);
   $('operatorBackBtn').disabled = !show.cues.length || audioInFlight || pending > 0 ||
@@ -384,7 +384,7 @@ function refreshAudioControls() {
     const status = player.getStatus();
     button.disabled = !cue || audioInFlight || bundleInFlight || auditioning ||
       goTransportPending || status.pendingGoCount > 0 || status.auditionPending ||
-      cue.actions.some(action=>action.type!=='PLAY'||!player.hasAsset(action.assetId)) ||
+      cue.actions.some(action=>action.type!=='SILENT'&&(action.type!=='PLAY'||!player.hasAsset(action.assetId))) ||
       (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)) ||
       player.isPlaying(cue.id) || player.isStopping(cue.id);
   }
@@ -727,7 +727,7 @@ function replaceOptions(select, entries, oldValue) {
   select.disabled = entries.length === 0;
 }
 function describeCueActions(actions) {
-  return actions.map(action => action.type === 'PLAY'
+  return actions.map(action => action.type === 'SILENT' ? (uiLocale==='es'?'SILENCIO · GO sin audio':'SILENCE · GO without audio') : action.type === 'PLAY'
     ? 'PLAY → ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
     : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') + ': ' + action.prompt
   ).join(' | ');
@@ -1748,7 +1748,7 @@ function cueActionInspector(cue) {
   const pane = node('div', 'cue-actions-inspector');
   pane.append(node('h4', 'inspector-section-heading', t('cueEditor.assetSection')));
   for (const action of cue.actions) {
-    const label = action.type === 'PLAY'
+    const label = action.type === 'SILENT' ? (uiLocale==='es'?'SILENCIO · GO sin audio':'SILENCE · GO without audio') : action.type === 'PLAY'
       ? 'PLAY · ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
       : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved');
     pane.append(node('div', 'inspector-action', label));
@@ -1779,6 +1779,26 @@ function cueActionInspector(cue) {
     }
   } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
     audioTools.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
+  }
+  if(cue.actions.length===1 && !cue.audioTracks?.length){
+    const silent = node('button','btn subtle small',uiLocale==='es'?'Marcar como silencio (GO sin audio)':'Mark as silence (GO without audio)');
+    silent.type='button';
+    silent.disabled=cue.actions[0].type==='SILENT';
+    silent.addEventListener('click',()=>safeOperation(
+      ()=>setCueSilent(show,cue.id),'operator.preparedFeedback',{number:cue.number}));
+    audioTools.append(silent);
+    if(cue.actions[0].type==='SILENT'){
+      audioTools.append(cueAudioPicker(cue.id,'soundPlan.loadFile'));
+      if(show.assets.length){
+        const library=node('select');library.setAttribute('aria-label',t('soundPlan.libraryLabel'));
+        replaceOptions(library,show.assets.map(asset=>[asset.id,asset.name]));
+        const assign=node('button','btn primary small',t('soundPlan.assign'));
+        assign.type='button';
+        assign.addEventListener('click',()=>safeOperation(
+          ()=>assignAudioToCue(show,cue.id,library.value),'soundPlan.assignedFeedback'));
+        audioTools.append(library,assign);
+      }
+    }
   }
   pane.append(audioTools);
 
@@ -2109,7 +2129,7 @@ function renderCueInspector() {
     inspector.append(studio);
   }
 
-  const available = cue.actions.some(a => a.type === 'PLAY' || a.type === 'PLAN_AUDIO')
+  const available = cue.actions.some(a => a.type === 'PLAY' || a.type === 'PLAN_AUDIO' || a.type === 'SILENT')
     ? ['details', 'audio', 'actions'] : ['details', 'actions'];
   if (!available.includes(inspectorTab)) inspectorTab = available[0];
   const tabs = node('div', 'cue-inspector-tabs');
@@ -2511,7 +2531,7 @@ async function executeCueById(id,{advancePrepared=false}={}){
  if(!id||goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved)return false;
  const generation=projectGeneration;
  const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
- if(!cue||cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+ if(!cue||cue.actions.some(a=>a.type!=='SILENT'&&(a.type!=='PLAY'||!player.hasAsset(a.assetId)))||
    (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)))return false;
  const status=player.getStatus();
  if(status.pendingGoCount||status.auditionActive||status.auditionPending||
@@ -2575,7 +2595,7 @@ document.addEventListener('runq:rehearsal-auto-go',event=>{
  }
  const cue=show.cues.find(c=>c.id===cueId);
  if(!cue){report({ok:false,reason:'UNKNOWN_CUE'});return;}
- if(cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+ if(cue.actions.some(a=>a.type!=='SILENT'&&(a.type!=='PLAY'||!player.hasAsset(a.assetId)))||
     (cue.audioTracks??[]).some(t=>!player.hasAsset(t.assetId))){
    report({ok:false,reason:'AUDIO_NOT_READY'});return;
  }
