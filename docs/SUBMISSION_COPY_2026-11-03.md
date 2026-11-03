@@ -3,7 +3,7 @@
 > **Status:** publication draft. Add the video URL, screenshots, team identity and any portal-specific mandatory fields after reviewing the organizer's authenticated submission form. Do not submit this file as proof that the form was completed.
 
 ## Name
-RUNQ — From Script to Show
+RUNQ — From Script to Stage
 
 ## Short tagline
 AI-assisted theatre cue planning, with human review and deterministic live audio control.
