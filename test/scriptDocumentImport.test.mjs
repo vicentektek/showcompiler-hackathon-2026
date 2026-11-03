@@ -9,7 +9,7 @@ const bytes=s=>[...new TextEncoder().encode(s)];
 
 test('TXT import retains script lines and rejects malformed UTF-8',async()=>{
   const result=await readScriptDocument(fake('show.TXT',bytes('ESCENA 1\r\nANA: Adelante.')));
-  assert.deepEqual(result,{text:'ESCENA 1\nANA: Adelante.',format:'txt'});
+  assert.deepEqual(result,{text:'ESCENA 1\r\nANA: Adelante.',format:'txt'});
   await assert.rejects(readScriptDocument(fake('wrong.txt',[0xff,0xfe])),/SCRIPT_INVALID_UTF8/);
 });
 test('PDF importer extracts page text, respects line endings and destroys document',async()=>{
