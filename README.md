@@ -6,13 +6,13 @@
 
 RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a theatrical script, optional Meta Muse Spark cue suggestions, a human review process and deterministic local audio operation. AI helps prepare the show; **the operator controls GO**.
 
-> **Frozen application build:** [`b4e7df7`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/b4e7df724d569c1d5af7682540c206ff3fb97701) (3 November 2026). Frozen reference branch: [`release/runq-hackathon-2026-frozen`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-hackathon-2026-frozen). **Submission source:** [`release/runq-indie-submission-2026`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026). Documentation was prepared in PR [#137](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/137). **Do not use the historical `main` branch as the submitted version.**
+> **Current submission source:** [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main), integrated by [PR #138](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/138) on 4 November 2026. **Frozen functional application reference:** [`b4e7df7`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/b4e7df724d569c1d5af7682540c206ff3fb97701) (3 November); preserved branch [`release/runq-hackathon-2026-frozen`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-hackathon-2026-frozen). The integrated tree differs from the release source only by a Windows path-validation fix in the offline evaluation utility. The frozen release branch remains available for comparison.
 >
-> **Project status:** working browser hackathon prototype, not a certified professional show-control application. Repository is currently **private**; judge access/publication requires explicit approval.
+> **Project status:** working browser hackathon prototype, not a certified professional show-control application. **Publication pending:** the repository is private while secrets, history and media licenses are reviewed. The organizer's 3 November reminder says an open-source GitHub repository is mandatory; do not assume a private repo link meets that requirement. See [submission handoff](docs/SUBMISSION_HANDOFF_2026-11-04.md).
 
 ## Final submission source
 
-The **complete submission package** (approved runnable code + these release documents) is on [`release/runq-indie-submission-2026`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026). The application files are identical to the frozen `b4e7df7` build. The historical `main` branch is not the submitted source. This GitHub link will require approved repository access while the project remains private.
+[`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main) is the current default branch and integration target. It contains the complete browser application, release documentation and the narrow Windows cross-drive snapshot validation correction. The unmodified submission snapshot is preserved on [`release/runq-indie-submission-2026`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026). **This source URL is not judge-accessible until a compliant publication decision and security/media clearance.**
 
 ## What it does
 
@@ -37,8 +37,8 @@ The **complete submission package** (approved runnable code + these release docu
 ```sh
 git clone https://github.com/vicentektek/showcompiler-hackathon-2026.git
 cd showcompiler-hackathon-2026
-git switch release/runq-indie-submission-2026
-# Same runnable app as frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
+git switch main
+# Runnable application remains based on frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
 npm install --no-audit --no-fund
 npm run dev
 ```
@@ -52,7 +52,7 @@ npm run check:syntax
 npm test
 ```
 
-The frozen commit passed GitHub Actions **Core tests**, run `41690922577`. This confirms automated checks (including offline browser validation), **not** professional operation, live microphone reliability or guaranteed live-model availability. No paid calls are needed to run routine tests.
+The frozen commit passed GitHub Actions **Core tests**, run `41690922577`. The integration PR #138 passed **Core tests** and **Windows PowerShell preflight** on commit `ad90436` (832/832 offline unit tests reported). These results do **not** certify real hardware, microphone reliability or live-model availability; the merge commit did not itself trigger a new Core-tests push run. No paid calls are needed for routine checks.
 
 ## Five-minute walkthrough
 
@@ -65,7 +65,13 @@ The frozen commit passed GitHub Actions **Core tests**, run `41690922577`. This 
 
 For a live Meta Muse demonstration, configure the server-side `MODEL_API_KEY` according to [Meta Model API setup](docs/META_MODEL_API.md) and make an explicit request. Do not upload private scripts or show API keys in screenshots. Offline prompts and synthetic fixtures must be labelled as offline, not real model results.
 
+## Submission status
+
+The event organizer's 3 November reminder requests a **3-minute demo video** and explicitly requires an **open-source GitHub repository**. The video URL, license/publication decision, current secret-scan sign-off and third-party media rights are **not yet confirmed in this repository**. The final form must be completed and its receipt saved in the authenticated Cerebral Valley portal. The published deadline is **4 November 2026, 9:00 PM ET = 5 November, 03:00 CET**. See [last-mile submission handoff](docs/SUBMISSION_HANDOFF_2026-11-04.md).
+
 ## Submission documentation
+
+- [Submission-day handoff and publication blockers](docs/SUBMISSION_HANDOFF_2026-11-04.md)
 
 - [Release notes and complete feature boundaries](docs/SUBMISSION_RELEASE_2026-11-03.md)
 - [Judge installation and walkthrough](docs/JUDGE_QUICKSTART_2026-11-03.md)
