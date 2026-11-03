@@ -671,6 +671,10 @@ try {
     let state;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{state=value;}}}));return state;
   });
   const cueCountBeforeReview=(await readBuilderState()).project.cues.length;
+  // The detailed legacy proposal inspector is now an optional disclosure;
+  // the primary interface is the unified review above it.
+  if(!(await page.locator('#rqBuilderLegacyReview').evaluate(el=>el.open)))
+    await page.locator('#rqBuilderLegacyReview > summary').click();
   const pendingBuilder=page.locator('#proposalList .item').filter({hasText:'Builder proposal'});
   assert.equal(await pendingBuilder.count(),5,
     'Builder exposes five provider suggestions for explicit human review');
