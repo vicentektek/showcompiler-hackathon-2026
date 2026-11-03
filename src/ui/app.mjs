@@ -484,6 +484,15 @@ function refreshMetaActivity() {
   $('aiAnalysisElapsed').textContent = t('proposals.analysisElapsed', {
     seconds: Math.max(0, Math.floor((Date.now() - metaActivity.startedAt) / 1000)),
   });
+  // Mirror real provider activity into the visible From the Script card.
+  // No second request, fake percentage or extra authorization occurs here.
+  document.dispatchEvent(new CustomEvent('runq:meta-analysis-activity',{
+    detail:{
+      running:true,
+      scope:$('aiAnalysisScope').textContent??'',
+      elapsed:$('aiAnalysisElapsed').textContent??'',
+    },
+  }));
 }
 function refreshMetaMessage() {
   const provider = selectedModelProvider();
@@ -3163,7 +3172,24 @@ async function analyzeNextMeta({ confirmed = false, signal, isCurrent = () => tr
   }
 }
 $('analyzeMetaBtn').addEventListener('click', () => {
-  void analyzeNextMeta().catch(showError);
+  const beforeCount=show.proposals.length;
+  void analyzeNextMeta().then(result=>{
+    // An explicit declined Baseten confirmation is not a completed analysis.
+    if(result===undefined){
+      document.dispatchEvent(new CustomEvent('runq:meta-analysis-result',{
+        detail:{ok:false,message:uiLocale==='es'?'Análisis cancelado.':'Analysis cancelled.'},
+      }));
+      return;
+    }
+    document.dispatchEvent(new CustomEvent('runq:meta-analysis-result',{
+      detail:{ok:true,count:Math.max(0,show.proposals.length-beforeCount)},
+    }));
+  }).catch(error=>{
+    showError(error);
+    document.dispatchEvent(new CustomEvent('runq:meta-analysis-result',{
+      detail:{ok:false,message:$('statusMessage').textContent||String(error?.message??'Analysis failed')},
+    }));
+  });
 });
 
 function emergencyStopAllAudio() {
