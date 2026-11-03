@@ -1035,3 +1035,14 @@
     padding: 5px 9px !important;
   }
 }
+
+
+/* Prompt-only demo: legacy Modal takes and accept/assign batch controls
+   are historical, not actionable. Hide even if button/grid CSS overrides
+   the browser's [hidden] default. Prompt export and cue approval remain. */
+body.rq-prompt-only #rqAssignAllSounds,
+body.rq-prompt-only #rqSoundAssignAllSounds,
+body.rq-prompt-only #rqSoundReviewBatch,
+body.rq-prompt-only #rqPreparationResults {
+  display: none !important;
+}
