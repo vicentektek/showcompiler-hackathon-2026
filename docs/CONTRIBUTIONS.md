@@ -58,3 +58,11 @@ Historical GitHub Actions evidence remains visible in repository history. The dr
 - Browser playback is real local code but not professional/certified show control.
 - Native WASAPI/ASIO, desktop installer, hardware routing, and paid audio generation are not implemented. A limited portable browser ZIP is available, pending user acceptance.
 - Never commit keys, account/billing details, full private scripts, raw provider responses, or unlicensed media.
+
+## 3 November 2026 — selected final demonstration and submission freeze
+
+- Selected RUNQ browser build `b4e7df724d569c1d5af7682540c206ff3fb97701` from PR #136, including prompt-only Sound Assistant, human-reviewed cue proposals, embedded per-cue sound design review and local sound controls. The user approved the version manually in VS Code.
+- GitHub Actions Core tests run `41690922577` succeeded on the frozen commit; this establishes automated checks, not certified production hardware or guaranteed live-model quality.
+- On this branch, final README, release notes, judge setup, description, capture plan and checklist were added without changing the functional source.
+- Repository hygiene/security notes classify archived paid evaluation and Modal experiments as historical and identify full-history credential scanning and asset-rights clearance as outstanding publication gates.
+- Video, official portal submission and judge-accessible source link remained pending at the time of this entry; nothing in these notes implies submission completed.

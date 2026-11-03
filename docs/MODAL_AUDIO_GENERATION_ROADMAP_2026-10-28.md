@@ -1,3 +1,5 @@
+> **HISTORICAL RESEARCH, NOT A SHIPPED CAPABILITY.** New Modal SFX generation is disabled in the frozen RUNQ demo. The operator imports/assigns local audio; a future audio provider (including a possible Meta option) requires a verified official API and a separate release decision. See [current feature status](FEATURE_STATUS_AND_FUTURE_AUDIO_2026-11-03.md).
+
 # RunQ Modal audio-generation roadmap
 
 Verified 28 October 2026. This document prepares an interface and phased plan. It does **not** deploy an app, allocate a GPU, download gated weights or generate audio.

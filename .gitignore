@@ -172,3 +172,28 @@ artifacts/systematic-eval/
 artifacts/agent-eval/
 artifacts/agent-live-eval/
 artifacts/runq-evals/
+
+
+# Submission hygiene: reports can contain detected secret material and private paths.
+artifacts/release-security/
+artifacts/qa-ai-battery-v1/
+artifacts/video/
+artifacts/runq-video/
+gitleaks-report*.json
+gitleaks-report*.csv
+gitleaks-report*.sarif
+trufflehog-report*.json
+
+# Local raw footage and screenshots; curated public assets need explicit review.
+recordings/
+captures/raw/
+video/raw/
+
+# Keys/certificates should never enter this repository.
+*.pem
+*.p12
+*.pfx
+*.key
+*.jks
+*.keystore
+*.asc

@@ -1,3 +1,5 @@
+> **HISTORICAL PLAN — SUPERSEDED ON 3 NOVEMBER 2026.** The owner froze RUNQ at `b4e7df724d569c1d5af7682540c206ff3fb97701` after manually approving the demo. This plan's V15/RC1 tasks and earlier priorities are retained for traceability; they do not authorize more development or paid testing. See [final submission release](SUBMISSION_RELEASE_2026-11-03.md).
+
 # RUNQ · Plan maestro de ejecución y entrega (29 oct – 4 nov 2026)
 
 > **REPLAN ACTIVO — 29/oct noche:** el operador ha suspendido grabación/edición del vídeo hasta aprobar la UI fiel a los cinco mockups. El orden y los gates de este plan quedan actualizados por [RUNQ_REPLAN_AI_VISUAL_DESKTOP_2026-10-29.md](RUNQ_REPLAN_AI_VISUAL_DESKTOP_2026-10-29.md): (1) validación real focalizada de IA Meta/Agent/voz, (2) rediseño visual, con spike de Electron en paralelo, (3) .exe Windows y QA, (4) vídeo real tras aprobación visual. Los plazos de vídeo del plan original son históricos, no instrucciones vigentes. No se autorizan pruebas pagadas mediante este cambio.
