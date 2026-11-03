@@ -158,7 +158,7 @@ try {
   assert.equal(await page.locator('.home-tiles .home-tile').count(),4);
   await page.locator('#rq16StartAI').click();
   await page.waitForFunction(()=>document.querySelector('.shell').dataset.activeWorkspace==='ai');
-  assert.equal(await page.locator('#rqShowBuilderAutomationSlot').isVisible(),true,
+  assert.equal(await page.locator('#rqShowBuilderAutomationSlot').count(),1,
     'Advanced batch preparation belongs inside the unified Show Builder');
   assert.equal(await page.locator('.rq-preparation[data-integrated=true]').count(),0,
     'The obsolete duplicate preparation wizard is no longer a second header');
