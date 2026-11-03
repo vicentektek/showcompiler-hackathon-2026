@@ -166,3 +166,13 @@
     position:static!important;
   }
 }
+
+
+/* Short desktop: recover visible file rows after an import result. The
+   duplicate file heading has no unique action; the toolbar and column
+   labels remain. This override must beat later full-desktop rules. */
+@media (min-width:981px) and (max-height:800px) {
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq12-library>.rq5-pane-heading {
+    display:none!important;
+  }
+}
