@@ -1,6 +1,7 @@
 import { compileSoundProposals, applyProposalEdits, recompileProposal, prepareCueSoundDraft } from '../core/soundPromptCompiler.mjs';
 import { waveformPeaks, trimBounds, makeOfflineImpactDemoWav } from './waveform.mjs';
 import { userFacingError } from '../ui/userFacingErrors.mjs';
+const PROMPT_ONLY = true; // Final demo: Meta proposes cues; audio is imported locally.
 const isSpanish = () => document.getElementById('uiLocaleSelect')?.value === 'es';
 const ux = (es,en) => isSpanish() ? es : en;
 
@@ -246,6 +247,11 @@ function updateControls(){
     !costReady?ux('Revisa la configuración del servicio de IA.','Check the AI service settings.'):
     !promptReady?ux('Describe el sonido y elige su duración.','Describe your sound and choose its duration.'):
     ux('Listo para generar.','Ready to generate.');
+  if (PROMPT_ONLY) {
+    $('generateBtn').disabled = !$('soundPrompt').value.trim();
+    text('generateBtn',ux('Copiar prompt','Copy prompt'));
+    $('generationHint').textContent = ux('Descripción para uso externo; no se genera audio.','External-use description; no audio is generated.');
+  }
   const reconnect=$('sfxReconnectBtn');
   if(reconnect) reconnect.disabled=state.working;
   const reviewButton=$('sfxCheckResultBtn');
@@ -594,8 +600,8 @@ function bindScriptCompiler(){
     $('soundPrompt').dispatchEvent(new Event('input',{bubbles:true}));
     updateControls();
     inform(ux(
-      `Contexto fijado: ${taskContext.title}. Pulsa Generar sonido para empezar con IA.`,
-      `Pinned context: ${taskContext.title}. Choose Generate sound to start AI work.`,
+      `Contexto fijado: ${taskContext.title}. Revisa el prompt y copia o importa un sonido.`,
+      `Pinned context: ${taskContext.title}. Review the prompt, then copy or import audio.`,
     ));
   });
   $('scriptSfxCompile').addEventListener('click',()=>{
@@ -649,7 +655,7 @@ function bindScriptCompiler(){
     $('soundPrompt').value=finalPrompt;
     $('duration').value=String(p.suggestedDurationSeconds??8);
     updateControls();
-    $('scriptSfxStatus').textContent=ux('Descripción preparada. Puedes revisarla antes de generar.','Sound description ready. Review it before generating.');
+    $('scriptSfxStatus').textContent=ux('Prompt preparado. Puedes revisarlo y copiarlo.','Prompt ready. Review and copy it.');
     $('sfxScriptDetails').open=false;
     $('soundPrompt').focus();
   });
@@ -753,6 +759,17 @@ function bindEvents(){
   }));
   $('generateForm').addEventListener('submit',event=>{
     event.preventDefault();
+    if (PROMPT_ONLY) {
+      const prompt = $('soundPrompt').value.trim();
+      if (!prompt) { inform(ux('Escribe o prepara un prompt.','Enter or prepare a prompt.'),true); return; }
+      void navigator.clipboard.writeText(prompt).then(()=>{
+        inform(ux('Prompt copiado. Importa después el archivo de sonido.','Prompt copied. Import the audio file afterwards.'));
+      }).catch(()=>{
+        $('soundPrompt').focus(); $('soundPrompt').select();
+        inform(ux('Selecciona y copia el prompt manualmente.','Select and copy the prompt manually.'));
+      });
+      return;
+    }
     void action(async()=>{
       const policy=costPolicy();
       if(preparationBusy||resultWatcher.active||ACTIVE_STATUS.has(state.job?.status))throw new Error('SFX_ACTIVE_LIMIT');
@@ -783,6 +800,14 @@ function bindEvents(){
           'Request submitted. Keep working. When ready, choose Listen beside the take.'));
       }
     });
+  });
+  $('rqPromptImportCue')?.addEventListener('click',()=>{
+    const cueId=state.contextTask?.cueId??$('rq10TargetCue')?.value??null;
+    document.dispatchEvent(new CustomEvent('runq:prompt-import-cue',{detail:{cueId}}));
+  });
+  $('rqPromptOpenLibrary')?.addEventListener('click',()=>{
+    document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'library'}}));
+    inform(ux('Elige un archivo de la biblioteca y asígnalo al cue en el editor.','Choose a library file and assign it to the cue in the editor.'));
   });
   $('uiLocaleSelect')?.addEventListener('change',()=>{
     updateSfxEditorLocale();
@@ -1075,6 +1100,11 @@ function connectionProblem(settings){
   return missing.length?missing.join(' · '):'El proveedor no está listo. Comprueba su configuración.';
 }
 async function checkConnection(){
+  if (PROMPT_ONLY) {
+    state.enabled=false; state.settings={promptOnly:true};
+    updateControls();
+    return;
+  }
   if(connectionCheck)return connectionCheck;
   text('engineBadge',ux('Comprobando…','Connecting…'));
   connectionCheck=(async()=>{
