@@ -4,7 +4,7 @@
 
 ## Freeze record
 
-- Product: **RUNQ** (repository name: `showcompiler-hackathon-2026`).
+- Product: **RUNQ** — **FROM SCRIPT TO STAGE** (repository name: `showcompiler-hackathon-2026`).
 - Track: **Indie developer** (solo project).
 - Theme fit: **Build for Your World** — tools for theatrical and live-event production, informed by firsthand show-operation workflows.
 - Frozen runnable commit: `b4e7df724d569c1d5af7682540c206ff3fb97701`.
