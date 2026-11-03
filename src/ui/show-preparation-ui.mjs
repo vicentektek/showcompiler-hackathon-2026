@@ -214,7 +214,7 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     subtitle.textContent = tr('Cues, pies y sonidos del guion. Tú revisas; GO manual.',
       'Cues, triggers and sounds from script. You review; manual GO.');
     const stepLabels = [tr('Analizar guion', 'Analyze script'), tr('Aprobar cues', 'Approve cues'),
-      tr('Preparar prompts', 'Prepare prompts'), tr('Asignar sonidos', 'Assign sounds')];
+      tr('Preparar prompts', 'Prepare prompts'), tr('Revisar show', 'Review show')];
     stepNodes.forEach((node, i) => {
       node.textContent = stepLabels[i];
       if (node.dataset.stage === stage || (stage === 'review-audio' && i === 2)) node.setAttribute('aria-current', 'step');
@@ -225,9 +225,12 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     labelButton(acceptAll, tr(`Aceptar todos los cues (${pending.length})`, `Accept all cues (${pending.length})`));
     const audioLabel = tr(`Planificar sonidos (${available.length})`, `Plan sounds (${available.length})`);
     labelButton(audioAll, audioLabel); labelButton(soundAll, audioLabel, audioAll.id);
+    const promptOnly = document.body.classList.contains('rq-prompt-only');
     const reviewed = assignable(state), reviewedCount = reviewed.length;
     const assignLabel = tr(`Aceptar todos los sonidos (${reviewedCount})`, `Accept all sounds (${reviewedCount})`);
     labelButton(assignAll, assignLabel); labelButton(soundAssignAll, assignLabel, assignAll.id);
+    assignAll.hidden = soundAssignAll.hidden = promptOnly;
+    results.hidden = promptOnly;
     assignAll.disabled = soundAssignAll.disabled = busy || planning || previewLoading || !(state.canAssign ?? state.canApply) || !reviewedCount;
     assignAll.title = soundAssignAll.title = tr('Acepta y asigna todas las tomas listas a sus cues. Escucharlas antes es opcional.',
       'Accept and assign all ready takes to their cues. Listening first is optional.');
@@ -236,7 +239,7 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       'Show sound plan after analyzing the show');
     includeAudio.disabled = busy || planning;
     soundReview.textContent = tr('Ver tomas del lote', 'View batch takes');
-    soundReview.hidden = !records.length;
+    soundReview.hidden = promptOnly || !records.length;
     const cancelLabel = tr('Cancelar lote', 'Cancel batch');
     labelButton(cancel, cancelLabel); labelButton(soundCancel, cancelLabel, cancel.id);
     prepare.disabled = homePrepare.disabled = busy || planning || !state.canApply || !state.metaAvailable || !state.project.scriptText.trim();
@@ -261,7 +264,7 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       `${available.length} cues need audio · ${excluded} excluded. Export prompts and import files locally.`);
     results.replaceChildren();
     const latest = records.filter(r => state.project.cues.some(c => c.id === r.cueId)).slice(-100);
-    for (const r of latest) {
+    for (const r of (promptOnly ? [] : latest)) {
       const cue = state.project.cues.find(c => c.id === r.cueId);
       const row = make('div', 'rq-preparation-result');
       const label = make('span');
