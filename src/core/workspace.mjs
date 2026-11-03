@@ -112,7 +112,7 @@ export function addModelProposals(project, suggestions, provider = 'META_MODEL_A
 export function assignAudioToCue(project, cueId, assetId) {
   const current = normalizeShowProject(project);
   const cue = current.cues.find(item => item.id === cueId);
-  if (!cue || !cue.actions.some(action => action.type === 'PLAN_AUDIO')) {
+  if (!cue || !cue.actions.some(action => action.type === 'PLAN_AUDIO' || action.type === 'SILENT')) {
     throw new TypeError('Cue has no unresolved audio');
   }
   if (!current.assets.some(asset => asset.id === assetId)) throw new TypeError('Unknown audio asset');
@@ -131,6 +131,23 @@ export function assignAudioToCue(project, cueId, assetId) {
   });
 }
 
+/** Mark one cue as intentionally silent. This is a deliberate show action,
+ * never a fallback for missing media. Preserve AI evidence by updating the
+ * approved proposal alongside its cue, as with assigning a sound. */
+export function setCueSilent(project, cueId) {
+  const current = normalizeShowProject(project);
+  const cue = current.cues.find(item => item.id === cueId);
+  if (!cue || cue.status !== 'DRAFT' || cue.actions.length !== 1 ||
+      !['PLAY', 'PLAN_AUDIO', 'SILENT'].includes(cue.actions[0].type) ||
+      (cue.audioTracks?.length)) throw new TypeError('Cue cannot be marked silent while audio tracks are assigned');
+  const action = { type: 'SILENT' };
+  const proposals = cue.origin === 'MANUAL' ? current.proposals :
+    current.proposals.map(item => item.id === cue.sourceProposalId
+      ? {...item, actions: [action]} : item);
+  return normalizeShowProject({...current,proposals,cues:current.cues.map(item =>
+    item.id === cueId ? {...item,actions:[action]} : item)});
+}
+
 /** Link one locally selected file to a cue without ever starting playback.
  * Used only after the browser has successfully decoded the file.
  * Filename identity reuses an existing library reference (for JSON reloads).
@@ -140,7 +157,7 @@ export function linkLocalAudioToCue(project, cueId, fileName) {
   const current = normalizeShowProject(project);
   const cue = current.cues.find(item => item.id === cueId);
   if (!cue || cue.actions.length !== 1 ||
-      !['PLAN_AUDIO', 'PLAY'].includes(cue.actions[0].type)) {
+      !['PLAN_AUDIO', 'PLAY', 'SILENT'].includes(cue.actions[0].type)) {
     throw new TypeError('Cue cannot accept one local audio file');
   }
   if (typeof fileName !== 'string' || !fileName.trim() || fileName.length > 200) {
@@ -150,9 +167,9 @@ export function linkLocalAudioToCue(project, cueId, fileName) {
   if (matches.length > 1) throw new TypeError('Duplicate audio filename references');
   const withAsset = matches.length ? current : addAudioReference(current, fileName);
   const assetId = matches.length ? matches[0].id : withAsset.assets.at(-1).id;
-  const result = cue.actions[0].type === 'PLAN_AUDIO'
-    ? assignAudioToCue(withAsset, cueId, assetId)
-    : replaceCueAudioAsset(withAsset, cueId, assetId);
+  const result = cue.actions[0].type === 'PLAY'
+    ? replaceCueAudioAsset(withAsset, cueId, assetId)
+    : assignAudioToCue(withAsset, cueId, assetId);
   return { project: result, assetId };
 }
 
