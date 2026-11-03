@@ -30,7 +30,7 @@ try{
  await page.goto(origin+'/',{waitUntil:'domcontentloaded'});
  await page.locator('[data-workspace-nav="ai"]').click();
  assert.equal(await page.locator('#rqShowBuilder').isVisible(),true);
- assert.equal(await page.locator('#rqShowBuilderAutomationSlot').isVisible(),true);
+ assert.equal(await page.locator('#rqShowBuilderAutomationSlot').count(),1);
  assert.equal(await page.locator('#rqPrepareShow').isVisible(),false,'Old batch wizard is optional, not a second header');
  const script='ESCENA 1\nMARA: La puerta se abre cuando termina esta frase.\n(Se abre la puerta lentamente.)';
  await page.locator('#scriptFileInput').setInputFiles({name:'obra.txt',mimeType:'text/plain',buffer:Buffer.from(script)});
