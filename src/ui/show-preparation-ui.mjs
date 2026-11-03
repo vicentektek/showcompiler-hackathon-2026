@@ -626,7 +626,7 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
         'Duración sugerida / Suggested duration: ' + item.draft.durationSeconds + ' s',
         'Prompt: ' + item.draft.prompt,
         item.draft.requiresTranslation ? 'REVISAR TRADUCCIÓN / REVIEW TRANSLATION' : '',
-      ].filter(Boolean).join('\\n')).join('\\n\\n---\\n\\n');
+      ].filter(Boolean).join('\n')).join('\n\n---\n\n');
       const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
       try {
         const anchor = make('a');
