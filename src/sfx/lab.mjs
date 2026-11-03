@@ -251,6 +251,10 @@ function updateControls(){
     $('generateBtn').disabled = !$('soundPrompt').value.trim();
     text('generateBtn',ux('Copiar prompt','Copy prompt'));
     $('generationHint').textContent = ux('Descripción para uso externo; no se genera audio.','External-use description; no audio is generated.');
+    const assigned=Boolean($('rqPromptTargetCue')?.value);
+    text('rqPromptImportCue',assigned
+      ?ux('Importar y asignar al cue','Import and assign to cue')
+      :ux('Importar a biblioteca','Import to library'));
   }
   const reconnect=$('sfxReconnectBtn');
   if(reconnect) reconnect.disabled=state.working;
@@ -579,8 +583,8 @@ function bindScriptCompiler(){
       $('sourceLine').value=draft.sourceLineId??'';
       $('scriptSfxLine').value=draft.sourceLineId??'';
       const promptStatus=draft.requiresTranslation
-        ?ux('la acotación necesita traducción al inglés antes de generar',
-          'the script direction needs an English rewrite before generation')
+        ?ux('revisa el idioma del prompt antes de copiarlo',
+          'review the prompt language before copying')
         :ux('prompt preparado en inglés','English prompt prepared');
       text('sfxCueContext',ux(
         `Sonido para cue ${taskContext.cueNumber??''}${draft.sourceLineId?' · '+draft.sourceLineId:''} · ${promptStatus} · duración estimada: ${draft.durationSeconds} s.`,
@@ -588,6 +592,7 @@ function bindScriptCompiler(){
       ));
       $('sfxCueContext').hidden=false;
       $('rq10TargetCue').value=taskContext.cueId;
+      if($('rqPromptTargetCue'))$('rqPromptTargetCue').value=taskContext.cueId;
     }else{
       $('soundPrompt').value=taskContext.brief??'';
       $('sfxCueContext').hidden=true;
@@ -808,8 +813,20 @@ function bindEvents(){
     });
   });
   $('rqPromptImportCue')?.addEventListener('click',()=>{
-    const cueId=state.contextTask?.cueId??$('rq10TargetCue')?.value??null;
+    const cueId=$('rqPromptTargetCue')?.value||null;
     document.dispatchEvent(new CustomEvent('runq:prompt-import-cue',{detail:{cueId}}));
+  });
+  $('rqPromptTargetCue')?.addEventListener('change',()=>{
+    const target=$('rqPromptTargetCue').value;
+    if($('rq10TargetCue'))$('rq10TargetCue').value=target;
+    if(state.contextTask?.cueId&&state.contextTask.cueId!==target){
+      state.contextTask=null;
+      $('sfxCueContext').textContent=ux(
+        'Has cambiado el cue de destino. Comprueba que el prompt describe el sonido correcto.',
+        'Destination cue changed. Check that the prompt describes the correct sound.');
+      $('sfxCueContext').hidden=false;
+    }
+    updateControls();
   });
   $('rqPromptOpenLibrary')?.addEventListener('click',()=>{
     document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'library'}}));
