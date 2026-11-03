@@ -796,8 +796,8 @@ try {
     document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{result=value;}}}));
     return result?.project?.proposals.every(proposal=>proposal.status!=='PENDING');
   });
-  assert.equal(await page.locator('#rqContextInspector [data-rq-context-action="undo-batch"]').count(),1,
-    'Bulk approval preserves the existing batch undo action');
+  assert.equal(await page.locator('#rqUnifiedCueReview .rq-review-bulk button').filter({hasText:'Undo review'}).count(),1,
+    'Unified review presents an explicit bulk-undo action after approval');
   let approvedSoundCue=null;
   await page.waitForFunction(label=>{
     let result=null;
