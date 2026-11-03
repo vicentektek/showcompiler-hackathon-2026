@@ -1,0 +1,16 @@
+{
+  "name": "RUNQ prompt-only demo preview",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "forwardPorts": [
+    5173
+  ],
+  "portsAttributes": {
+    "5173": {
+      "label": "RUNQ Demo — private preview",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  },
+  "postCreateCommand": "npm install --no-audit --no-fund",
+  "postStartCommand": "nohup sh -c 'PORT=5173 npm run dev' >/tmp/runq-preview.log 2>&1 &"
+}

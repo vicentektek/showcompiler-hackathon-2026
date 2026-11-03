@@ -10,12 +10,14 @@ import {
   updateShowBuilderStage,
 } from '../core/showBuilder.mjs';
 import { parseScript } from '../core/script.mjs';
+import {mountUnifiedCueReview} from './runq-builder-review.mjs';
+import {mountScriptQuickReview} from './runq-script-quick-review.mjs';
 
 const STAGE_COPY = Object.freeze({
   en: {
     project: ['Project', 'Start with the original script. RUNQ keeps its text and L# references intact.', 'Open script tools', 'Import script', 'Import a script, or continue with a blank show.'],
     cues: ['Cues', 'Ask RUNQ AI for a first draft, or create cues from selected lines. Review every proposal before it joins the show.', 'Open Cue Editor', 'Focus analysis tools', 'No script is loaded. Add cues manually or import a script first.'],
-    audio: ['Sound', 'Choose whether to add sound now. Skipping keeps the show in draft; it does not make silent cues playable.', 'Open sound tools', 'Confirm sound plan', 'Choose to add sounds or leave sound design for later.'],
+    audio: ['Sound', 'Choose whether to add sound now. You can assign WAV files later or explicitly mark a cue as SILENT for manual GO.', 'Open sound tools', 'Confirm sound plan', 'Choose to add sounds or leave sound design for later.'],
     configuration: ['Configuration', 'Review the settings actually stored for this show. Unsupported playback options remain inactive.', 'Open Cue Editor', 'Confirm review', 'This confirmation records your review only; it does not enable unsupported engine features.'],
     verification: ['Verification', 'Check local files and unresolved cue issues before rehearsal.', 'Open Preflight', 'Open verification', 'Preflight is advisory; it does not test speakers, venue routing, or live-show reliability.'],
     progress: ['{done} of {total} steps ready', '{done} of {total} steps ready'],
@@ -39,16 +41,16 @@ const STAGE_COPY = Object.freeze({
     reviewConfig: ['I reviewed the available cue settings', 'I reviewed the available cue settings'],
     noCuesForConfig: ['Add at least one cue before confirming configuration.', 'Add at least one cue before confirming configuration.'],
     step: ['Step {current} of {total}', 'Step {current} of {total}'],
-    sourceTitle: ['Work from the original script', 'Work from the original script'],
-    sourceHelp: ['Import a TXT or select original lines. Source text and L# references stay unchanged.', 'Import a TXT or select original lines. Source text and L# references stay unchanged.'],
-    proposeScriptCues: ['Suggest cues to review', 'Suggest cues to review'],
+    sourceTitle: ['Your script, ready to prepare', 'Your script, ready to prepare'],
+    sourceHelp: ['Import TXT, PDF or DOCX. Then find cues directly from your script; you review every proposal.', 'Import TXT, PDF or DOCX. Then find cues directly from your script; you review every proposal.'],
+    proposeScriptCues: ['Find cues with RUNQ AI', 'Find cues with RUNQ AI'],
     proposeScriptCuesHelp: ['RUNQ will suggest cues from the full script. Review every suggestion before adding it to the show.', 'RUNQ will suggest cues from the full script. Review every suggestion before adding it to the show.'],
     importScript: ['Import script', 'Import script'],
     replaceScript: ['Replace script', 'Replace script'],
     sourceSearch: ['Filter original lines', 'Filter original lines'],
     sourceSearchHint: ['Search by original text or L#', 'Search by original text or L#'],
     selectedCount: ['{count} lines selected · maximum 20', '{count} lines selected · maximum 20'],
-    noScriptLoaded: ['No script yet. Import the original TXT for stable L# references, or continue with audio and manual cues.', 'No script yet. Import the original TXT for stable L# references, or continue with audio and manual cues.'],
+    noScriptLoaded: ['Import a TXT, PDF or DOCX to start, or build your show manually.', 'Import a TXT, PDF or DOCX to start, or build your show manually.'],
     noSearchMatches: ['No original lines match this filter.', 'No original lines match this filter.'],
     showMoreLines: ['Showing {shown} of {total} matching lines. Search to find other source lines.', 'Showing {shown} of {total} matching lines. Search to find other source lines.'],
     createSelected: ['Create cues from selected lines', 'Create cues from selected lines'],
@@ -66,7 +68,7 @@ const STAGE_COPY = Object.freeze({
     soundCueNeedsAudio: ['Sin audio asignado', 'No audio assigned'],
     soundCueAudioUnloaded: ['Audio vinculado · archivo no cargado', 'Audio linked · file not loaded'],
     soundCueAudioReady: ['Audio local cargado', 'Local audio loaded'],
-    soundCuePrepare: ['Buscar o crear sonido', 'Find or create sound'],
+    soundCuePrepare: ['Buscar o importar sonido', 'Find or import sound'],
     soundCueReplace: ['Cambiar sonido', 'Change sound'],
     soundCueEmpty: ['Aún no hay cues. Crea uno desde una línea del guion o continúa sin audio.', 'There are no cues yet. Create one from a script line or continue without audio.'],
     configTaskTitle: ['Review the show settings', 'Review the show settings'],
@@ -81,7 +83,7 @@ const STAGE_COPY = Object.freeze({
     skipSounds: ['Continue without sounds for now', 'Continue without sounds for now'],
     openSoundWorkspace: ['Open sound library and creator', 'Open sound library and creator'],
     soundPlanCreate: ['You chose to add sounds. They are not generated or played automatically.', 'You chose to add sounds. They are not generated or played automatically.'],
-    soundPlanSkip: ['Sound design deferred. The show remains a draft until cues have valid audio.', 'Sound design deferred. The show remains a draft until cues have valid audio.'],
+    soundPlanSkip: ['Sound design deferred. Cues with pending audio remain unresolved; explicit SILENT cues can run with GO.', 'Sound design deferred. The show remains a draft until cues have valid audio.'],
     soundPlanUnset: ['Choose an option to keep building. You can change this decision later.', 'Choose an option to keep building. You can change this decision later.'],
     soundDeferred: ['Sounds deferred by your choice · playback readiness is still checked separately', 'Sounds deferred by your choice · playback readiness is still checked separately'],
     openPreflight: ['Open preflight details', 'Open preflight details'],
@@ -113,16 +115,16 @@ const STAGE_COPY = Object.freeze({
     reviewConfig: ['He revisado los ajustes disponibles', 'He revisado los ajustes disponibles'],
     noCuesForConfig: ['Añade al menos un cue antes de confirmar la configuración.', 'Añade al menos un cue antes de confirmar la configuración.'],
     step: ['Etapa {current} de {total}', 'Etapa {current} de {total}'],
-    sourceTitle: ['Trabaja desde el guion original', 'Trabaja desde el guion original'],
-    sourceHelp: ['Importa un TXT o selecciona líneas originales. El texto y las referencias L# se conservan.', 'Importa un TXT o selecciona líneas originales. El texto y las referencias L# se conservan.'],
-    proposeScriptCues: ['Proponer cues para revisar', 'Proponer cues para revisar'],
+    sourceTitle: ['Tu guion, listo para preparar', 'Tu guion, listo para preparar'],
+    sourceHelp: ['Importa TXT, PDF o DOCX y encuentra cues directamente en tu guion. Tú revisas cada propuesta.', 'Importa TXT, PDF o DOCX y encuentra cues directamente en tu guion. Tú revisas cada propuesta.'],
+    proposeScriptCues: ['Buscar cues con RUNQ AI', 'Buscar cues con RUNQ AI'],
     proposeScriptCuesHelp: ['RUNQ propondrá cues a partir del guion completo. Revisa cada propuesta antes de añadirla al espectáculo.', 'RUNQ propondrá cues a partir del guion completo. Revisa cada propuesta antes de añadirla al espectáculo.'],
     importScript: ['Importar guion', 'Importar guion'],
     replaceScript: ['Sustituir guion', 'Sustituir guion'],
     sourceSearch: ['Filtrar líneas originales', 'Filtrar líneas originales'],
     sourceSearchHint: ['Busca texto original o L#', 'Busca texto original o L#'],
     selectedCount: ['{count} líneas seleccionadas · máximo 20', '{count} líneas seleccionadas · máximo 20'],
-    noScriptLoaded: ['Aún no hay guion. Importa el TXT original para conservar sus referencias L#, o continúa con audio y cues manuales.', 'Aún no hay guion. Importa el TXT original para conservar sus referencias L#, o continúa con audio y cues manuales.'],
+    noScriptLoaded: ['Importa TXT, PDF o DOCX para empezar, o crea el espectáculo manualmente.', 'Importa TXT, PDF o DOCX para empezar, o crea el espectáculo manualmente.'],
     noSearchMatches: ['Ninguna línea original coincide con este filtro.', 'Ninguna línea original coincide con este filtro.'],
     showMoreLines: ['Se muestran {shown} de {total} líneas coincidentes. Filtra para localizar otras referencias.', 'Se muestran {shown} de {total} líneas coincidentes. Filtra para localizar otras referencias.'],
     createSelected: ['Crear cues desde líneas seleccionadas', 'Crear cues desde líneas seleccionadas'],
@@ -140,7 +142,7 @@ const STAGE_COPY = Object.freeze({
     soundCueNeedsAudio: ['Sin audio asignado', 'Sin audio asignado'],
     soundCueAudioUnloaded: ['Audio vinculado · archivo no cargado', 'Audio vinculado · archivo no cargado'],
     soundCueAudioReady: ['Audio local cargado', 'Audio local cargado'],
-    soundCuePrepare: ['Buscar o crear sonido', 'Buscar o crear sonido'],
+    soundCuePrepare: ['Buscar o importar sonido', 'Buscar o importar sonido'],
     soundCueReplace: ['Cambiar sonido', 'Cambiar sonido'],
     soundCueEmpty: ['Aún no hay cues. Crea uno desde una línea del guion o continúa sin audio.', 'Aún no hay cues. Crea uno desde una línea del guion o continúa sin audio.'],
     configTaskTitle: ['Revisa los ajustes del espectáculo', 'Revisa los ajustes del espectáculo'],
@@ -153,9 +155,9 @@ const STAGE_COPY = Object.freeze({
     audioPlanTitle: ['¿Qué quieres hacer con el sonido?', '¿Qué quieres hacer con el sonido?'],
     addSounds: ['Quiero elegir o crear sonidos', 'Quiero elegir o crear sonidos'],
     skipSounds: ['Continuar sin sonidos por ahora', 'Continuar sin sonidos por ahora'],
-    openSoundWorkspace: ['Abrir biblioteca y creador de sonido', 'Abrir biblioteca y creador de sonido'],
+    openSoundWorkspace: ['Abrir biblioteca y asistente sonoro', 'Abrir biblioteca y asistente sonoro'],
     soundPlanCreate: ['Has elegido añadir sonidos. No se generan ni reproducen automáticamente.', 'Has elegido añadir sonidos. No se generan ni reproducen automáticamente.'],
-    soundPlanSkip: ['Diseño de sonido aplazado. El espectáculo sigue como borrador hasta asignar audio válido a los cues.', 'Diseño de sonido aplazado. El espectáculo sigue como borrador hasta asignar audio válido a los cues.'],
+    soundPlanSkip: ['Diseño de sonido aplazado. Los cues pendientes siguen sin resolver; los marcados SILENCIO sí admiten GO.', 'Diseño de sonido aplazado. El espectáculo sigue como borrador hasta asignar audio válido a los cues.'],
     soundPlanUnset: ['Elige una opción para continuar. Puedes cambiarla más adelante.', 'Elige una opción para continuar. Puedes cambiarla más adelante.'],
     soundDeferred: ['Sonidos aplazados por decisión tuya · la comprobación de reproducción sigue siendo independiente', 'Sonidos aplazados por decisión tuya · la comprobación de reproducción sigue siendo independiente'],
     openPreflight: ['Abrir detalles de comprobación', 'Abrir detalles de comprobación'],
@@ -196,7 +198,7 @@ const ROUTE_COPY = Object.freeze({
     routes: [
       ['script', 'Desde el guion', 'Impórtalo o selecciona líneas originales'],
       ['cue', 'Desde un cue', 'Crea, revisa o edita propuestas'],
-      ['audio', 'Desde un audio', 'Busca, importa o crea un sonido'],
+      ['audio', 'Desde un audio', 'Busca o importa un sonido'],
       ['assistant', 'Preguntar a RUNQ AI', 'Describe un cambio y revísalo antes'],
     ],
     contextTitle: 'Contexto del espectáculo',
@@ -387,6 +389,54 @@ export function mountShowBuilder(panel, welcome, steps) {
   proposeScriptCues.type = 'button';
   const proposeScriptCuesHelp = make('p', 'rq16-builder-task-help');
   proposeScriptCuesHelp.id = 'rqShowBuilderProposeCuesHelp';
+  const scriptActions = make('div', 'rq-script-primary-actions');
+  scriptActions.append(importScript,proposeScriptCues);
+  const scriptSummary = make('div', 'rq-script-import-summary');
+  scriptSummary.id='rqScriptImportSummary';
+  scriptSummary.setAttribute('role','status');
+  const scriptSummaryIcon=make('span','rq-script-import-check','✓');
+  scriptSummaryIcon.setAttribute('aria-hidden','true');
+  const scriptSummaryText=make('div','rq-script-summary-text');
+  const scriptSummaryTitle=make('strong');
+  const scriptSummaryDetails=make('span');
+  scriptSummaryText.append(scriptSummaryTitle,scriptSummaryDetails);
+  scriptSummary.append(scriptSummaryIcon,scriptSummaryText);
+  const analysisCard=make('section','rq-script-analysis-card');
+  analysisCard.id='rqScriptAnalysisCard';
+  analysisCard.dataset.state='idle';
+  analysisCard.setAttribute('role','status');
+  analysisCard.setAttribute('aria-live','polite');
+  analysisCard.setAttribute('aria-atomic','true');
+  const analysisHead=make('div','rq-script-analysis-head');
+  const analysisIcon=make('span','rq-script-analysis-symbol','✦');
+  analysisIcon.setAttribute('aria-hidden','true');
+  const analysisTexts=make('div','rq-script-analysis-texts');
+  const analysisTitle=make('strong');
+  analysisTitle.id='rqScriptAnalysisTitle';
+  const analysisDetail=make('p');
+  analysisDetail.id='rqScriptAnalysisDetail';
+  analysisTexts.append(analysisTitle,analysisDetail);
+  analysisHead.append(analysisIcon,analysisTexts);
+  const analysisProgress=make('progress','rq-script-analysis-progress');
+  analysisProgress.id='rqScriptAnalysisProgress';
+  analysisProgress.removeAttribute('value'); // indeterminate: Meta reports windows, not percentage of inference
+  analysisProgress.setAttribute('aria-label','Script cue analysis in progress');
+  const analysisScope=make('div','rq-script-analysis-scope');
+  analysisScope.id='rqScriptAnalysisScope';
+  const analysisButtons=make('div','rq-script-analysis-actions');
+  const reviewAnalysis=make('button','btn accent small');
+  reviewAnalysis.id='rqScriptReviewCues';
+  reviewAnalysis.type='button';
+  const configureAnalysis=make('button','btn subtle small');
+  configureAnalysis.id='rqScriptConfigureAnalysis';
+  configureAnalysis.type='button';
+  analysisButtons.append(reviewAnalysis,configureAnalysis);
+  analysisCard.append(analysisHead,analysisProgress,analysisScope,analysisButtons);
+  const scriptExplorer=make('details','rq-script-explorer');
+  scriptExplorer.id='rqScriptExplorer';
+  const explorerSummary=make('summary','','Original script · lines and manual cues');
+  explorerSummary.id='rqScriptExplorerSummary';
+  scriptExplorer.append(explorerSummary);
   const sourceSearch = make('input', 'rq16-builder-source-search');
   sourceSearch.id = 'rqShowBuilderSourceSearch';
   sourceSearch.type = 'search';
@@ -411,8 +461,9 @@ export function mountShowBuilder(panel, welcome, steps) {
   detectScript.id = 'rqShowBuilderDetectScript';
   detectScript.type = 'button';
   sourceActions.append(createSelected, analyzeSelected, detectScript);
-  sourceTask.append(sourceTitle, sourceHelp, importScript, proposeScriptCues, proposeScriptCuesHelp, sourceSearchLabel, sourceSearch,
-    sourceList, selectionStatus, sourceActions);
+  scriptExplorer.append(sourceSearchLabel,sourceSearch,sourceList,selectionStatus,sourceActions);
+  sourceTask.append(sourceTitle,sourceHelp,scriptSummary,scriptActions,proposeScriptCuesHelp,
+    analysisCard,scriptExplorer);
 
   const cueTask = make('section', 'rq16-builder-task');
   cueTask.id = 'rqShowBuilderCueTask';
@@ -420,6 +471,11 @@ export function mountShowBuilder(panel, welcome, steps) {
   const cueTaskTitle = make('h4', 'rq16-builder-task-title');
   cueTaskTitle.id = 'rqShowBuilderCueTaskTitle';
   const cueTaskHelp = make('p', 'rq16-builder-task-help');
+  // Advanced automation is available on demand, not a second show wizard.
+  const automationSlot=make('details','rq-builder-optional-automation');
+  automationSlot.id='rqShowBuilderAutomationSlot';
+  automationSlot.append(make('summary','',
+    $('uiLocaleSelect')?.value==='es'?'Preparación automática · opcional':'Automatic preparation · optional'));
   const generateSuggestions = make('button', 'btn accent small');
   generateSuggestions.id = 'rqShowBuilderGenerateCues';
   generateSuggestions.type = 'button';
@@ -436,7 +492,7 @@ export function mountShowBuilder(panel, welcome, steps) {
   approveAllProposals.type = 'button';
   aiControls.append(aiSummary);
   proposalReview.append(proposalTitle, proposalHelp, approveAllProposals);
-  cueTask.append(cueTaskTitle, cueTaskHelp, generateSuggestions, aiControls, proposalReview);
+  cueTask.append(cueTaskTitle,cueTaskHelp,generateSuggestions,automationSlot,aiControls,proposalReview);
 
   const audioTask = make('section', 'rq16-builder-task');
   audioTask.id = 'rqShowBuilderAudioTask';
@@ -514,9 +570,34 @@ export function mountShowBuilder(panel, welcome, steps) {
     aiControls.append(metaPanel.closest('.rq5-ai-engine') || metaPanel);
   }
   if (manualProposalForm) aiControls.append(manualProposalForm);
-  if (proposalListTitle) proposalReview.append(proposalListTitle);
-  if (proposalWorkspace) proposalReview.append(proposalWorkspace);
-  else if (proposalList) proposalReview.append(proposalList);
+  // Keep the historical detailed list reachable to expert users and old
+  // diagnostics, but make the unified review the only primary interface.
+  const legacyReview=make('details','rq-builder-legacy-review');
+  legacyReview.id='rqBuilderLegacyReview';
+  legacyReview.append(make('summary','',
+    $('uiLocaleSelect')?.value==='es'?'Revisión técnica detallada · opcional':'Detailed technical review · optional'));
+  if(proposalListTitle)legacyReview.append(proposalListTitle);
+  if(proposalWorkspace)legacyReview.append(proposalWorkspace);
+  else if(proposalList)legacyReview.append(proposalList);
+  proposalReview.append(legacyReview);
+  proposalTitle.hidden=true;
+  proposalHelp.hidden=true;
+  approveAllProposals.hidden=true;
+  mountUnifiedCueReview(proposalReview,{
+    getState:getShowState,
+    onSuggest:()=>generateSuggestions.click(),
+  });
+  const quickReview=mountScriptQuickReview(sourceTask,{
+    getState:getShowState,
+    onAdvanced:()=>{
+      if(!currentShow)return;
+      selectedRoute='cue';
+      saveSession(currentShow.project,updateShowBuilderStage(session,'cues'));
+      render();
+      $('rqUnifiedCueReview')?.scrollIntoView({block:'start',behavior:'auto'});
+    }
+  });
+  analysisCard.after(quickReview.section);
   if (legacyHelp) legacyHelp.hidden = true;
   if (legacySeparator) legacySeparator.hidden = true;
   if (legacyAiGrid) legacyAiGrid.hidden = true;
@@ -528,6 +609,72 @@ export function mountShowBuilder(panel, welcome, steps) {
   let currentShow = null;
   let taskMessage = '';
   let selectedRoute = null;
+  let scriptAnalysisState='idle',scriptAnalysisText='',scriptAnalysisScope='',scriptAnalysisCount=0;
+  let scriptAnalysisLocale='en';
+  function paintScriptAnalysis(){
+    const locale=$('uiLocaleSelect')?.value==='es'?'es':'en',es=locale==='es';
+    scriptAnalysisLocale=locale;
+    const hasScript=Boolean(currentShow?.project.scriptText.trim());
+    const hasSuggestions=Boolean(currentShow?.project.proposals.length);
+    analysisCard.hidden=!hasScript||scriptAnalysisState==='idle'||
+      (scriptAnalysisState==='success'&&scriptAnalysisCount>0&&!quickReview.section.hidden);
+    scriptSummary.hidden=!hasScript;
+    scriptExplorer.hidden=!hasScript;
+    proposeScriptCues.disabled=!hasScript||scriptAnalysisState==='running';
+    proposeScriptCues.textContent=scriptAnalysisState==='running'
+      ? (es?'Buscando cues…':'Finding cues…')
+      : hasSuggestions
+        ?(es?'Buscar más cues':'Find more cues')
+        :(es?'✦ Buscar cues con RUNQ AI':'✦ Find cues with RUNQ AI');
+    proposeScriptCues.classList.toggle('rq-script-action-secondary',hasSuggestions&&scriptAnalysisState!=='running');
+    proposeScriptCues.setAttribute('aria-busy',String(scriptAnalysisState==='running'));
+    if(!hasScript)return;
+    const lines=parseScript(currentShow.project.scriptText);
+    scriptSummaryTitle.textContent=es?'Guion importado correctamente':'Script imported successfully';
+    scriptSummaryDetails.textContent=(currentShow.project.name||'')+' · '+lines.length+
+      (es?' líneas disponibles':' available lines');
+    scriptAnalysisCount=Number.isInteger(scriptAnalysisCount)?scriptAnalysisCount:0;
+    const titles={
+      idle:es?'Listo para buscar cues':'Ready to find cues',
+      running:es?'RUNQ AI está analizando tu guion':'RUNQ AI is analyzing your script',
+      success:scriptAnalysisCount
+        ? (es?scriptAnalysisCount+' propuestas listas para revisar':scriptAnalysisCount+' suggestions ready to review')
+        : (es?'Análisis completado':'Analysis complete'),
+      error:es?'No se ha completado el análisis':'Analysis could not be completed',
+      unavailable:es?'Revisa la conexión de IA':'Check your AI connection'
+    };
+    analysisTitle.textContent=titles[scriptAnalysisState]??titles.idle;
+    const details={
+      idle:es?'Pulsa «Buscar cues» para analizar el guion. No se aprueba ningún cue automáticamente.':
+        'Select Find cues to analyze your script. No cue is approved automatically.',
+      running:es?'El análisis está en curso. Puedes seguir aquí; las propuestas aparecerán al finalizar.':
+        'Analysis is running. Stay here; suggestions will appear when it finishes.',
+      success:scriptAnalysisCount
+        ? (es?'Puedes revisar, modificar o rechazar cada propuesta.':'Review, edit or reject every suggestion.')
+        : (es?'No hay propuestas nuevas en este análisis. Puedes volver a analizar o crear cues manualmente.':
+          'No new suggestions in this analysis. You can retry or create cues manually.'),
+      error:scriptAnalysisText|| (es?'Comprueba tu conexión y vuelve a intentarlo.':'Check the connection and try again.'),
+      unavailable:es?'El análisis necesita un proveedor de IA configurado. Comprueba su conexión.':
+        'Analysis needs a configured AI provider. Check its connection.'
+    };
+    analysisDetail.textContent=details[scriptAnalysisState]??details.idle;
+    analysisScope.textContent=scriptAnalysisState==='running'?scriptAnalysisScope:'';
+    analysisProgress.hidden=scriptAnalysisState!=='running';
+    analysisCard.dataset.state=scriptAnalysisState;
+    // The quick-review cards are already visible immediately below. A second
+    // "Review suggestions" button creates an unnecessary extra decision.
+    reviewAnalysis.hidden=true;
+    reviewAnalysis.textContent=es?'Revisar propuestas':'Review suggestions';
+    configureAnalysis.hidden=!['error','unavailable'].includes(scriptAnalysisState);
+    configureAnalysis.textContent=es?'Comprobar configuración de IA':'Check AI configuration';
+  }
+  function scriptAnalysisUpdate(state,detail={}){
+    scriptAnalysisState=state;
+    if(typeof detail.message==='string')scriptAnalysisText=detail.message;
+    if(typeof detail.scope==='string')scriptAnalysisScope=detail.scope;
+    if(Number.isInteger(detail.count))scriptAnalysisCount=detail.count;
+    paintScriptAnalysis();
+  }
   const stageCards = new Map([...container.querySelectorAll('[data-builder-stage]')]
     .map(card => [card.dataset.builderStage, card]));
 
@@ -558,11 +705,19 @@ export function mountShowBuilder(panel, welcome, steps) {
       persistenceAvailable = loaded.persistenceAvailable;
       assistantDisclosure.open = false;
       selectedRoute = routeForStage(session.currentStage);
+      scriptAnalysisState='idle';scriptAnalysisText='';scriptAnalysisScope='';scriptAnalysisCount=0;
+      scriptExplorer.open=false;
     }
     assessment = assessShowBuilder(currentShow.project, currentShow.assets, session);
 
     const locale = $('uiLocaleSelect')?.value === 'es' ? 'es' : 'en';
     const copy = STAGE_COPY[locale];
+    const autoSummary=automationSlot.querySelector('summary');
+    if(autoSummary)autoSummary.textContent=locale==='es'
+      ?'Preparación automática · opcional':'Automatic preparation · optional';
+    const advancedSummary=legacyReview.querySelector(':scope > summary');
+    if(advancedSummary)advancedSummary.textContent=locale==='es'
+      ?'Revisión técnica detallada · opcional':'Detailed technical review · optional';
     const routeCopy = ROUTE_COPY[locale];
     const currentIndex = SHOW_BUILDER_STAGES.indexOf(session.currentStage);
     const completeCount = SHOW_BUILDER_STAGES.filter(id => assessment.stages[id].complete).length;
@@ -624,6 +779,11 @@ export function mountShowBuilder(panel, welcome, steps) {
       ? copy.finish[0] : copy.continue[0];
     sourceTitle.textContent = copy.sourceTitle[0];
     sourceHelp.textContent = copy.sourceHelp[0];
+    // After import, the script summary itself replaces the setup instructions.
+    sourceHelp.hidden=Boolean(currentShow.project.scriptText.trim());
+    explorerSummary.textContent=locale==='es'
+      ? 'Explorar líneas del guion · selección manual (opcional)'
+      : 'Browse script lines · manual selection (optional)';
     proposeScriptCues.textContent = copy.proposeScriptCues[0];
     proposeScriptCuesHelp.textContent = copy.proposeScriptCuesHelp[0];
     importScript.textContent = currentShow.project.scriptText.trim()
@@ -666,7 +826,9 @@ export function mountShowBuilder(panel, welcome, steps) {
     }
     const pendingProposalCount = currentShow.project.proposals
       .filter(proposal => proposal.status === 'PENDING').length;
-    approveAllProposals.hidden = pendingProposalCount < 2;
+    // The selection-aware unified review owns batch approval. Retain the
+    // historical button for compatibility but never expose a duplicate CTA.
+    approveAllProposals.hidden = true;
     const selectedCue = currentShow.project.cues.find(cue => cue.id === currentShow.selectedCueId);
     const selectedLineCount = getSelectedScriptLines().length;
     const linkedAudioCount = currentShow.project.cues.reduce((count, cue) =>
@@ -741,8 +903,10 @@ export function mountShowBuilder(panel, welcome, steps) {
     sourceActions.hidden = !hasScript;
     selectionStatus.hidden = !hasScript;
     proposeScriptCues.hidden = !hasScript;
-    proposeScriptCuesHelp.hidden = !hasScript;
-    proposeScriptCues.disabled = !hasScript;
+    // Avoid duplicating "Analyze script" instructions and the review guidance.
+    proposeScriptCuesHelp.hidden = true;
+    proposeScriptCues.disabled = !hasScript||scriptAnalysisState==='running';
+    paintScriptAnalysis();
     createSelected.disabled = selectedIds.size === 0;
     analyzeSelected.disabled = selectedIds.size === 0;
     detectScript.disabled = !hasScript;
@@ -898,11 +1062,49 @@ export function mountShowBuilder(panel, welcome, steps) {
   analyzeSelected.addEventListener('click', () => $('rq16AnalyzeScriptSelection')?.click());
   detectScript.addEventListener('click', () => $('rq16DetectScriptCues')?.click());
   proposeScriptCues.addEventListener('click', () => {
-    if (!currentShow || !currentShow.project.scriptText.trim()) return;
-    selectedRoute = 'cue';
-    saveSession(currentShow.project, updateShowBuilderStage(session, 'cues'));
+    if(!currentShow?.project.scriptText.trim()||scriptAnalysisState==='running')return;
+    const realButton=$('analyzeMetaBtn');
+    if(!realButton||realButton.disabled){
+      scriptAnalysisUpdate('unavailable');
+      return;
+    }
+    // Keep the operator on From the Script; Meta progress is mirrored here.
+    scriptAnalysisUpdate('running');
+    realButton.click();
+  });
+  reviewAnalysis.addEventListener('click',()=>{
+    // Quick review lives directly below the analysis result: no mandatory
+    // step change or second set of filters and mass-action controls.
+    if(!quickReview.section.hidden){
+      quickReview.section.scrollIntoView({block:'nearest',behavior:'smooth'});
+      quickReview.section.querySelector('[data-quick-approve]')?.focus({preventScroll:true});
+    }
+  });
+  configureAnalysis.addEventListener('click',()=>{
+    if(!currentShow)return;
+    selectedRoute='cue';
+    saveSession(currentShow.project,updateShowBuilderStage(session,'cues'));
+    aiControls.open=true;
     render();
-    generateSuggestions.click();
+    $('rqShowBuilderAiControls')?.scrollIntoView({block:'start',behavior:'auto'});
+  });
+  document.addEventListener('runq:meta-analysis-activity',event=>{
+    const d=event.detail??{};
+    if(d.running){
+      const locale=$('uiLocaleSelect')?.value==='es';
+      const parts=[d.scope,d.elapsed].filter(Boolean);
+      scriptAnalysisUpdate('running',{scope:parts.join(' · ')});
+    }
+  });
+  document.addEventListener('runq:meta-analysis-result',event=>{
+    const d=event.detail??{};
+    scriptAnalysisUpdate(d.ok?'success':'error',{count:d.count??0,message:d.message??''});
+    if(d.ok){
+      quickReview.render(true);
+      paintScriptAnalysis();
+      if(!quickReview.section.hidden)
+        quickReview.section.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
   });
   generateSuggestions.addEventListener('click', () => {
     const analyzeButton = $('analyzeMetaBtn');

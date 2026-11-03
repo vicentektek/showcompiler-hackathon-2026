@@ -210,6 +210,10 @@ try {
   assert.equal(newProposals.length,2,'Two new proposals are available for explicit batch review');
   const beforeBatchReview=afterProposalCreation;
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
+  // Legacy context-inspector smoke still exercises its existing selection path,
+  // now intentionally kept under a collapsed technical review disclosure.
+  if(!(await page.locator('#rqBuilderLegacyReview').evaluate(element=>element.open)))
+    await page.locator('#rqBuilderLegacyReview > summary').click();
   for(const proposal of newProposals)
     await page.locator(`[data-proposal-select="${proposal.id}"]`).check();
   await clickWorkspace('cues');

@@ -1,6 +1,7 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
+import { readScriptDocument } from '../core/scriptDocumentImport.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
-import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, decideProposalBatch, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
+import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, decideProposalBatch, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, setCueSilent, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
 import { setCueEntryPolicy,planEntryStops,normalizeCueEntryPolicy } from '../core/cueEntryPolicy.mjs';
 import { insertManualCue, insertManualCueFromScriptLines, insertManualAudioCue, deleteOperatorCue, duplicateOperatorCue, moveOperatorCue, reorderOperatorCue } from '../core/manualCues.mjs';
@@ -325,12 +326,14 @@ function refreshAudioControls() {
     const cue = show.cues.find(item => item.id === label.dataset.cueState);
     if (!cue) continue;
     const unresolved = cue.actions.find(action => action.type === 'PLAN_AUDIO');
-    const ready = !unresolved && cue.actions.every(action => player.hasAsset(action.assetId)) &&
+    const ready = !unresolved && cue.actions.every(action => action.type === 'SILENT' || (action.type === 'PLAY' && player.hasAsset(action.assetId))) &&
       (cue.audioTracks ?? []).every(track => player.hasAsset(track.assetId));
     const playing = player.isPlaying(cue.id);
     const stopping = player.isStopping(cue.id);
     label.closest('.cue-item')?.classList.toggle('cue-playing', playing || stopping);
-    label.textContent = t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
+    const silent=cue.actions.length===1 && cue.actions[0].type==='SILENT';
+    label.textContent = silent ? (uiLocale==='es'?'SILENCIO · GO listo':'SILENCE · GO ready') :
+      t(unresolved ? (unresolved.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') : stopping ? 'status.soundStopping' : playing ? 'status.soundPlaying' : ready ? 'status.soundReady' : 'status.soundMissing');
   }
   const prepared = show.cues.find(cue => cue.id === operatorQueue.preparedCueId);
   const preparedIndex = show.cues.findIndex(cue => cue.id === operatorQueue.preparedCueId);
@@ -371,7 +374,7 @@ function refreshAudioControls() {
     ? t('operator.lastGo', { number: last.number, label: last.label })
     : t('operator.noLastGo');
   $('operatorGoBtn').disabled = !prepared || audioInFlight || auditioning || pending > 0 ||
-    prepared.actions.some(action => action.type !== 'PLAY' || !player.hasAsset(action.assetId)) ||
+    prepared.actions.some(action => action.type !== 'SILENT' && (action.type !== 'PLAY' || !player.hasAsset(action.assetId))) ||
     (prepared.audioTracks ?? []).some(track => !player.hasAsset(track.assetId)) ||
     player.isPlaying(prepared.id);
   $('operatorBackBtn').disabled = !show.cues.length || audioInFlight || pending > 0 ||
@@ -384,7 +387,7 @@ function refreshAudioControls() {
     const status = player.getStatus();
     button.disabled = !cue || audioInFlight || bundleInFlight || auditioning ||
       goTransportPending || status.pendingGoCount > 0 || status.auditionPending ||
-      cue.actions.some(action=>action.type!=='PLAY'||!player.hasAsset(action.assetId)) ||
+      cue.actions.some(action=>action.type!=='SILENT'&&(action.type!=='PLAY'||!player.hasAsset(action.assetId))) ||
       (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)) ||
       player.isPlaying(cue.id) || player.isStopping(cue.id);
   }
@@ -481,6 +484,15 @@ function refreshMetaActivity() {
   $('aiAnalysisElapsed').textContent = t('proposals.analysisElapsed', {
     seconds: Math.max(0, Math.floor((Date.now() - metaActivity.startedAt) / 1000)),
   });
+  // Mirror real provider activity into the visible From the Script card.
+  // No second request, fake percentage or extra authorization occurs here.
+  document.dispatchEvent(new CustomEvent('runq:meta-analysis-activity',{
+    detail:{
+      running:true,
+      scope:$('aiAnalysisScope').textContent??'',
+      elapsed:$('aiAnalysisElapsed').textContent??'',
+    },
+  }));
 }
 function refreshMetaMessage() {
   const provider = selectedModelProvider();
@@ -716,6 +728,88 @@ document.addEventListener('runq:proposal-batch-undo', event => {
   render();
   answer({ ok: true });
 });
+// Builder's inline review writes through the existing canonical validators.
+// Every transaction is bounded, atomic and explicitly initiated by the user.
+let builderTriggerUndo=null;
+document.addEventListener('runq:builder-review-edit',event=>{
+  const {op,id,respond}=event.detail??{};
+  const reply=value=>{if(typeof respond==='function')respond(value);};
+  if(!safeAgentEditState()){reply({ok:false,error:'EDIT_BLOCKED_BY_SHOW_STATE'});return;}
+  try{
+    const before=show;
+    let next=show;
+    if(op==='proposal'){
+      const p=show.proposals.find(x=>x.id===id&&x.status==='PENDING');
+      if(!p)throw new TypeError('PROPOSAL_NOT_PENDING');
+      const label=event.detail.label;
+      if(typeof label!=='string'||!label.trim()||label.length>200)
+        throw new TypeError('INVALID_PROPOSAL_LABEL');
+      const actions=p.actions.map(a=>({...a}));
+      const plan=actions.find(a=>a.type==='PLAN_AUDIO');
+      if(plan){
+        const prompt=event.detail.prompt;
+        if(typeof prompt!=='string'||!prompt.trim()||prompt.length>500)
+          throw new TypeError('INVALID_SOUND_PROMPT');
+        plan.prompt=prompt.trim();
+      }
+      next=normalizeShowProject({...show,proposals:show.proposals.map(x=>x.id===id
+        ?{...x,label:label.trim(),actions}:x)});
+    }else if(op==='cue'){
+      const c=show.cues.find(x=>x.id===id);
+      if(!c)throw new TypeError('CUE_NOT_FOUND');
+      next=updateCueOperatorDetails(show,id,{label:event.detail.label,
+        trigger:event.detail.trigger,notes:c.notes??''});
+    }else if(op==='silent'){
+      next=setCueSilent(show,id);
+    }else if(op==='asset'){
+      const c=show.cues.find(x=>x.id===id),assetId=event.detail.assetId;
+      if(!c||!show.assets.some(a=>a.id===assetId))
+        throw new TypeError('AUDIO_ASSET_UNAVAILABLE');
+      if(c.actions.length!==1||c.audioTracks?.length)
+        throw new TypeError('CUE_HAS_MULTIPLE_AUDIO_TRACKS');
+      next=c.actions[0].type==='PLAY'
+        ?replaceCueAudioAsset(show,id,assetId)
+        :assignAudioToCue(show,id,assetId);
+    }else if(op==='triggers'){
+      if(event.detail.base!==JSON.stringify(show))throw new Error('STALE_PROJECT');
+      const changes=event.detail.changes;
+      if(!Array.isArray(changes)||!changes.length||changes.length>200||
+         new Set(changes.map(c=>c.cueId)).size!==changes.length)
+        throw new TypeError('INVALID_TRIGGER_BATCH');
+      for(const item of changes){
+        if(typeof item.trigger!=='string'||!item.trigger.trim()||
+           item.trigger.length>300)throw new TypeError('INVALID_TRIGGER_TEXT');
+        const c=next.cues.find(x=>x.id===item.cueId);
+        if(!c||c.trigger?.trim())throw new TypeError('TRIGGER_ALREADY_DEFINED_OR_MISSING');
+        next=updateCueOperatorDetails(next,c.id,{label:c.label,
+          trigger:item.trigger.trim(),notes:c.notes??''});
+      }
+      builderTriggerUndo={before,after:next,generation:projectGeneration};
+    }else throw new TypeError('INVALID_BUILDER_ACTION');
+    if(op!=='triggers')builderTriggerUndo=null;
+    show=next;dirty=true;render();
+    reply({ok:true,count:op==='triggers'?event.detail.changes.length:1});
+  }catch(error){
+    showError(error);
+    reply({ok:false,error:String(error?.message??'Edit failed').slice(0,90)});
+  }
+});
+document.addEventListener('runq:builder-trigger-undo',event=>{
+  const answer=value=>{if(typeof event.detail?.respond==='function')event.detail.respond(value);};
+  if(!safeAgentEditState()||!builderTriggerUndo||
+     builderTriggerUndo.generation!==projectGeneration||
+     JSON.stringify(show)!==JSON.stringify(builderTriggerUndo.after)){
+    answer({ok:false});return;
+  }
+  show=builderTriggerUndo.before;builderTriggerUndo=null;dirty=true;render();
+  answer({ok:true});
+});
+document.addEventListener('runq:builder-open-script-line',event=>{
+  const lineId=event.detail?.lineId;
+  if(typeof lineId==='string'&&/^L[1-9]\d*$/.test(lineId))
+    jumpToScriptLine(lineId);
+});
+
 function replaceOptions(select, entries, oldValue) {
   select.replaceChildren();
   for (const [value, label] of entries) {
@@ -727,7 +821,7 @@ function replaceOptions(select, entries, oldValue) {
   select.disabled = entries.length === 0;
 }
 function describeCueActions(actions) {
-  return actions.map(action => action.type === 'PLAY'
+  return actions.map(action => action.type === 'SILENT' ? (uiLocale==='es'?'SILENCIO · GO sin audio':'SILENCE · GO without audio') : action.type === 'PLAY'
     ? 'PLAY → ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
     : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved') + ': ' + action.prompt
   ).join(' | ');
@@ -738,6 +832,12 @@ function pickAudioFile(cueId = null) {
   $('audioFileInput').value = '';
   $('audioFileInput').click();
 }
+
+document.addEventListener('runq:prompt-import-cue',event=>{
+  const cueId=event.detail?.cueId??null;
+  if(cueId && !show.cues.some(c=>c.id===cueId))return;
+  pickAudioFile(cueId);
+});
 
 function cueAudioPicker(cueId, translationKey) {
   const button = node('button', 'btn accent small', t(translationKey));
@@ -1025,12 +1125,10 @@ function renderCueList({ resetScroll = false } = {}) {
       deferred.addEventListener('click', () => safeOperation(
         () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'
       ));
-      const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
+      const generate = node('button', 'btn accent small', uiLocale==='es'?'Asistente sonoro':'Sound assistant');
       generate.type = 'button';
-      generate.disabled = plan.resolution === 'GENERATE';
-      generate.addEventListener('click', () => safeOperation(
-        () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'
-      ));
+      generate.disabled = false;
+      generate.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('runq:context-open-cue-sound',{detail:{cueId:cue.id}})));
       resolve.append(cueAudioPicker(cue.id, 'soundPlan.loadFile'), deferred, generate);
       if (show.assets.length) {
         const library = node('select', '', '');
@@ -1744,7 +1842,7 @@ function cueActionInspector(cue) {
   const pane = node('div', 'cue-actions-inspector');
   pane.append(node('h4', 'inspector-section-heading', t('cueEditor.assetSection')));
   for (const action of cue.actions) {
-    const label = action.type === 'PLAY'
+    const label = action.type === 'SILENT' ? (uiLocale==='es'?'SILENCIO · GO sin audio':'SILENCE · GO without audio') : action.type === 'PLAY'
       ? 'PLAY · ' + (show.assets.find(asset => asset.id === action.assetId)?.name ?? action.assetId)
       : t(action.resolution === 'GENERATE' ? 'soundPlan.generationQueued' : 'soundPlan.unresolved');
     pane.append(node('div', 'inspector-action', label));
@@ -1758,11 +1856,10 @@ function cueActionInspector(cue) {
     deferred.disabled = plan.resolution === 'DEFER';
     deferred.addEventListener('click', () => safeOperation(
       () => setCueSoundResolution(show, cue.id, 'DEFER'), 'soundPlan.deferredFeedback'));
-    const generate = node('button', 'btn accent small', t('soundPlan.prepareGeneration'));
+    const generate = node('button', 'btn accent small', uiLocale==='es'?'Asistente sonoro':'Sound assistant');
     generate.type = 'button';
-    generate.disabled = plan.resolution === 'GENERATE';
-    generate.addEventListener('click', () => safeOperation(
-      () => setCueSoundResolution(show, cue.id, 'GENERATE'), 'soundPlan.generationFeedback'));
+    generate.disabled = false;
+    generate.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('runq:context-open-cue-sound',{detail:{cueId:cue.id}})));
     audioTools.append(deferred, generate);
     if (show.assets.length) {
       const library = node('select');
@@ -1776,6 +1873,26 @@ function cueActionInspector(cue) {
     }
   } else if (cue.actions.length === 1 && cue.actions[0].type === 'PLAY') {
     audioTools.append(cueAudioPicker(cue.id, 'soundPlan.replaceFile'));
+  }
+  if(cue.actions.length===1 && !cue.audioTracks?.length){
+    const silent = node('button','btn subtle small',uiLocale==='es'?'Marcar como silencio (GO sin audio)':'Mark as silence (GO without audio)');
+    silent.type='button';
+    silent.disabled=cue.actions[0].type==='SILENT';
+    silent.addEventListener('click',()=>safeOperation(
+      ()=>setCueSilent(show,cue.id),'operator.preparedFeedback',{number:cue.number}));
+    audioTools.append(silent);
+    if(cue.actions[0].type==='SILENT'){
+      audioTools.append(cueAudioPicker(cue.id,'soundPlan.loadFile'));
+      if(show.assets.length){
+        const library=node('select');library.setAttribute('aria-label',t('soundPlan.libraryLabel'));
+        replaceOptions(library,show.assets.map(asset=>[asset.id,asset.name]));
+        const assign=node('button','btn primary small',t('soundPlan.assign'));
+        assign.type='button';
+        assign.addEventListener('click',()=>safeOperation(
+          ()=>assignAudioToCue(show,cue.id,library.value),'soundPlan.assignedFeedback'));
+        audioTools.append(library,assign);
+      }
+    }
   }
   pane.append(audioTools);
 
@@ -2106,7 +2223,7 @@ function renderCueInspector() {
     inspector.append(studio);
   }
 
-  const available = cue.actions.some(a => a.type === 'PLAY' || a.type === 'PLAN_AUDIO')
+  const available = cue.actions.some(a => a.type === 'PLAY' || a.type === 'PLAN_AUDIO' || a.type === 'SILENT')
     ? ['details', 'audio', 'actions'] : ['details', 'actions'];
   if (!available.includes(inspectorTab)) inspectorTab = available[0];
   const tabs = node('div', 'cue-inspector-tabs');
@@ -2508,7 +2625,7 @@ async function executeCueById(id,{advancePrepared=false}={}){
  if(!id||goTransportPending||audioInFlight||bundleInFlight||soundLabPreviewReserved)return false;
  const generation=projectGeneration;
  const cue=normalizeShowProject(show).cues.find(item=>item.id===id);
- if(!cue||cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+ if(!cue||cue.actions.some(a=>a.type!=='SILENT'&&(a.type!=='PLAY'||!player.hasAsset(a.assetId)))||
    (cue.audioTracks??[]).some(track=>!player.hasAsset(track.assetId)))return false;
  const status=player.getStatus();
  if(status.pendingGoCount||status.auditionActive||status.auditionPending||
@@ -2572,7 +2689,7 @@ document.addEventListener('runq:rehearsal-auto-go',event=>{
  }
  const cue=show.cues.find(c=>c.id===cueId);
  if(!cue){report({ok:false,reason:'UNKNOWN_CUE'});return;}
- if(cue.actions.some(a=>a.type!=='PLAY'||!player.hasAsset(a.assetId))||
+ if(cue.actions.some(a=>a.type!=='SILENT'&&(a.type!=='PLAY'||!player.hasAsset(a.assetId)))||
     (cue.audioTracks??[]).some(t=>!player.hasAsset(t.assetId))){
    report({ok:false,reason:'AUDIO_NOT_READY'});return;
  }
@@ -2665,12 +2782,17 @@ $('scriptFileInput').addEventListener('change', async event => {
   builderScriptImportPending=false;
   if (!file || !userAllowsReplacement()) return;
   try {
-    if (!file.name.toLowerCase().endsWith('.txt')) throw uiError('errors.onlyTxt');
-    const text = await readTextFile(file, limitScriptBytes);
-    const name = file.name.replace(/\.txt$/i, '').slice(0, 120).trim() || t('script.showNamePlaceholder');
-    setNewShow(createNewShow({ name, scriptText: text }), 'status.scriptImported', { name: file.name });
+    const {text,format,pages}=await readScriptDocument(file);
+    const name=file.name.replace(/\.(?:txt|pdf|docx)$/i,'').slice(0,120).trim()||t('script.showNamePlaceholder');
+    setNewShow(createNewShow({name,scriptText:text}), 'status.scriptImported', { name:file.name });
+    if(format==='pdf'&&pages)console.info('RUNQ script import: text-based PDF, pages',pages);
     if(!stayInBuilder)setWorkspace('script');
-  } catch (error) { showError(error); }
+  } catch (error) {
+    const code=String(error?.message??'');
+    if(/^SCRIPT_[A-Z_]+$/.test(code)||code==='DOCX_LIBRARY_UNAVAILABLE')
+      showError(uiError('errors.'+code));
+    else showError(error);
+  }
 });
 $('assetForm').addEventListener('submit', event => {
   event.preventDefault();
@@ -3050,7 +3172,24 @@ async function analyzeNextMeta({ confirmed = false, signal, isCurrent = () => tr
   }
 }
 $('analyzeMetaBtn').addEventListener('click', () => {
-  void analyzeNextMeta().catch(showError);
+  const beforeCount=show.proposals.length;
+  void analyzeNextMeta().then(result=>{
+    // An explicit declined Baseten confirmation is not a completed analysis.
+    if(result===undefined){
+      document.dispatchEvent(new CustomEvent('runq:meta-analysis-result',{
+        detail:{ok:false,message:uiLocale==='es'?'Análisis cancelado.':'Analysis cancelled.'},
+      }));
+      return;
+    }
+    document.dispatchEvent(new CustomEvent('runq:meta-analysis-result',{
+      detail:{ok:true,count:Math.max(0,show.proposals.length-beforeCount)},
+    }));
+  }).catch(error=>{
+    showError(error);
+    document.dispatchEvent(new CustomEvent('runq:meta-analysis-result',{
+      detail:{ok:false,message:$('statusMessage').textContent||String(error?.message??'Analysis failed')},
+    }));
+  });
 });
 
 function emergencyStopAllAudio() {
@@ -3438,7 +3577,7 @@ async function openRegisteredAudioForEditing(assetId){
       throw new Error('El audio original cambió durante la carga; selección cancelada.');
     selectedLibrarySource={assetId,file,generation};
     setWorkspace('audio');
-    document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
+    document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'edit'}}));
   }catch(error){showError(error);}
 }
 document.addEventListener('runq:sound-list-cues',event=>{

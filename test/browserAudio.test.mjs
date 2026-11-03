@@ -349,3 +349,13 @@ test('invalid fade duration never silently cancels pending GO', async () => {
   x.resumeNow();
   await assert.rejects(pending,/cancelado/);
 });
+
+test('SILENT GO succeeds without audio context or voices, and can be repeated',async()=>{
+  const engine=new BrowserAudioEngine({audioContextFactory:()=>{throw new Error('Audio context must not start');}});
+  const cue={id:'cue-silent',status:'DRAFT',actions:[{type:'SILENT'}]};
+  assert.equal(await engine.go(cue),true);
+  assert.equal(await engine.go(cue),true);
+  assert.equal(engine.isPlaying(cue.id),false);
+  assert.equal(engine.activeCueCount(),0);
+  await assert.rejects(engine.go({...cue,actions:[{type:'PLAN_AUDIO',prompt:'missing',resolution:'DEFER'}]}),/inválido/);
+});

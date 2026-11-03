@@ -103,9 +103,14 @@ try{
  assert.equal(fixtureRequests.length,1,'One explicit confirmation = one offline contract fixture');
  assert.equal((await read()).cueCount,0,'Model-shaped proposals cannot create approved cues');
  assert.equal((await read()).active.length,0);
+ if(!(await page.locator('#rqBuilderLegacyReview').evaluate(element=>element.open)))
+  await page.locator('#rqBuilderLegacyReview > summary').click();
  for(let index=0;index<3;index++){
   await page.locator('#proposalList').getByRole('button',{name:'Approve',exact:true}).first().click();
  }
+ const aiHelp=page.locator('#rqShowBuilderAiHelp');
+ if(!(await aiHelp.evaluate(el=>el.open))) await page.locator('#rqShowBuilderAiHelp > summary').click();
+ await page.locator('#rqAgentPrompt').waitFor({state:'visible'});
  await page.locator('#rqAgentPrompt').fill('Propose voice triggers for the whole show');
  await page.locator('#rqAgentSubmit').click();
  await page.locator('#rqAgentProposal').waitFor({state:'visible'});
@@ -333,6 +338,9 @@ try{
    await page.mouse.wheel(0,160);
    await page.waitForTimeout(200);
   }
+  // On tablet widths, the Sound workspace is intentionally document-scrollable.
+  // Reach the list as an actual user would before measuring its clipped viewport.
+  if(size.width<=900)await page.locator('#assetList').scrollIntoViewIfNeeded();
   const visible=await visibleListHeight();
   assert.ok(visible>=64,'Library must retain an actually reachable >=64px file viewport at '+size.width+', got '+visible);
   geometry.push({...size,visibleListPx:visible});

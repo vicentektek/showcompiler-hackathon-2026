@@ -3,7 +3,7 @@ export const DEFAULT_OPERATOR_PREFERENCES = Object.freeze({
   outputDeviceId: '',
   masterVolume: 1,
   microphoneDeviceId: '',
-  voiceLanguage: 'es',
+  voiceLanguage: 'en',
   voiceMode: 'auto',
 });
 

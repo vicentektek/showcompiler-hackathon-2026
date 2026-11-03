@@ -83,6 +83,9 @@ const allowed = new Map([
   ['/src/ui/cue-conversation-ui.mjs', ['src/ui/cue-conversation-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/command-dictation.mjs', ['src/ui/command-dictation.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-agent-ui.mjs', ['src/ui/runq-agent-ui.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-builder-review.mjs', ['src/ui/runq-builder-review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-script-quick-review.mjs', ['src/ui/runq-script-quick-review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/core/scriptDocumentImport.mjs', ['src/core/scriptDocumentImport.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/userFacingErrors.mjs', ['src/ui/userFacingErrors.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-agent.css', ['src/ui/runq-agent.css', 'text/css; charset=utf-8']],
   ['/src/ui/runq-visual-freeze-v15.css', ['src/ui/runq-visual-freeze-v15.css', 'text/css; charset=utf-8']],
@@ -129,6 +132,9 @@ const allowed = new Map([
   ['/src/core/cueTimeEditing.mjs', ['src/core/cueTimeEditing.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/audioBatchImport.mjs', ['src/core/audioBatchImport.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/audioArchiveFormats.mjs', ['src/core/audioArchiveFormats.mjs', 'text/javascript; charset=utf-8']],
+  ['/vendor/pdfjs/pdf.mjs', ['node_modules/pdfjs-dist/build/pdf.mjs', 'text/javascript; charset=utf-8']],
+  ['/vendor/pdfjs/pdf.worker.mjs', ['node_modules/pdfjs-dist/build/pdf.worker.mjs', 'text/javascript; charset=utf-8']],
+  ['/vendor/mammoth/mammoth.browser.min.js', ['node_modules/mammoth/mammoth.browser.min.js', 'text/javascript; charset=utf-8']],
   ['/vendor/libarchive/libarchive.js', ['node_modules/libarchive.js/dist/libarchive.js', 'text/javascript; charset=utf-8']],
   ['/vendor/libarchive/worker-bundle.js', ['node_modules/libarchive.js/dist/worker-bundle.js', 'text/javascript; charset=utf-8']],
   ['/vendor/libarchive/libarchive.wasm', ['node_modules/libarchive.js/dist/libarchive.wasm', 'application/wasm']],
@@ -171,7 +177,12 @@ export function createAppServer(options = {}) {
     modelClient: options.basetenClient,
     getKey: options.getBasetenKey,
   });
-  const sfxRoute = makeSfxRoute(options);
+  // Default runnable build cannot contact Modal. An explicitly injected test
+  // client preserves deterministic offline provider-route regression tests.
+  const sfxRoute = makeSfxRoute({
+    ...options,
+    generationDisabled: options.sfxPilotClient ? false : true,
+  });
   const voiceRoute = makeVoiceTranscribeRoute({getKey:options.getVoiceKey,fetchImpl:options.voiceFetch});
   const voiceLiveRoute = makeVoiceLiveRoute({getKey:options.getVoiceKey,WebSocketCtor:options.voiceWebSocket??globalThis.WebSocket});
   const cueConversationRoute = makeCueConversationRoute({getKey:options.getCueChatKey,fetchImpl:options.cueChatFetch});

@@ -470,6 +470,16 @@ export class BrowserAudioEngine {
 
   /** No implicit audio or automatic follow-on cues; each GO is a user action. */
   async go(cue) {
+    // SILENT is an intentional operator cue, not a missing audio file.
+    // It must never acquire a Web Audio voice or block the next GO.
+    if (cue?.status === 'DRAFT' && typeof cue.id === 'string' &&
+        cue.actions?.length === 1 && cue.actions[0]?.type === 'SILENT' &&
+        !(cue.audioTracks?.length)) {
+      if (this.isAuditioning()) throw new Error('Detén la preescucha antes de GO.');
+      if (this.isPlaying(cue.id)) throw new Error('Este cue ya está reproduciéndose.');
+      this.notify();
+      return true;
+    }
     if (!cue || cue.status !== 'DRAFT' ||
         typeof cue.id !== 'string' || !cue.id ||
         !Array.isArray(cue.actions) || cue.actions.length < 1 ||

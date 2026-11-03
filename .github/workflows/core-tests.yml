@@ -94,14 +94,14 @@ jobs:
         run: node tools/stagecraft-cue-safety-e2e.mjs
       - name: Stagecraft Audio Library batch and compressed ZIP Chrome smoke
         run: node tools/stagecraft-audio-batch-e2e.mjs
-      - name: Sound Lab Chrome smoke (offline, zero provider calls)
-        env:
-          RUNQ_CAPTURE_UI: '1'
-        run: node tools/sfx-lab-browser-e2e.mjs
-      - name: Saved-take recovery, real Web Audio and portable roundtrip (synthetic, offline)
-        env:
-          RUNQ_SFX_HISTORY_DIRECTORY: ''
-        run: npm run test:sfx-history
+      - name: Prompt-only Sound assistant, local WAV and blocked Modal (offline)
+        run: node tools/prompt-only-browser-e2e.mjs
+      - name: Unified Show Builder cue review, WAV and SILENT GO (offline)
+        run: node tools/unified-builder-browser-e2e.mjs
+      - name: Real TXT, PDF and DOCX script import in Chrome (local only)
+        run: node tools/script-formats-browser-e2e.mjs
+      - name: One-click script analysis visible progress and review (offline)
+        run: node tools/script-analysis-feedback-browser-e2e.mjs
       - name: RUNQ AI Agent Studio Chrome E2E (offline, no provider requests)
         run: node tools/runq-agent-browser-e2e.mjs
       - name: RUNQ AI contextual review with original show WAVs (offline fixtures)

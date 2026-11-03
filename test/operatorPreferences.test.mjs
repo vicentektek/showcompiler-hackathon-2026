@@ -34,9 +34,15 @@ test('invalid preferences safely normalize without accepting unknown modes or ga
   assert.equal(actual.outputDeviceId, '');
   assert.equal(actual.masterVolume, 1);
   assert.equal(actual.microphoneDeviceId, '');
-  assert.equal(actual.voiceLanguage, 'es');
+  assert.equal(actual.voiceLanguage, 'en');
   assert.equal(actual.voiceMode, 'auto');
   assert.equal(normalizeOperatorPreferences({ masterVolume: -1 }).masterVolume, 0);
+});
+
+test('English is the default spoken language for new rehearsal preferences', () => {
+  assert.equal(DEFAULT_OPERATOR_PREFERENCES.voiceLanguage, 'en');
+  assert.equal(normalizeOperatorPreferences({}).voiceLanguage, 'en');
+  assert.equal(readOperatorPreferences(null).voiceLanguage, 'en');
 });
 
 test('operator preferences persist only through the supplied local storage', () => {

@@ -24,6 +24,14 @@ try {
   const page = await context.newPage();
   const scriptErrors = [];
   page.on('pageerror', err => scriptErrors.push(err.message));
+  // Some actions open a native confirmation only when there are unsaved
+  // changes. Never leave a one-shot dialog handler armed for later actions.
+  const withOptionalDialog = async action => {
+    const handler = dialog => { void dialog.accept().catch(error => scriptErrors.push(error.message)); };
+    page.on('dialog', handler);
+    try { return await action(); }
+    finally { page.off('dialog', handler); }
+  };
   const captureRunq = process.env.RUNQ_CAPTURE_UI === '1';
   const capture = async name => {
     if (!captureRunq) return;
@@ -507,10 +515,9 @@ try {
   assert.equal(exportedProject.cues[0].audioTracks[0].playback.startDelayMs,1250);
   assert.equal(exportedProject.cues[0].audioTracks[0].playback.gainDb,-12);
   const startsBeforeZipOpen = await page.evaluate(() => window.__testAudioStarts);
-  page.once('dialog', dialog => dialog.accept());
-  await page.locator('#bundleFileInput').setInputFiles({
+  await withOptionalDialog(() => page.locator('#bundleFileInput').setInputFiles({
     name: 'roundtrip.showcompiler.zip', mimeType: 'application/zip', buffer: zip,
-  });
+  }));
   await page.waitForFunction(() => document.querySelector('#statusMessage')?.textContent?.includes('restored with 3 real audio files'));
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal((await page.locator('#operatorGoBtn').isEnabled()), true);
@@ -577,10 +584,9 @@ try {
   }));
   const corruptZip = Buffer.from(zip);
   corruptZip[44] ^= 0xff;
-  page.once('dialog', dialog => dialog.accept());
-  await page.locator('#bundleFileInput').setInputFiles({
+  await withOptionalDialog(() => page.locator('#bundleFileInput').setInputFiles({
     name: 'tampered.showcompiler.zip', mimeType: 'application/zip', buffer: corruptZip,
-  });
+  }));
   await page.waitForFunction(() => document.querySelector('#statusMessage')?.textContent?.includes('Could not complete show ZIP'));
   assert.equal((await page.locator('#cueList .cue-item').count()), 3);
   assert.equal((await page.locator('#showName').inputValue()), beforeCorrupt.name);
@@ -639,15 +645,17 @@ try {
   assert.equal(await page.locator('.rq5-ai-review #proposalList').count(),1);
   await capture('10-ai-three-pane.png');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
-  await page.locator('#rqShowBuilderOpenAiTools').click();
+  // The provider panel lives inside the cue-stage native disclosure;
+  // the separate AI Help disclosure controls only the conversational assistant.
+  if(!(await page.locator('#rqShowBuilderAiControls').evaluate(element=>element.open)))
+    await page.locator('#rqShowBuilderAiControls > summary').click();
   await page.locator('#modelProviderSelect').selectOption('baseten');
   await page.locator('#modelProviderSelect').selectOption('meta');
   await page.waitForFunction(() => !document.querySelector('#analyzeMetaBtn')?.disabled);
   await page.locator('#metaDesignMode').selectOption('expressive');
   await page.locator('#performanceKindSelect').selectOption('gala');
   await page.locator('#documentKindSelect').selectOption('running_order');
-  page.once('dialog', dialog => dialog.accept());
-  await page.locator('#analyzeMetaBtn').click();
+  await withOptionalDialog(() => page.locator('#analyzeMetaBtn').click());
   await page.locator('#aiAnalysisActivity').waitFor({ state:'visible', timeout: 10000 });
   assert.equal(await page.locator('#analyzeMetaBtn').getAttribute('aria-busy'), 'true');
   assert.match(await page.locator('#aiAnalysisScope').innerText(), /window/);
@@ -663,6 +671,10 @@ try {
     let state;document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{state=value;}}}));return state;
   });
   const cueCountBeforeReview=(await readBuilderState()).project.cues.length;
+  // The detailed legacy proposal inspector is now an optional disclosure;
+  // the primary interface is the unified review above it.
+  if(!(await page.locator('#rqBuilderLegacyReview').evaluate(el=>el.open)))
+    await page.locator('#rqBuilderLegacyReview > summary').click();
   const pendingBuilder=page.locator('#proposalList .item').filter({hasText:'Builder proposal'});
   assert.equal(await pendingBuilder.count(),5,
     'Builder exposes five provider suggestions for explicit human review');
@@ -704,8 +716,7 @@ try {
   await capture('04-operation-1093.png');
   // A manual-only show needs neither source script nor an AI analysis request.
   await page.locator('[data-workspace-nav="home"]').click();
-  page.once('dialog', dialog => dialog.accept());
-  await page.locator('#homeNewBtn').click();
+  await withOptionalDialog(() => page.locator('#homeNewBtn').click());
   await page.locator('[data-workspace-nav="cues"]').click();
   assert.equal(await page.locator('#cueList .cue-item').count(),0);
   const beforeManual = await page.evaluate(()=>window.__testAudioStarts);
@@ -728,8 +739,7 @@ try {
     nextBeforeDrag,'Reordering must preserve NEXT by stable cue ID');
   assert.equal(await page.evaluate(()=>window.__testAudioStarts),beforeManual,
     'Reordering must not trigger playback');
-  page.once('dialog',dialog=>dialog.accept());
-  await page.locator('#cueDeleteBtn').click();
+  await withOptionalDialog(() => page.locator('#cueDeleteBtn').click());
   assert.equal(await page.locator('#cueList .cue-item').count(),2);
   assert.deepEqual(scriptErrors, []);
   console.log('BROWSER_SMOKE_OK: 3 original cue cards; manual GO; STOP ALL; complete ZIP download/reopen; tampered ZIP rollback preserves show/audio; UI locale change without script mutation; zero external provider calls.');

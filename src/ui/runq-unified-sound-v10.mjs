@@ -115,8 +115,13 @@ function mountUnifiedSound(){
   generate.type='button';
   generate.dataset.rq10SoundTab='generate';
   generate.setAttribute('role','tab');
-  generate.setAttribute('aria-controls','waveCanvas');
-  tabs.append(library,generate);
+  generate.setAttribute('aria-controls','generateForm');
+  const edit=document.createElement('button');
+  edit.type='button';
+  edit.dataset.rq10SoundTab='edit';
+  edit.setAttribute('role','tab');
+  edit.setAttribute('aria-controls','waveCanvas');
+  tabs.append(library,generate,edit);
   header.append(title,tabs);
   grid.before(header);
 
@@ -160,35 +165,47 @@ function mountUnifiedSound(){
     document.dispatchEvent(new CustomEvent('runq:sound-list-cues',{
       detail:{respond:items=>{cues=Array.isArray(items)?items:[];}}
     }));
-    const previous=target.value;
+    const assistant=$('rqPromptTargetCue');
+    const previous=assistant?.value||target.value;
     target.replaceChildren();
+    if(assistant)assistant.replaceChildren();
     const placeholder=document.createElement('option');
     placeholder.value='';
     placeholder.textContent=copy('Seleccionar cue…','Select cue…');
     target.append(placeholder);
+    if(assistant){
+      const noCue=document.createElement('option');
+      noCue.value='';
+      noCue.textContent=copy('Solo biblioteca (sin cue)','Library only (no cue)');
+      assistant.append(noCue);
+    }
     for(const cue of cues){
       const option=document.createElement('option');
       option.value=cue.id;option.textContent=cue.number+' · '+cue.label;
       target.append(option);
+      if(assistant)assistant.append(option.cloneNode(true));
     }
-    if(cues.some(c=>c.id===previous))target.value=previous;
+    if(cues.some(c=>c.id===previous)){
+      target.value=previous;
+      if(assistant)assistant.value=previous;
+    }
   }
   function setMode(next){
-    if(next!=='library'&&next!=='generate')return;
+    if(!['library','generate','edit'].includes(next))return;
     // Switch only the right editor; original project library stays visible.
-    if(mode==='generate'&&next==='library')
+    if(mode!=='library'&&next==='library')
       document.dispatchEvent(new Event('runq:sound-stop-preview'));
     mode=next;
-    grid.dataset.rq10SoundView=next; // CSS targets the original Sound Lab.
+    grid.dataset.rq10SoundView=next==='library'?'library':'generate'; // Reuse the original Sound Lab for both assistant and editor.
     audio.dataset.rq13SoundView=next;
-    dock.hidden=next==='generate'; // Bottom source preview is library-only.
+    dock.hidden=next!=='library'; // Bottom source preview is library-only.
     if(next==='library')queueMicrotask(inspectSound);
-    for(const [tab,name] of [[library,'library'],[generate,'generate']]){
+    for(const [tab,name] of [[library,'library'],[generate,'generate'],[edit,'edit']]){
       const selected=name===next;
       tab.setAttribute('aria-selected',String(selected));
       tab.tabIndex=selected?0:-1;
     }
-    if(next==='generate'){
+    if(next!=='library'){
       refreshCueTargets();
       document.dispatchEvent(new CustomEvent('runq:sound-lab-visible'));
     }
@@ -209,7 +226,8 @@ function mountUnifiedSound(){
     sub.textContent=copy('Selecciona archivos, comprueba la onda y prepara audio para tus cues',
       'Choose source files, inspect waveforms and prepare audio for your cues');
     library.textContent=copy('Biblioteca y onda','Library & waveform');
-    generate.textContent=copy('Crear y editar','Create & edit');
+    generate.textContent=copy('Asistente sonoro','Sound assistant');
+    edit.textContent=copy('Editor WAV','WAV editor');
     caption.textContent=copy(
       'Preescucha en la salida principal del ordenador. No es un bus PFL. PARAR TODO detiene también la escucha del laboratorio.',
       'Preview uses the main computer output, not a private PFL bus. STOP ALL also stops Sound Lab audition.'
@@ -234,12 +252,16 @@ function mountUnifiedSound(){
   }
   library.addEventListener('click',()=>setMode('library'));
   generate.addEventListener('click',()=>setMode('generate'));
+  edit.addEventListener('click',()=>setMode('edit'));
   tabs.addEventListener('keydown',event=>{
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
     event.preventDefault();
-    const next=event.key==='Home'||event.key==='ArrowLeft'?'library':'generate';
+    const order=['library','generate','edit'];
+    const current=order.findIndex(name=>name===mode);
+    const next=event.key==='Home'?'library':event.key==='End'?'edit':
+      order[(current+(event.key==='ArrowLeft'?-1:1)+order.length)%order.length];
     setMode(next);
-    (next==='library'?library:generate).focus();
+    ({library,generate,edit})[next].focus();
   });
   document.addEventListener('runq:sound-mode',event=>setMode(event.detail?.mode));
   document.addEventListener('runq:context-task-open-sound',event=>{
@@ -250,6 +272,8 @@ function mountUnifiedSound(){
       refreshCueTargets();
       const target=$('rq10TargetCue');
       if(target)target.value=taskContext.cueId??'';
+      const assistant=$('rqPromptTargetCue');
+      if(assistant)assistant.value=taskContext.cueId??'';
       document.dispatchEvent(new CustomEvent('runq:sound-context-open',{
         detail:{taskContext},
       }));

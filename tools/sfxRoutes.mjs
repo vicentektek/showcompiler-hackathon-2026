@@ -153,6 +153,7 @@ export function makeSfxRoute({
   sfxConfig = configuration,
   sfxPilotClient = null,
   reserveCampaign = reserveModalCampaign,
+  generationDisabled = false,
 } = {}) {
   let busy = false; // One in-flight pilot or journal mutation per local server.
   return async function handle(request, response, pathname, headers) {
@@ -169,10 +170,11 @@ export function makeSfxRoute({
     const revision = safeRevision(config);
     const transportConfigured = Boolean(sfxPilotClient ||
       (config.endpointUrl && config.proxyTokenId && config.proxyTokenSecret));
-    const enabled = config.enabled === true && transportConfigured &&
+    const enabled = !generationDisabled && config.enabled === true && transportConfigured &&
       policy !== null && revision !== undefined;
     const configSafe = {
       enabled,
+      promptOnly: generationDisabled,
       kinds: ['SFX','ENVIRONMENT'],
       model: 'stabilityai/stable-audio-3-small-sfx',
       modelRevision: revision ?? null,
@@ -287,6 +289,13 @@ export function makeSfxRoute({
       } catch (error) {
         sendFailure(response, error, headers);
       } finally { busy = false; }
+      return true;
+    }
+
+    // Presentation server is prompt-only. Never submit, poll or cancel remotely.
+    // Historical local reads, WAV downloads and human review remain accessible.
+    if (generationDisabled) {
+      json(response, 403, { code: 'SFX_PROMPT_ONLY' }, headers);
       return true;
     }
 

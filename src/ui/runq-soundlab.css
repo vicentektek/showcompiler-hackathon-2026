@@ -103,3 +103,89 @@
 @media (prefers-reduced-motion: reduce) {
   :root#runqApp .sfx-lab-intro::after, :root#runqApp .sfx-wave-empty::before, :root#runqApp .sfx-status-badge::before { animation: none !important; }
 }
+
+
+/* Prompt-only demo: the former generator is now a three-action sound assistant.
+   Scope only the Sound Assistant view; keep the full library, waveform editor,
+   manual cue assignment, and their event handlers untouched. These rules
+   intentionally follow the legacy highly-specific studio styles above. */
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=generate] {
+  & .sfx-connection,
+  & #generateForm > .sfx-row-fields,
+  & #sfxAdvanced,
+  & #sfxConnectionDetails,
+  & .rq-sfx-generation-note,
+  & #sfxShortTakeBtn,
+  & .rq-prompt-only-legacy-jobs,
+  & .sfx-audio-panel,
+  & .sfx-export,
+  & .sl-chips,
+  & .sl-chips-label,
+  & .sl-count { display: none !important; }
+
+  & .sfx-layout {
+    display: block !important;
+    max-width: 840px !important;
+    margin: 0 auto !important;
+  }
+  & .sfx-left { display: block !important; }
+  & .sfx-left > .sfx-card { width: 100% !important; }
+  & .sfx-form { gap: 18px !important; }
+  & #soundPrompt { min-height: 164px !important; }
+  & #generateForm > .sfx-buttons { align-items: stretch !important; }
+  & #generateBtn { flex: 1 1 190px !important; }
+  & #rqPromptImportCue, & #rqPromptOpenLibrary {
+    min-height: 42px !important;
+    height: auto !important;
+    flex: 1 1 170px;
+    white-space: normal;
+  }
+  & #generationHint { flex-basis: 100%; }
+  & .rq-prompt-target { max-width: 520px; }
+  & .rq-prompt-target select { min-height: 42px !important; }
+  & .sfx-script-assistant { margin-top: 16px !important; }
+  & .sfx-script-assistant > summary {
+    font-size: 12px !important;
+    color: #becab9 !important;
+  }
+}
+
+
+/* WAV editing remains fully available as its own tab. This is the SAME
+   non-destructive editor, not a duplicate player or a SFX generator. */
+:root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=edit] {
+  & .sfx-lab-intro,
+  & .sfx-left,
+  & .sfx-export { display:none!important; }
+  & .sfx-layout { display:block!important;max-width:none!important; }
+  & .sfx-audio-panel {
+    display:block!important;
+    width:100%!important;
+    max-width:960px!important;
+    margin:0 auto!important;
+    position:static!important;
+  }
+}
+
+
+/* Short desktop: recover visible file rows after an import result. The
+   duplicate file heading has no unique action; the toolbar and column
+   labels remain. This override must beat later full-desktop rules. */
+@media (min-width:981px) and (max-height:800px) {
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq12-library>.rq5-pane-heading {
+    display:none!important;
+  }
+  /* Keep real audition controls and drop intake, but trim redundant spacing. */
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq10-sound-heading {
+    min-height:27px!important;padding:1px 6px!important;margin:0!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq11-audition-transport {
+    min-height:37px!important;padding:2px 6px!important;gap:4px!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq10-output-warning {
+    padding:2px 6px!important;margin:0!important;
+  }
+  :root#runqApp#runqApp#runqApp.rq16.rq8.rq14 body.rq-prompt-only .shell[data-active-workspace=audio] .rq5-audio-workspace[data-rq13-sound-view=library] .rq12-library-toolbar {
+    min-height:36px!important;padding:3px 6px!important;
+  }
+}

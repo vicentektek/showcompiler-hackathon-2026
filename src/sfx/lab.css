@@ -186,3 +186,13 @@
 .sfx-fade-editor input[type="range"]{width:100%;accent-color:#8ad4f7;cursor:ew-resize}
 .sfx-fade-editor select{padding:7px;border:1px solid #5a7079;border-radius:4px;background:#15232b;color:#eaf4f7}
 .sfx-audio-panel #importCueBtn{background:#257160;color:white;white-space:normal}
+
+/* Prompt-only demo: retain legacy SFX DOM for local audio editing and
+   historical recovery without presenting generation controls. */
+.rq-prompt-only .sfx-connection,
+.rq-prompt-only .sfx-connection-details,
+.rq-prompt-only .rq-sfx-generation-note,
+.rq-prompt-only #sfxShortTakeBtn,
+.rq-prompt-only .rq-prompt-only-legacy-jobs,
+.rq-prompt-only .sfx-export,
+.rq-prompt-only .rq-sfx-seed { display:none !important; }

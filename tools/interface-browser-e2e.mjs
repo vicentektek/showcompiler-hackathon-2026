@@ -158,8 +158,10 @@ try {
   assert.equal(await page.locator('.home-tiles .home-tile').count(),4);
   await page.locator('#rq16StartAI').click();
   await page.waitForFunction(()=>document.querySelector('.shell').dataset.activeWorkspace==='ai');
-  assert.equal(await page.locator('.rq-preparation[data-integrated=true]').isVisible(),true,
-    'The integrated preparation card is the primary AI entry');
+  assert.equal(await page.locator('#rqShowBuilderAutomationSlot').count(),1,
+    'Advanced batch preparation belongs inside the unified Show Builder');
+  assert.equal(await page.locator('.rq-preparation[data-integrated=true]').count(),0,
+    'The obsolete duplicate preparation wizard is no longer a second header');
   assert.equal(await page.locator('#rq16AIWelcome').isVisible(),false,
     'Duplicate marketing copy does not push the preparation and assistant actions down');
   assert.equal(await page.locator('#rqAgentPrompt').isVisible(),false,
@@ -186,7 +188,7 @@ try {
   await page.locator('#rqShowBuilder [data-builder-route="script"]').click();
   assert.equal(await page.locator('#rqShowBuilderSourceTask').isVisible(),true,
     'The script route returns to source work without changing show context');
-  assert.match(await page.locator('#rqShowBuilderSourceLines').textContent(),/No script yet/);
+  assert.match(await page.locator('#rqShowBuilderSourceTask').textContent(),/Import TXT, PDF or DOCX/);
   assert.equal(await page.locator('.rq5-ai-workspace > .help').isVisible(),false,
     'Old AI instructions do not compete with the guided wizard');
   assert.equal(await page.locator('.rq5-ai-workspace > .rq5-ai-grid').isVisible(),false,
@@ -749,13 +751,15 @@ try {
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="project"]').click();
   assert.equal(await page.locator('#rqShowBuilderProposeCues').isVisible(),true,
     'The imported script offers one direct next step to propose cues');
-  assert.match(await page.locator('#rqShowBuilderProposeCues').textContent(),/Suggest cues to review/);
+  assert.match(await page.locator('#rqShowBuilderProposeCues').textContent(),/Find cues with RUNQ AI/);
   const proposalPostsBeforeDirectAction=providerPosts.length;
   await page.locator('#analyzeMetaBtn').evaluate(button=>{button.disabled=true;});
   await page.locator('#rqShowBuilderProposeCues').click();
-  await page.waitForFunction(()=>document.querySelector('#rqShowBuilderCanvas')?.dataset.activeTask==='cues');
+  assert.equal(await page.locator('#rqShowBuilderCanvas').getAttribute('data-active-task'),'project',
+    'The script search action never navigates away from the source');
+  assert.equal(await page.locator('#rqScriptAnalysisCard').getAttribute('data-state'),'unavailable');
   assert.equal(providerPosts.length,proposalPostsBeforeDirectAction,
-    'The direct script action opens the existing consent-gated flow without submitting a provider request');
+    'An unconfigured provider must never receive a request');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="cues"]').click();
   assert.equal(await page.locator('#rqShowBuilderCueTask').isVisible(),true);
   assert.equal(await page.locator('#rqShowBuilderSourceTask').isVisible(),false);
@@ -773,10 +777,19 @@ try {
   await page.locator('#createProposalBtn').click();
   await page.locator('#proposalLabel').fill('Distant footsteps in a stone corridor');
   await page.locator('#createProposalBtn').click();
-  const approveAll=page.locator('#rqShowBuilderApproveAllProposals');
-  assert.equal(await approveAll.isVisible(),true,
-    'The review step offers one explicit action for multiple pending proposals');
-  assert.match(await approveAll.textContent(),/Approve all \d+ pending proposals/);
+  assert.equal(await page.locator('#rqShowBuilderApproveAllProposals').isVisible(),false,
+    'Legacy approve-all must not compete with the unified selection-aware CTA');
+  await page.locator('#rqReviewFilter').selectOption('pending');
+  assert.equal(await page.locator('#rqUnifiedCueReview .rq-review-selected-actions').isVisible(),false,
+    'Contextual mass actions should stay hidden until an item is selected');
+  assert.equal(await page.locator('#rqReviewMoreTools').getAttribute('open'),null,
+    'Secondary tools should start collapsed');
+  await page.getByRole('button',{name:'Select visible',exact:true}).click();
+  assert.equal(await page.locator('#rqUnifiedCueReview .rq-review-selected-actions').isVisible(),true,
+    'Selection makes only the relevant actions visible');
+  const approveAll=page.locator('#rqUnifiedCueReview .rq-review-bulk .btn.accent');
+  assert.equal(await approveAll.isVisible(),true);
+  assert.match(await approveAll.textContent(),/Approve selection/);
   await page.evaluate(()=>{
     window.batchApprovalConfirmations=[];
     window.confirm=message=>{
@@ -785,14 +798,14 @@ try {
     };
   });
   await approveAll.click();
-  assert.match(await page.evaluate(()=>window.batchApprovalConfirmations[0]),/Approve exactly \d+ selected proposals/);
+  assert.match(await page.evaluate(()=>window.batchApprovalConfirmations[0]),/Review \d+ proposals/);
   await page.waitForFunction(()=>{
     let result=null;
     document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{result=value;}}}));
     return result?.project?.proposals.every(proposal=>proposal.status!=='PENDING');
   });
-  assert.equal(await page.locator('#rqContextInspector [data-rq-context-action="undo-batch"]').count(),1,
-    'Bulk approval preserves the existing batch undo action');
+  assert.equal(await page.locator('#rqUnifiedCueReview .rq-review-bulk button').filter({hasText:'Undo review'}).count(),1,
+    'Unified review presents an explicit bulk-undo action after approval');
   let approvedSoundCue=null;
   await page.waitForFunction(label=>{
     let result=null;
@@ -831,6 +844,7 @@ try {
   await route('ai');
   await page.locator('#rqShowBuilder .rq16-builder-stage[data-stage="project"]').click();
   assert.equal(await page.locator('#rqShowBuilderSourceTask').isVisible(),true);
+  await page.locator('#rqScriptExplorer > summary').click();
   await page.locator('#rqShowBuilderSourceLines [data-builder-line-select="L3"]').check();
   assert.equal(await page.locator('#rqShowBuilderAnalyzeSelected').isEnabled(),true);
   const builderCuesBefore=await page.locator('#cueList [data-cue-select]').count();

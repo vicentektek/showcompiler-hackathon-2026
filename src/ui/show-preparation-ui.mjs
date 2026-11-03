@@ -70,12 +70,10 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
   const progress = makeProgress('rqPreparationProgress');
   bar.append(heading, subtitle, steps, actions, includeLabel, progress.box, preparationFeedback, results); panel.prepend(bar);
   const placeToolbar = () => {
-    const welcome = $('rq16AIWelcome');
-    if (!welcome) return false;
-    const description = welcome.querySelector('p');
-    if (description) description.hidden = true;
-    bar.dataset.integrated = 'true';
-    welcome.after(bar);
+    const slot=$('rqShowBuilderAutomationSlot');
+    if(!slot)return false;
+    bar.dataset.integrated='false';
+    slot.append(bar);
     return true;
   };
   if (!placeToolbar()) {
@@ -214,7 +212,7 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     subtitle.textContent = tr('Cues, pies y sonidos del guion. Tú revisas; GO manual.',
       'Cues, triggers and sounds from script. You review; manual GO.');
     const stepLabels = [tr('Analizar guion', 'Analyze script'), tr('Aprobar cues', 'Approve cues'),
-      tr('Generar y escuchar', 'Generate and listen'), tr('Asignar sonidos', 'Assign sounds')];
+      tr('Preparar prompts', 'Prepare prompts'), tr('Revisar show', 'Review show')];
     stepNodes.forEach((node, i) => {
       node.textContent = stepLabels[i];
       if (node.dataset.stage === stage || (stage === 'review-audio' && i === 2)) node.setAttribute('aria-current', 'step');
@@ -222,28 +220,29 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     });
     const prepareLabel = tr('Auto preparar show completo', 'Auto prepare entire show');
     labelButton(prepare, prepareLabel); labelButton(homePrepare, prepareLabel, prepare.id);
-    labelButton(acceptAll, automatic && stage === 'review-proposals'
-      ? tr(`Aceptar todos (${pending.length}) y generar sonidos`, `Accept all (${pending.length}) and generate sounds`)
-      : tr(`Aceptar todos los cues (${pending.length})`, `Accept all cues (${pending.length})`));
-    const audioLabel = tr(`Generar audio para todos (${available.length})`, `Generate audio for all (${available.length})`);
+    labelButton(acceptAll, tr(`Aceptar todos los cues (${pending.length})`, `Accept all cues (${pending.length})`));
+    const audioLabel = tr(`Planificar sonidos (${available.length})`, `Plan sounds (${available.length})`);
     labelButton(audioAll, audioLabel); labelButton(soundAll, audioLabel, audioAll.id);
+    const promptOnly = document.body.classList.contains('rq-prompt-only');
     const reviewed = assignable(state), reviewedCount = reviewed.length;
     const assignLabel = tr(`Aceptar todos los sonidos (${reviewedCount})`, `Accept all sounds (${reviewedCount})`);
     labelButton(assignAll, assignLabel); labelButton(soundAssignAll, assignLabel, assignAll.id);
+    assignAll.hidden = soundAssignAll.hidden = promptOnly;
+    results.hidden = promptOnly;
     assignAll.disabled = soundAssignAll.disabled = busy || planning || previewLoading || !(state.canAssign ?? state.canApply) || !reviewedCount;
     assignAll.title = soundAssignAll.title = tr('Acepta y asigna todas las tomas listas a sus cues. Escucharlas antes es opcional.',
       'Accept and assign all ready takes to their cues. Listening first is optional.');
-    labelButton(editAudio, tr('Ajustar lote · opcional', 'Adjust batch · optional'));
-    includeText.textContent = tr('Incluir todos los sonidos al preparar el show',
-      'Include all sounds when preparing the show');
+    labelButton(editAudio, tr('Revisar prompts', 'Review prompts'));
+    includeText.textContent = tr('Mostrar plan de sonidos tras analizar el show',
+      'Show sound plan after analyzing the show');
     includeAudio.disabled = busy || planning;
     soundReview.textContent = tr('Ver tomas del lote', 'View batch takes');
-    soundReview.hidden = !records.length;
+    soundReview.hidden = promptOnly || !records.length;
     const cancelLabel = tr('Cancelar lote', 'Cancel batch');
     labelButton(cancel, cancelLabel); labelButton(soundCancel, cancelLabel, cancel.id);
     prepare.disabled = homePrepare.disabled = busy || planning || !state.canApply || !state.metaAvailable || !state.project.scriptText.trim();
     acceptAll.disabled = busy || planning || !state.canApply || pending.length === 0;
-    audioAll.disabled = soundAll.disabled = busy || planning || !historyAvailable || !state.canApply || available.length === 0;
+    audioAll.disabled = soundAll.disabled = busy || planning || !state.canApply || available.length === 0;
     editAudio.disabled = audioAll.disabled;
     cancel.hidden = soundCancel.hidden = !busy;
     for (const p of [progress, soundProgress]) {
@@ -256,14 +255,14 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
           progressKind === 'assign' ? stepLabels[3] : stepLabels[2]}`;
     }
     status.textContent = message || tr(
-      'IA directa sin topes locales de presupuesto. Revisa cues y tomas; GO siempre manual.',
-      'Direct AI without local budget caps. Review cues and takes; GO always manual.');
+      'Analiza el guion, revisa los cues y prepara los sonidos mediante prompts. GO siempre manual.',
+      'Analyze script, review cues and plan sounds with prompts. GO is always manual.');
     const excluded = planShowAudio(state.project).excluded.length;
-    soundStatus.textContent = message || tr(`${available.length} pendientes · ${excluded} excluidos (audio existente, música/voz o acciones no sonoras). En serie, sin reemplazos.`,
-      `${available.length} pending · ${excluded} excluded (existing audio, music/voice or non-sound actions). Serial, no replacements.`);
+    soundStatus.textContent = message || tr(`${available.length} cues necesitan audio · ${excluded} excluidos. Exporta prompts e importa archivos localmente.`,
+      `${available.length} cues need audio · ${excluded} excluded. Export prompts and import files locally.`);
     results.replaceChildren();
     const latest = records.filter(r => state.project.cues.some(c => c.id === r.cueId)).slice(-100);
-    for (const r of latest) {
+    for (const r of (promptOnly ? [] : latest)) {
       const cue = state.project.cues.find(c => c.id === r.cueId);
       const row = make('div', 'rq-preparation-result');
       const label = make('span');
@@ -328,40 +327,32 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
   }
   function updateCost() {
     const count = readSelected().length;
-    if(policy.budgetLimitsDisabled===true){
-      cost.textContent=tr(`Modal: ${count} solicitudes en serie. Sin topes locales de presupuesto.`, `Modal: ${count} serial requests. No local budget caps.`);
-      startAudio.disabled=count===0;return;
-    }
-    cost.textContent = tr(`Modal: ${count} solicitudes en serie. Máximo estimado del lote: $${(count * policy.estimatedMaxCostUsdPerRequest).toFixed(4)} USD. Límite diario: $${policy.dailyBudgetUsd}. Cada solicitud se reserva en el ledger; el saldo y los límites restantes se validan en el servidor.`,
-      `Modal: ${count} serial requests. Estimated batch maximum: $${(count * policy.estimatedMaxCostUsdPerRequest).toFixed(4)} USD. Daily ceiling: $${policy.dailyBudgetUsd}. Each request is reserved in the ledger; remaining budget and limits are checked on the server.`);
+    cost.textContent = tr(
+      `${count} descripciones preparadas. Se exportarán como un archivo TXT; no se generará ningún audio.`,
+      `${count} sound descriptions ready. Export as TXT; no audio will be generated.`
+    );
     startAudio.disabled = count === 0;
   }
   async function showAudioPlan(edit) {
     const revision = cancelRevision;
-    if (!historyAvailable) throw new Error('PREPARATION_STORAGE_UNAVAILABLE');
     if (!getState().canApply || busy) throw new Error('SHOW_CHANGED');
-    await ensureAudioIdle();
     if (revision !== cancelRevision) throw new Error('PREPARATION_CANCELLED');
     if (!getState().canApply) throw new Error('SHOW_CHANGED');
     prepareTriggers();
     planState = getState();
     identity = sourceIdentity(planState); expectedProject = JSON.stringify(planState.project);
-    const settings = await request('/status');
-    if (revision !== cancelRevision) throw new Error('PREPARATION_CANCELLED');
     assertEditable();
-    policy = settings;
-    if (!settings.enabled || (settings.budgetLimitsDisabled!==true && (!Number.isFinite(settings.estimatedMaxCostUsdPerRequest) ||
-        settings.estimatedMaxCostUsdPerRequest <= 0 || !Number.isFinite(settings.dailyBudgetUsd))))
-      throw new Error('SFX_NOT_CONFIGURED');
+    // Sound planning is local; it must not depend on Modal configuration.
+    policy = { promptOnly: true };
     const plan = planShowAudio(planState.project);
     const items = eligible(planState);
     if (!items.length) throw new Error('NO_PENDING_SOUND_CUES');
-    title.textContent = tr('Generar audio para todos los cues pendientes', 'Generate audio for all pending cues');
+    title.textContent = tr('Planificar sonidos pendientes', 'Plan pending sounds');
     help.textContent = tr(
-      `${plan.excluded.length} cues con audio existente, acciones no sonoras o música/voz no compatibles quedan fuera. Revisa y edita los prompts en inglés. Puedes deseleccionar cues. Las tomas quedan pendientes de escucha y aceptación; cancelar detiene nuevos envíos, no revoca costes ya reservados.`,
-      `${plan.excluded.length} cues with existing audio, non-sound actions or unsupported music/voice are excluded. Review and edit English prompts. You can deselect cues. Takes await listening and acceptance; cancel stops new submissions, not already reserved costs.`);
-    startAudio.textContent = tr('Generar sonidos seleccionados', 'Generate selected sounds');
-    close.textContent = tr('Volver sin generar', 'Back without generating');
+      `${plan.excluded.length} cues con audio o acciones no sonoras quedan fuera. Revisa y copia estos prompts para buscar o generar audio externamente. Después importa el archivo al cue correspondiente.`,
+      `${plan.excluded.length} cues with audio or non-sound actions are excluded. Review these prompts to find or create audio externally, then import the file into its cue.`);
+    startAudio.textContent = tr('Exportar prompts TXT', 'Export prompts TXT');
+    close.textContent = tr('Cerrar', 'Close');
     dialogError.textContent = ''; rows.replaceChildren(); planned = [];
     for (const item of items) {
       const row = make('fieldset', 'rq-preparation-row');
@@ -382,8 +373,8 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       row.append(legend, selectLabel, promptLabel, kind, durationLabel);
       if (item.draft.requiresTranslation) {
         const warning = make('p', 'error');
-        warning.textContent = tr('Esta idea necesita revisión/traducción al inglés antes de generar.',
-          'This idea needs an English rewrite/review before generation.'); row.append(warning);
+        warning.textContent = tr('Revisa la traducción al inglés antes de utilizar este prompt.',
+          'Review the English translation before using this prompt.'); row.append(warning);
       }
       for (const input of [selected, prompt, kind, duration]) input.addEventListener('input', updateCost);
       rows.append(row); planned.push({ item, selected, prompt, kind, duration });
@@ -490,10 +481,10 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
       });
       stage = 'review-proposals';
       message = automatic
-        ? tr('Guion analizado. Revisa los cues: «Aceptar todos y generar sonidos» continúa directamente con audio para todos. GO sigue siendo manual.',
-          'Script analyzed. Review cues: “Accept all and generate sounds” continues directly with audio for all. GO remains manual.')
-        : tr('Guion analizado. Revisa y acepta las propuestas; puedes generar todos los sonidos después.',
-          'Script analyzed. Review and accept proposals; generate all sounds afterwards.');
+        ? tr('Guion analizado. Revisa los cues y después prepara el plan de sonidos. No se genera audio.',
+          'Script analyzed. Review cues, then prepare the sound plan. No audio is generated.')
+        : tr('Guion analizado. Revisa y acepta las propuestas. Puedes planificar los sonidos después.',
+          'Script analyzed. Review and accept proposals. You can plan sounds afterwards.');
     } catch (error) {
       if (signal.aborted) throw new Error('PREPARATION_CANCELLED');
       throw error;
@@ -616,19 +607,39 @@ export function mountShowPreparation({ getState, analyzeNext, approve, prepareTr
     if (planning || busy) return;
     planning = true; render();
     stage = 'planning';
-    try { await showAudioPlan(edit); }
+    try { await showAudioPlan(true); }
     finally { planning = false; render(); }
-    if (!edit) await generateAudio();
   }
   for (const b of [audioAll, soundAll]) b.addEventListener('click', () => void openAudioPlan().catch(fail));
   editAudio.addEventListener('click', () => void openAudioPlan(true).catch(fail));
   soundReview.addEventListener('click', () => {
     openWorkspace('ai'); results.scrollIntoView({ block: 'center' });
   });
-  startAudio.addEventListener('click', () => void generateAudio().catch(error => {
-    if (dialog.open) dialogError.textContent = errorText(error);
-    fail(error);
-  }));
+  startAudio.addEventListener('click', () => {
+    try {
+      assertEditable();
+      const items = readSelected();
+      if (!items.length) return;
+      const content = items.map(item => [
+        'Cue ' + item.number + ' · ' + item.label,
+        'Guion / Script: ' + (item.draft.sourceLineId ?? '—'),
+        'Tipo / Kind: ' + item.draft.kind,
+        'Duración sugerida / Suggested duration: ' + item.draft.durationSeconds + ' s',
+        'Prompt: ' + item.draft.prompt,
+        item.draft.requiresTranslation ? 'REVISAR TRADUCCIÓN / REVIEW TRANSLATION' : '',
+      ].filter(Boolean).join('\n')).join('\n\n---\n\n');
+      const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+      try {
+        const anchor = make('a');
+        anchor.href = url;
+        anchor.download = 'runq-sound-prompts.txt';
+        anchor.click();
+      } finally { URL.revokeObjectURL(url); }
+      message = tr('Prompts exportados. Importa los archivos de sonido en sus cues.',
+        'Prompts exported. Import sound files into their cues.');
+      dialog.close(); render();
+    } catch (error) { dialogError.textContent = errorText(error); }
+  });
   close.addEventListener('click', () => dialog.close());
   cancel.addEventListener('click', stop);
   soundCancel.addEventListener('click', stop);
