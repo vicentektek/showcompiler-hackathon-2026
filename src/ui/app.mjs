@@ -3441,7 +3441,7 @@ async function openRegisteredAudioForEditing(assetId){
       throw new Error('El audio original cambió durante la carga; selección cancelada.');
     selectedLibrarySource={assetId,file,generation};
     setWorkspace('audio');
-    document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'generate'}}));
+    document.dispatchEvent(new CustomEvent('runq:sound-mode',{detail:{mode:'edit'}}));
   }catch(error){showError(error);}
 }
 document.addEventListener('runq:sound-list-cues',event=>{
