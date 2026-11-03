@@ -32,6 +32,12 @@
 - Cue audio duration is derived from real media or explicit trims; an unspecified duration is never presented as a model measurement.
 - The usual sound assistant creates/edit sound prompts and imports existing audio. **New Modal SFX generation is disabled in this frozen demo**; historical generation code and journal records must not be presented as a current user workflow.
 
+### AI edit conflict / unsaved cue changes (observed 3 November 2026)
+
+In the frozen UI, the AI assistant correctly prepared a proposed **2-second fade-out** edit for cue 2 while the user had unsaved changes in the cue editor. **Apply selected changes** remained disabled until the user saved those pending changes. The user identified and resolved this operational condition; no code patch was necessary.
+
+**Operator instruction:** save existing cue edits before applying a reviewed AI proposal. If needed, regenerate/review the suggestion after saving. The current UI gives insufficient explanation for this disabled state; a clearer tooltip/message is a post-submission UX improvement only. Keep the current freeze and do not bypass edit-state safeguards.
+
 ### Rehearsal and manual operation
 - Manual **GO**, **NEXT**, individual stop/fade and **STOP ALL** use the local browser audio engine; model requests are not part of the GO/STOP path.
 - Rehearsal includes optional microphone transcription, script/trigger following and explicitly armed automatic GO. Manual GO **disarms** the armed rehearsal autopilot by design; keep that behavior in this submission.
