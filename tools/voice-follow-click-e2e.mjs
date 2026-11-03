@@ -106,6 +106,9 @@ try{
         'Manual audio import must remain visible');
       assert.equal(await page.locator('#waveCanvas').isVisible(),false,
         'The redundant legacy waveform editor must be hidden in the prompt view');
+      await tryClick('[data-rq10-sound-tab="edit"]');
+      assert.equal(await page.locator('#waveCanvas').isVisible(),true,
+        'The real non-destructive WAV editor must remain reachable in its own tab');
       await tryClick('[data-rq10-sound-tab="library"]');
       assert.equal(await page.locator('#assetList').isVisible(),true,
         'The actual library must remain accessible');
