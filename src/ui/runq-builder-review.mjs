@@ -24,10 +24,15 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
  const approve=B('',()=>review('APPROVE'),'btn accent small');
  const reject=B('',()=>review('REJECT'));
  const undo=B('',()=>{const a=send('runq:proposal-batch-undo',{});status.textContent=a.ok?S('Revisión deshecha','Review undone'):S('No se puede deshacer tras editar el espectáculo','Cannot undo after editing the show');render();});
+ const undoFeet=B('',()=>{
+  const a=send('runq:builder-trigger-undo',{});
+  status.textContent=a.ok?S('Pies restaurados','Triggers restored'):S('No hay cambios recientes de pies que deshacer','No recent trigger edits to undo');
+  if(a.ok)render();
+ });
  const suggest=B('',()=>onSuggest());
  const foot=B('',()=>suggestFeet());
  const wav=B('',()=>{const ids=selectedCues();if(ids.length!==1){status.textContent=S('Selecciona un solo cue','Select one cue');return;}document.dispatchEvent(new CustomEvent('runq:prompt-import-cue',{detail:{cueId:ids[0]}}));});
- toolbar.append(approve,reject,undo,suggest,foot,wav);
+ toolbar.append(approve,reject,undo,suggest,foot,undoFeet,wav);
  const status=E('p','rq-review-message');status.id='rqReviewMessage';status.setAttribute('role','status');
  const list=E('div','rq-review-list');list.id='rqReviewList';
  const footPreview=E('section','rq-review-foot-preview');footPreview.id='rqReviewTriggerPreview';footPreview.hidden=true;
@@ -144,11 +149,16 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
  function selectionText(){
   const p=[...selection].filter(x=>x.startsWith('proposal:')).length,c=selectedCues().length;
   count.textContent=S(p+' propuestas · '+c+' cues seleccionados',p+' proposals · '+c+' cues selected');
-  approve.disabled=reject.disabled=p===0;foot.disabled=c===0;wav.disabled=c!==1;
+  approve.disabled=reject.disabled=p===0;
+  foot.disabled=(getState()?.project?.cues.length??0)===0;
+  wav.disabled=c!==1;
   clear.disabled=selection.size===0;
  }
  function suggestFeet(){
-  const state=getState(),ids=selectedCues();if(!state?.project||!ids.length)return;
+  const state=getState();if(!state?.project)return;
+  const chosen=selectedCues();
+  const ids=(chosen.length?chosen:state.project.cues.filter(c=>!c.trigger?.trim()).map(c=>c.id)).slice(0,200);
+  if(!ids.length){status.textContent=S('Todos los cues ya tienen pie','Every cue already has a trigger');return;}
   const suggestions=[],skipped=[];
   for(let i=0;i<ids.length;i+=MAX_VOICE_BATCH){
     const r=proposeAgentVoiceTriggers(state.project,{cueIds:ids.slice(i,i+MAX_VOICE_BATCH),max:MAX_VOICE_BATCH,onlyMissing:true});
@@ -190,7 +200,10 @@ export function mountUnifiedCueReview(host,{getState,onSuggest}){
   reject.textContent=S('Rechazar selección','Reject selection');
   undo.textContent=S('Deshacer revisión','Undo review');
   suggest.textContent=S('Sugerir más cues','Suggest more cues');
-  foot.textContent=S('Proponer pies','Suggest triggers');
+  foot.textContent=selectedCues().length
+    ?S('Proponer pies · selección','Suggest triggers · selected')
+    :S('Proponer pies · todos sin pie','Suggest triggers · all missing');
+  undoFeet.textContent=S('Deshacer pies','Undo triggers');
   wav.textContent=S('Importar WAV','Import WAV');
   const valid=new Set(all(state.project).map(x=>x.kind+':'+x.id));
   for(const id of selection)if(!valid.has(id))selection.delete(id);
