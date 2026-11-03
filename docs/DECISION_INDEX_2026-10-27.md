@@ -1,3 +1,5 @@
+> **HISTORICAL DECISION INDEX (27 OCT).** This index's references to what is runnable reflect the original date and are not the 3 November submission status. For the frozen build consult [final release notes](SUBMISSION_RELEASE_2026-11-03.md); no integration task from this index should be started during the code freeze.
+
 # Engineering / product decision index — read ONLY your current task
 2026-10-27. This is a navigation aid, not implementation proof.
 
