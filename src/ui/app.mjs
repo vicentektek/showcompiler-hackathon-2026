@@ -2696,7 +2696,12 @@ $('scriptFileInput').addEventListener('change', async event => {
     setNewShow(createNewShow({name,scriptText:text}), 'status.scriptImported', { name:file.name });
     if(format==='pdf'&&pages)console.info('RUNQ script import: text-based PDF, pages',pages);
     if(!stayInBuilder)setWorkspace('script');
-  } catch (error) { showError(error); }
+  } catch (error) {
+    const code=String(error?.message??'');
+    if(/^SCRIPT_[A-Z_]+$/.test(code)||code==='DOCX_LIBRARY_UNAVAILABLE')
+      showError(uiError('errors.'+code));
+    else showError(error);
+  }
 });
 $('assetForm').addEventListener('submit', event => {
   event.preventDefault();
