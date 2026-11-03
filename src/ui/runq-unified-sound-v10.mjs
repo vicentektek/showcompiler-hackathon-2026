@@ -209,7 +209,7 @@ function mountUnifiedSound(){
     sub.textContent=copy('Selecciona archivos, comprueba la onda y prepara audio para tus cues',
       'Choose source files, inspect waveforms and prepare audio for your cues');
     library.textContent=copy('Biblioteca y onda','Library & waveform');
-    generate.textContent=copy('Crear y editar','Create & edit');
+    generate.textContent=copy('Asistente sonoro','Sound assistant');
     caption.textContent=copy(
       'Preescucha en la salida principal del ordenador. No es un bus PFL. PARAR TODO detiene también la escucha del laboratorio.',
       'Preview uses the main computer output, not a private PFL bus. STOP ALL also stops Sound Lab audition.'
