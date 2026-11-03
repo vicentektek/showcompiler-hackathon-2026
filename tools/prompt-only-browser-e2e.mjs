@@ -67,6 +67,10 @@ try {
   });
   await page.locator('#rqPromptOpenLibrary').click();
   assert.equal(await page.locator('[data-rq10-sound-tab="library"]').getAttribute('aria-selected'),'true');
+  // The real media editor, previously embedded in Sound Lab, must open from a library item.
+  await page.locator('[data-sound-edit]').first().click();
+  await page.waitForFunction(()=>document.querySelector('[data-rq10-sound-tab="edit"]')?.getAttribute('aria-selected')==='true');
+  assert.equal(await page.locator('#waveCanvas').isVisible(),true);
   await page.locator('#uiLocaleSelect').selectOption('es');
   await page.locator('[data-rq10-sound-tab="generate"]').click();
   assert.match(await page.locator('#generateBtn').textContent(),/Copiar prompt/);
