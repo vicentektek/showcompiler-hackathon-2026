@@ -1458,3 +1458,163 @@ body.rq-prompt-only #rqPreparationResults {
   :root#runqApp .rq-script-quick-review {padding:12px}
   :root#runqApp .rq-script-quick-item-actions {width:100%;justify-content:flex-start}
 }
+
+
+/* Script UX refinement: one focused decision at a time, real review progress,
+   secondary batch actions, and no redundant post-analysis card. */
+:root#runqApp #rqScriptAnalysisCard[hidden],
+:root#runqApp #rqScriptImportSummary[hidden],
+:root#runqApp #rqScriptExplorer[hidden],
+:root#runqApp #rqScriptAnalysisProgress[hidden],
+:root#runqApp #rqScriptReviewCues[hidden],
+:root#runqApp #rqScriptConfigureAnalysis[hidden],
+:root#runqApp #rqScriptQuickApproveAll[hidden],
+:root#runqApp #rqScriptQuickUndo[hidden],
+:root#runqApp #rqScriptQuickShowMore[hidden] {
+  display:none!important;
+}
+:root#runqApp .rq-script-quick-review {
+  padding:18px 20px;
+  gap:15px;
+  border-radius:12px;
+  background:#222d26;
+  border-color:#465b48;
+  max-width:100%;
+}
+:root#runqApp .rq-script-quick-review-heading {
+  align-items:start;
+}
+:root#runqApp .rq-script-quick-review-heading h4 {
+  font-size:18px;
+  line-height:1.25;
+  letter-spacing:-.02em;
+}
+:root#runqApp .rq-script-quick-progress-summary {
+  color:#d3e5cb;
+  font-size:12px;
+  display:block;
+  margin-top:12px;
+  font-variant-numeric:tabular-nums;
+}
+:root#runqApp .rq-script-quick-progress {
+  width:100%;
+  display:block;
+  height:5px;
+  margin-top:6px;
+  background:#101b14;
+  border-radius:20px;
+  overflow:hidden;
+  accent-color:#c2daa2;
+}
+:root#runqApp .rq-script-quick-progress::-webkit-progress-bar {
+  border-radius:20px;
+  background:#101b14;
+}
+:root#runqApp .rq-script-quick-progress::-webkit-progress-value {
+  border-radius:20px;
+  background:#b7d594;
+}
+:root#runqApp .rq-script-quick-progress::-moz-progress-bar {
+  border-radius:20px;
+  background:#b7d594;
+}
+:root#runqApp #rqScriptQuickApproveAll {
+  background:#2f4634!important;
+  border:1px solid #789477!important;
+  color:#ecf5e7!important;
+  box-shadow:none!important;
+  font-size:12px!important;
+}
+:root#runqApp #rqScriptQuickApproveAll:hover {
+  background:#3f5a43!important;
+}
+:root#runqApp .rq-script-quick-item {
+  padding:17px 18px;
+  background:#1b2520;
+  border:1px solid #536753;
+  border-radius:10px;
+  gap:13px;
+}
+:root#runqApp .rq-script-quick-item-identity strong {
+  font-size:16px;
+  line-height:1.35;
+  letter-spacing:-.01em;
+}
+:root#runqApp .rq-script-quick-evidence {
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  flex-wrap:wrap;
+  font-size:12px!important;
+  color:#c8d2c4!important;
+}
+:root#runqApp .rq-script-quick-line-ref {
+  flex:0 0 auto;
+  border-radius:5px;
+  padding:2px 6px;
+  background:#334535;
+  color:#deedcf;
+  font-size:11px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+:root#runqApp .rq-script-quick-item-actions .btn {
+  min-height:38px!important;
+  padding:7px 13px!important;
+}
+:root#runqApp .rq-script-quick-reject {
+  background:transparent!important;
+  border-color:transparent!important;
+  color:#c9d1c7!important;
+}
+:root#runqApp .rq-script-quick-reject:hover {
+  background:#3b4037!important;
+  border-color:#536052!important;
+}
+:root#runqApp .rq-script-quick-footer {
+  align-items:center;
+  border-top:1px solid #3c4b40;
+  padding-top:11px;
+}
+:root#runqApp .rq-script-quick-footer .btn {
+  background:transparent!important;
+  color:#c6d5c2!important;
+  border:1px solid transparent!important;
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+:root#runqApp .rq-script-quick-footer .btn:hover {
+  color:#f1f6ec!important;
+  background:#314035!important;
+  text-decoration:none;
+}
+:root#runqApp .rq-script-quick-feedback {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+:root#runqApp .rq-script-quick-feedback:not(:has(.rq-script-quick-message:not(:empty))) {
+  display:none;
+}
+:root#runqApp .rq-script-quick-feedback .btn {
+  border-radius:7px!important;
+}
+:root#runqApp .rq-script-quick-complete {
+  padding:16px;
+  line-height:1.6;
+  background:#293b2c;
+}
+:root#runqApp .rq-script-primary-actions #rqShowBuilderProposeCues.rq-script-action-secondary {
+  background:#2c3c30!important;
+  border:1px solid #59705b!important;
+  color:#dbead7!important;
+  box-shadow:none!important;
+}
+@media(max-width:680px) {
+  :root#runqApp .rq-script-quick-review {padding:14px 12px}
+  :root#runqApp .rq-script-quick-item {padding:13px 12px}
+  :root#runqApp .rq-script-quick-item-identity strong {font-size:15px}
+  :root#runqApp #rqScriptQuickApproveAll {width:100%}
+}
