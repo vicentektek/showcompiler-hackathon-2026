@@ -115,7 +115,7 @@ function mountUnifiedSound(){
   generate.type='button';
   generate.dataset.rq10SoundTab='generate';
   generate.setAttribute('role','tab');
-  generate.setAttribute('aria-controls','waveCanvas');
+  generate.setAttribute('aria-controls','generateForm');
   tabs.append(library,generate);
   header.append(title,tabs);
   grid.before(header);
@@ -160,18 +160,30 @@ function mountUnifiedSound(){
     document.dispatchEvent(new CustomEvent('runq:sound-list-cues',{
       detail:{respond:items=>{cues=Array.isArray(items)?items:[];}}
     }));
-    const previous=target.value;
+    const assistant=$('rqPromptTargetCue');
+    const previous=assistant?.value||target.value;
     target.replaceChildren();
+    if(assistant)assistant.replaceChildren();
     const placeholder=document.createElement('option');
     placeholder.value='';
     placeholder.textContent=copy('Seleccionar cue…','Select cue…');
     target.append(placeholder);
+    if(assistant){
+      const noCue=document.createElement('option');
+      noCue.value='';
+      noCue.textContent=copy('Solo biblioteca (sin cue)','Library only (no cue)');
+      assistant.append(noCue);
+    }
     for(const cue of cues){
       const option=document.createElement('option');
       option.value=cue.id;option.textContent=cue.number+' · '+cue.label;
       target.append(option);
+      if(assistant)assistant.append(option.cloneNode(true));
     }
-    if(cues.some(c=>c.id===previous))target.value=previous;
+    if(cues.some(c=>c.id===previous)){
+      target.value=previous;
+      if(assistant)assistant.value=previous;
+    }
   }
   function setMode(next){
     if(next!=='library'&&next!=='generate')return;
@@ -250,6 +262,8 @@ function mountUnifiedSound(){
       refreshCueTargets();
       const target=$('rq10TargetCue');
       if(target)target.value=taskContext.cueId??'';
+      const assistant=$('rqPromptTargetCue');
+      if(assistant)assistant.value=taskContext.cueId??'';
       document.dispatchEvent(new CustomEvent('runq:sound-context-open',{
         detail:{taskContext},
       }));
