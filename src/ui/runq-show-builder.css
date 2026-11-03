@@ -1012,11 +1012,20 @@
 :root#runqApp #rqIncludeShowAudio { width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
 
 /* Prompt-only compact prep: keep the RUNQ AI composer above the desktop fold. */
-@media (min-width: 1200px) and (max-height: 950px) {
+@media (min-width: 1200px) and (max-height: 1150px) {
   :root#runqApp.rq16.rq8.rq14 .rq-preparation[data-integrated=true] {
     padding-block: 4px !important;
     gap: 2px 14px !important;
     margin-block: 0 !important;
+  }
+  :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=ai] .rq16-show-builder {
+    padding-block: 10px !important;
+    margin-block: 5px !important;
+    gap: 8px !important;
+  }
+  :root#runqApp.rq16.rq8.rq14 .shell[data-active-workspace=ai] .rq16-builder-task {
+    gap: 8px !important;
+    padding: 11px !important;
   }
   :root#runqApp.rq16.rq8.rq14 .rq-preparation[data-integrated=true] .rq-preparation-steps li {
     padding: 4px 8px !important;
