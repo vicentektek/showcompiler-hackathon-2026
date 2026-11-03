@@ -1,4 +1,5 @@
 import { parseScript, getScriptLine } from '../core/script.mjs';
+import { readScriptDocument } from '../core/scriptDocumentImport.mjs';
 import { serializeShowProject, deserializeShowProject, normalizeShowProject, MAX_PROJECT_JSON_BYTES } from '../core/projectPersistence.mjs';
 import { createNewShow, addAudioReference, addMockProposal, addModelProposals, decideProposal, decideProposalBatch, assignAudioToCue, setCueSoundResolution, nextAvailableId, linkLocalAudioToCue, updateCueOperatorDetails, setCueSilent, updateCuePlayback, updateCueAutomation, replaceCueAudioAsset } from '../core/workspace.mjs';
 import { stageCueStopTransitions } from '../core/cueStopFades.mjs';
@@ -2690,10 +2691,10 @@ $('scriptFileInput').addEventListener('change', async event => {
   builderScriptImportPending=false;
   if (!file || !userAllowsReplacement()) return;
   try {
-    if (!file.name.toLowerCase().endsWith('.txt')) throw uiError('errors.onlyTxt');
-    const text = await readTextFile(file, limitScriptBytes);
-    const name = file.name.replace(/\.txt$/i, '').slice(0, 120).trim() || t('script.showNamePlaceholder');
-    setNewShow(createNewShow({ name, scriptText: text }), 'status.scriptImported', { name: file.name });
+    const {text,format,pages}=await readScriptDocument(file);
+    const name=file.name.replace(/\.(?:txt|pdf|docx)$/i,'').slice(0,120).trim()||t('script.showNamePlaceholder');
+    setNewShow(createNewShow({name,scriptText:text}), 'status.scriptImported', { name:file.name });
+    if(format==='pdf'&&pages)console.info('RUNQ script import: text-based PDF, pages',pages);
     if(!stayInBuilder)setWorkspace('script');
   } catch (error) { showError(error); }
 });
