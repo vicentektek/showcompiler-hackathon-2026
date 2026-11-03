@@ -61,6 +61,13 @@ try{
  });
  await first.locator('.rq-review-details > summary').click();
  await first.locator('.rq-review-edit input').first().fill('Puerta · escena inicial');
+ // Unrelated show-state refresh must never discard a partially edited cue form.
+ await page.evaluate(()=>document.dispatchEvent(new CustomEvent('runq:show-state-changed')));
+ assert.equal(await first.locator('.rq-review-edit input').first().inputValue(),'Puerta · escena inicial');
+ assert.equal(await first.locator('.rq-review-details').getAttribute('open'),'');
+ // Approve-all is accessible in the unified review and the old wizard is not.
+ assert.equal(await page.locator('#rqReviewList').isVisible(),true);
+ assert.equal(await page.locator('#rqPrepareShow').isVisible(),false);
  await first.locator('.rq-review-edit .btn.accent').click();
  assert.equal((await stateOf(page)).project.cues[0].label,'Puerta · escena inicial');
  // The same row opens the native local WAV picker without switching workspace.
