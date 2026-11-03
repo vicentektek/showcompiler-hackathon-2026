@@ -16,6 +16,9 @@ import { createModalSfxPilotClient } from '../src/core/modalSfxPilotClient.mjs';
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
 const routes = /^\/api\/sfx\/jobs\/([A-Za-z0-9][A-Za-z0-9._:-]{0,99})(?:\/(refresh|cancel|review|audio))?$/;
 const MAX_BODY = 4096;
+// Contest build: remote Modal SFX is disabled even if legacy environment flags
+// or supervised QA campaign settings are present. Local audio remains usable.
+const CONTEST_REMOTE_SFX_DISABLED = true;
 
 function json(response, status, value, headers) {
   response.writeHead(status, {
@@ -169,10 +172,11 @@ export function makeSfxRoute({
     const revision = safeRevision(config);
     const transportConfigured = Boolean(sfxPilotClient ||
       (config.endpointUrl && config.proxyTokenId && config.proxyTokenSecret));
-    const enabled = config.enabled === true && transportConfigured &&
+    const enabled = !CONTEST_REMOTE_SFX_DISABLED && config.enabled === true && transportConfigured &&
       policy !== null && revision !== undefined;
     const configSafe = {
       enabled,
+      contestRemoteGenerationDisabled: CONTEST_REMOTE_SFX_DISABLED,
       kinds: ['SFX','ENVIRONMENT'],
       model: 'stabilityai/stable-audio-3-small-sfx',
       modelRevision: revision ?? null,
