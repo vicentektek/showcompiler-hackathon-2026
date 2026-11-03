@@ -84,6 +84,7 @@ const allowed = new Map([
   ['/src/ui/command-dictation.mjs', ['src/ui/command-dictation.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-agent-ui.mjs', ['src/ui/runq-agent-ui.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-builder-review.mjs', ['src/ui/runq-builder-review.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/ui/runq-script-quick-review.mjs', ['src/ui/runq-script-quick-review.mjs', 'text/javascript; charset=utf-8']],
   ['/src/core/scriptDocumentImport.mjs', ['src/core/scriptDocumentImport.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/userFacingErrors.mjs', ['src/ui/userFacingErrors.mjs', 'text/javascript; charset=utf-8']],
   ['/src/ui/runq-agent.css', ['src/ui/runq-agent.css', 'text/css; charset=utf-8']],
