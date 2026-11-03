@@ -819,12 +819,13 @@ function bindEvents(){
   $('rqPromptTargetCue')?.addEventListener('change',()=>{
     const target=$('rqPromptTargetCue').value;
     if($('rq10TargetCue'))$('rq10TargetCue').value=target;
-    if(state.contextTask?.cueId&&state.contextTask.cueId!==target){
+    // Explicitly choosing another cue prepares its own script-linked prompt.
+    // This is local context selection, never a paid model/generation request.
+    if(target){
+      document.dispatchEvent(new CustomEvent('runq:context-open-cue-sound',{detail:{cueId:target}}));
+    }else{
       state.contextTask=null;
-      $('sfxCueContext').textContent=ux(
-        'Has cambiado el cue de destino. Comprueba que el prompt describe el sonido correcto.',
-        'Destination cue changed. Check that the prompt describes the correct sound.');
-      $('sfxCueContext').hidden=false;
+      $('sfxCueContext').hidden=true;
     }
     updateControls();
   });
