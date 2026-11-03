@@ -158,8 +158,10 @@ try {
   assert.equal(await page.locator('.home-tiles .home-tile').count(),4);
   await page.locator('#rq16StartAI').click();
   await page.waitForFunction(()=>document.querySelector('.shell').dataset.activeWorkspace==='ai');
-  assert.equal(await page.locator('.rq-preparation[data-integrated=true]').isVisible(),true,
-    'The integrated preparation card is the primary AI entry');
+  assert.equal(await page.locator('#rqShowBuilderAutomationSlot').isVisible(),true,
+    'Advanced batch preparation belongs inside the unified Show Builder');
+  assert.equal(await page.locator('.rq-preparation[data-integrated=true]').count(),0,
+    'The obsolete duplicate preparation wizard is no longer a second header');
   assert.equal(await page.locator('#rq16AIWelcome').isVisible(),false,
     'Duplicate marketing copy does not push the preparation and assistant actions down');
   assert.equal(await page.locator('#rqAgentPrompt').isVisible(),false,
