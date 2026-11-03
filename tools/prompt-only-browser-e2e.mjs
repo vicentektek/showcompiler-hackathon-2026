@@ -41,7 +41,7 @@ try {
   assert.equal(await page.locator('#sfxScriptDetails').isVisible(),true,
     'Script direction interpretation must remain accessible as an optional accordion');
   // The demo must no longer expose controls from the disabled audio generator.
-  for(const selector of ['#generateForm > .sfx-row-fields','#sfxAdvanced','#sfxScriptDetails',
+  for(const selector of ['#generateForm > .sfx-row-fields','#sfxAdvanced',
     '.rq-prompt-only-legacy-jobs','.sfx-audio-panel'])
     assert.equal(await page.locator(selector).isVisible(),false,`${selector} must stay hidden in prompt-only mode`);
   assert.equal(await page.locator('#sfxReconnectBtn').isVisible(),false);
