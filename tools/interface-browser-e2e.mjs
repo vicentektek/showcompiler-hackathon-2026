@@ -775,10 +775,13 @@ try {
   await page.locator('#createProposalBtn').click();
   await page.locator('#proposalLabel').fill('Distant footsteps in a stone corridor');
   await page.locator('#createProposalBtn').click();
-  const approveAll=page.locator('#rqShowBuilderApproveAllProposals');
-  assert.equal(await approveAll.isVisible(),true,
-    'The review step offers one explicit action for multiple pending proposals');
-  assert.match(await approveAll.textContent(),/Approve all \d+ pending proposals/);
+  assert.equal(await page.locator('#rqShowBuilderApproveAllProposals').isVisible(),false,
+    'Legacy approve-all must not compete with the unified selection-aware CTA');
+  await page.locator('#rqReviewFilter').selectOption('pending');
+  await page.getByRole('button',{name:'Select visible',exact:true}).click();
+  const approveAll=page.locator('#rqUnifiedCueReview .rq-review-bulk .btn.accent');
+  assert.equal(await approveAll.isVisible(),true);
+  assert.match(await approveAll.textContent(),/Approve selection/);
   await page.evaluate(()=>{
     window.batchApprovalConfirmations=[];
     window.confirm=message=>{
@@ -787,7 +790,7 @@ try {
     };
   });
   await approveAll.click();
-  assert.match(await page.evaluate(()=>window.batchApprovalConfirmations[0]),/Approve exactly \d+ selected proposals/);
+  assert.match(await page.evaluate(()=>window.batchApprovalConfirmations[0]),/Review \d+ proposals/);
   await page.waitForFunction(()=>{
     let result=null;
     document.dispatchEvent(new CustomEvent('runq:agent-read',{detail:{respond:value=>{result=value;}}}));
