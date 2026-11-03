@@ -1,4 +1,4 @@
-> **2026-11-02: Meta y Modal sin topes locales de presupuesto**, tanto en uso manual/demo como en baterias CLI. Las cifras anteriores son historicas. Ver [cambio y verificacion](docs/META_MODAL_UNLIMITED_2026-11-02.md).
+> **RUNQ prompt-only sound demo · 3 November 2026.** This branch disables new Modal SFX generation in the normal app server. Sound assistance now produces editable descriptions/prompts and lets operators import or assign local audio. The UI does not generate sound files. Meta Muse remains optional for script/cue analysis. Earlier Modal and audio-generation sections elsewhere in this repository document historical prototypes, not the shipped workflow.
 
 # ShowCompiler — Meta Global AI Developer Hackathon 2026
 
@@ -58,63 +58,32 @@ step can approve all pending proposals together, with the existing explicit
 confirmation and undo. Provider settings stay under optional advanced settings,
 while explicit AI action buttons start bounded requests through server cost controls,
 without a second permission checkbox or dialog.
-Opening **Prepare sound for this cue** now fills the English sound prompt,
-estimates duration from a recognized script direction, and pins its L# and cue
-destination. For a cue with an active generation, RUNQ checks readiness and
-loads the WAV without playing it; one explicit accept action assigns the take
-to that cue. Listening first is optional. If a Spanish cue idea is
-not recognized by the offline sound compiler, the interface flags that it needs
-an English rewrite rather than claiming it translated the text.
+Opening **Prepare sound for this cue** pins the cue ID and original L# reference,
+then proposes an editable sound description and an external-use prompt. Select
+**Copy prompt**, **Import file for this cue**, or **Choose from library**.
+The built-in script-to-prompt compiler is local and deterministic; its suggestions
+must not be presented as new Meta Muse model inferences. Audio is imported locally;
+no generated take or playback is started automatically. Spanish cue ideas can be
+flagged for manual English review when translation is uncertain.
 
 Run `npm run test:product` for the offline unit and browser regression suite,
 including the integrated Show Builder. Tests use local fixtures and mocked
 providers; they do not measure live-model quality or generate billable audio.
 
-### Bulk preparation
+### Prompt-only sound preparation
 
-**RUNQ AI** has a dedicated preparation card with four numbered stages, accessible
-progress bars and icon-labelled actions. The same sound batch controls are available
-in **Sound > Generate**:
+RUNQ AI retains analysis, cue review, script-backed operation-trigger suggestions
+and the four-stage preparation interface. The **Plan sounds** action now opens an
+offline list of unresolved sound cues and their editable prompts, with original
+L# references and duration hints. **Export prompts TXT** downloads the selected
+prompts. It never starts Modal, generates WAVs, approves missing audio or executes GO.
 
-- **Accept all cues** confirms all reviewed pending proposals together, creating
-  DRAFT cues without playback. Preparation also fills missing **operation triggers**
-  with the last 4–8 words of nearby preceding actor dialogue (`ACTOR: speech`),
-  without overwriting operator text or changing the cue's original sound L#.
-  The local search is limited to 12 preceding lines and stops at scene boundaries;
-  repeated/ambiguous phrases, missing references and missing reliable dialogue
-  remain pending manual review instead of using unspoken stage directions.
-  The preparation card shows the feet and L# references; edit them in Cues.
-  Existing feet are preserved, including older operator/stage-direction feet:
-  review them before arming Autopilot. These are source-backed suggestions, not
-  verified speech recognition or automatic arming/GO.
-  Individual rejection and approval remain available.
-- **Generate audio for all** immediately starts a serial batch for pending
-  single-action sound cues, without replacing existing audio or asking for repeated
-  permissions. **Adjust batch · optional** lets you edit prompts or select cues.
-  This is also available in
-  **Sound > Generate**. Unsupported music/voice and non-sound cues are excluded.
-- **Auto prepare entire show** starts analysis of remaining script windows.
-  **Include all sounds** is on by default: after reviewing proposals, choose
-  **Accept all and generate sounds** to continue directly with every eligible cue.
-  Turn that option off for analysis only. A shortcut is on Project.
-  It is one preparation entry point, not unattended approval or execution.
-  Existing cues also receive missing operation triggers when starting preparation
-  or a sound batch; this is local and does not require another model request.
-- **Accept all sounds** accepts and assigns all ready batch takes to their original
-  cues, without requiring prior listening. Changed or already assigned cues stay out
-  of the batch. Each result in RUNQ AI also has **Listen / Stop preview** and
-  **Accept and assign** actions that stay on that screen; **Edit take** opens Sound.
-  Existing IN/OUT/fades are preserved; an unedited take uses its full duration.
-  Reopening a show does not impose a listening prerequisite.
-
-Accepting or assigning a take releases Sound's own preview before saving, so you
-do not need to stop that preview first. It never stops a running show cue or changes
-prepared GO/NEXT. An already saved generated take can be assigned or used to create
-a cue without duplicating its verified library asset. For a free generated take,
-the destination selector is next to **Save + assign**, not hidden with the
-library-only editing controls. Assignment progress counts
-completed cue imports; generation progress counts completed jobs, not an invented
-GPU percentage. Single-take work shows indeterminate activity while loading or waiting.
+**Auto prepare entire show** analyzes script windows through the existing optional
+Meta flow. After approving cues, the operator may review the sound plan. To make a
+cue playable, choose or import a real local audio file in **Sound**, then review
+its non-destructive IN/OUT and fades. Saved historic SFX jobs still have read-only
+journal/audio recovery paths, but no new remote generation/refresh/cancellation in
+the shipped server.
 
 ### Assistant audio edits
 
@@ -134,26 +103,19 @@ No assistant tool executes GO, STOP, ARM or timed advances, or changes prepared 
 when applying/undoing nonstructural audio settings. No live-model quality or
 hardware-output guarantee is implied by offline tests.
 
-Meta and Modal requests run serially, without retries, through the existing
-server-side reservation and spending gates. If a selected batch exceeds the configured
-daily maximum, only the bounded first part runs and the rest is explicitly reported
-as pending. Each server reservation still checks remaining historical budgets and
-job limits; nothing raises limits or refunds unknown requests. **Cancel batch**, STOP ALL and show
-replacement prevent further submissions and discard late results; cancellation
-does not revoke already reserved costs. STOP ALL also invalidates pending batch
-assignments, including a late WAV download or decode. Completed assignments remain;
-there is no automatic retry. Explicitly accept ready takes for their original cues,
-individually or together; listening is optional. No preparation action executes GO.
+### Submission-mode safety
 
-Cue/request associations persist in this browser's local storage, preventing
-automatic duplicate generations after reopening the same show. Uncertain requests
-require checking Sound history. These associations are not portable show media:
-JSON retains cue/source and asset metadata, while a full show ZIP carries audio.
-Do not clear history to retry an uncertain request.
+The normal `npm run dev` server returns `SFX_PROMPT_ONLY` for new SFX jobs and
+remote refresh/cancel operations even if Modal credentials are configured. Local
+historic reads, WAV downloads and human review remain available. Provider-route
+regression tests inject a fake client explicitly and never spend credits. The
+browser's deterministic audio transport, STOP ALL, cue approval, local library,
+full-show ZIP and rehearsal controls are independent of remote sound generation.
 
-Offline validation: `npm run test:show-preparation` (English/Spanish browser
-journeys with mocked providers) and `npm run qa:codex` (regression gates). Neither
-verifies live-model quality or consumes provider credits.
+For this branch use `npm test`, `npm run test:interface`, and
+`node tools/prompt-only-browser-e2e.mjs` (after installing the browser smoke
+driver). The historical `npm run test:show-preparation` and SFX generation browser
+scripts target the old provider workflow and are not submission acceptance tests.
 
 ## Implemented
 
