@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="rq-prompt-only">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -57,7 +57,7 @@
   <script src="/src/ui/runq-soundlab-ui.mjs" type="module"></script>
   <script src="/src/ui/runq-a11y.mjs" type="module"></script>
 </head>
-<body>
+<body class="rq-prompt-only">
   <a class="rq-skip-link" href="#rqMain" data-i18n="a11y.skip">Skip to content</a>
   <div class="shell" data-active-workspace="home">
     <header class="topbar">
@@ -368,7 +368,7 @@
                     </div>
                   </details>
                   <p class="sfx-muted rq-sfx-generation-note" data-sfx-en="Generate starts one AI request without local budget caps. Listening before acceptance is optional; GO stays manual." data-sfx-es="Generar inicia una solicitud de IA sin topes locales de presupuesto. Escuchar antes de aceptar es opcional; GO sigue siendo manual.">Generate starts one AI request without local budget caps. Listening before acceptance is optional; GO stays manual.</p>
-                  <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" data-sfx-en="Copy prompt" data-sfx-es="Copiar prompt">Copy prompt</button><button class="btn subtle" id="rqPromptImportCue" type="button" data-sfx-en="Import file for this cue" data-sfx-es="Importar archivo para este cue">Import file for this cue</button><button class="btn subtle" id="rqPromptOpenLibrary" type="button" data-sfx-en="Choose from library" data-sfx-es="Elegir de biblioteca">Choose from library</button><button class="btn subtle" id="sfxShortTakeBtn" type="button" data-sfx-en="Use 3-second take" data-sfx-es="Pedir toma de 3 segundos">Use 3-second take</button><span id="generationHint" class="sfx-muted">Checking generator…</span></div>
+                  <div class="sfx-buttons"><button class="btn primary" id="generateBtn" type="submit" disabled data-sfx-en="Copy prompt" data-sfx-es="Copiar prompt">Copy prompt</button><button class="btn subtle" id="rqPromptImportCue" type="button" data-sfx-en="Import file for this cue" data-sfx-es="Importar archivo para este cue">Import file for this cue</button><button class="btn subtle" id="rqPromptOpenLibrary" type="button" data-sfx-en="Choose from library" data-sfx-es="Elegir de biblioteca">Choose from library</button><button class="btn subtle" id="sfxShortTakeBtn" type="button" data-sfx-en="Use 3-second take" data-sfx-es="Pedir toma de 3 segundos">Use 3-second take</button><span id="generationHint" class="sfx-muted">Checking generator…</span></div>
                 </form><details class="sfx-script-assistant" id="sfxScriptDetails" data-sfx-step="interpret"><summary><span data-sfx-es="Interpretar una acotación de guion" data-sfx-en="Create from a script direction">Create from a script direction</span> <span class="sfx-muted" data-sfx-es="· opcional" data-sfx-en="· optional">· optional</span></summary><div class="sfx-script-body">
                   <p id="scriptSfxHeading" class="sfx-muted" data-sfx-es="Interpreta el guion y ajusta la propuesta; no genera sonido automáticamente." data-sfx-en="Interpret the direction and refine the suggestion before generating audio.">Interpret the direction and refine the suggestion before generating audio.</p>
                   <label><span data-sfx-es="Acotación del guion" data-sfx-en="Script direction">Script direction</span><textarea id="scriptSfxFragment" rows="3" maxlength="800" placeholder="(La puerta se abre lentamente y chirría)"></textarea></label>
