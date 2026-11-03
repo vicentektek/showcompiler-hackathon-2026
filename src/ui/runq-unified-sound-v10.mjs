@@ -116,7 +116,12 @@ function mountUnifiedSound(){
   generate.dataset.rq10SoundTab='generate';
   generate.setAttribute('role','tab');
   generate.setAttribute('aria-controls','generateForm');
-  tabs.append(library,generate);
+  const edit=document.createElement('button');
+  edit.type='button';
+  edit.dataset.rq10SoundTab='edit';
+  edit.setAttribute('role','tab');
+  edit.setAttribute('aria-controls','waveCanvas');
+  tabs.append(library,generate,edit);
   header.append(title,tabs);
   grid.before(header);
 
@@ -186,21 +191,21 @@ function mountUnifiedSound(){
     }
   }
   function setMode(next){
-    if(next!=='library'&&next!=='generate')return;
+    if(!['library','generate','edit'].includes(next))return;
     // Switch only the right editor; original project library stays visible.
-    if(mode==='generate'&&next==='library')
+    if(mode!=='library'&&next==='library')
       document.dispatchEvent(new Event('runq:sound-stop-preview'));
     mode=next;
-    grid.dataset.rq10SoundView=next; // CSS targets the original Sound Lab.
+    grid.dataset.rq10SoundView=next==='library'?'library':'generate'; // Reuse the original Sound Lab for both assistant and editor.
     audio.dataset.rq13SoundView=next;
-    dock.hidden=next==='generate'; // Bottom source preview is library-only.
+    dock.hidden=next!=='library'; // Bottom source preview is library-only.
     if(next==='library')queueMicrotask(inspectSound);
-    for(const [tab,name] of [[library,'library'],[generate,'generate']]){
+    for(const [tab,name] of [[library,'library'],[generate,'generate'],[edit,'edit']]){
       const selected=name===next;
       tab.setAttribute('aria-selected',String(selected));
       tab.tabIndex=selected?0:-1;
     }
-    if(next==='generate'){
+    if(next!=='library'){
       refreshCueTargets();
       document.dispatchEvent(new CustomEvent('runq:sound-lab-visible'));
     }
@@ -222,6 +227,7 @@ function mountUnifiedSound(){
       'Choose source files, inspect waveforms and prepare audio for your cues');
     library.textContent=copy('Biblioteca y onda','Library & waveform');
     generate.textContent=copy('Asistente sonoro','Sound assistant');
+    edit.textContent=copy('Editor WAV','WAV editor');
     caption.textContent=copy(
       'Preescucha en la salida principal del ordenador. No es un bus PFL. PARAR TODO detiene también la escucha del laboratorio.',
       'Preview uses the main computer output, not a private PFL bus. STOP ALL also stops Sound Lab audition.'
@@ -246,12 +252,16 @@ function mountUnifiedSound(){
   }
   library.addEventListener('click',()=>setMode('library'));
   generate.addEventListener('click',()=>setMode('generate'));
+  edit.addEventListener('click',()=>setMode('edit'));
   tabs.addEventListener('keydown',event=>{
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
     event.preventDefault();
-    const next=event.key==='Home'||event.key==='ArrowLeft'?'library':'generate';
+    const order=['library','generate','edit'];
+    const current=order.findIndex(name=>name===mode);
+    const next=event.key==='Home'?'library':event.key==='End'?'edit':
+      order[(current+(event.key==='ArrowLeft'?-1:1)+order.length)%order.length];
     setMode(next);
-    (next==='library'?library:generate).focus();
+    ({library,generate,edit})[next].focus();
   });
   document.addEventListener('runq:sound-mode',event=>setMode(event.detail?.mode));
   document.addEventListener('runq:context-task-open-sound',event=>{
