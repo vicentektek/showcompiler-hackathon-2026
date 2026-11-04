@@ -8,6 +8,8 @@ RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a t
 
 **[Judge evidence: development dates, Meta integration, tests and dependency licenses](docs/JUDGE_EVIDENCE_2026-11-04.md)**
 
+**Optional independent evaluation:** [Agent-assisted judge quickstart](docs/JUDGE_AGENT_QUICKSTART_2026-11-04.md) · [Complete read-only Codex audit prompt](docs/CODEX_INDEPENDENT_JUDGE_AUDIT_2026-11-04.md). Normal human installation instructions remain the default.
+
 ## Why RUNQ exists — Build for Your World
 
 RUNQ was created by a **solo indie developer with hands-on experience in live-event sound engineering and technical production**. During show preparation and rehearsal, technicians must turn human-written scripts and changing running orders into precise, playable cues. A technical direction is not automatically a sound: an actor's practical prop, a lighting instruction, a live musician, a sound-file PLAY, a STANDBY and a GO require different decisions. Timing, cue readiness, fades, overlap and STOP behavior matter when a real performance is underway.
