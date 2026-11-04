@@ -1,0 +1,63 @@
+# RUNQ — Judge evidence and provenance
+
+**Meta Global AI Developer Hackathon 2026** · **Indie Developer** · **Build for Your World**  
+**4 November 2026**
+
+RUNQ was built by an independent developer with hands-on live-event sound and technical-production experience. It connects a theatrical script to AI-assisted, source-traceable cue suggestions, human approval, rehearsal and local operator-controlled audio playback. **Meta helps prepare the show; the operator controls GO.**
+
+## Review in five minutes
+
+- [Demo video (2:38)](https://youtu.be/zH_ErjF2gM0)
+- [Judge quickstart and reproducible walkthrough](JUDGE_QUICKSTART_2026-11-03.md)
+- [Final source repository](https://github.com/vicentektek/showcompiler-hackathon-2026)
+- [AI context, safety boundaries and limitations](RUNQ_AI_CONTEXT.md)
+
+## Development dates and prior work
+
+The [initial Git commit](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/e4ee27ab721f1b8bcf9db36f6abdd6e7096a77db), `e4ee27ab`, is dated **26 October 2026, 16:43:44 UTC**, within the hackathon period. It contained the initial README and .gitignore. This verifies the beginning of the visible Git history, **not** GitHub's separate administrative repository-creation timestamp.
+
+The [dated contribution log](CONTRIBUTIONS.md) records implementation during the event of the script parser and stable L# references, structured Muse proposals, validation, operator review, audio transport, rehearsal, ZIP show portability, UI and tests. The developer states that **no source code was copied from the earlier ShowCompiler project**. Professional knowledge, earlier concepts and research are not represented as newly created code. This is a developer statement supported by dated Git history, not an exhaustive independent comparison of every older file or branch.
+
+The final reviewed application was integrated in [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140) at [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b). Later changes to `main` affect documentation, licensing, .gitignore and removal of an unverified reference archive, not the application runtime.
+
+## Meta models and where they run
+
+| Component | Evidence | Actual role |
+| --- | --- | --- |
+| **Meta Muse Spark 1.3** | [Model API adapter](../src/core/metaCueProvider.mjs), [server route](../tools/metaRoutes.mjs) | Optional remote inference initiated on the local Node server; bounded script interpretation and cue proposals |
+| Theatre-specific guidance | [Production knowledge](../src/core/performanceKnowledge.mjs), [analysis contract](../src/core/theatreCueAnalysis.mjs) | Differentiates recorded sound from stage props, live music, lighting, dialogue and STANDBY/GO |
+| Validation and review | [Proposal validator](../src/core/proposals.mjs), [AI operating boundaries](RUNQ_AI_CONTEXT.md) | Source references and allowed operations validated before separate human approval |
+| Audio transport | [Browser audio](../src/core/browserAudio.mjs) | GO/STOP/STOP ALL are local; no model request is made to execute playback |
+| Rehearsal | [Guarded autopilot policy](../src/core/rehearsalAutopilot.mjs) | Optional explicitly armed speech-following, conditional on microphone/transcription availability |
+
+Historical Modal SFX and Baseten experiments are **not** additional active model capabilities claimed for this build. In particular, **new Modal WAV generation is disabled**.
+
+## Run and evaluate without paid API credentials
+
+Requires Node.js 20+, npm, Chrome or Edge and audio output.
+
+```sh
+git clone https://github.com/vicentektek/showcompiler-hackathon-2026.git
+cd showcompiler-hackathon-2026
+npm install --no-audit --no-fund
+npm run dev
+```
+
+Visit **http://127.0.0.1:5173**, select **Try original audio demo**, and follow the [judge quickstart](JUDGE_QUICKSTART_2026-11-03.md). The demo's three WAV cues are synthesized locally in [demoShow.mjs](../src/core/demoShow.mjs); the preapproved demo cues are **manual fixtures, not outputs from Muse**. Live Meta inference requires an explicitly supplied private `MODEL_API_KEY` and an authorized request.
+
+To validate offline:
+
+```sh
+npm run check:syntax
+npm test
+```
+
+[PR #140 Core CI](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/41747150069) passed on a fresh GitHub runner, including browser and ZIP checks. Its development report records **843 passing offline tests**. This is not evidence of universal live-model accuracy, a physical microphone test, or professional show-control certification.
+
+## Third-party software and rights
+
+The direct npm dependencies specified in `package.json` are [libarchive.js 2.0.2](https://www.npmjs.com/package/libarchive.js) (MIT), [mammoth 1.12.3](https://www.npmjs.com/package/mammoth) (BSD-2-Clause), and [pdfjs-dist 6.5.438](https://www.npmjs.com/package/pdfjs-dist) (Apache-2.0). This direct-dependency inventory is **not** a complete audit of transitive packages, bundled WASM attribution, or all media assets.
+
+Original RUNQ code is available under the repository's [restricted evaluation license](../LICENSE), which expressly permits judges to inspect, download, install and run it for non-commercial evaluation. This is **source-available, not OSI-approved open source**. The participant has supplied an organizer clarification accepting public repositories with custom restrictive evaluation licenses.
+
+**Scope:** RUNQ is a hackathon prototype, not a certified show controller, native Windows application or hardware DMX/ASIO/timecode controller. See [feature status](FEATURE_STATUS_AND_FUTURE_AUDIO_2026-11-03.md) for shipped, disabled and future work.
