@@ -24,6 +24,15 @@ test('workspace tab sync is idempotent, preserves selection and supports dynamic
  assert.deepEqual(nav.children.map(item=>item.tabIndex),[-1,0,-1]);
 });
 
+test('authoritative all-false aria-pressed state clears workspace selection',()=>{
+ const first=button(true),second=button(),nav=navWith(first,second);
+ syncWorkspaceTabs(nav);
+ first.setAttribute('aria-pressed','false');second.setAttribute('aria-pressed','false');
+ syncWorkspaceTabs(nav);
+ assert.deepEqual(nav.children.map(item=>item.getAttribute('aria-selected')),['false','false']);
+ assert.deepEqual(nav.children.map(item=>item.tabIndex),[-1,-1]);
+});
+
 test('workspace tab keyboard navigation moves focus and activates only navigation',()=>{
  const first=button(true),second=button(),nav=navWith(first,second);
  const event={key:'ArrowRight',prevented:false,preventDefault(){this.prevented=true}};

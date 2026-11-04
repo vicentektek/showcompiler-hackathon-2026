@@ -9,8 +9,10 @@ export function syncWorkspaceTabs(nav) {
     if (!el.matches('[data-workspace-nav]')) el.setAttribute('role', 'presentation');
   }
   const buttons=[...nav.querySelectorAll('[data-workspace-nav]')];
-  const selectedButton=buttons.find(button=>button.getAttribute('aria-pressed')==='true') ??
-    buttons.find(button=>button.getAttribute('aria-selected')==='true') ?? buttons[0] ?? null;
+  const hasPressedState=buttons.some(button=>button.getAttribute('aria-pressed')!==null);
+  const selectedButton=hasPressedState
+    ? buttons.find(button=>button.getAttribute('aria-pressed')==='true') ?? null
+    : buttons.find(button=>button.getAttribute('aria-selected')==='true') ?? buttons[0] ?? null;
   for (const button of buttons) {
     const selected = button===selectedButton;
     button.setAttribute('role', 'tab');
