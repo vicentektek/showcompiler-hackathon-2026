@@ -1,60 +1,42 @@
-# RUNQ — Agent-assisted judge quickstart (optional)
+# RUNQ — One-prompt setup for judges
 
-**Independent reproduction instructions · Meta Global AI Developer Hackathon 2026**
+**Optional: have your own coding agent install, configure and launch RUNQ.**  
+No coding agent is required; [manual judge quickstart](JUDGE_QUICKSTART_2026-11-03.md) is available.
 
-RUNQ does **not** require an AI coding agent. The ordinary [five-minute quickstart](JUDGE_QUICKSTART_2026-11-03.md) is sufficient to install, inspect and run the submitted application. This page is an optional **read-only evaluation recipe** for judges who use Codex or a similar local coding agent. It must not be confused with the product's own Meta Muse integration.
+Copy the prompt below into Codex, Claude Code, Copilot or another agent that has **terminal and browser access on your computer**.
 
-**Source:** [public `main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main) · **Demo:** [2:38 video](https://youtu.be/zH_ErjF2gM0) · **Original tested application:** [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b).
+## Copy-paste prompt
 
-## Copy-paste prompt for a judge's local coding agent
-
-> You are an independent technical judge evaluating **RUNQ — From Script to Stage**, a submission to the Meta Global AI Developer Hackathon 2026 (Indie Developer / Build for Your World).
+> Install and run **RUNQ — From Script to Stage** for me.
 >
-> Start from the PUBLIC repository `https://github.com/vicentektek/showcompiler-hackathon-2026`, branch `main`. Do not assume the repository is open in the current workspace. Create a **new temporary directory and a fresh clone**; never use or modify the author's existing local checkout. Identify the exact HEAD SHA and Node/npm/browser versions. Read `README.md`, `LICENSE`, `AGENTS.md`, `docs/JUDGE_QUICKSTART_2026-11-03.md` and `docs/JUDGE_EVIDENCE_2026-11-04.md`.
+> Repository: https://github.com/vicentektek/showcompiler-hackathon-2026
 >
-> **Hard safety rules:** read-only audit of tracked source. Do not edit or commit files, create PRs, push, publish, merge, delete old repositories, clean or reset any developer checkout, change repository visibility, or contact paid model providers. Do not read, request, print, transmit or copy API keys, `.env` files or private user data. Do not run `smoke:meta`, any `*live*` / paid campaign commands, or remote voice transcription. Normal package installation is allowed; distinguish npm package downloads from paid AI inference. Only interact with `localhost` for application testing. If a requirement cannot be verified, report **NOT VERIFIED**, not PASS.
+> Clone the public `main` branch, install Node.js 20+ and the required dependencies if necessary, and configure the application for full evaluation of its available features.
 >
-> **Reproduce:** verify Node.js >=20, npm, Chrome or Edge, then run `npm install --no-audit --no-fund`, `npm run check:syntax`, `npm test`, `npm run demo:package` and `npm run demo:rehearsal`. Inspect the produced ZIPs using a standard ZIP validator. Optionally install the CI-only browser driver using `npm install --no-save --package-lock=false playwright-core@1.56.1`, then run `npm run test:interface` and any further *offline* Chrome checks supported by the installed browser; never report a mock as a physical microphone or speaker test.
+> Ask me to securely configure **my own Meta Model API key** as the `MODEL_API_KEY` environment variable. Never display, log, commit or send my key anywhere other than the intended Meta API requests.
 >
-> Launch `npm run dev` on loopback, open the local app, and use **Try original audio demo**. Verify visible script/cue references, three synthetic WAV assets, NEXT/GO/STOP ALL, sound editing, portable ZIP export/reimport, and browser console/network errors where browser automation is available. The demo's cues are manually authored fixtures and **not** Muse responses.
+> Start RUNQ, open it in my browser and verify that Meta Muse Spark is configured. Load the included demo show with its audio, and prepare the script analysis, AI assistant, sound cues and voice-assisted rehearsal for testing.
 >
-> **Judge the claims:** inspect `src/core/metaCueProvider.mjs`, `src/core/theatreCueAnalysis.mjs`, `src/core/performanceKnowledge.mjs`, `src/core/proposals.mjs`, `src/core/rehearsalAutopilot.mjs` and `tools/dev-server.mjs`. Explain what is implemented, what is conditional on credentials and what is disabled. Muse Spark is OPTIONAL live inference on the local Node server; no AI model controls the GO button. Normal new WAV generation through Modal is disabled. Offline tests must never be represented as measures of live Muse/ASR accuracy.
+> Explain any required browser microphone permissions and ask before making paid API requests. Do not enable experimental or disabled integrations.
 >
-> **Report:** produce a concise independent scorecard with PASS / FAIL / NOT VERIFIED for public access, clean setup, script import, audio demo, cue source references, operator transport, ZIP, Meta implementation, tests and documentation. Record exact commands, exit codes, checked SHA, evidence paths and limitations. Do not claim that merely running tests is independent acoustic certification. Produce a short nontechnical summary for a human judge. Clean up only files and processes created in this new temporary evaluation directory, after ensuring no other server/process is affected.
+> Leave the application running and ready to use. Give me a short explanation of how to test the main features and tell me if anything could not be configured.
+>
+> Follow the repository's setup documentation. Do not modify the application source code.
 
-## Minimal reproducible commands
+## What the agent should configure
 
-In a fresh terminal with **Node.js 20+**, npm, Git and Chrome or Edge:
+- Clone public source and run `npm install --no-audit --no-fund` and `npm run dev`; use Chrome or Edge and open **http://127.0.0.1:5173**.
+- **Meta Muse Spark 1.3** runs through Meta's remote API. The key is supplied by the judge and must be available in the **Node process environment** as `MODEL_API_KEY` **before** starting `npm run dev`.
+- The **same** `MODEL_API_KEY` is used by RUNQ's Meta speech transcription/realtime routes when available on the judge's account. The browser may also require explicit microphone access.
+- To check the safe local setup, inspect the app's Meta configuration status or `http://127.0.0.1:5173/api/meta/status`; it shows configuration status, never the key. A successful status check is **not** proof of live inference.
+- Select **Try original audio demo** to load the included locally synthesized WAV files and approved cues. For live model evaluation, import a rights-cleared script and explicitly authorize a Muse analysis; the original demo cues are not generated by Muse.
+- RUNQ's local audio operation, manual GO/STOP, cue editing and portable ZIP import/export do not need any provider key.
+- In the submitted version **new Modal sound generation is disabled**, and the historic Baseten path is not available as a working live fallback. No API key can enable features intentionally disabled in the final build.
 
-```sh
-git clone --depth 1 --branch main https://github.com/vicentektek/showcompiler-hackathon-2026.git
-cd showcompiler-hackathon-2026
-git rev-parse HEAD
-npm install --no-audit --no-fund
-npm run check:syntax
-npm test
-npm run demo:package
-npm run demo:rehearsal
-npm run dev
-```
+**Security:** judges must enter API credentials through their own secure local environment / IDE secret configuration, **not by pasting them into a chat prompt**, a committed file or screenshots. A local `.env` file is not a substitute for the Node process environment for `MODEL_API_KEY` in this build. When the judge stops the evaluation, close the local server and remove temporary secrets from that shell/session. Never use developer credentials from the repository.
 
-Open `http://127.0.0.1:5173` in Chrome or Edge. Stop the local server normally after inspection. On machines without a browser, browser checks are **NOT VERIFIED**, not failed product tests.
+## After setup
 
-**Optional offline browser automation** (requires a locally installed compatible Chrome/Edge; `playwright-core` does not download a browser):
+A judge can immediately test: script import (TXT, text-based PDF, DOCX); source-linked Muse cue suggestions (with judge-owned key and explicit confirmation); approval/rejection; audio library; sound settings and local GO/STOP; ZIP export/import; optional microphone-based rehearsal (subject to browser and API access).
 
-```sh
-npm install --no-save --package-lock=false playwright-core@1.56.1
-npm run test:interface
-```
-
-Certain other E2E scripts explicitly require Google Chrome, even when the general interface harness supports Edge. An unavailable browser is an environment limitation to report accurately.
-
-## Important limits of an independent evaluation
-
-- No API key is bundled, and a judge **does not need one** to explore the real audio workflow. Meta Muse live inference cannot be validated without separate credentials and explicitly authorized requests.
-- The packaged original demo uses manually authored cues and synthetic local WAV files: [source](../src/core/demoShow.mjs).
-- The published [limited evaluation license](../LICENSE) permits inspection, download, installation and noncommercial judge testing; it is not an OSI-approved license.
-- Software regression tests do not certify professional show hardware, live acoustic output or a real ASR provider.
-- A judge should not inspect or report on private local API keys, historical personal backups, or unrelated repositories.
-
-**Owner-only deeper audit:** see [Codex independent judge-audit contract](CODEX_INDEPENDENT_JUDGE_AUDIT_2026-11-04.md).
+Manual instructions: [Judge quickstart](JUDGE_QUICKSTART_2026-11-03.md). Detailed developer audit (not required for setup): [Codex independent judge audit](CODEX_INDEPENDENT_JUDGE_AUDIT_2026-11-04.md).
