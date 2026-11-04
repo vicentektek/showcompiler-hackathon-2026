@@ -6,7 +6,7 @@ The older 3 November/early 4 November findings below are **historical** and must
 
 - **GitHub:** PUBLIC — https://github.com/vicentektek/showcompiler-hackathon-2026
 - **Application-tested commit:** `35d04069` (seven Copilot fixes, PR #140; Core tests passed; 843 offline tests reported). Current `main` includes only post-test documentation/licensing and a non-runtime design-reference cleanup.
-- **Video:** PUBLIC — https://www.youtube.com/watch?v=NsFEqWO9eXs, duration 2:38, no YouTube Studio restrictions reported.
+- **Video:** PUBLIC — https://youtu.be/zH_ErjF2gM0, duration 2:38, no YouTube Studio restrictions reported.
 - **License:** original RUNQ code is source-available under rights-reserved, limited non-commercial evaluation permission in root `LICENSE`; not an OSI open-source license. Participant-provided organizer Discord statement says All Rights Reserved is accepted for this event; not independently checked.
 - **Media:** unverified reference-design ZIP was removed from current `main` by PR #143, **but remains accessible in public historical commits**. The live background/brand artwork still requires ownership/rights confirmation. WAV files in the demo are produced by local code in `src/core/demoShow.mjs` as synthetic sine-based audio; independently signing off the distribution scope remains the owner's task.
 - **Credentials:** local ignored `.env` contains two non-empty Modal credential entries per the operator audit; rotation/revocation has **not been verified**. Gitleaks found no matches in `origin/main` according to the private audit. Never publish the local `.env` or raw reports.
