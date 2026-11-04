@@ -1,5 +1,20 @@
 # RUNQ — Submission control sheet
 
+## Current verified control sheet — 4 November 2026 (supersedes dated notes below)
+
+- [x] Public GitHub repository and tested functional source on `main` (PR #140; application source `35d04069`).
+- [x] Public 2:38 YouTube video: https://www.youtube.com/watch?v=NsFEqWO9eXs (YouTube Studio reports no restrictions).
+- [x] Root rights-reserved limited evaluation `LICENSE` and README updated; non-OSI source-available terms.
+- [x] Unverified design-reference ZIP removed from **current** main via PR #143; old public Git history still includes it.
+- [x] PR #140 Core tests passed; docs-only and archival-exclusion PR CI passed before merge.
+- [ ] Confirm owner rights for live image assets and other third-party resources; demo synthetic WAV generator is documented but rights clearance still requires sign-off.
+- [ ] Revoke/rotate the two Modal credentials in the local ignored `.env`; verify in the provider dashboard.
+- [ ] Check historic refs/media exposure and security alerts as available; never rewrite history or force push without a separate plan and approval.
+- [ ] Visit authenticated Cerebral Valley portal; complete form and save official confirmation/receipt.
+
+**Older checkboxes below are retained as dated audit history and may contradict this newer status.**
+
+
 ## Submission-day update — 4 November 2026
 
 - [x] PR #138 merged into `main` using a merge commit `6fbf45357b6d9651e4d04d7db82f67a067b562c1`; previous `main` and the unmodified release branch have archive refs.
