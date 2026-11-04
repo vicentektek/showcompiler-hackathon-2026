@@ -10,7 +10,7 @@ RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a t
 
 > **Current submission source:** [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main), verified at merge commit [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b) (4 November 2026), including the seven focused safety fixes in [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140).
 >
-> **Project status:** publicly readable working hackathon prototype, not a certified professional show-control application. The repository is publicly accessible; an explicit software license has **not yet been chosen**, and historic security/media distribution reviews are separately documented. Public visibility must not be confused with an OSI-approved open-source license.
+> **Project status:** publicly readable working hackathon prototype, not a certified professional show-control application. Source code access is public; restrictive evaluation licensing is being proposed for owner approval. Historic security/media distribution reviews are separately documented. Public visibility is not an OSI-approved open-source license.
 
 ## Source, history and project name
 
@@ -76,7 +76,7 @@ For a live Meta Muse demonstration, configure the server-side `MODEL_API_KEY` ac
 - **Track/theme:** Indie Developer / Build for Your World.
 - **Submission portal:** [Cerebral Valley](https://cerebralvalley.ai/e/meta-ai-developer-hackathon). The submission form and receipt are not confirmed by the repository itself.
 - **Deadline:** 4 November 2026, 9:00 PM ET (5 November, 03:00 CET).
-- **Licensing:** a public repository is not automatically open-source licensed. The organizer requested an open-source GitHub repository; the exact code-license terms are pending an explicit owner decision. See the security/media audit documents below.
+- **Licensing:** a public repository is not automatically open-source licensed. Proposed restrictive [evaluation terms](LICENSE) are in a review-only PR; no licensing decision is effective on `main` until explicitly approved. According to a participant-provided Discord reply, the organizer allows All Rights Reserved with a public and runnable repository. This organizer reply has not been independently verified here.
 
 ## Submission documentation
 
@@ -102,6 +102,6 @@ Earlier Modal SFX, Baseten evaluation, TTS, desktop and other proof-of-concept w
 
 ## Copyright and licensing
 
-RUNQ's source is visible publicly for hackathon evaluation. **No `LICENSE` file has yet been selected for the original project code.** Until licensing is decided, do not assume that seeing the source grants broad permission to copy, modify, redistribute or commercially exploit it. GitHub's platform terms separately permit viewing and forking. Third-party dependencies and media remain subject to their own rights and licenses. This statement is a description of the current status, **not** an open-source license or a claim of compliance with any specific licensing requirement.
+RUNQ's source is publicly visible and the proposed [rights-reserved evaluation terms](LICENSE) allow individuals and hackathon judges to clone, install and run the original code for private, non-commercial testing. **Commercial use, redistribution and publication of modified builds require permission.** These terms are **source-available, not OSI-approved open source**. GitHub platform rights and third-party dependencies/media are governed separately. The license proposal is subject to owner review and is not effective in `main` until its pull request is approved and merged.
 
 **RUNQ — AI helps prepare the show. The operator runs it.**
