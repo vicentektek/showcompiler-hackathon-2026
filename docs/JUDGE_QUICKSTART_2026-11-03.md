@@ -4,7 +4,7 @@
 
 **RUNQ** is a browser-based AI-assisted cue-planning and audio operation tool for theatre, rehearsal and small live shows. It turns script directions into reviewed cue proposals linked to original lines, then gives the human operator explicit control of the show.
 
-**Optional agent-assisted verification:** Judges who prefer Codex or another coding agent can use the [independent judge agent prompt](JUDGE_AGENT_QUICKSTART_2026-11-04.md). The standard manual instructions below remain fully sufficient. The [owner's deeper Codex QA prompt](CODEX_INDEPENDENT_JUDGE_AUDIT_2026-11-04.md) is a separate read-only audit contract; neither process requires paid API access.
+**Optional one-prompt installation:** If you use Codex, Copilot or another local coding agent, copy the [judge setup prompt](JUDGE_AGENT_QUICKSTART_2026-11-04.md) to have it clone, install and launch RUNQ, and help you configure **your own** Meta API key. The manual instructions below do not require an agent or paid API access. Remote inference is optional and must be explicitly authorized by the judge.
 
 ## Reproduce the submitted build
 
