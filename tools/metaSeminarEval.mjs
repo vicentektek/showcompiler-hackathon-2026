@@ -17,6 +17,7 @@ import { summarizeEvaluationRequests } from './evalMeasurements.mjs';
 
 export const MUSE_STANDARD_PRICING=Object.freeze({inputPerMillion:1.25,cachedInputPerMillion:0.15,outputPerMillion:4.25});
 export const MAX_EXPERIMENT_BUDGET_USD=2;
+export const META_LIVE_BUDGET_NOTICE='Meta request reservations are recorded in shared campaign history; local monetary caps are disabled.';
 const INPUT_OVERHEAD_TOKENS=16384;
 const MAX_REQUEST_BODY_BYTES=80000;
 const CAP_REQUESTS=20;

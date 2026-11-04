@@ -14,6 +14,19 @@ function fixture() {
   return decideProposal(s,'proposal-1','APPROVE');
 }
 
+function fixtureWithOriginalPlays(count){
+  let s=createNewShow({id:'test-play-count',name:'Test',scriptText:'(Transition)'});
+  for(let i=0;i<12;i++)s=addAudioReference(s,`asset-${i}.wav`);
+  s=addMockProposal(s,{lineId:'L1',assetId:'asset-1',label:'Transition'});
+  s=decideProposal(s,'proposal-1','APPROVE');
+  const actions=Array.from({length:count},(_,i)=>({type:'PLAY',assetId:`asset-${i+1}`}));
+  const proposal=s.proposals[0];
+  return normalizeShowProject({...s,
+    proposals:s.proposals.map(p=>p.id===proposal.id?{...p,actions}:p),
+    cues:s.cues.map(c=>c.id==='cue-1'?{...c,actions}:c),
+  });
+}
+
 test('multi-track is operator-only, keeps approved AI evidence and survives ZIP JSON',()=>{
   const original=fixture();
   const staged=stageAddCueTrack(original,'cue-1','asset-2');
@@ -40,6 +53,20 @@ test('unknown assets, duplicate track ids and invalid playback are rejected',()=
   assert.throws(()=>normalizeShowProject(stageChangeCueTrack(one,'cue-1','track-1',{assetId:'missing'})));
   assert.throws(()=>normalizeShowProject(stageChangeCueTrack(one,'cue-1','track-1',{playback:{loop:true,repeatCount:3}})));
   assert.throws(()=>normalizeShowProject({...one,cues:[{...one.cues[0],audioTracks:[one.cues[0].audioTracks[0],one.cues[0].audioTracks[0]]}]}));
+});
+
+test('total PLAY sources count original actions plus operator tracks and round trip',()=>{
+  const two=fixtureWithOriginalPlays(2);
+  let project=two;
+  for(let i=0;i<10;i++)project=stageAddCueTrack(project,'cue-1',`asset-${i+3}`);
+  project=normalizeShowProject(project);
+  assert.equal(project.cues[0].actions.filter(a=>a.type==='PLAY').length+project.cues[0].audioTracks.length,12);
+  assert.deepEqual(deserializeShowProject(serializeShowProject(project)),project);
+  assert.throws(()=>stageAddCueTrack(project,'cue-1','asset-12'),/Maximum 12/);
+  const three=fixtureWithOriginalPlays(3);
+  let capped=three;
+  for(let i=0;i<9;i++)capped=stageAddCueTrack(capped,'cue-1',`asset-${i+4}`);
+  assert.throws(()=>stageAddCueTrack(capped,'cue-1','asset-1'),/Maximum 12/);
 });
 
 test('preflight reports missing secondary track independently of the primary',()=>{
@@ -84,4 +111,17 @@ test('one GO schedules two independent tracks, stop-all cancels both',async()=>{
   assert.equal(stops.length,2);
   assert.equal(engine.isPlaying('cue-1'),false);
   assert.deepEqual(ended,[]);
+});
+
+test('browser audio engine schedules and stops twelve original PLAY actions',async()=>{
+ const starts=[],stops=[];
+ const ctx={currentTime:1,state:'running',destination:{},resume:async()=>{},
+  decodeAudioData:async()=>({duration:2,numberOfChannels:1}),
+  createGain(){return {gain:{value:1,cancelScheduledValues(){},setValueAtTime(){},linearRampToValueAtTime(){}},connect(){},disconnect(){}}},
+  createBufferSource(){return {buffer:null,loop:false,playbackRate:{value:1},onended:null,connect(){},disconnect(){},start(){starts.push(1)},stop(){stops.push(1)}}}};
+ const engine=new BrowserAudioEngine({contextFactory:()=>ctx});
+ for(let i=1;i<=12;i++)await engine.loadFile({name:`${i}.wav`,size:100,arrayBuffer:async()=>new ArrayBuffer(100)},`asset-${i}`);
+ await engine.go(fixtureWithOriginalPlays(12).cues[0]);
+ assert.equal(starts.length,12);
+ engine.stopAll();assert.equal(stops.length,12);
 });

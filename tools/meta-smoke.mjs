@@ -12,6 +12,7 @@ import {
   sanitizeMetaDiagnostic,
 } from '../src/core/metaCueProvider.mjs';
 import { createNewShow } from '../src/core/workspace.mjs';
+import { campaignMetaFetch } from './campaignFetch.mjs';
 
 export const META_SMOKE_AUTHORIZATION_FLAG = '--authorize-one-billable-meta-request';
 
@@ -19,6 +20,7 @@ export async function runMetaSmoke({
   authorized = false,
   apiKey,
   modelClient = callMetaCueModel,
+  campaignFetch = campaignMetaFetch,
 } = {}) {
   if (authorized !== true) {
     throw new TypeError('Explicit authorization for one billable Meta request is required');
@@ -35,13 +37,14 @@ export async function runMetaSmoke({
   });
 
   // Deliberately exactly one call. Do not wrap this in retry logic.
-  const result = await modelClient({
+  const request = {
     show,
     apiKey,
     model: DEFAULT_META_MODEL,
     scriptLanguage: 'en',
     analysisMode: 'SMOKE',
-  });
+  };
+  const result = await modelClient({...request,fetchImpl:campaignFetch});
   const proposals = result?.proposals;
   const expected = Array.isArray(proposals) && proposals.some(proposal =>
     proposal?.lineId === 'L2' && proposal.assetId === null &&

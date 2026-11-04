@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseBasetenEvalOptions,makeBasetenTheatreRequest,callBasetenTheatre,
-  compareProviderReports,renderProviderComparisonReport,
+  compareProviderReports,renderProviderComparisonReport,runBasetenSeminarEval,
 } from '../tools/basetenSeminarEval.mjs';
 import {prepareTheatricalCueAnalysis} from '../src/core/theatreCueAnalysis.mjs';
 import {createNewShow} from '../src/core/workspace.mjs';
@@ -14,6 +14,14 @@ test('default is offline, paid mode needs both switches, bounded requests',()=>{
   assert.equal(parseBasetenEvalOptions([]).live,false);
   assert.throws(()=>parseBasetenEvalOptions(['--live']),/Invalid bounded/);
   assert.throws(()=>parseBasetenEvalOptions(['--live','--ack-paid','--max-requests','999']),/Invalid bounded/);
+});
+test('live Baseten evaluation is prohibited before corpus, caller or network access',async()=>{
+ let reads=0,calls=0,network=0;
+ await assert.rejects(runBasetenSeminarEval({live:true,ackPaid:true,apiKey:'TEST_ONLY',
+  corpusReader:async()=>{reads++;return {cases:[]}},
+  caller:async()=>{calls++},fetchImpl:async()=>{network++},
+ }),/CAMPAIGN_PROVIDER_PROHIBITED/);
+ assert.deepEqual([reads,calls,network],[0,0,0]);
 });
 test('Baseten request uses exact hackathon model, same source window and no unsupported JSON schema flag',()=>{
   const r=makeBasetenTheatreRequest(prepared());

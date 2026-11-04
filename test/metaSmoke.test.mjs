@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runMetaSmoke } from '../tools/meta-smoke.mjs';
+import { createCampaignFetch } from '../tools/campaignFetch.mjs';
 
 const validResult = {
   provider: 'META_MODEL_API',
@@ -71,4 +72,14 @@ test('smoke fails closed when the one response lacks the expected null-asset pro
     modelClient: async () => { calls += 1; return { ...validResult, proposals: [] }; },
   }), /expected unbound L2/);
   assert.equal(calls, 1);
+});
+
+test('default Meta client reserves through campaign fetch before its injected network transport',async()=>{
+ let reservations=0,network=0;
+ const fetchImpl=createCampaignFetch('meta',{fetchImpl:async()=>{
+   network++;
+ return {ok:true,status:200,text:async()=>JSON.stringify({id:'safe',choices:[{finish_reason:'stop',message:{content:JSON.stringify({proposals:[{lineId:'L2',assetId:null,label:'Bell',soundPrompt:'Dry bell.'}]})}}],usage:{prompt_tokens:1,completion_tokens:1}})};
+ },ledgerFactory:async()=>({reserve:async()=>{reservations++;return {accepted:true}},close:async()=>{}})});
+ const result=await runMetaSmoke({authorized:true,apiKey:'TEST_ONLY',campaignFetch:fetchImpl});
+ assert.equal(result.ok,true);assert.equal(reservations,1);assert.equal(network,1);
 });

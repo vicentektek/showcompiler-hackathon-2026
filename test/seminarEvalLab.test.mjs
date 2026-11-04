@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { readSeminarCorpus } from '../tools/seminarCorpus.mjs';
 import { evaluateSeminarCorpus } from '../tools/seminar-offline-eval.mjs';
 import { parseLiveOptions, runMetaSeminarEval,
-  estimateMetaRequestReserve,reportedMetaUSD } from '../tools/metaSeminarEval.mjs';
+  estimateMetaRequestReserve,reportedMetaUSD,META_LIVE_BUDGET_NOTICE } from '../tools/metaSeminarEval.mjs';
 import { createNewShow } from '../src/core/workspace.mjs';
 import { planScriptAnalysis } from '../src/core/sceneAnalysis.mjs';
 import { prepareTheatricalCueAnalysis } from '../src/core/theatreCueAnalysis.mjs';
@@ -19,6 +19,12 @@ const tempOutput=async t=>{
   t.after(()=>rm(path,{recursive:true,force:true}));
   return path;
 };
+
+test('live evaluation notice accurately says local monetary caps are disabled',()=>{
+  assert.match(META_LIVE_BUDGET_NOTICE,/reservations are recorded/i);
+  assert.match(META_LIVE_BUDGET_NOTICE,/monetary caps are disabled/i);
+  assert.doesNotMatch(META_LIVE_BUDGET_NOTICE,/(?:\$65|\$100|\$2)/);
+});
 
 test('seminar corpus has 9 rights-clear original scripts with precise immutable gold',async()=>{
   const c=await readSeminarCorpus();

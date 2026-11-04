@@ -18,7 +18,7 @@ export function createShowEventLog({limit=120,clock=()=>Date.now(),onChange=()=>
  function append(type,{cueId=null,label='',source='system',detail=''}={}){
   if(!TYPES.has(type)||!SOURCES.has(source))throw new TypeError('Invalid event type or source');
   if(cueId!==null&&(typeof cueId!=='string'||cueId.length>120))throw new TypeError('Invalid cue ID');
-  if(typeof label!=='string'||label.length>160||typeof detail!=='string'||detail.length>160)
+  if(typeof label!=='string'||label.length>200||typeof detail!=='string'||detail.length>160)
    throw new TypeError('Invalid event metadata');
   const at=clock();
   if(!Number.isFinite(at))throw new TypeError('Invalid clock');
@@ -32,4 +32,9 @@ export function createShowEventLog({limit=120,clock=()=>Date.now(),onChange=()=>
   snapshot:()=>Object.freeze([...entries]),
   clear:()=>{entries=[];},
  });
+}
+
+/** Event journaling must never alter acknowledged transport outcomes. */
+export function appendShowEventSafely(log,...args){
+ try{return log.append(...args)}catch{return null}
 }
