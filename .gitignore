@@ -197,3 +197,6 @@ video/raw/
 *.jks
 *.keystore
 *.asc
+
+# Private design research archive; distribution rights not yet cleared.
+docs/design-references/RUNQ_referencias_visuales_A-H.zip
