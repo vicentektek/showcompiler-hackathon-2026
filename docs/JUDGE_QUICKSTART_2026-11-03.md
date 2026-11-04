@@ -1,10 +1,12 @@
 # RUNQ — Judge quick start
 
+**Verified entry links:** [Watch the 2:38 public demo](https://www.youtube.com/watch?v=NsFEqWO9eXs) · [Public GitHub repository](https://github.com/vicentektek/showcompiler-hackathon-2026) · [Rights-reserved evaluation license](../LICENSE).
+
 **RUNQ** is a browser-based AI-assisted cue-planning and audio operation tool for theatre, rehearsal and small live shows. It turns script directions into reviewed cue proposals linked to original lines, then gives the human operator explicit control of the show.
 
 ## Reproduce the submitted build
 
-The current default branch `main` contains the final integrated RUNQ submission (PR #138). Its functional application is based on the verified **frozen commit** `b4e7df724d569c1d5af7682540c206ff3fb97701`; the merge additionally carries a narrow Windows path-validation fix in a QA utility. The original frozen source is preserved separately.
+The public default branch `main` contains the final RUNQ application and its documentation. The operator-validated application is commit [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b), integrated through [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140). Subsequent commits only update documentation, licensing and exclude a non-runtime design-reference archive; the live audio and AI code remains unchanged. The earlier `b4e7df7` commit is a historical frozen baseline, not the current install target.
 
 Requirements: **Node.js 20+**, npm, recent Chrome or Edge, audio output. The package requires the dependencies in `package.json` (including `libarchive.js`, `mammoth` and `pdfjs-dist`).
 
@@ -12,12 +14,12 @@ Requirements: **Node.js 20+**, npm, recent Chrome or Edge, audio output. The pac
 git clone https://github.com/vicentektek/showcompiler-hackathon-2026.git
 cd showcompiler-hackathon-2026
 git switch main
-# The runnable product source is based on frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
+# Application-validated source is commit 35d04069; main includes later docs-only updates
 npm install --no-audit --no-fund
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173** on the same computer. In GitHub Codespaces use the **Ports** panel to open forwarded port 5173. **IMPORTANT:** a private repo cannot be cloned by judges without access. The organizer's 3 November notice explicitly requires an **open-source GitHub repository**, so private judge invitations alone should not be treated as compliant. Publication is blocked until secrets, historical commits, source/media rights and the chosen license are reviewed; see [submission handoff](SUBMISSION_HANDOFF_2026-11-04.md).
+Open **http://127.0.0.1:5173** on the same computer. In GitHub Codespaces use the **Ports** panel to open forwarded port 5173. **Access:** the repository is public and can be cloned without GitHub credentials. Original RUNQ code uses [All Rights Reserved with limited non-commercial evaluation permission](../LICENSE). Organizers reportedly confirmed on 3 November in Discord that a public repository with All Rights Reserved is acceptable; that exact Discord message has not been independently retrieved. Asset-rights and local-credential follow-ups remain documented in [submission handoff](SUBMISSION_HANDOFF_2026-11-04.md).
 
 To run the offline regression suite:
 
@@ -26,7 +28,7 @@ npm run check:syntax
 npm test
 ```
 
-The GitHub Actions Core tests for the frozen commit completed successfully (run `41690922577`). A green automated test is not a certification of the connected audio or microphone hardware.
+[PR #140's Core tests](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/41747150069) succeeded, and its development report records 843 passing offline tests. The merged application tree was verified identical to the tested PR head. Later documentation-only PRs also passed Core tests, but no independent post-merge main-branch CI run is claimed. Automated checks do not certify show hardware or microphone reliability.
 
 ## Five-minute walkthrough without a paid API
 

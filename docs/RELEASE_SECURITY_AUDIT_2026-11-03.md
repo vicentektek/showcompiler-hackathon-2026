@@ -1,5 +1,7 @@
 # RUNQ — Security and repository audit (3 November 2026)
 
+> **Historical audit record, not a current repository status declaration.** The repository became public on 4 November. Its previous private status below is obsolete. An additional operator audit using Gitleaks 8.30.1 reported no findings in `origin/main`, a historical synthetic fixture and two non-empty Modal credentials in an ignored local `.env`; **provider-side rotation remains unverified**. The owner must keep private reports private. This new note does not certify release safety or historical media rights.
+
 **Status: NOT CLEARED FOR SHARING.** The source remains private. This is an audit record and a reproducible verification procedure, not a claim that no secret ever reached Git.
 
 ## Operator-reported Gitleaks review (3 November 2026)

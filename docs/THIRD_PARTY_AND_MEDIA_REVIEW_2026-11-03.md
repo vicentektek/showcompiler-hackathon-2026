@@ -1,5 +1,7 @@
 # RUNQ — Third-party dependencies and media clearance
 
+> **Update, 4 November 2026:** The eight-image reference ZIP was excluded from current `main` in PR #143 because distribution rights were not established; it remains in historical public Git commits unless separately remediated. The three demonstration WAVs are synthesized programmatically in `src/core/demoShow.mjs` and bundled by `tools/build-rehearsal-demo.mjs` (original synthetic fixtures, not third-party music). This strengthens provenance evidence but is not a blanket rights clearance for images, other assets or all project history.
+
 **State: inventory complete only to the extent of currently identified source paths; licenses and distribution rights have NOT been independently cleared.** This is a submission preparation checklist, not legal advice.
 
 ## Direct Node dependencies (from frozen `package.json`)

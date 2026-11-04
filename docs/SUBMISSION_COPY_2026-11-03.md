@@ -1,6 +1,6 @@
 # RUNQ — Submission copy (English, ready to adapt)
 
-> **Status:** prepared English submission copy, **not proof of submission**. Add the real video URL, approved screenshots and any mandatory fields from the authenticated portal. On 3 November 2026 the organizer explicitly reminded entrants that the GitHub source must be open source and the demo video is 3 minutes. The repository is not yet public or licensed for distribution.
+> **Status:** prepared English submission copy, **not proof of submission**. The public YouTube video, GitHub URL and restrictive source-evaluation license are verified; only use screenshots you have personally inspected and meet any additional fields shown in the authenticated submission portal. The organizer's 3 November reminder requires a public repository and recommends a 3-minute demo.
 
 ## Name
 RUNQ — From Script to Stage
@@ -36,7 +36,7 @@ The interface also includes a deterministic sound-prompt preparation path. This 
 - Separate optional speech/rehearsal flow with deliberately armed Auto GO and operator emergency override.
 - Strict validation for cue proposals, source references and editable playback policies.
 - TXT/PDF/DOCX extraction; local audio library; portable archive import/export.
-- Offline Node regression suites and browser E2E coverage. Frozen SHA: `b4e7df724d569c1d5af7682540c206ff3fb97701`. GitHub Actions Core tests: success, run `41690922577`.
+- Offline Node regression suites and browser E2E coverage. Application-tested SHA: `35d04069c4aa2595202b49ef101d1cf30d77273b`; [Core tests](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/41747150069) passed on the identical PR source. PR #140 development evidence reported 843 offline tests. Later source-tree updates are documentation/licensing and non-runtime archive exclusion.
 
 ## What makes it different
 A stage operator can move from a script line to a reviewed cue and then to rehearsal and playback without handing the GO button to an LLM. The value lies in the **traceable script evidence**, **operator-level sound behavior**, and **explicit separation between AI proposals and show execution**.
@@ -50,11 +50,16 @@ This repository is the event-specific implementation. The project developed scri
 ## Technologies
 JavaScript ES modules, Node.js, browser Web Audio, Meta Model API (Muse Spark), optional speech service, `pdfjs-dist`, `mammoth`, `libarchive.js`. Historic Modal SFX experiments exist in development history but are **disabled for new generation in this submission**. Identify any additional actual deployment and third-party assets in the portal.
 
-## Link placeholders
-- Video: **[ADD PUBLIC OR UNLISTED VIDEO URL; verify accessibility]**
-- Source candidate: [RUNQ integrated `main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main) — **currently private, not yet a compliant public/open-source submission link**. Approve a reviewed public release or sanitized snapshot with a suitable license before including it in the portal. The frozen source is preserved on `release/runq-indie-submission-2026`.
-- Screenshots: **[ADD REAL FINAL-BUILD CAPTURES]**
-- Live demo: **[ADD ONLY IF ACTUALLY DEPLOYED AND TESTED]**
+## Verified submission URLs (copy into Cerebral Valley)
+
+- **Project:** RUNQ — From Script to Stage
+- **Video:** https://www.youtube.com/watch?v=NsFEqWO9eXs (public, 2:38, verified in YouTube Studio).
+- **Public source:** https://github.com/vicentektek/showcompiler-hackathon-2026
+- **Judge install guide:** https://github.com/vicentektek/showcompiler-hackathon-2026/blob/main/docs/JUDGE_QUICKSTART_2026-11-03.md
+- **License:** https://github.com/vicentektek/showcompiler-hackathon-2026/blob/main/LICENSE (All Rights Reserved + limited noncommercial evaluation).
+- **Hosted demo:** not deployed; run locally with Node.js 20+ and Chrome/Edge using the judge guide. Do **not** invent a live web-app URL.
+- **Screenshots:** attach only verified, approved captures if required by the portal; no public screenshot set has been independently attested here.
+- **Submission receipt:** NOT VERIFIED. Complete and save the authenticated portal submission.
 
 ## Suggested video voice-over, ~3 minutes (adapt to actual footage)
 
