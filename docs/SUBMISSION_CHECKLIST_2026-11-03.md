@@ -3,7 +3,7 @@
 ## Current verified control sheet — 4 November 2026 (supersedes dated notes below)
 
 - [x] Public GitHub repository and tested functional source on `main` (PR #140; application source `35d04069`).
-- [x] Public 2:38 YouTube video: https://www.youtube.com/watch?v=NsFEqWO9eXs (YouTube Studio reports no restrictions).
+- [x] Public 2:38 YouTube video: https://youtu.be/zH_ErjF2gM0 (YouTube Studio reports no restrictions).
 - [x] Root rights-reserved limited evaluation `LICENSE` and README updated; non-OSI source-available terms.
 - [x] Unverified design-reference ZIP removed from **current** main via PR #143; old public Git history still includes it.
 - [x] PR #140 Core tests passed; docs-only and archival-exclusion PR CI passed before merge.
