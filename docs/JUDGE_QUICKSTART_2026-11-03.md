@@ -4,6 +4,8 @@
 
 **RUNQ** is a browser-based AI-assisted cue-planning and audio operation tool for theatre, rehearsal and small live shows. It turns script directions into reviewed cue proposals linked to original lines, then gives the human operator explicit control of the show.
 
+**Optional agent-assisted verification:** Judges who prefer Codex or another coding agent can use the [independent judge agent prompt](JUDGE_AGENT_QUICKSTART_2026-11-04.md). The standard manual instructions below remain fully sufficient. The [owner's deeper Codex QA prompt](CODEX_INDEPENDENT_JUDGE_AUDIT_2026-11-04.md) is a separate read-only audit contract; neither process requires paid API access.
+
 ## Reproduce the submitted build
 
 The public default branch `main` contains the final RUNQ application and its documentation. The operator-validated application is commit [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b), integrated through [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140). Subsequent commits only update documentation, licensing and exclude a non-runtime design-reference archive; the live audio and AI code remains unchanged. The earlier `b4e7df7` commit is a historical frozen baseline, not the current install target.
