@@ -6,17 +6,21 @@
 
 RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a theatrical script, optional Meta Muse Spark cue suggestions, a human review process and deterministic local audio operation. AI helps prepare the show; **the operator controls GO**.
 
-> **Current submission source:** [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main), integrated by [PR #138](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/138) on 4 November 2026. **Frozen functional application reference:** [`b4e7df7`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/b4e7df724d569c1d5af7682540c206ff3fb97701) (3 November); preserved branch [`release/runq-hackathon-2026-frozen`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-hackathon-2026-frozen). The integrated tree differs from the release source only by a Windows path-validation fix in the offline evaluation utility. The frozen release branch remains available for comparison.
+**[Watch the 2:38 demo](https://www.youtube.com/watch?v=NsFEqWO9eXs)** · **[Browse the source](https://github.com/vicentektek/showcompiler-hackathon-2026)** · **[Judge quickstart](docs/JUDGE_QUICKSTART_2026-11-03.md)**
+
+> **Current submission source:** [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main), verified at merge commit [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b) (4 November 2026), including the seven focused safety fixes in [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140).
 >
-> **Project status:** working browser hackathon prototype, not a certified professional show-control application. **Publication pending:** the repository is private while secrets, history and media licenses are reviewed. The organizer's 3 November reminder says an open-source GitHub repository is mandatory; do not assume a private repo link meets that requirement. See [submission handoff](docs/SUBMISSION_HANDOFF_2026-11-04.md).
+> **Project status:** publicly readable working hackathon prototype, not a certified professional show-control application. The repository is publicly accessible; an explicit software license has **not yet been chosen**, and historic security/media distribution reviews are separately documented. Public visibility must not be confused with an OSI-approved open-source license.
 
-## Final submission source
+## Source, history and project name
 
-[`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main) is the current default branch and integration target. It contains the complete browser application, release documentation and the narrow Windows cross-drive snapshot validation correction. The unmodified submission snapshot is preserved on [`release/runq-indie-submission-2026`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026). **This source URL is not judge-accessible until a compliant publication decision and security/media clearance.**
+**RUNQ** was initially developed under the working name **ShowCompiler**. The product was renamed as the hackathon work evolved into an integrated script, cue, rehearsal and show-operation workspace. Historical identifiers such as `.showcompiler.zip` are retained for compatibility.
+
+The [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main) branch contains the runnable demo and the final operator-safety corrections ([PR #138](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/138), [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140)). The earlier functional baseline is [`b4e7df7`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/b4e7df724d569c1d5af7682540c206ff3fb97701), with the pre-fix submission snapshot preserved in [`release/runq-indie-submission-2026`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/release/runq-indie-submission-2026). Those preserved references are development history, **not** the current recommended build.
 
 ## What it does
 
-| Workflow | Frozen submission capability |
+| Workflow | Verified application capability |
 | --- | --- |
 | Script import | TXT UTF-8, text-based PDF and DOCX; preserve original content and traceable `L#` references |
 | Optional Meta AI | Muse Spark proposes script-linked cues; the user reviews and approves/rejects each proposal |
@@ -28,9 +32,9 @@ RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a t
 | Portability | Export/import full show ZIP with audio; JSON alone does not embed media |
 | Languages | English/Spanish UI and spoken-language choices; English defaults for new profiles |
 
-**Important distinction:** Muse-derived acoustic descriptions are not the same as operator-configured numeric dB, fade, duration and overlap values. The current model proposal contract does not ship structured numeric sound-setting recommendations. RUNQ does **not** create new WAVs through Modal in the frozen version; the sound assistant prepares prompts for local audio assignment.
+**Important distinction:** Muse-derived acoustic descriptions are not the same as operator-configured numeric dB, fade, duration and overlap values. The current model proposal contract does not ship structured numeric sound-setting recommendations. RUNQ does **not** create new WAVs through Modal in the submitted application; the sound assistant prepares prompts for local audio assignment.
 
-## Run the exact build
+## Run RUNQ locally
 
 **Prerequisites:** Node.js 20+, npm, recent Chrome or Edge, audio output. Meta credentials are optional for the manual/offline walkthrough.
 
@@ -38,7 +42,7 @@ RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a t
 git clone https://github.com/vicentektek/showcompiler-hackathon-2026.git
 cd showcompiler-hackathon-2026
 git switch main
-# Runnable application remains based on frozen commit b4e7df724d569c1d5af7682540c206ff3fb97701
+# Verified hackathon merge commit: 35d04069c4aa2595202b49ef101d1cf30d77273b
 npm install --no-audit --no-fund
 npm run dev
 ```
@@ -52,7 +56,7 @@ npm run check:syntax
 npm test
 ```
 
-The frozen commit passed GitHub Actions **Core tests**, run `41690922577`. The integration PR #138 passed **Core tests** and **Windows PowerShell preflight** on commit `ad90436` (832/832 offline unit tests reported). These results do **not** certify real hardware, microphone reliability or live-model availability; the merge commit did not itself trigger a new Core-tests push run. No paid calls are needed for routine checks.
+The final seven-fix PR #140 passed GitHub Actions **Core tests**, including browser/Chrome workflows ([run 41747150069](https://github.com/vicentektek/showcompiler-hackathon-2026/actions/runs/41747150069)), and Codex reported **843 passing offline tests**. The merged `main` tree was verified identical to the tested PR head; the merge commit did not independently trigger a new Core-tests run. A manual local smoke test of that build was also reported. These checks do **not** certify real hardware, microphone reliability, provider availability or safety-critical live operation. No paid AI requests are needed for routine offline validation.
 
 ## Five-minute walkthrough
 
@@ -65,13 +69,18 @@ The frozen commit passed GitHub Actions **Core tests**, run `41690922577`. The i
 
 For a live Meta Muse demonstration, configure the server-side `MODEL_API_KEY` according to [Meta Model API setup](docs/META_MODEL_API.md) and make an explicit request. Do not upload private scripts or show API keys in screenshots. Offline prompts and synthetic fixtures must be labelled as offline, not real model results.
 
-## Submission status
+## Demo and hackathon submission
 
-The event organizer's 3 November reminder requests a **3-minute demo video** and explicitly requires an **open-source GitHub repository**. The video URL, license/publication decision, current secret-scan sign-off and third-party media rights are **not yet confirmed in this repository**. The final form must be completed and its receipt saved in the authenticated Cerebral Valley portal. The published deadline is **4 November 2026, 9:00 PM ET = 5 November, 03:00 CET**. See [last-mile submission handoff](docs/SUBMISSION_HANDOFF_2026-11-04.md).
+- **Video:** [RUNQ — From Script to Stage (YouTube, 2:38)](https://www.youtube.com/watch?v=NsFEqWO9eXs), published 4 November 2026.
+- **Repository:** [public source on GitHub](https://github.com/vicentektek/showcompiler-hackathon-2026); reviewed application SHA: `35d04069`.
+- **Track/theme:** Indie Developer / Build for Your World.
+- **Submission portal:** [Cerebral Valley](https://cerebralvalley.ai/e/meta-ai-developer-hackathon). The submission form and receipt are not confirmed by the repository itself.
+- **Deadline:** 4 November 2026, 9:00 PM ET (5 November, 03:00 CET).
+- **Licensing:** a public repository is not automatically open-source licensed. The organizer requested an open-source GitHub repository; the exact code-license terms are pending an explicit owner decision. See the security/media audit documents below.
 
 ## Submission documentation
 
-- [Submission-day handoff and publication blockers](docs/SUBMISSION_HANDOFF_2026-11-04.md)
+- [Submission-day handoff (dated record; earlier visibility and SHA statements may be superseded)](docs/SUBMISSION_HANDOFF_2026-11-04.md)
 
 - [Release notes and complete feature boundaries](docs/SUBMISSION_RELEASE_2026-11-03.md)
 - [Judge installation and walkthrough](docs/JUDGE_QUICKSTART_2026-11-03.md)
@@ -89,6 +98,10 @@ The event organizer's 3 November reminder requests a **3-minute demo video** and
 
 Node.js local HTTP server, browser JavaScript ES modules, Web Audio, optional Meta Model API (Muse Spark), `pdfjs-dist`, `mammoth` and `libarchive.js`. The project does **not** claim a native Windows binary, PFL isolation, hardware DMX/ASIO integration, certified live-show safety, or enabled remote audio-generation deployment.
 
-Earlier Modal SFX, Baseten evaluation, TTS, desktop and other proof-of-concept work remains in dated development documentation and Git history; it is **not** advertised as shipped. See the [archived long-form development README](docs/README_DEVELOPMENT_HISTORY_2026-11-03.md). No implicit open-source license is granted; distribution rights for media and code must be reviewed before a public release.
+Earlier Modal SFX, Baseten evaluation, TTS, desktop and other proof-of-concept work remains in dated development documentation and Git history; it is **not** advertised as shipped. See the [archived long-form development README](docs/README_DEVELOPMENT_HISTORY_2026-11-03.md).
+
+## Copyright and licensing
+
+RUNQ's source is visible publicly for hackathon evaluation. **No `LICENSE` file has yet been selected for the original project code.** Until licensing is decided, do not assume that seeing the source grants broad permission to copy, modify, redistribute or commercially exploit it. GitHub's platform terms separately permit viewing and forking. Third-party dependencies and media remain subject to their own rights and licenses. This statement is a description of the current status, **not** an open-source license or a claim of compliance with any specific licensing requirement.
 
 **RUNQ — AI helps prepare the show. The operator runs it.**
