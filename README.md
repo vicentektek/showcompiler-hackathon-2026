@@ -24,7 +24,7 @@ This is why RUNQ enters the **Indie Developer** track under **Build for Your Wor
 - **Known product boundaries:** new Modal WAV generation is disabled in the submitted build; native Windows, DMX/ASIO and dedicated PFL are not shipped. The [AI context and safety contract](docs/RUNQ_AI_CONTEXT.md) separates model proposals, preview, rehearsal automation and real show transport.
 
 
-**[Watch the 2:38 demo](https://youtu.be/zH_ErjF2gM0)** · **[Browse the source](https://github.com/vicentektek/showcompiler-hackathon-2026)** · **[Judge quickstart](docs/JUDGE_QUICKSTART_2026-11-03.md)**
+**[Watch the final demo](https://youtu.be/E11a04OCi2Y)** · **[Browse the source](https://github.com/vicentektek/showcompiler-hackathon-2026)** · **[Judge quickstart](docs/JUDGE_QUICKSTART_2026-11-03.md)**
 
 > **Current submission source:** [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main), verified at merge commit [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b) (4 November 2026), including the seven focused safety fixes in [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140).
 >
@@ -89,7 +89,7 @@ For a live Meta Muse demonstration, configure the server-side `MODEL_API_KEY` ac
 
 ## Demo and hackathon submission
 
-- **Video:** [RUNQ — From Script to Stage (YouTube, 2:38)](https://youtu.be/zH_ErjF2gM0), published 4 November 2026.
+- **Video:** [RUNQ — From Script to Stage (YouTube, final cut)](https://youtu.be/E11a04OCi2Y), final video link supplied 4 November 2026.
 - **Repository:** [public source on GitHub](https://github.com/vicentektek/showcompiler-hackathon-2026); reviewed application SHA: `35d04069`.
 - **Track/theme:** Indie Developer / Build for Your World.
 - **Submission portal:** [Cerebral Valley](https://cerebralvalley.ai/e/meta-ai-developer-hackathon). The submission form and receipt are not confirmed by the repository itself.
