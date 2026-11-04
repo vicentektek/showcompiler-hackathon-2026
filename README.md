@@ -6,6 +6,20 @@
 
 RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a theatrical script, optional Meta Muse Spark cue suggestions, a human review process and deterministic local audio operation. AI helps prepare the show; **the operator controls GO**.
 
+## Why RUNQ exists — Build for Your World
+
+RUNQ was created by a **solo indie developer with hands-on experience in live-event sound engineering and technical production**. During show preparation and rehearsal, technicians must turn human-written scripts and changing running orders into precise, playable cues. A technical direction is not automatically a sound: an actor's practical prop, a lighting instruction, a live musician, a sound-file PLAY, a STANDBY and a GO require different decisions. Timing, cue readiness, fades, overlap and STOP behavior matter when a real performance is underway.
+
+This is why RUNQ enters the **Indie Developer** track under **Build for Your World**: it applies Meta's models to a problem the creator knows professionally, rather than putting a generic chatbot beside an audio player. The technical ambition also speaks to the *spirit* of **Push the Frontier**—making unstructured production instructions machine-interpretable and source-traceable—but **Build for Your World is the selected project theme**. RUNQ does not claim autonomous control of stage hardware or certified safety-critical operation.
+
+## What the judges can verify
+
+- **Substantive Meta Muse Spark integration:** the [Meta API adapter](src/core/metaCueProvider.mjs) prepares bounded script analysis; [theatrical production guidance](src/core/performanceKnowledge.mjs) covers plays, musicals, galas, concerts and calling scripts. Proposals link to original script lines and go through [strict validation](src/core/proposals.mjs) and human approval. No model response triggers live playback.
+- **An end-to-end operator workflow:** import a script, review source-linked cues, configure or import real audio, rehearse with optional explicitly armed speech following, then operate NEXT/GO/STOP locally and export a portable show ZIP. See the [five-minute judge guide](docs/JUDGE_QUICKSTART_2026-11-03.md).
+- **Engineering evidence:** [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140) incorporated seven targeted safety fixes and passed its Core tests; its development report records **843 offline tests passing**. Offline regression results are **not** claims about live-model accuracy, real microphone reliability or professional audio hardware certification.
+- **Known product boundaries:** new Modal WAV generation is disabled in the submitted build; native Windows, DMX/ASIO and dedicated PFL are not shipped. The [AI context and safety contract](docs/RUNQ_AI_CONTEXT.md) separates model proposals, preview, rehearsal automation and real show transport.
+
+
 **[Watch the 2:38 demo](https://youtu.be/zH_ErjF2gM0)** · **[Browse the source](https://github.com/vicentektek/showcompiler-hackathon-2026)** · **[Judge quickstart](docs/JUDGE_QUICKSTART_2026-11-03.md)**
 
 > **Current submission source:** [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main), verified at merge commit [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b) (4 November 2026), including the seven focused safety fixes in [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140).
