@@ -8,7 +8,7 @@ RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a t
 
 **[Judge evidence: development dates, Meta integration, tests and dependency licenses](docs/JUDGE_EVIDENCE_2026-11-04.md)**
 
-**Optional independent evaluation:** [Agent-assisted judge quickstart](docs/JUDGE_AGENT_QUICKSTART_2026-11-04.md) · [Complete read-only Codex audit prompt](docs/CODEX_INDEPENDENT_JUDGE_AUDIT_2026-11-04.md). Normal human installation instructions remain the default.
+**Optional one-prompt setup for judges:** [Ask a coding agent to install, configure your own Meta API key and launch RUNQ](docs/JUDGE_AGENT_QUICKSTART_2026-11-04.md). [Manual judge quickstart](docs/JUDGE_QUICKSTART_2026-11-03.md) · [Separate developer QA audit prompt](docs/CODEX_INDEPENDENT_JUDGE_AUDIT_2026-11-04.md).
 
 ## Why RUNQ exists — Build for Your World
 
