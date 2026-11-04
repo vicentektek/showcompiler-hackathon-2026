@@ -3,7 +3,7 @@
  * Default is DRY RUN. Real inference requires --live --ack-paid and
  * MODEL_API_KEY in the LOCAL terminal. NEVER call this in CI.
  */
-import { parseLiveOptions, runMetaSeminarEval } from './metaSeminarEval.mjs';
+import { parseLiveOptions, runMetaSeminarEval, META_LIVE_BUDGET_NOTICE } from './metaSeminarEval.mjs';
 import { acquireCampaignMetaBudget } from './metaBudgetLedger.mjs';
 try{
   const options=parseLiveOptions(process.argv.slice(2));
@@ -21,7 +21,7 @@ try{
   console.log('Meta requests sent: '+run.submittedRequests+'; conservative reserve $'+run.conservativeReservedUsd.toFixed(4)+' (no local budget cap)');
   console.log('Estimated usage charge: '+(run.observedUsageEstimatedUsd===null?'not available':'$'+run.observedUsageEstimatedUsd.toFixed(4)));
   console.log('Scored complete cases: '+run.scoredCases+'; halt reason: '+(run.haltReason??'none'));
-  if(options.live)console.log('Persistent Meta history max $65 AND per-user shared campaign max $100; command limit remains $2.');
+  if(options.live)console.log(META_LIVE_BUDGET_NOTICE);
   console.log('Private local reports: artifacts/seminar-live/report.{md,json} (or --output path)');
   if(run.haltReason&&options.live)process.exitCode=1;
 }catch(error){

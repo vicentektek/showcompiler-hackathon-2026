@@ -290,7 +290,8 @@ export function normalizeShowProject(input) {
       ...(cue.entryPolicy === undefined ? {} : { entryPolicy: normalizeCueEntryPolicy(cue.entryPolicy) }),
       ...(cue.playback === undefined ? {} : { playback: normalizeCuePlayback(cue.playback) }),
       ...(cue.stopFadeOverrides === undefined ? {} : { stopFadeOverrides: cue.stopFadeOverrides }),
-      ...(cue.audioTracks === undefined ? {} : { audioTracks: normalizeCueAudioTracks(cue.audioTracks, knownAssets) }),
+      ...(cue.audioTracks === undefined ? {} : { audioTracks: normalizeCueAudioTracks(
+        cue.audioTracks, knownAssets, cueActions.filter(action => action.type === 'PLAY').length) }),
     };
   });
   uniqueId(cues, 'cues');

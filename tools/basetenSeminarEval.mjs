@@ -12,6 +12,7 @@ import {prepareTheatricalCueAnalysis,parseTheatricalCueContent,classifyTheatrica
 import {evaluateStageEventCases,renderStageEventReport} from '../src/core/stageCueQa.mjs';
 import {BASETEN_MODEL,BASETEN_URL} from '../src/core/basetenCueProvider.mjs';
 import {summarizeEvaluationRequests} from './evalMeasurements.mjs';
+import {CAMPAIGN_POLICY} from '../src/qa/campaignPolicy.mjs';
 
 const MAX_REQUESTS=20, MAX_BODY_BYTES=100000, MAX_RESPONSE_BYTES=100000;
 const MAX_COMPLETION_TOKENS=8192;
@@ -111,6 +112,7 @@ export async function runBasetenSeminarEval({
   parseBasetenEvalOptions([...(live?['--live']:[]),...(ackPaid?['--ack-paid']:[]),
     '--max-requests',String(maxRequests),'--mode',mode,
     ...(caseId?['--case',caseId]:[]),'--output',output]);
+  if(live&&CAMPAIGN_POLICY.capsUsd.baseten===0)throw new Error('CAMPAIGN_PROVIDER_PROHIBITED');
   if(live&&!apiKey)throw new TypeError('BASETEN_API_KEY missing; no requests sent');
   const corpus=await corpusReader(), selected=corpus.cases.filter(x=>!caseId||x.id===caseId);
   if(!selected.length)throw new RangeError('Unknown corpus case');

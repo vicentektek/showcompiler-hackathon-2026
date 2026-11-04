@@ -22,7 +22,7 @@ import { planScriptAnalysis } from '../core/sceneAnalysis.mjs';
 import { inspectShowReadiness } from '../core/showPreflight.mjs';
 import { readOperatorPreferences } from '../core/operatorPreferences.mjs';
 import { newOperatorQueue, startOperatorQueue, previousOperatorCue, prepareOperatorCue, completePreparedCue, skipPreparedCue } from '../core/operatorQueue.mjs';
-import { createShowEventLog } from '../core/showEventLog.mjs';
+import { createShowEventLog, appendShowEventSafely } from '../core/showEventLog.mjs';
 import { findScriptMatches, scriptWindow } from '../core/scriptNavigation.mjs';
 import { readPreferredUiLocale, savePreferredUiLocale, translate, translateDocument, resolveErrorKey } from './i18n.mjs';
 import { mountShowPreparation } from './show-preparation-ui.mjs';
@@ -150,7 +150,7 @@ let player = createBrowserAudioBackend({
  },
  onCueNaturalEnd:cueId=>{
   const cue=show.cues.find(c=>c.id===cueId);
-  showEventLog.append('CUE_FINISHED',{cueId,label:cue?.label??'',source:'engine'});
+  appendShowEventSafely(showEventLog,'CUE_FINISHED',{cueId,label:cue?.label??'',source:'engine'});
  },
 });
 document.addEventListener('runq:audio-control', async event => {
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const now=arm.getAttribute('aria-pressed')==='true';
   if(now===previousAutoArmed)return;
   previousAutoArmed=now;
-  showEventLog.append(now?'AUTO_ARMED':'AUTO_DISARMED',{source:'rehearsal'});
+  appendShowEventSafely(showEventLog,now?'AUTO_ARMED':'AUTO_DISARMED',{source:'rehearsal'});
  }).observe(arm,{attributes:true,attributeFilter:['aria-pressed']});
 });
 // V10 single show-controller preview lease. Sound Lab still has a temporary
@@ -1118,7 +1118,7 @@ function renderCueList({ resetScroll = false } = {}) {
     prepare.disabled=operatorQueue.preparedCueId===cue.id;
     prepare.addEventListener('click',()=>{
       operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
-      showEventLog.append('NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator'});
+      appendShowEventSafely(showEventLog,'NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator'});
       render();
       feedback('operator.preparedFeedback',{number:cue.number},'success');
     });
@@ -1171,11 +1171,11 @@ function renderCueList({ resetScroll = false } = {}) {
       button.addEventListener('click', async () => {
         try {
           if (action === 'stop') {
-            if(player.stopCue(cue.id))showEventLog.append('CUE_STOPPED',{cueId:cue.id,label:cue.label,source:'operator'});
+            if(player.stopCue(cue.id))appendShowEventSafely(showEventLog,'CUE_STOPPED',{cueId:cue.id,label:cue.label,source:'operator'});
             feedback('status.audioStopped', { number: cue.number }, 'success');
           } else {
             if(player.stopCue(cue.id, cue.playback?.fadeOutMs || 1500))
-              showEventLog.append('CUE_FADE',{cueId:cue.id,label:cue.label,source:'operator'});
+              appendShowEventSafely(showEventLog,'CUE_FADE',{cueId:cue.id,label:cue.label,source:'operator'});
             feedback('status.audioFaded', { number: cue.number }, 'success');
           }
         } catch (error) { showError(error, resolveErrorKey(error) === 'errors.generic' ? 'errors.invalidAudio' : undefined); }
@@ -2202,7 +2202,7 @@ function renderCueInspector() {
     prepare.disabled=cue.id===operatorQueue.preparedCueId;
     prepare.addEventListener('click',()=>{
       operatorQueue = prepareOperatorCue(operatorQueue, show.cues, cue.id);
-      showEventLog.append('NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator'});
+      appendShowEventSafely(showEventLog,'NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator'});
       render();
       feedback('operator.preparedFeedback',{number:cue.number},'success');
     });
@@ -2440,7 +2440,7 @@ function currentScriptLanguageHint() {
 function setNewShow(project, statusKey, values = {}) {
   projectGeneration += 1;
   showEventLog.clear();
-  showEventLog.append('SHOW_OPENED',{label:project.name,source:'project'});
+  appendShowEventSafely(showEventLog,'SHOW_OPENED',{label:project.name,source:'project'});
   scriptFocusLineId = null;
   scriptMatchIndex = 0;
   editingCueId = null;
@@ -2654,7 +2654,7 @@ async function executeCueById(id,{advancePrepared=false}={}){
    await player.go(cue);
    if(generation!==projectGeneration)return false;
    lastGoCueId=id;
-   showEventLog.append('CUE_STARTED',{cueId:id,label:cue.label,
+   appendShowEventSafely(showEventLog,'CUE_STARTED',{cueId:id,label:cue.label,
       source:activeWorkspace==='rehearsal'&&$('rqLiveArm')?.getAttribute('aria-pressed')==='true'?'rehearsal':'operator'});
    if(advancePrepared&&operatorQueue.preparedCueId===id)
      operatorQueue=completePreparedCue(operatorQueue,show.cues,id);
@@ -2662,7 +2662,7 @@ async function executeCueById(id,{advancePrepared=false}={}){
    feedback('operator.goFeedback',{number:cue.number},'success');
    return true;
  }catch(error){
-   showEventLog.append('GO_REJECTED',{cueId:id,label:cue.label,source:activeWorkspace==='rehearsal'?'rehearsal':'operator',detail:String(error?.message??'Failed').slice(0,160)});
+   appendShowEventSafely(showEventLog,'GO_REJECTED',{cueId:id,label:cue.label,source:activeWorkspace==='rehearsal'?'rehearsal':'operator',detail:String(error?.message??'Failed').slice(0,160)});
    showError(error);return false;
  }
  finally{goTransportPending=false;refreshAudioControls();}
@@ -2733,7 +2733,7 @@ $('operatorSkipBtn').addEventListener('click', () => {
   if (!cue) return;
   try {
     operatorQueue = skipPreparedCue(operatorQueue, show.cues);
-    showEventLog.append('NEXT_SKIPPED',{cueId:cue.id,label:cue.label,source:'operator'});
+    appendShowEventSafely(showEventLog,'NEXT_SKIPPED',{cueId:cue.id,label:cue.label,source:'operator'});
     render();
     feedback('operator.skippedFeedback', { number: cue.number }, 'success');
   } catch (error) { showError(error); }
@@ -2741,7 +2741,7 @@ $('operatorSkipBtn').addEventListener('click', () => {
 $('operatorBackBtn').addEventListener('click', () => {
   operatorQueue = previousOperatorCue(operatorQueue, show.cues);
   const cue=show.cues.find(c=>c.id===operatorQueue.preparedCueId);
-  if(cue)showEventLog.append('NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator',detail:'previous'});
+  if(cue)appendShowEventSafely(showEventLog,'NEXT_PREPARED',{cueId:cue.id,label:cue.label,source:'operator',detail:'previous'});
   render();
 });
 $('operatorResetBtn').addEventListener('click', () => {
@@ -2754,7 +2754,7 @@ $('operatorResetBtn').addEventListener('click', () => {
   }
   operatorQueue = startOperatorQueue(show.cues);
   lastGoCueId = null;
-  showEventLog.append('QUEUE_RESET',{source:'operator'});
+  appendShowEventSafely(showEventLog,'QUEUE_RESET',{source:'operator'});
   render();
   feedback('operator.resetFeedback', {}, 'success');
 });
@@ -3209,7 +3209,7 @@ function emergencyStopAllAudio() {
   document.dispatchEvent(new CustomEvent('runq:rehearsal-auto-disarm',{detail:{reason:'stop_all'}}));
   stopSoundLabPreview();
   player.stopAll();
-  showEventLog.append('STOP_ALL',{source:'operator'});
+  appendShowEventSafely(showEventLog,'STOP_ALL',{source:'operator'});
   feedback('status.panic', {}, 'success');
 }
 $('stopAllBtn').addEventListener('click', emergencyStopAllAudio);

@@ -55,6 +55,7 @@ export function decideOperatorShortcut(event={}, settings={}, workspace='') {
   if (event.inModal===true) return null;
   const code=event.code || (event.key===' ' ? 'Space' :
     /^[a-z]$/i.test(event.key??'')?'Key'+event.key.toUpperCase():event.key);
+  if (cueRow && code==='Enter') return null;
   if (map.go!=='None' && code===map.go) return 'GO';
   if (map.stopAll!=='None' && code===map.stopAll) return 'STOP_ALL';
   return null;

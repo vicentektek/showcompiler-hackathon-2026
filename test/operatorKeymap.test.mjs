@@ -42,6 +42,13 @@ test('focused cue row is an intentional Space GO surface; ordinary focused butto
   assert.equal(decideOperatorShortcut(mock('Space',{target:input}),
     DEFAULT_OPERATOR_KEYMAP,'cues'),null);
 });
+test('Enter always selects a focused cue row and cannot trigger mapped GO',()=>{
+  const row={closest:selector=>selector==='[data-cue-select]'?{}:null};
+  const map={...DEFAULT_OPERATOR_KEYMAP,go:'Enter'};
+  assert.equal(decideOperatorShortcut(mock('Enter',{target:row}),map,'cues'),null);
+  assert.equal(decideOperatorShortcut(mock('Enter'),map,'cues'),'GO');
+  assert.equal(decideOperatorShortcut(mock('Space',{target:row}),{...map,go:'Space'},'cues'),'GO');
+});
 test('settings can disable one/both contexts and GO mapping without changing show',()=>{
   const p={...DEFAULT_OPERATOR_KEYMAP,inEditor:false};
   assert.equal(decideOperatorShortcut(mock('Space'),p,'cues'),null);
