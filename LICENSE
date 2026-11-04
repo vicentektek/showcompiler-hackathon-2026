@@ -1,0 +1,55 @@
+RUNQ — ALL RIGHTS RESERVED
+Limited Permission for Evaluation
+
+Copyright (c) 2026 vicentektek (RUNQ project author). All rights reserved.
+
+1. Ownership
+The original RUNQ software, source code, and documentation are proprietary
+and remain the intellectual property of their respective rights holders.
+Making the repository publicly visible does not place RUNQ in the public
+domain or grant an open-source license.
+
+2. Limited permission to evaluate
+Permission is granted, free of charge, to individuals (including reviewers
+and judges of the Meta Global AI Developer Hackathon 2026) to access, download,
+clone, install, and execute the original RUNQ project solely for private,
+non-commercial evaluation, testing, and review.
+
+You may make local configuration adjustments strictly necessary to install
+and run RUNQ for that limited purpose. This permission does not authorize
+publication or distribution of modified versions.
+
+3. Uses not authorized
+Except where applicable law expressly permits otherwise, or where the
+copyright holder gives prior written authorization, this permission does
+not authorize:
+- commercial use or exploitation;
+- redistribution, sublicensing, sale, rental, or transfer of the software;
+- publishing modified copies, derivative products, or repackaged builds;
+- hosting RUNQ as a service for other users; or
+- removing copyright or attribution notices.
+
+For clarity, the ordinary functionality of GitHub's platform, including
+viewing and forking a public repository, remains subject to GitHub's
+applicable terms and does not expand the permissions granted here.
+
+4. Third-party code, data, and media
+This permission applies only to original RUNQ materials for which the
+copyright holder may grant rights. It does not relicense any included
+third-party library, dependency, audio recording, musical work, image,
+font, script, model, or other third-party asset. Those items remain subject
+to their own licenses and rights. Nothing in this document represents
+an assertion that every repository asset is cleared for redistribution.
+
+5. Other permissions
+For commercial licensing, redistribution, modifications beyond the limited
+evaluation allowance, or other uses, request permission from the repository
+owner through an appropriate private contact channel.
+
+6. Disclaimer
+To the extent permitted by applicable law, RUNQ is provided "AS IS",
+without warranties of any kind. RUNQ is a hackathon prototype and is not
+certified or warranted for safety-critical live show operation.
+
+This is a source-available, restricted evaluation permission. It is
+NOT an OSI-approved open-source software license.
