@@ -1,6 +1,6 @@
 # RUNQ — Submission copy (English, ready to adapt)
 
-> **Status:** prepared English submission copy, **not proof of submission**. The public YouTube video, GitHub URL and restrictive source-evaluation license are verified; only use screenshots you have personally inspected and meet any additional fields shown in the authenticated submission portal. The organizer's 3 November reminder requires a public repository and recommends a 3-minute demo.
+> **Status:** prepared English submission copy, **not proof of submission**. The author-supplied final YouTube URL, public GitHub URL and restrictive source-evaluation license are recorded; verify the video's public accessibility in YouTube Studio before submitting; only use screenshots you have personally inspected and meet any additional fields shown in the authenticated submission portal. The organizer's 3 November reminder requires a public repository and recommends a 3-minute demo.
 
 ## Name
 RUNQ — From Script to Stage
@@ -67,7 +67,7 @@ JavaScript ES modules, Node.js, browser Web Audio, Meta Model API (Muse Spark), 
 ## Verified submission URLs (copy into Cerebral Valley)
 
 - **Project:** RUNQ — From Script to Stage
-- **Video:** https://youtu.be/zH_ErjF2gM0 (public, 2:38, verified in YouTube Studio).
+- **Video:** https://youtu.be/E11a04OCi2Y (final video URL supplied 4 November 2026; confirm public visibility in YouTube Studio).
 - **Public source:** https://github.com/vicentektek/showcompiler-hackathon-2026
 - **Judge install guide:** https://github.com/vicentektek/showcompiler-hackathon-2026/blob/main/docs/JUDGE_QUICKSTART_2026-11-03.md
 - **License:** https://github.com/vicentektek/showcompiler-hackathon-2026/blob/main/LICENSE (All Rights Reserved + limited noncommercial evaluation).
