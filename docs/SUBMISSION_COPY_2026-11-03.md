@@ -16,6 +16,20 @@ In theatre and live production, turning a script into a reliable sequence of sou
 
 **RUNQ** connects those steps. It imports a script, preserves original line references, proposes sound cues through an optional Meta Muse Spark analysis, and lets an operator review and approve each suggestion. The same show then flows into sound preparation, non-destructive cue settings, rehearsal, and manual audio operation. The objective is to reduce preparation friction without giving generative AI uncontrolled access to performance playback.
 
+## Why this theme and why this developer
+
+RUNQ is a **solo Indie Developer** entry under **Build for Your World**. Its creator works in live-event sound engineering and technical production: show preparation involves reading human-authored instructions, coordinating technical timing, managing audio readiness and responding to changing rehearsal conditions. A STANDBY is not a GO; live instruments, practical props, lighting directions and prerecorded sound must not be confused. Those first-hand operational distinctions shaped RUNQ's cue proposal rules, interface and safety boundaries.
+
+The technical ambition also relates to the spirit of **Push the Frontier**: using domain-guided AI to make unstructured stage documents interpretable as inspectable, source-traceable proposals, without letting probabilistic output directly control a show. **Build for Your World remains the selected theme**; RUNQ does not claim physical hardware autonomy.
+
+## Evidence a judge can inspect
+
+- Domain-aware stage-production guidance: [src/core/performanceKnowledge.mjs](../src/core/performanceKnowledge.mjs).
+- Meta Muse Spark 1.3 API adapter: [src/core/metaCueProvider.mjs](../src/core/metaCueProvider.mjs).
+- Validation of untrusted proposals: [src/core/proposals.mjs](../src/core/proposals.mjs).
+- AI context boundaries and separation from live transport: [docs/RUNQ_AI_CONTEXT.md](RUNQ_AI_CONTEXT.md).
+- Reproducible offline demo and Core test evidence: [judge quickstart](JUDGE_QUICKSTART_2026-11-03.md) and [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140).
+
 ## How it works
 1. Import a TXT, text-based PDF or DOCX script. Original lines stay available as L# references.
 2. Ask Meta Muse to analyze selected script content and propose cues, or work with the offline/manual preparation route.
