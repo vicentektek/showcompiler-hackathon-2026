@@ -1,6 +1,6 @@
 # RUNQ — Judge quick start
 
-**Verified entry links:** [Watch the 2:38 public demo](https://www.youtube.com/watch?v=NsFEqWO9eXs) · [Public GitHub repository](https://github.com/vicentektek/showcompiler-hackathon-2026) · [Rights-reserved evaluation license](../LICENSE).
+**Verified entry links:** [Watch the 2:38 public demo](https://youtu.be/zH_ErjF2gM0) · [Public GitHub repository](https://github.com/vicentektek/showcompiler-hackathon-2026) · [Rights-reserved evaluation license](../LICENSE).
 
 **RUNQ** is a browser-based AI-assisted cue-planning and audio operation tool for theatre, rehearsal and small live shows. It turns script directions into reviewed cue proposals linked to original lines, then gives the human operator explicit control of the show.
 

@@ -6,7 +6,7 @@
 
 RUNQ is a browser-based rehearsal and sound-cue production tool. It connects a theatrical script, optional Meta Muse Spark cue suggestions, a human review process and deterministic local audio operation. AI helps prepare the show; **the operator controls GO**.
 
-**[Watch the 2:38 demo](https://www.youtube.com/watch?v=NsFEqWO9eXs)** · **[Browse the source](https://github.com/vicentektek/showcompiler-hackathon-2026)** · **[Judge quickstart](docs/JUDGE_QUICKSTART_2026-11-03.md)**
+**[Watch the 2:38 demo](https://youtu.be/zH_ErjF2gM0)** · **[Browse the source](https://github.com/vicentektek/showcompiler-hackathon-2026)** · **[Judge quickstart](docs/JUDGE_QUICKSTART_2026-11-03.md)**
 
 > **Current submission source:** [`main`](https://github.com/vicentektek/showcompiler-hackathon-2026/tree/main), verified at merge commit [`35d04069`](https://github.com/vicentektek/showcompiler-hackathon-2026/commit/35d04069c4aa2595202b49ef101d1cf30d77273b) (4 November 2026), including the seven focused safety fixes in [PR #140](https://github.com/vicentektek/showcompiler-hackathon-2026/pull/140).
 >
@@ -71,7 +71,7 @@ For a live Meta Muse demonstration, configure the server-side `MODEL_API_KEY` ac
 
 ## Demo and hackathon submission
 
-- **Video:** [RUNQ — From Script to Stage (YouTube, 2:38)](https://www.youtube.com/watch?v=NsFEqWO9eXs), published 4 November 2026.
+- **Video:** [RUNQ — From Script to Stage (YouTube, 2:38)](https://youtu.be/zH_ErjF2gM0), published 4 November 2026.
 - **Repository:** [public source on GitHub](https://github.com/vicentektek/showcompiler-hackathon-2026); reviewed application SHA: `35d04069`.
 - **Track/theme:** Indie Developer / Build for Your World.
 - **Submission portal:** [Cerebral Valley](https://cerebralvalley.ai/e/meta-ai-developer-hackathon). The submission form and receipt are not confirmed by the repository itself.

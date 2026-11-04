@@ -53,7 +53,7 @@ JavaScript ES modules, Node.js, browser Web Audio, Meta Model API (Muse Spark), 
 ## Verified submission URLs (copy into Cerebral Valley)
 
 - **Project:** RUNQ — From Script to Stage
-- **Video:** https://www.youtube.com/watch?v=NsFEqWO9eXs (public, 2:38, verified in YouTube Studio).
+- **Video:** https://youtu.be/zH_ErjF2gM0 (public, 2:38, verified in YouTube Studio).
 - **Public source:** https://github.com/vicentektek/showcompiler-hackathon-2026
 - **Judge install guide:** https://github.com/vicentektek/showcompiler-hackathon-2026/blob/main/docs/JUDGE_QUICKSTART_2026-11-03.md
 - **License:** https://github.com/vicentektek/showcompiler-hackathon-2026/blob/main/LICENSE (All Rights Reserved + limited noncommercial evaluation).
